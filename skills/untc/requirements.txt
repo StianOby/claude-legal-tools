@@ -1,0 +1,4 @@
+# The skill prefers `pdftotext` from poppler-utils for table-aware
+# extraction. Install pypdf only if poppler isn't available on this
+# machine.
+pypdf>=3.0

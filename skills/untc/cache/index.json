@@ -1,0 +1,1500 @@
+{
+  "fetched_utc": "2026-05-08T11:07:54Z",
+  "source": "https://treaties.un.org/Pages/Treaties.aspx",
+  "chapters": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29
+  ],
+  "treaties": [
+    {
+      "ref": "I-1",
+      "chapter_int": 1,
+      "title": "Charter of the United Nations (deposited in the archives of the Government of the United States of America)",
+      "place_date": "San Francisco, 26 June 1945"
+    },
+    {
+      "ref": "I-2",
+      "chapter_int": 1,
+      "title": "Declarations of Acceptance of the Obligations contained in the Charter of the United Nations - Admission of States to Membership in the United Nations in accordance with Article 4 of the Charter",
+      "place_date": "San Francisco, 24 October 1945"
+    },
+    {
+      "ref": "I-3",
+      "chapter_int": 1,
+      "title": "Statute of the International Court of Justice (deposited in the archives of the Government of the United States of America)",
+      "place_date": "San Francisco, 24 October 1945"
+    },
+    {
+      "ref": "I-4",
+      "chapter_int": 1,
+      "title": "Declarations recognizing as compulsory the jurisdiction of the International Court of Justice under Article 36, paragraph 2, of the Statute of the Court",
+      "place_date": "15 October 1946"
+    },
+    {
+      "ref": "I-5",
+      "chapter_int": 1,
+      "title": "Amendments to Articles 23,27 and 61 of the Charter of the United Nations, adopted by the General Assembly of the United Nations in resolutions 1991 A and B (XVIII) of 17 December 1963",
+      "place_date": "New York, 17 December 1963"
+    },
+    {
+      "ref": "II-1",
+      "chapter_int": 2,
+      "title": "Revised General Act for the Pacific Settlement of International Disputes",
+      "place_date": "New York, 28 April 1949"
+    },
+    {
+      "ref": "III-1",
+      "chapter_int": 3,
+      "title": "Convention on the Privileges and Immunities of the United Nations",
+      "place_date": "New York, 13 February 1946"
+    },
+    {
+      "ref": "III-2",
+      "chapter_int": 3,
+      "title": "Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "New York, 21 November 1947"
+    },
+    {
+      "ref": "III-3",
+      "chapter_int": 3,
+      "title": "Vienna Convention on Diplomatic Relations",
+      "place_date": "Vienna, 18 April 1961"
+    },
+    {
+      "ref": "III-4",
+      "chapter_int": 3,
+      "title": "Optional Protocol to the Vienna Convention on Diplomatic Relations, concerning Acquisition of Nationality",
+      "place_date": "Vienna, 18 April 1961"
+    },
+    {
+      "ref": "III-5",
+      "chapter_int": 3,
+      "title": "Optional Protocol to the Vienna Convention on Diplomatic Relations, concerning the Compulsory Settlement of Disputes",
+      "place_date": "Vienna, 18 April 1961"
+    },
+    {
+      "ref": "III-6",
+      "chapter_int": 3,
+      "title": "Vienna Convention on Consular Relations",
+      "place_date": "Vienna, 24 April 1963"
+    },
+    {
+      "ref": "III-7",
+      "chapter_int": 3,
+      "title": "Optional Protocol to the Vienna Convention on Consular Relations concerning Acquisition of Nationality",
+      "place_date": "Vienna, 24 April 1963"
+    },
+    {
+      "ref": "III-8",
+      "chapter_int": 3,
+      "title": "Optional Protocol to the Vienna Convention on Consular Relations concerning the Compulsory Settlement of Disputes",
+      "place_date": "Vienna, 24 April 1963"
+    },
+    {
+      "ref": "III-9",
+      "chapter_int": 3,
+      "title": "Convention on special missions",
+      "place_date": "New York, 8 December 1969"
+    },
+    {
+      "ref": "III-10",
+      "chapter_int": 3,
+      "title": "Optional Protocol to the Convention on Special Missions concerning the compulsory settlement of disputes",
+      "place_date": "New York, 8 December 1969"
+    },
+    {
+      "ref": "III-11",
+      "chapter_int": 3,
+      "title": "Vienna Convention on the Representation of States in their Relations with International Organizations of a Universal Character",
+      "place_date": "Vienna, 14 March 1975"
+    },
+    {
+      "ref": "III-12",
+      "chapter_int": 3,
+      "title": "Vienna Convention on Succession of States in Respect of State Property, Archives and Debts",
+      "place_date": "Vienna, 8 April 1983"
+    },
+    {
+      "ref": "III-13",
+      "chapter_int": 3,
+      "title": "United Nations Convention on Jurisdictional Immunities of States and Their Property",
+      "place_date": "New York, 2 December 2004"
+    },
+    {
+      "ref": "IV-1",
+      "chapter_int": 4,
+      "title": "Convention on the Prevention and Punishment of the Crime of Genocide",
+      "place_date": "Paris, 9 December 1948"
+    },
+    {
+      "ref": "IV-2",
+      "chapter_int": 4,
+      "title": "International Convention on the Elimination of All Forms of Racial Discrimination",
+      "place_date": "New York, 7 March 1966"
+    },
+    {
+      "ref": "IV-3",
+      "chapter_int": 4,
+      "title": "International Covenant on Economic, Social and Cultural Rights",
+      "place_date": "New York, 16 December 1966"
+    },
+    {
+      "ref": "IV-4",
+      "chapter_int": 4,
+      "title": "International Covenant on Civil and Political Rights",
+      "place_date": "New York, 16 December 1966"
+    },
+    {
+      "ref": "IV-5",
+      "chapter_int": 4,
+      "title": "Optional Protocol to the International Covenant on Civil and Political Rights",
+      "place_date": "New York, 16 December 1966"
+    },
+    {
+      "ref": "IV-6",
+      "chapter_int": 4,
+      "title": "Convention on the non-applicability of statutory limitations to war crimes and crimes against humanity",
+      "place_date": "New York, 26 November 1968"
+    },
+    {
+      "ref": "IV-7",
+      "chapter_int": 4,
+      "title": "International Convention on the Suppression and Punishment of the Crime of Apartheid",
+      "place_date": "New York, 30 November 1973"
+    },
+    {
+      "ref": "IV-8",
+      "chapter_int": 4,
+      "title": "Convention on the Elimination of All Forms of Discrimination against Women",
+      "place_date": "New York, 18 December 1979"
+    },
+    {
+      "ref": "IV-9",
+      "chapter_int": 4,
+      "title": "Convention against Torture and Other Cruel, Inhuman or Degrading Treatment or Punishment",
+      "place_date": "New York, 10 December 1984"
+    },
+    {
+      "ref": "IV-10",
+      "chapter_int": 4,
+      "title": "International Convention against Apartheid in Sports",
+      "place_date": "New York, 10 December 1985"
+    },
+    {
+      "ref": "IV-11",
+      "chapter_int": 4,
+      "title": "Convention on the Rights of the Child",
+      "place_date": "New York, 20 November 1989"
+    },
+    {
+      "ref": "IV-12",
+      "chapter_int": 4,
+      "title": "Second Optional Protocol to the International Covenant on Civil and Political Rights, aiming at the abolition of the death penalty",
+      "place_date": "New York, 15 December 1989"
+    },
+    {
+      "ref": "IV-13",
+      "chapter_int": 4,
+      "title": "International Convention on the Protection of the Rights of All Migrant Workers and Members of their Families",
+      "place_date": "New York, 18 December 1990"
+    },
+    {
+      "ref": "IV-14",
+      "chapter_int": 4,
+      "title": "Agreement establishing the Fund for the Development of the Indigenous Peoples of Latin America and the Caribbean",
+      "place_date": "Madrid, 24 July 1992"
+    },
+    {
+      "ref": "IV-15",
+      "chapter_int": 4,
+      "title": "Convention on the Rights of Persons with Disabilities",
+      "place_date": "New York, 13 December 2006"
+    },
+    {
+      "ref": "IV-16",
+      "chapter_int": 4,
+      "title": "International Convention for the Protection of All Persons from Enforced Disappearance",
+      "place_date": "New York, 20 December 2006"
+    },
+    {
+      "ref": "V-1",
+      "chapter_int": 5,
+      "title": "Constitution of the International Refugee Organization",
+      "place_date": "New York, 15 December 1946"
+    },
+    {
+      "ref": "V-2",
+      "chapter_int": 5,
+      "title": "Convention relating to the Status of Refugees",
+      "place_date": "Geneva, 28 July 1951"
+    },
+    {
+      "ref": "V-3",
+      "chapter_int": 5,
+      "title": "Convention relating to the Status of Stateless Persons",
+      "place_date": "New York, 28 September 1954"
+    },
+    {
+      "ref": "V-4",
+      "chapter_int": 5,
+      "title": "Convention on the Reduction of Statelessness",
+      "place_date": "New York, 30 August 1961"
+    },
+    {
+      "ref": "V-5",
+      "chapter_int": 5,
+      "title": "Protocol relating to the Status of Refugees",
+      "place_date": "New York, 31 January 1967"
+    },
+    {
+      "ref": "VI-1",
+      "chapter_int": 6,
+      "title": "Protocol amending the Agreements, Conventions and Protocols on Narcotic Drugs, concluded at The Hague on 23 January 1912, at Geneva on 11 February 1925 and 19 February 1925, and 13 July 1931, at Bangkok on 27 November 1931 and at Geneva on 26 June 1936",
+      "place_date": "Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-2",
+      "chapter_int": 6,
+      "title": "International Opium Convention",
+      "place_date": "The Hague, 23 January 1912"
+    },
+    {
+      "ref": "VI-3",
+      "chapter_int": 6,
+      "title": "Agreement concerning the Suppression of the Manufacture of, Internal Trade in, and Use of, Prepared Opium",
+      "place_date": "Geneva, 11 February 1925, and Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-4",
+      "chapter_int": 6,
+      "title": "Agreement concerning the Suppression of the Manufacture of, Internal Trade in, and Use of, Prepared Opium",
+      "place_date": "Geneva, 11 February 1925"
+    },
+    {
+      "ref": "VI-5",
+      "chapter_int": 6,
+      "title": "International Opium Convention",
+      "place_date": "Geneva, 19 February 1925, and Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-6",
+      "chapter_int": 6,
+      "title": "International Opium Convention",
+      "place_date": "Geneva, 19 February 1925"
+    },
+    {
+      "ref": "VI-7",
+      "chapter_int": 6,
+      "title": "Convention for Limiting the Manufacture and Regulating the Distribution of Narcotic Drugs",
+      "place_date": "Geneva, 13 July 1931, and Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-8",
+      "chapter_int": 6,
+      "title": "Convention for limiting the Manufacture and regulating the Distribution of Narcotic Drugs",
+      "place_date": "Geneva, 13 July 1931"
+    },
+    {
+      "ref": "VI-9",
+      "chapter_int": 6,
+      "title": "Agreement concerning the Suppression of Opium Smoking",
+      "place_date": "Bangkok, 27 November 1931, and Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-10",
+      "chapter_int": 6,
+      "title": "Agreement concerning the Suppression of Opium Smoking",
+      "place_date": "Bangkok, 27 November 1931"
+    },
+    {
+      "ref": "VI-11",
+      "chapter_int": 6,
+      "title": "Convention for the Suppression of the Illicit Traffic in Dangerous Drugs",
+      "place_date": "Geneva, 26 June 1936, and Lake Success, New York, 11 December 1946"
+    },
+    {
+      "ref": "VI-12",
+      "chapter_int": 6,
+      "title": "Convention of 1936 for the Suppression of the Illicit Traffic in Dangerous Drugs",
+      "place_date": "Geneva, 26 June 1936"
+    },
+    {
+      "ref": "VI-13",
+      "chapter_int": 6,
+      "title": "Protocol Bringing under International Control Drugs Outside the Scope of the Convention of 13 July 1931 for Limiting the Manufacture and Regulating the Distribution of Narcotic Drugs, as amended by the Protocol signed at Lake Success, New York, on 11 December 1946",
+      "place_date": "Paris, 19 November 1948"
+    },
+    {
+      "ref": "VI-14",
+      "chapter_int": 6,
+      "title": "Protocol for Limiting and Regulating the Cultivation of the Poppy Plant, the Production of, International and Wholesale Trade in, and use of Opium",
+      "place_date": "New York, 23 June 1953"
+    },
+    {
+      "ref": "VI-15",
+      "chapter_int": 6,
+      "title": "Single Convention on Narcotic Drugs, 1961",
+      "place_date": "New York, 30 March 1961"
+    },
+    {
+      "ref": "VI-16",
+      "chapter_int": 6,
+      "title": "Convention on psychotropic substances",
+      "place_date": "Vienna, 21 February 1971"
+    },
+    {
+      "ref": "VI-17",
+      "chapter_int": 6,
+      "title": "Protocol amending the Single Convention on Narcotic Drugs, 1961",
+      "place_date": "Geneva, 25 March 1972"
+    },
+    {
+      "ref": "VI-18",
+      "chapter_int": 6,
+      "title": "Single Convention on Narcotic Drugs, 1961, as amended by the Protocol amending the Single Convention on Narcotic Drugs, 1961",
+      "place_date": "New York, 8 August 1975"
+    },
+    {
+      "ref": "VI-19",
+      "chapter_int": 6,
+      "title": "United Nations Convention against Illicit Traffic in Narcotic Drugs and Psychotropic Substances",
+      "place_date": "Vienna, 20 December 1988"
+    },
+    {
+      "ref": "VII-1",
+      "chapter_int": 7,
+      "title": "Protocol signed at Lake Success, New York, on 12 November 1947, to amend the Convention for the Suppression of the Traffic in Women and Children, concluded at Geneva on 30 September 1921, and the Convention for the Suppression of the Traffic in Women of Full Age, concluded at Geneva on 11 October 1933",
+      "place_date": "Lake Success, New York, 12 November 1947"
+    },
+    {
+      "ref": "VII-2",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the Traffic in Women and Children, concluded at Geneva on 30 September 1921, as amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
+      "place_date": "Lake Success, 12 November 1947"
+    },
+    {
+      "ref": "VII-3",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the Traffic in Women and Children",
+      "place_date": "Geneva, 30 September 1921"
+    },
+    {
+      "ref": "VII-4",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the Traffic in Women of Full Age, concluded at Geneva on 11 October 1933, as amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
+      "place_date": "Lake Success, 12 November 1947"
+    },
+    {
+      "ref": "VII-5",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the Traffic in Women of Full Age",
+      "place_date": "Geneva, 11 October 1933"
+    },
+    {
+      "ref": "VII-6",
+      "chapter_int": 7,
+      "title": "Protocol amending the International Agreement for the Suppression of the White Slave Traffic, signed at Paris on 18 May 1904, and the International Convention for the Suppression of the White Slave Traffic, signed at Paris on 4 May 1910",
+      "place_date": "Lake Success, New York, 4 May 1949"
+    },
+    {
+      "ref": "VII-7",
+      "chapter_int": 7,
+      "title": "International Agreement for the Suppression of the White Slave Traffic, signed at Paris on 18 May 1904, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
+      "place_date": "Lake Success, New York, 4 May 1949"
+    },
+    {
+      "ref": "VII-8",
+      "chapter_int": 7,
+      "title": "International Agreement for the suppression of the &quot;White Slave Traffic&quot;",
+      "place_date": "Paris, 18 May 1904"
+    },
+    {
+      "ref": "VII-9",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the White Slave Traffic, signed at Paris on 4 May 1910, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
+      "place_date": "Lake Success, New York, 4 May 1949"
+    },
+    {
+      "ref": "VII-10",
+      "chapter_int": 7,
+      "title": "International Convention for the Suppression of the White Slave Traffic",
+      "place_date": "Paris, 4 May 1910"
+    },
+    {
+      "ref": "VII-11",
+      "chapter_int": 7,
+      "title": "Convention for the Suppression of the Traffic in Persons and of the Exploitation of the Prostitution of Others",
+      "place_date": "Lake Success, New York, 21 March 1950"
+    },
+    {
+      "ref": "VIII-1",
+      "chapter_int": 8,
+      "title": "Protocol to amend the Convention for the suppression of the circulation of, and traffic in, obscene publications, concluded at Geneva on 12 September 1923",
+      "place_date": "Lake Success, New York, 12 November 1947"
+    },
+    {
+      "ref": "VIII-2",
+      "chapter_int": 8,
+      "title": "Convention for the Suppression of the Circulation of, and Traffic in, Obscene Publications, concluded at Geneva on 12 September 1923 and amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
+      "place_date": "New York, 12 November 1947"
+    },
+    {
+      "ref": "VIII-3",
+      "chapter_int": 8,
+      "title": "International Convention for the Suppression of the Circulation of and Traffic in Obscene Publications",
+      "place_date": "Geneva, 12 September 1923"
+    },
+    {
+      "ref": "VIII-4",
+      "chapter_int": 8,
+      "title": "Protocol amending the Agreement for the Suppression of the Circulation of Obscene Publications, signed at Paris, on 4 May 1910",
+      "place_date": "Lake Success, New York, 4 May 1949"
+    },
+    {
+      "ref": "VIII-5",
+      "chapter_int": 8,
+      "title": "Agreement for the Suppression of the Circulation of Obscene Publications, signed at Paris on 4 May 1910, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
+      "place_date": "New York, 4 May 1949"
+    },
+    {
+      "ref": "VIII-6",
+      "chapter_int": 8,
+      "title": "Agreement for the Repression of Obscene Publications",
+      "place_date": "Paris, 4 May 1910"
+    },
+    {
+      "ref": "IX-1",
+      "chapter_int": 9,
+      "title": "Constitution of the World Health Organization",
+      "place_date": "New York, 22 July 1946"
+    },
+    {
+      "ref": "IX-2",
+      "chapter_int": 9,
+      "title": "Protocol concerning the Office international d'hygi&#232;ne publique",
+      "place_date": "New York, 22 July 1946"
+    },
+    {
+      "ref": "IX-3",
+      "chapter_int": 9,
+      "title": "Agreement on the establishment of the International Vaccine Institute",
+      "place_date": "New York, 28 October 1996"
+    },
+    {
+      "ref": "IX-4",
+      "chapter_int": 9,
+      "title": "WHO Framework Convention on Tobacco Control",
+      "place_date": "Geneva, 21 May 2003"
+    },
+    {
+      "ref": "X-1",
+      "chapter_int": 10,
+      "title": "General Agreement on Tariffs and Trade",
+      "place_date": "Geneva, 30 October 1947"
+    },
+    {
+      "ref": "X-2",
+      "chapter_int": 10,
+      "title": "Agreement establishing the African Development Bank",
+      "place_date": "Khartoum, 4 August 1963"
+    },
+    {
+      "ref": "X-3",
+      "chapter_int": 10,
+      "title": "Convention on Transit Trade of Land-locked States",
+      "place_date": "New York, 8 July 1965"
+    },
+    {
+      "ref": "X-4",
+      "chapter_int": 10,
+      "title": "Agreement establishing the Asian Development Bank",
+      "place_date": "Manila, 4 December 1965"
+    },
+    {
+      "ref": "X-5",
+      "chapter_int": 10,
+      "title": "Articles of Association for the establishment of an Economic Community of West Africa",
+      "place_date": "Accra, 4 May 1967"
+    },
+    {
+      "ref": "X-6",
+      "chapter_int": 10,
+      "title": "Agreement establishing the Caribbean Development Bank",
+      "place_date": "Kingston, 18 October 1969"
+    },
+    {
+      "ref": "X-7",
+      "chapter_int": 10,
+      "title": "Convention on the Limitation Period in the International Sale of Goods",
+      "place_date": "New York, 14 June 1974"
+    },
+    {
+      "ref": "X-8",
+      "chapter_int": 10,
+      "title": "Agreement establishing the International Fund for Agricultural Development",
+      "place_date": "Rome, 13 June 1976"
+    },
+    {
+      "ref": "X-9",
+      "chapter_int": 10,
+      "title": "Constitution of the United Nations Industrial Development Organization",
+      "place_date": "Vienna, 8 April 1979"
+    },
+    {
+      "ref": "X-10",
+      "chapter_int": 10,
+      "title": "United Nations Convention on Contracts for the International Sale of Goods",
+      "place_date": "Vienna, 11 April 1980"
+    },
+    {
+      "ref": "X-11",
+      "chapter_int": 10,
+      "title": "Charter of the Asian and Pacific Development Centre",
+      "place_date": "Bangkok, 1 April 1982"
+    },
+    {
+      "ref": "X-12",
+      "chapter_int": 10,
+      "title": "United Nations Convention on International Bills of Exchange and International Promissory Notes",
+      "place_date": "New York, 9 December 1988"
+    },
+    {
+      "ref": "X-13",
+      "chapter_int": 10,
+      "title": "United Nations Convention on the Liability of Operators of Transport Terminals in International Trade",
+      "place_date": "Vienna, 19 April 1991"
+    },
+    {
+      "ref": "X-14",
+      "chapter_int": 10,
+      "title": "Agreement to establish the South Centre",
+      "place_date": "Geneva, 1 September 1994"
+    },
+    {
+      "ref": "X-15",
+      "chapter_int": 10,
+      "title": "United Nations Convention on Independent Guarantees and Stand-by Letters of Credit",
+      "place_date": "New York, 11 December 1995"
+    },
+    {
+      "ref": "X-16",
+      "chapter_int": 10,
+      "title": "Agreement Establishing the Bank for Economic Cooperation and Development in the Middle East and North Africa",
+      "place_date": "Cairo, 28 August 1996"
+    },
+    {
+      "ref": "X-17",
+      "chapter_int": 10,
+      "title": "United Nations Convention on the Assignment of Receivables in International Trade",
+      "place_date": "New York, 12 December 2001"
+    },
+    {
+      "ref": "X-18",
+      "chapter_int": 10,
+      "title": "United Nations Convention on the Use of Electronic Communications in International Contracts",
+      "place_date": "New York, 23 November 2005"
+    },
+    {
+      "ref": "X-19",
+      "chapter_int": 10,
+      "title": "Multilateral Agreement for the Establishment of an International Think Tank for Landlocked Developing Countries",
+      "place_date": "New York, 24 September 2010"
+    },
+    {
+      "ref": "X-20",
+      "chapter_int": 10,
+      "title": "Framework Agreement on Facilitation of Cross-border Paperless Trade in Asia and the Pacific",
+      "place_date": "Bangkok, 19 May 2016"
+    },
+    {
+      "ref": "X-21",
+      "chapter_int": 10,
+      "title": "United Nations Convention on the International Effects of Judicial Sales of Ships",
+      "place_date": "New York, 7 December 2022"
+    },
+    {
+      "ref": "X-22",
+      "chapter_int": 10,
+      "title": "United Nations Convention on Negotiable Cargo Documents",
+      "place_date": "New York, 15 December 2025"
+    },
+    {
+      "ref": "XII-1",
+      "chapter_int": 12,
+      "title": "Convention on the International Maritime Organization",
+      "place_date": "Geneva, 6 March 1948"
+    },
+    {
+      "ref": "XII-2",
+      "chapter_int": 12,
+      "title": "Convention regarding the Measurement and Registration of Vessels Employed in Inland Navigation",
+      "place_date": "Bangkok, 22 June 1956"
+    },
+    {
+      "ref": "XII-3",
+      "chapter_int": 12,
+      "title": "Convention relating to the unification of certain rules concerning collisions in inland navigation",
+      "place_date": "Geneva, 15 March 1960"
+    },
+    {
+      "ref": "XII-4",
+      "chapter_int": 12,
+      "title": "Convention on the registration of inland navigation vessels",
+      "place_date": "Geneva, 25 January 1965"
+    },
+    {
+      "ref": "XII-5",
+      "chapter_int": 12,
+      "title": "Convention on the measurement of inland navigation vessels",
+      "place_date": "Geneva, 15 February 1966"
+    },
+    {
+      "ref": "XII-6",
+      "chapter_int": 12,
+      "title": "Convention on a Code of Conduct for Liner Conferences",
+      "place_date": "Geneva, 6 April 1974"
+    },
+    {
+      "ref": "XII-7",
+      "chapter_int": 12,
+      "title": "United Nations Convention on Conditions for Registration of Ships",
+      "place_date": "Geneva, 7 February 1986"
+    },
+    {
+      "ref": "XII-8",
+      "chapter_int": 12,
+      "title": "International Convention on Arrest of Ships, 1999",
+      "place_date": "Geneva, 12 March 1999"
+    },
+    {
+      "ref": "XIII-1",
+      "chapter_int": 13,
+      "title": "Protocol amending the International Convention relating to Economic Statistics, signed at Geneva on 14 December 1928",
+      "place_date": "Paris, 9 December 1948"
+    },
+    {
+      "ref": "XIII-2",
+      "chapter_int": 13,
+      "title": "International Convention relating to economic statistics, signed at Geneva on 14 December 1928, amended by the Protocol signed at Paris on 9 December 1948",
+      "place_date": "Paris, 9 December 1948"
+    },
+    {
+      "ref": "XIII-3",
+      "chapter_int": 13,
+      "title": "International Convention relating to Economic Statistics",
+      "place_date": "Geneva, 14 December 1928"
+    },
+    {
+      "ref": "XIV-1",
+      "chapter_int": 14,
+      "title": "Agreement for Facilitating the International Circulation of Visual and Auditory Materials of an Educational, Scientific and Cultural Character",
+      "place_date": "Lake Success, New York, 15 July 1949"
+    },
+    {
+      "ref": "XIV-2",
+      "chapter_int": 14,
+      "title": "Agreement on the Importation of Educational, Scientific and Cultural Materials",
+      "place_date": "Lake Success, New York, 22 November 1950"
+    },
+    {
+      "ref": "XIV-3",
+      "chapter_int": 14,
+      "title": "International Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations",
+      "place_date": "Rome, 26 October 1961"
+    },
+    {
+      "ref": "XIV-4",
+      "chapter_int": 14,
+      "title": "Convention for the Protection of Producers of Phonograms against Unauthorized Duplication of their Phonograms",
+      "place_date": "Geneva, 29 October 1971"
+    },
+    {
+      "ref": "XIV-5",
+      "chapter_int": 14,
+      "title": "Protocol to the Agreement on the Importation of Educational, Scientific and Cultural Materials of 22 November 1950",
+      "place_date": "Nairobi, 26 November 1976"
+    },
+    {
+      "ref": "XIV-6",
+      "chapter_int": 14,
+      "title": "International Agreement for the Establishment of the University for Peace",
+      "place_date": "New York, 5 December 1980"
+    },
+    {
+      "ref": "XIV-7",
+      "chapter_int": 14,
+      "title": "Statutes of the International Centre for Genetic Engineering and Biotechnology",
+      "place_date": "Madrid, 13 September 1983"
+    },
+    {
+      "ref": "XV-1",
+      "chapter_int": 15,
+      "title": "Convention on the declaration of death of missing persons*",
+      "place_date": "Lake Success, New York, 6 April 1950"
+    },
+    {
+      "ref": "XV-2",
+      "chapter_int": 15,
+      "title": "Protocol for extending the period of validity of the Convention on the Declaration of Death of Missing Persons",
+      "place_date": "New York, 16 January 1957"
+    },
+    {
+      "ref": "XV-3",
+      "chapter_int": 15,
+      "title": "Protocol for the further extension of the period of validity of the Convention on the Declaration of Death of Missing Persons",
+      "place_date": "New York, 15 January 1967"
+    },
+    {
+      "ref": "XVI-1",
+      "chapter_int": 16,
+      "title": "Convention on the Political Rights of Women",
+      "place_date": "New York, 31 March 1953"
+    },
+    {
+      "ref": "XVI-2",
+      "chapter_int": 16,
+      "title": "Convention on the Nationality of Married Women",
+      "place_date": "New York, 20 February 1957"
+    },
+    {
+      "ref": "XVI-3",
+      "chapter_int": 16,
+      "title": "Convention on Consent to Marriage, Minimum Age for Marriage and Registration of Marriages",
+      "place_date": "New York, 10 December 1962"
+    },
+    {
+      "ref": "XVII-1",
+      "chapter_int": 17,
+      "title": "Convention on the International Right of Correction",
+      "place_date": "New York, 31 March 1953"
+    },
+    {
+      "ref": "XVIII-1",
+      "chapter_int": 18,
+      "title": "Protocol amending the Slavery Convention signed at Geneva on 25 September 1926",
+      "place_date": "New York, 7 December 1953"
+    },
+    {
+      "ref": "XVIII-2",
+      "chapter_int": 18,
+      "title": "Slavery Convention, signed at Geneva on 25 September 1926 and amended by the Protocol",
+      "place_date": "New York, 7 December 1953"
+    },
+    {
+      "ref": "XVIII-3",
+      "chapter_int": 18,
+      "title": "Slavery Convention",
+      "place_date": "Geneva, 25 September 1926"
+    },
+    {
+      "ref": "XVIII-4",
+      "chapter_int": 18,
+      "title": "Supplementary Convention on the Abolition of Slavery, the Slave Trade, and Institutions and Practices Similar to Slavery",
+      "place_date": "Geneva, 7 September 1956"
+    },
+    {
+      "ref": "XVIII-5",
+      "chapter_int": 18,
+      "title": "International Convention Against the Taking of Hostages",
+      "place_date": "New York, 17 December 1979"
+    },
+    {
+      "ref": "XVIII-6",
+      "chapter_int": 18,
+      "title": "International Convention Against the Recruitment, Use, Financing and Training of Mercenaries",
+      "place_date": "New York, 4 December 1989"
+    },
+    {
+      "ref": "XVIII-7",
+      "chapter_int": 18,
+      "title": "Convention on the Prevention and Punishment of Crimes against Internationally Protected Persons, including Diplomatic Agents",
+      "place_date": "New York, 14 December 1973"
+    },
+    {
+      "ref": "XVIII-8",
+      "chapter_int": 18,
+      "title": "Convention on the Safety of United Nations and Associated Personnel",
+      "place_date": "New York, 9 December 1994"
+    },
+    {
+      "ref": "XVIII-9",
+      "chapter_int": 18,
+      "title": "International Convention for the Suppression of Terrorist Bombings",
+      "place_date": "New York, 15 December 1997"
+    },
+    {
+      "ref": "XVIII-10",
+      "chapter_int": 18,
+      "title": "Rome Statute of the International Criminal Court",
+      "place_date": "Rome, 17 July 1998"
+    },
+    {
+      "ref": "XVIII-11",
+      "chapter_int": 18,
+      "title": "International Convention for the Suppression of the Financing of Terrorism",
+      "place_date": "New York, 9 December 1999"
+    },
+    {
+      "ref": "XVIII-12",
+      "chapter_int": 18,
+      "title": "United Nations Convention against Transnational Organized Crime",
+      "place_date": "New York, 15 November 2000"
+    },
+    {
+      "ref": "XVIII-13",
+      "chapter_int": 18,
+      "title": "Agreement on the Privileges and Immunities of the International Criminal Court",
+      "place_date": "New York, 9 September 2002"
+    },
+    {
+      "ref": "XVIII-14",
+      "chapter_int": 18,
+      "title": "United Nations Convention against Corruption",
+      "place_date": "New York, 31 October 2003"
+    },
+    {
+      "ref": "XVIII-15",
+      "chapter_int": 18,
+      "title": "International Convention for the Suppression of Acts of Nuclear Terrorism",
+      "place_date": "New York, 13 April 2005"
+    },
+    {
+      "ref": "XVIII-16",
+      "chapter_int": 18,
+      "title": "United Nations Convention against Cybercrime; Strengthening International Cooperation for Combating Certain Crimes Committed by Means of Information and Communications Technology Systems and for the Sharing of Evidence in Electro",
+      "place_date": "... New York, 24 December 2024"
+    },
+    {
+      "ref": "XIX-1",
+      "chapter_int": 19,
+      "title": "International Agreement on Olive Oil, 1956*",
+      "place_date": "Geneva, 17 October 1955, and New York, 15 November 1955"
+    },
+    {
+      "ref": "XIX-2",
+      "chapter_int": 19,
+      "title": "Protocol amending the International Agreement on Olive Oil, 1956*",
+      "place_date": "Geneva, 31 March 1958 and 3 April 1958"
+    },
+    {
+      "ref": "XIX-3",
+      "chapter_int": 19,
+      "title": "International Agreement on Olive Oil, 1956, as amended by the Protocol of 3 April 1958*",
+      "place_date": "Geneva, 3 April 1958"
+    },
+    {
+      "ref": "XIX-4",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement, 1962*",
+      "place_date": "New York, 28 September 1962"
+    },
+    {
+      "ref": "XIX-5",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement, 1968*",
+      "place_date": "New York, 18 March 1968 and 31 March 1968"
+    },
+    {
+      "ref": "XIX-6",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1968*",
+      "place_date": "New York, 3 December 1968 and 24 December 1968"
+    },
+    {
+      "ref": "XIX-7",
+      "chapter_int": 19,
+      "title": "Agreement establishing the Asian Coconut Community",
+      "place_date": "Bangkok, 12 December 1968"
+    },
+    {
+      "ref": "XIX-8",
+      "chapter_int": 19,
+      "title": "Agreement establishing the International Pepper Community",
+      "place_date": "Bangkok, 16 April 1971"
+    },
+    {
+      "ref": "XIX-9",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 1972*",
+      "place_date": "Geneva, 21 October 1972"
+    },
+    {
+      "ref": "XIX-10",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1973*",
+      "place_date": "Geneva, 13 October 1973"
+    },
+    {
+      "ref": "XIX-11",
+      "chapter_int": 19,
+      "title": "Agreement establishing the Asian Rice Trade Fund",
+      "place_date": "Bangkok, 16 March 1973"
+    },
+    {
+      "ref": "XIX-13",
+      "chapter_int": 19,
+      "title": "Fifth International Tin Agreement, 1975*",
+      "place_date": "Geneva, 21 June 1975"
+    },
+    {
+      "ref": "XIX-14",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 1975*",
+      "place_date": "Geneva, 20 October 1975"
+    },
+    {
+      "ref": "XIX-15",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement, 1976*",
+      "place_date": "London, 3 December 1975"
+    },
+    {
+      "ref": "XIX-16",
+      "chapter_int": 19,
+      "title": "Agreement establishing the International Tea Promotion Association",
+      "place_date": "Geneva, 31 March 1977"
+    },
+    {
+      "ref": "XIX-17",
+      "chapter_int": 19,
+      "title": "Agreement establishing the Southeast Asia Tin Research and Development Centre",
+      "place_date": "Bangkok, 28 April 1977"
+    },
+    {
+      "ref": "XIX-18",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1977*",
+      "place_date": "Geneva, 7 October 1977"
+    },
+    {
+      "ref": "XIX-19",
+      "chapter_int": 19,
+      "title": "Agreement establishing the International Tropical Timber Bureau*",
+      "place_date": "Geneva, 9 November 1977"
+    },
+    {
+      "ref": "XIX-20",
+      "chapter_int": 19,
+      "title": "International Natural Rubber Agreement, 1979*",
+      "place_date": "Geneva, 6 October 1979"
+    },
+    {
+      "ref": "XIX-21",
+      "chapter_int": 19,
+      "title": "Agreement Establishing The Common Fund For Commodities",
+      "place_date": "Geneva, 27 June 1980"
+    },
+    {
+      "ref": "XIX-22",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 1980*",
+      "place_date": "Geneva, 19 November 1980"
+    },
+    {
+      "ref": "XIX-23",
+      "chapter_int": 19,
+      "title": "Sixth International Tin Agreement*",
+      "place_date": "Geneva, 26 June 1981"
+    },
+    {
+      "ref": "XIX-24",
+      "chapter_int": 19,
+      "title": "International Agreement on jute and jute products, 1982*",
+      "place_date": "Geneva, 1 October 1982"
+    },
+    {
+      "ref": "XIX-25",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement, 1983*",
+      "place_date": "New York, 16 September 1982"
+    },
+    {
+      "ref": "XIX-26",
+      "chapter_int": 19,
+      "title": "International Tropical Timber Agreement, 1983*",
+      "place_date": "Geneva, 18 November 1983"
+    },
+    {
+      "ref": "XIX-27",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1984*",
+      "place_date": "Geneva, 5 July 1984"
+    },
+    {
+      "ref": "XIX-28",
+      "chapter_int": 19,
+      "title": "International Wheat Agreement, 1986: (a) Wheat Trade Convention, 1986*",
+      "place_date": "London, 14 March 1986"
+    },
+    {
+      "ref": "XIX-29",
+      "chapter_int": 19,
+      "title": "Terms of Reference of the International Nickel Study Group*",
+      "place_date": "Geneva, 2 May 1986"
+    },
+    {
+      "ref": "XIX-30",
+      "chapter_int": 19,
+      "title": "International Agreement on olive oil and table olives, 1986*",
+      "place_date": "Geneva, 1 July 1986"
+    },
+    {
+      "ref": "XIX-31",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 1986*",
+      "place_date": "Geneva, 25 July 1986"
+    },
+    {
+      "ref": "XIX-32",
+      "chapter_int": 19,
+      "title": "International Natural Rubber Agreement, 1987*",
+      "place_date": "Geneva, 20 March 1987"
+    },
+    {
+      "ref": "XIX-33",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1987*",
+      "place_date": "London, 11 September 1987"
+    },
+    {
+      "ref": "XIX-34",
+      "chapter_int": 19,
+      "title": "Terms of Reference of the International Tin Study Group",
+      "place_date": "New York, 7 April 1989"
+    },
+    {
+      "ref": "XIX-35",
+      "chapter_int": 19,
+      "title": "Terms of Reference of the International Copper Study Group",
+      "place_date": "Geneva, 24 February 1989"
+    },
+    {
+      "ref": "XIX-36",
+      "chapter_int": 19,
+      "title": "International Agreement on Jute and Jute Products, 1989*",
+      "place_date": "Geneva, 3 November 1989"
+    },
+    {
+      "ref": "XIX-37",
+      "chapter_int": 19,
+      "title": "International Sugar Agreement, 1992",
+      "place_date": "Geneva, 20 March 1992"
+    },
+    {
+      "ref": "XIX-38",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 1993*",
+      "place_date": "Geneva, 16 July 1993"
+    },
+    {
+      "ref": "XIX-39",
+      "chapter_int": 19,
+      "title": "International Tropical Timber Agreement, 1994*",
+      "place_date": "Geneva, 26 January 1994"
+    },
+    {
+      "ref": "XIX-40",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement, 1994*",
+      "place_date": "London, 30 March 1994"
+    },
+    {
+      "ref": "XIX-41",
+      "chapter_int": 19,
+      "title": "Grains Trade Convention, 1995",
+      "place_date": "London, 7 December 1994"
+    },
+    {
+      "ref": "XIX-42",
+      "chapter_int": 19,
+      "title": "International Natural Rubber Agreement, 1994*",
+      "place_date": "Geneva, 17 February 1995"
+    },
+    {
+      "ref": "XIX-43",
+      "chapter_int": 19,
+      "title": "International Coffee Agreement 2001*",
+      "place_date": "London, 28 September 2000"
+    },
+    {
+      "ref": "XIX-44",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 2001",
+      "place_date": "Geneva, 2 March 2001"
+    },
+    {
+      "ref": "XIX-45",
+      "chapter_int": 19,
+      "title": "Agreement establishing the Terms of Reference of the International Jute Study Group, 2001",
+      "place_date": "Geneva, 13 March 2001"
+    },
+    {
+      "ref": "XIX-46",
+      "chapter_int": 19,
+      "title": "International Tropical Timber Agreement, 2006",
+      "place_date": "Geneva, 27 January 2006"
+    },
+    {
+      "ref": "XIX-47",
+      "chapter_int": 19,
+      "title": "International Cocoa Agreement, 2010",
+      "place_date": "Geneva, 25 June 2010"
+    },
+    {
+      "ref": "XIX-48",
+      "chapter_int": 19,
+      "title": "Food Assistance Convention",
+      "place_date": "London, 25 April 2012"
+    },
+    {
+      "ref": "XIX-49",
+      "chapter_int": 19,
+      "title": "International Agreement on Olive Oil and Table Olives, 2015",
+      "place_date": "Geneva, 9 October 2015"
+    },
+    {
+      "ref": "XX-1",
+      "chapter_int": 20,
+      "title": "Convention on the Recovery Abroad of Maintenance",
+      "place_date": "New York, 20 June 1956"
+    },
+    {
+      "ref": "XXI-1",
+      "chapter_int": 21,
+      "title": "Convention on the Territorial Sea and the Contiguous Zone",
+      "place_date": "Geneva, 29 April 1958"
+    },
+    {
+      "ref": "XXI-2",
+      "chapter_int": 21,
+      "title": "Convention on the High Seas",
+      "place_date": "Geneva, 29 April 1958"
+    },
+    {
+      "ref": "XXI-3",
+      "chapter_int": 21,
+      "title": "Convention on Fishing and Conservation of the Living Resources of the High Seas",
+      "place_date": "Geneva, 29 April 1958"
+    },
+    {
+      "ref": "XXI-4",
+      "chapter_int": 21,
+      "title": "Convention on the Continental Shelf",
+      "place_date": "Geneva, 29 April 1958"
+    },
+    {
+      "ref": "XXI-5",
+      "chapter_int": 21,
+      "title": "Optional Protocol of Signature concerning the Compulsory Settlement of Disputes",
+      "place_date": "Geneva, 29 April 1958"
+    },
+    {
+      "ref": "XXI-6",
+      "chapter_int": 21,
+      "title": "United Nations Convention on the Law of the Sea",
+      "place_date": "Montego Bay, 10 December 1982"
+    },
+    {
+      "ref": "XXI-7",
+      "chapter_int": 21,
+      "title": "Agreement for the Implementation of the Provisions of the United Nations Convention on the Law of the Sea of 10 December 1982 relating to the Conservation and Management of Straddling Fish Stocks and Highly Migratory Fish Stocks",
+      "place_date": "New York, 4 August 1995"
+    },
+    {
+      "ref": "XXI-8",
+      "chapter_int": 21,
+      "title": "Agreement on the Privileges and Immunities of the International Tribunal for the Law of the Sea",
+      "place_date": "New York, 23 May 1997"
+    },
+    {
+      "ref": "XXI-9",
+      "chapter_int": 21,
+      "title": "Protocol on the Privileges and Immunities of the International Seabed Authority",
+      "place_date": "Kingston, 27 March 1998"
+    },
+    {
+      "ref": "XXI-10",
+      "chapter_int": 21,
+      "title": "Agreement under the United Nations Convention on the Law of the Sea on the Conservation and Sustainable Use of Marine Biological Diversity of Areas beyond National Jurisdiction",
+      "place_date": "New York, 19 June 2023"
+    },
+    {
+      "ref": "XXII-1",
+      "chapter_int": 22,
+      "title": "Convention on the Recognition and Enforcement of Foreign Arbitral Awards",
+      "place_date": "New York, 10 June 1958"
+    },
+    {
+      "ref": "XXII-2",
+      "chapter_int": 22,
+      "title": "European Convention on International Commercial Arbitration",
+      "place_date": "Geneva, 21 April 1961"
+    },
+    {
+      "ref": "XXII-3",
+      "chapter_int": 22,
+      "title": "United Nations Convention on Transparency in Treaty-based Investor-State Arbitration",
+      "place_date": "New York, 10 December 2014"
+    },
+    {
+      "ref": "XXII-4",
+      "chapter_int": 22,
+      "title": "United Nations Convention on International Settlement Agreements Resulting from Mediation",
+      "place_date": "New York, 20 December 2018"
+    },
+    {
+      "ref": "XXIII-1",
+      "chapter_int": 23,
+      "title": "Vienna Convention on the Law of Treaties",
+      "place_date": "Vienna, 23 May 1969"
+    },
+    {
+      "ref": "XXIII-2",
+      "chapter_int": 23,
+      "title": "Vienna Convention on succession of States in respect of treaties",
+      "place_date": "Vienna, 23 August 1978"
+    },
+    {
+      "ref": "XXIII-3",
+      "chapter_int": 23,
+      "title": "Vienna Convention on the Law of Treaties between States and International Organizations or between International Organizations",
+      "place_date": "Vienna, 21 March 1986"
+    },
+    {
+      "ref": "XXIV-1",
+      "chapter_int": 24,
+      "title": "Convention on registration of objects launched into outer space",
+      "place_date": "New York, 12 November 1974"
+    },
+    {
+      "ref": "XXIV-2",
+      "chapter_int": 24,
+      "title": "Agreement governing the Activities of States on the Moon and Other Celestial Bodies",
+      "place_date": "New York, 5 December 1979"
+    },
+    {
+      "ref": "XXV-1",
+      "chapter_int": 25,
+      "title": "Convention relating to the distribution of programme-carrying signals transmitted by satellite",
+      "place_date": "Brussels, 21 May 1974"
+    },
+    {
+      "ref": "XXV-2",
+      "chapter_int": 25,
+      "title": "Constitution of the Asia-Pacific Telecommunity",
+      "place_date": "Bangkok, 27 March 1976"
+    },
+    {
+      "ref": "XXV-3",
+      "chapter_int": 25,
+      "title": "Agreement establishing the Asia-Pacific Institute for Broadcasting Development",
+      "place_date": "Kuala Lumpur, 12 August 1977"
+    },
+    {
+      "ref": "XXV-4",
+      "chapter_int": 25,
+      "title": "Tampere Convention on the Provision of Telecommunication Resources for Disaster Mitigation and Relief Operations",
+      "place_date": "Tampere, 18 June 1998"
+    },
+    {
+      "ref": "XXVI-1",
+      "chapter_int": 26,
+      "title": "Convention on the prohibition of military or any other hostile use of environmental modification techniques",
+      "place_date": "New York, 10 December 1976"
+    },
+    {
+      "ref": "XXVI-2",
+      "chapter_int": 26,
+      "title": "Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects (with Protocols I, II and III)",
+      "place_date": "Geneva, 10 October 1980"
+    },
+    {
+      "ref": "XXVI-3",
+      "chapter_int": 26,
+      "title": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction",
+      "place_date": "Geneva, 3 September 1992"
+    },
+    {
+      "ref": "XXVI-4",
+      "chapter_int": 26,
+      "title": "Comprehensive Nuclear-Test-Ban Treaty",
+      "place_date": "New York, 10 September 1996"
+    },
+    {
+      "ref": "XXVI-5",
+      "chapter_int": 26,
+      "title": "Convention on the Prohibition of the Use, Stockpiling, Production and Transfer of Anti-Personnel Mines and on their Destruction",
+      "place_date": "Oslo, 18 September 1997"
+    },
+    {
+      "ref": "XXVI-6",
+      "chapter_int": 26,
+      "title": "Convention on Cluster Munitions",
+      "place_date": "Dublin, 30 May 2008"
+    },
+    {
+      "ref": "XXVI-7",
+      "chapter_int": 26,
+      "title": "Central African Convention for the Control of Small Arms and Light Weapons, their Ammunition and all Parts and Components that can be used for their Manufacture, Repair and Assembly",
+      "place_date": "Kinshasa, 30 April 2010"
+    },
+    {
+      "ref": "XXVI-8",
+      "chapter_int": 26,
+      "title": "Arms Trade Treaty",
+      "place_date": "New York, 2 April 2013"
+    },
+    {
+      "ref": "XXVI-9",
+      "chapter_int": 26,
+      "title": "Treaty on the Prohibition of Nuclear Weapons",
+      "place_date": "New York, 7 July 2017"
+    },
+    {
+      "ref": "XXVII-1",
+      "chapter_int": 27,
+      "title": "Convention on long-range transboundary air pollution",
+      "place_date": "Geneva, 13 November 1979"
+    },
+    {
+      "ref": "XXVII-2",
+      "chapter_int": 27,
+      "title": "Vienna Convention for the Protection of the Ozone Layer",
+      "place_date": "Vienna, 22 March 1985"
+    },
+    {
+      "ref": "XXVII-3",
+      "chapter_int": 27,
+      "title": "Basel Convention on the Control of Transboundary Movements of Hazardous Wastes and their Disposal",
+      "place_date": "Basel, 22 March 1989"
+    },
+    {
+      "ref": "XXVII-4",
+      "chapter_int": 27,
+      "title": "Convention on Environmental Impact Assessment in a Transboundary Context",
+      "place_date": "Espoo, Finland, 25 February 1991"
+    },
+    {
+      "ref": "XXVII-5",
+      "chapter_int": 27,
+      "title": "Convention on the Protection and Use of Transboundary Watercourses and International Lakes",
+      "place_date": "Helsinki, 17 March 1992"
+    },
+    {
+      "ref": "XXVII-6",
+      "chapter_int": 27,
+      "title": "Convention on the Transboundary Effects of Industrial Accidents",
+      "place_date": "Helsinki, 17 March 1992"
+    },
+    {
+      "ref": "XXVII-7",
+      "chapter_int": 27,
+      "title": "United Nations Framework Convention on Climate Change",
+      "place_date": "New York, 9 May 1992"
+    },
+    {
+      "ref": "XXVII-8",
+      "chapter_int": 27,
+      "title": "Convention on Biological Diversity",
+      "place_date": "Rio de Janeiro, 5 June 1992"
+    },
+    {
+      "ref": "XXVII-9",
+      "chapter_int": 27,
+      "title": "Agreement on the Conservation of Small Cetaceans of the Baltic, North East Atlantic, Irish and North Seas",
+      "place_date": "New York, 17 March 1992"
+    },
+    {
+      "ref": "XXVII-10",
+      "chapter_int": 27,
+      "title": "United Nations Convention to Combat Desertification in those Countries Experiencing Serious Drought and/or Desertification, Particularly in Africa",
+      "place_date": "Paris, 14 October 1994"
+    },
+    {
+      "ref": "XXVII-11",
+      "chapter_int": 27,
+      "title": "Lusaka Agreement on Co-operative Enforcement Operations Directed at Illegal Trade in Wild Fauna and Flora",
+      "place_date": "Lusaka, 8 September 1994"
+    },
+    {
+      "ref": "XXVII-12",
+      "chapter_int": 27,
+      "title": "Convention on the Law of the Non-Navigational Uses of International Watercourses",
+      "place_date": "New York, 21 May 1997"
+    },
+    {
+      "ref": "XXVII-13",
+      "chapter_int": 27,
+      "title": "Convention on Access to Information, Public Participation in Decision-Making and Access to Justice in Environmental Matters",
+      "place_date": "Aarhus, Denmark, 25 June 1998"
+    },
+    {
+      "ref": "XXVII-14",
+      "chapter_int": 27,
+      "title": "Rotterdam Convention on the Prior Informed Consent Procedure for Certain Hazardous Chemicals and Pesticides in International Trade",
+      "place_date": "Rotterdam, 10 September 1998"
+    },
+    {
+      "ref": "XXVII-15",
+      "chapter_int": 27,
+      "title": "Stockholm Convention on Persistent Organic Pollutants",
+      "place_date": "Stockholm, 22 May 2001"
+    },
+    {
+      "ref": "XXVII-16",
+      "chapter_int": 27,
+      "title": "Protocol on Civil Liability and Compensation for Damage Caused by the Transboundary Effects of Industrial Accidents on Transboundary Waters to the 1992 Convention on the Protection and Use of Transboundary Watercourses and International Lakes and to the 1992 Convention on the Transboundary Effects of Industrial Accidents",
+      "place_date": "Kiev, 21 May 2003"
+    },
+    {
+      "ref": "XXVII-17",
+      "chapter_int": 27,
+      "title": "Minamata Convention on Mercury",
+      "place_date": "Kumamoto, 10 October 2013"
+    },
+    {
+      "ref": "XXVII-18",
+      "chapter_int": 27,
+      "title": "Regional Agreement on Access to Information, Public Participation and Justice in Environmental Matters in Latin America and the Caribbean",
+      "place_date": "Escazú, 4 March 2018"
+    },
+    {
+      "ref": "XXVIII-1",
+      "chapter_int": 28,
+      "title": "Multilateral Convention for the Avoidance of Double Taxation of Copyright Royalties",
+      "place_date": "Madrid, 13 December 1979"
+    },
+    {
+      "ref": "XXIX-1",
+      "chapter_int": 29,
+      "title": "Agreement on Succession Issues",
+      "place_date": "Vienna, 29 June 2001"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "query": "can you grab me the text of the ICCPR in english and french? i need it for a footnote in a brief im writing",
+    "should_trigger": true
+  },
+  {
+    "query": "what reservations did Pakistan file when it acceded to CEDAW? i remember they had like five of them about article 16",
+    "should_trigger": true
+  },
+  {
+    "query": "i need to cite XXIII-1 by treaty series volume + page, can you look that up. its for footnote 47",
+    "should_trigger": true
+  },
+  {
+    "query": "as of today how many states are parties to the rome statute and which ones haven't ratified yet? want to know if my client's home country is bound",
+    "should_trigger": true
+  },
+  {
+    "query": "the convention against torture - i need the full english text with the optional protocol if possible. for an asylum case prep document.",
+    "should_trigger": true
+  },
+  {
+    "query": "did norway ever lodge a formal objection to any reservation under the convention on the rights of the child? checking before we cite the practice in a memo",
+    "should_trigger": true
+  },
+  {
+    "query": "looking up un treaty series vol 999 reg 14668 — need the actual treaty text, not the status doc. anglais ou francais ok",
+    "should_trigger": true
+  },
+  {
+    "query": "when did the unclos enter into force and what's its mtdsg reference. and which states are still not party to it (like is the US still a non-party or did they finally accede)",
+    "should_trigger": true
+  },
+  {
+    "query": "fetch the genocide convention please (the 1948 one, paris). in spanish if possible since the brief is going to a spanish-speaking client",
+    "should_trigger": true
+  },
+  {
+    "query": "vienna convention 1969 art 19 reservations — i need the actual text PLUS a current list of which states have made which reservations to which articles",
+    "should_trigger": true
+  },
+  {
+    "query": "we got a question from an associate about whether arbeidsmiljøloven §15-8 applies to a worker on parental leave who's also under sykmelding. norwegian law question for an internal memo.",
+    "should_trigger": false
+  },
+  {
+    "query": "need to find the latest GDPR enforcement decision involving Meta — i think it was the irish DPC, came down maybe march 2025, around the data transfers issue",
+    "should_trigger": false
+  },
+  {
+    "query": "looking for the strasbourg court's reasoning in big brother watch v UK about article 8 and bulk surveillance, can you pull the judgment + a summary of the article 8 paras",
+    "should_trigger": false
+  },
+  {
+    "query": "what does the european convention on human rights say about freedom of expression — i need the exact text of art 10 plus the limitation clause in art 10(2). for a strasbourg filing.",
+    "should_trigger": false
+  },
+  {
+    "query": "wipo madrid protocol — i need to know the trademark registration fees for international class 25 (apparel), my client is filing thru norway as office of origin",
+    "should_trigger": false
+  },
+  {
+    "query": "draft me a short academic note (~600 words) on whether jus cogens really exists as a meaningful category in CIL. with footnotes to cassese and shaw if you've got their textbooks indexed",
+    "should_trigger": false
+  },
+  {
+    "query": "the WTO appellate body's reasoning in US — Shrimp on PPMs and article XX(g) — pull the report and summarise the chapeau analysis paragraphs",
+    "should_trigger": false
+  },
+  {
+    "query": "i need general assembly resolution 3314 (XXIX) on definition of aggression. text plus the voting record if possible. its for a school of armed conflict reading group.",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the status of the proposed UN tax convention as of last week — i think it got an endorsement vote in 2NDC or some committee. background context for a partner meeting.",
+    "should_trigger": false
+  },
+  {
+    "query": "can you draft me a reservation clause to a vendor MSA we're negotiating with a logistics provider — they want broad indemnity, our standard cap is 12mo fees",
+    "should_trigger": false
+  }
+]
