@@ -1,10 +1,10 @@
-name: Release nbno-skill
+name: Release lovdata-skill
 
 on:
   push:
     branches: [main]
     paths:
-      - 'skills/nbno/**'
+      - 'skills/lovdata/**'
 
 jobs:
   release:
@@ -20,14 +20,14 @@ jobs:
         id: tag
         run: |
           COMMIT_NUM=$(git rev-list --count HEAD)
-          echo "value=nbno-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
+          echo "value=lovdata-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
 
       - name: Package
-        run: zip -r nbno.zip skills/nbno/
+        run: zip -r lovdata.zip skills/lovdata/
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.value }}
           name: ${{ steps.tag.outputs.value }}
-          files: nbno.zip
+          files: lovdata.zip
