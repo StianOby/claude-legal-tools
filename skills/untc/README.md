@@ -80,17 +80,25 @@ cache/treaties/IV/IV-4/text.en.txt        # extracted text
 
 ## Installing as a Claude skill
 
-Skills are discovered from your skills directory. The simplest install
-is a symlink (or copy) of this folder:
+**Recommended — Claude Desktop (for use with Cowork):**
+
+1. Download the latest `untc.zip` from the
+   [releases page](https://github.com/StianOby/claude-legal-tools/releases).
+2. In Claude Desktop, go to **Customize → Skills**, click **+** →
+   **Create skill** → **Upload a skill**, and upload the zip.
+
+See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
+for full details, including how to enable Skills on your plan.
+
+**Alternative — symlink from a local clone (Claude Code CLI):**
 
 - macOS / Linux:
-  `ln -s ~/Dropbox/Claude/UNTC/untc-skill ~/.claude/skills/untc`
+  `ln -s /path/to/untc ~/.claude/skills/untc`
 - Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\untc" "C:\Users\<you>\Dropbox\Claude\UNTC\untc-skill"`
+  `mklink /D "%USERPROFILE%\.claude\skills\untc" "C:\path\to\untc"`
 
-Then in Claude Code or Cowork: `/skill: untc` or just describe the
-task ("get me the ICCPR text") and the description in `SKILL.md`
-will trigger it.
+Then in Claude Code or Cowork: describe the task ("get me the ICCPR text")
+and the description in `SKILL.md` will trigger it.
 
 ## URL schemes (reference)
 
