@@ -1,0 +1,33 @@
+name: Release nbno-skill
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'nbno-skill/**'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build tag
+        id: tag
+        run: |
+          COMMIT_NUM=$(git rev-list --count HEAD)
+          echo "value=nbno-skill-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
+
+      - name: Package
+        run: zip -r nbno-skill.zip nbno-skill/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: ${{ steps.tag.outputs.value }}
+          files: nbno-skill.zip
