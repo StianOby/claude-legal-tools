@@ -1,5 +1,5 @@
 ---
-name: nbno-skill
+name: nbno
 description: >
   Use this skill any time the user wants to download or work with material from
   Nasjonalbiblioteket (the Norwegian National Library, nb.no). Triggers include:
