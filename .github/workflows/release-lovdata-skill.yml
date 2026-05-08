@@ -23,7 +23,7 @@ jobs:
           echo "value=lovdata-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
 
       - name: Package
-        run: zip -r lovdata.zip skills/lovdata/
+        run: cd skills/lovdata && zip -r ../../lovdata.zip .
 
       - name: Create release
         uses: softprops/action-gh-release@v2
