@@ -29,8 +29,13 @@ The user's preferences for this skill:
   three auth paths in **Step 2** to take. The default cookie location is
   `~/.nbno/cookie.txt`, populated by the `capture_cookie.py` script.
 
-> Replace `{SKILL_DIR}` below with the path printed in
-> "Base directory for this skill:" at the top of your context.
+## Prerequisites
+
+- **`{SKILL_DIR}`** — replace this placeholder with the path printed in
+  "Base directory for this skill:" at the top of your context.
+- **`nbno` CLI** — the wrapper installs it automatically on first run via
+  `pip install --break-system-packages nbno`. If auto-install fails, run
+  that command manually before proceeding.
 
 ---
 
@@ -158,11 +163,14 @@ Useful nbno flags the wrapper passes through:
 | flag | purpose |
 | --- | --- |
 | `--title` | fetch the item's real title and use it as the folder name |
-| `--start N` / `--stop N` | restrict to a page range (cheap previews) |
-| `--resize N` | percentage of original size — use 50–75 for big books |
-| `--cover` | also download the cover separately |
-| `--cookie auto` | use saved auth at `~/.nbno/cookie.txt` (Bokhylla) |
-| `--cookie PATH` | use saved auth at an explicit path |
+| `--start N`      | first page to download (1-based)                      |
+| `--stop N`       | last page to download (inclusive)                     |
+| `--resize N`     | percentage of original size — use 50–75 for big books |
+| `--title`        | fetch the item's real title and use it as folder name |
+| `--cover`        | also download the cover separately                    |
+| `--keep-images`  | skip deletion of the per-page image folder            |
+| `--cookie auto`  | use saved auth at `~/.nbno/cookie.txt` (Bokhylla)     |
+| `--cookie PATH`  | use saved auth at an explicit path                    |
 
 After the wrapper completes you'll have a single `.pdf` in the chosen
 output folder. The wrapper has already removed the per-page image folder
@@ -207,9 +215,7 @@ open it.
 
 ## Troubleshooting
 
-- *Command not found `nbno`.* The wrapper installs it on first run via
-  `pip install --break-system-packages nbno`. If that fails, install
-  manually and re-run.
+- *Command not found `nbno`.* See **Prerequisites** above.
 - *Empty PDF / no images downloaded.* Almost always an auth or geo issue
   — go to Step 2 and either ask the user to run `capture_cookie.py`
   (Option B) or supply an existing cookie file (Option C).
