@@ -1,10 +1,10 @@
-name: Release nbno-skill
+name: Release Skills
 
 on:
   push:
     branches: [main]
     paths:
-      - 'skills/nbno/**'
+      - 'skills/**'
 
 jobs:
   release:
@@ -20,14 +20,18 @@ jobs:
         id: tag
         run: |
           COMMIT_NUM=$(git rev-list --count HEAD)
-          echo "value=nbno-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
+          echo "value=skills-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
 
-      - name: Package
-        run: cd skills/nbno && zip -r ../../nbno.zip .
+      - name: Package skills
+        run: |
+          for skill_dir in skills/*/; do
+            skill=$(basename "$skill_dir")
+            (cd "$skill_dir" && zip -r "../../${skill}.zip" .)
+          done
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.value }}
           name: ${{ steps.tag.outputs.value }}
-          files: nbno.zip
+          files: "*.zip"
