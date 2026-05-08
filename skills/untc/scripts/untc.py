@@ -50,7 +50,8 @@ from typing import Iterable, Optional
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
-CACHE_DIR = SKILL_ROOT / "cache"
+_default_cache = Path.home() / ".cache" / "untc"
+CACHE_DIR = Path(os.environ.get("UNTC_CACHE_DIR", _default_cache))
 TREATIES_DIR = CACHE_DIR / "treaties"
 INDEX_PATH = CACHE_DIR / "index.json"
 
