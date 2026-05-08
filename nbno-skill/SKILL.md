@@ -1,5 +1,5 @@
 ---
-name: nbno
+name: nbno-skill
 description: >
   Use this skill any time the user wants to download or work with material from
   Nasjonalbiblioteket (the Norwegian National Library, nb.no). Triggers include:
@@ -131,6 +131,17 @@ Request Headers, while logged in.
 ---
 
 ## Step 3 — Run the wrapper
+
+> **Fetch only what you need.**
+> Use `--start <int>` and `--stop <int>` to limit the download to a page
+> range. Downloading a full book when you only need a few pages is slow,
+> expensive, and stresses nb.no's servers. Always ask the user which pages
+> they need before running without these flags.
+>
+> Examples:
+> - Single page: `--start 42 --stop 42`
+> - A chapter: `--start 10 --stop 35`
+> - Full book: omit both flags
 
 ```bash
 bash {SKILL_DIR}/scripts/nbno_run.sh \
