@@ -1,4 +1,4 @@
-# lovdata — Norsk lovdatabase
+# lovdata-api — Norsk lovdatabase
 
 A self-contained Claude skill for looking up, citing, and verifying Norwegian
 law using [Lovdata's](https://lovdata.no) free data packages. The skill never
@@ -20,7 +20,7 @@ Local regulations (LF) are not included in the free packages.
 ## Layout
 
 ```
-lovdata/
+lovdata-api/
 ├── SKILL.md          # the skill manifest Claude reads
 ├── README.md         # you are here
 └── scripts/
@@ -107,7 +107,7 @@ available; the free packages cover all current statute text.
 
 **Recommended — Claude Desktop (for use with Cowork):**
 
-1. Download the latest `lovdata.zip` from the
+1. Download the latest `lovdata-api.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
 2. In Claude Desktop, go to **Customize → Skills**, click **+** →
    **Create skill** → **Upload a skill**, and upload the zip.
@@ -118,9 +118,9 @@ for full details, including how to enable Skills on your plan.
 **Alternative — symlink from a local clone (Claude Code CLI):**
 
 - macOS / Linux:
-  `ln -s /path/to/lovdata ~/.claude/skills/lovdata`
+  `ln -s /path/to/lovdata-api ~/.claude/skills/lovdata-api`
 - Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\lovdata" "C:\path\to\lovdata"`
+  `mklink /D "%USERPROFILE%\.claude\skills\lovdata-api" "C:\path\to\lovdata-api"`
 
 Then in Claude Code: describe the task ("what does aml. § 4-6 say?") and the
 trigger description in `SKILL.md` will activate the skill automatically.
