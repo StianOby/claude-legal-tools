@@ -1,0 +1,26 @@
+{
+  "skill_name": "efta-court",
+  "evals": [
+    {
+      "id": 1,
+      "name": "fetch-and-quote-holship",
+      "prompt": "I'm writing a piece on the tension between collective bargaining and EEA fundamental freedoms. What did the EFTA Court say in the Holship judgment about whether industrial action by a Norwegian transport workers' union against a Danish-owned company falls within the freedom of establishment under Article 31 EEA? Give me at least one direct quote with the paragraph number, and cite the case properly.",
+      "expected_output": "An accurate summary of E-14/15 Holship Norge AS v Norsk Transportarbeiderforbund, with at least one verbatim paragraph quote (paragraphs ~88-95 typically discuss the Article 31 application), correct citation form (Case E-14/15 Holship), and the URL to the judgment PDF on eftacourt.int.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "list-pending-by-topic",
+      "prompt": "Are there any pending EFTA Court cases this year (2025 or 2026) where the EFTA Surveillance Authority is suing Norway? Just give me the list with case numbers, the alleged subject-matter, and a link to each case page.",
+      "expected_output": "A list of currently pending infringement actions (procedure type INF) brought by ESA against Norway in 2025-2026, with case numbers in correct E-X/YY form, the topic from the case page (or About field), and the eftacourt.int/cases/<slug>/ URL.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "norwegian-finanger-citation",
+      "prompt": "Hva sa EFTA-domstolen i sak E-1/99 (Finanger I) om hvorvidt EØS-loven gir privatpersoner direkte krav mot staten ved feilaktig gjennomføring av direktiver? Gi meg et direkte sitat fra dommen med avsnittsnummer, og en korrekt henvisning på norsk juridisk form.",
+      "expected_output": "Reply in Norwegian. Correctly identifies E-1/99 Finanger, fetches the judgment, and quotes from the dispositif or relevant paragraphs about state liability / direct effect under EEA law. Citation in Norwegian form (Sak E-1/99 Finanger). Should NOT confuse with E-2/12 (Finanger II concerning state liability).",
+      "files": []
+    }
+  ]
+}
