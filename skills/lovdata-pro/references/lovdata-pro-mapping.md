@@ -43,7 +43,7 @@ Observed during exploration:
 | Citation form              | Collection | Type slug   | Notes |
 | -------------------------- | ---------- | ----------- | ----- |
 | `HR-YYYY-N-A/B/P/F/...`    | `HRSIV` (sivil) / `HRSTR` (straff) | `avgjorelse` | Modern Supreme Court |
-| `Rt. YYYY s. N`            | `HRSIV` / `HRSTR` | `avgjorelse` | Pre-2008 Supreme Court — slug is irregular, often includes the case name |
+| `Rt. YYYY s. N`            | `HRSIV` / `HRSTR` | `avgjorelse` | Pre-2008 Supreme Court. Slug pattern: `rt-YYYY-PAGENUMBER-SUFFIX` where SUFFIX is a Lovdata-assigned sequential number (e.g. `rt-2000-1811-hrsiv`). **The suffix cannot be guessed deterministically — use Pro UI search.** |
 | `LG-YYYY-N`                | `LGSIV` (Gulating sivil) | `avgjorelse` | Lagmannsrett: prefix encodes court (LB Borgarting, LA Agder, LF Frostating, LH Hålogaland, LE Eidsivating) and division (SIV / STR) |
 | `LB-YYYY-N`                | `LBSIV` / `LBSTR` | `avgjorelse` | Borgarting |
 | `RG YYYY s. N`             | varies — older RG cases sit under whichever lagmannsrett actually decided them. Pro renders them via Tingrett (`TRSIV`) when search is the only path | `avgjorelse` | Slugs are irregular; runtime search needed |
@@ -53,6 +53,7 @@ Observed during exploration:
 | `Innst. N L (YYYY-YY)`     | **`INNST`** | `forarbeid` | Slug uses `inns-` (not `innst-`): `inns-521-l-202425` — note the collection/slug mismatch |
 | `Meld. St. N`              | likely `MELD` | `forarbeid` | Not directly verified |
 | `Dok. 8:N`                 | `REPFOR` | `forarbeid` | e.g. `dok8-12-199900` |
+| `NOU YYYY:N` (pre-~1975)   | `PUBG` | `pubg-YYYYYY-nou-N` | Historical publications. E.g. NOU 1972:16 → `PUBG/pubg-197273-nou-16`. **Returns metadata only (~468 chars), not full text.** Year range encoded as 6 digits same as forarbeider. |
 
 ### Year encoding rule (forarbeider)
 
@@ -63,14 +64,18 @@ matches Pro's actual slugs for the documents in our test set.
 
 ### Coverage cutoff (forarbeider)
 
-Lovdata Pro doesn't index very old preparatory works. We confirmed that
-`Ot.prp. nr. 23 (1961-62)` is not available — no document at either
-`PROP/forarbeid/otprp-23-196162` or `OTPRP/forarbeid/otprp-23-196162`, and
-nothing matching in Pro search. The practical floor for forarbeider in Pro
-appears to sit somewhere around the late 1960s. When the parser produces a
-slug that 404s and search returns no plausible match, surface a clear
-"likely too old / not in Lovdata Pro" message rather than a generic
-"document not found".
+Lovdata Pro doesn't index very old preparatory works. Confirmed absent:
+
+- `Ot.prp. nr. 23 (1961-62)` — nothing at `PROP/forarbeid/otprp-23-196162`,
+  `OTPRP/forarbeid/otprp-23-196162`, or in Pro search.
+- `Innst. O. nr. 49 (1961-62)` — likewise absent.
+- `St.prp. nr. 100 (1991-92)` (EEA ratification) — absent despite being a
+  major document. Even some 1990s propositions are missing.
+
+The practical floor for most forarbeider is around the **late 1960s**. A few
+older NOUs may appear in the `PUBG` collection (metadata-only). When a slug
+404s and search returns no plausible match, surface a clear "likely not in
+Lovdata Pro" message rather than a generic "document not found".
 
 ### Division (SIV vs STR)
 
@@ -115,11 +120,16 @@ Two layers:
      ambiguous queries the script can return the top N and let the caller pick.
 
 Free-text search does NOT find the cited document by reference — it finds
-documents that *cite* it. For exact-reference resolution, Pro's advanced
-search (`#search`) has a `dokumentnr` field, but it's only visible after
-selecting a "Rettskilde" first. Practical strategy: start with the
-Hurtigsøk; if the top result's slug doesn't match the requested ref, fall
-back to the user.
+documents that *cite* it, or documents whose full text happens to contain
+the query terms. Example: searching «St.prp. nr. 100 1991-92 EØS-avtalen»
+returns EU directives from the EEA annex (because the EEA Agreement
+references those terms pervasively), not the proposition itself.
+
+For exact-reference resolution, prefer direct slug patterns first and use
+search only as a fallback. Pro's advanced search (`#search`) has a
+`dokumentnr` field, but it's only visible after selecting a "Rettskilde"
+first. Practical strategy: start with the Hurtigsøk; if the top result's
+slug doesn't match the requested ref, fall back to the user.
 
 ---
 

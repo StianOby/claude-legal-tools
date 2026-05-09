@@ -78,7 +78,15 @@ og `storage_state.json` vil typisk gi 403 eller en blank sesjonsfeil.
 direkte. Playwright MCP-browseren kjører på brukerens maskin og arver den
 autentiserte sesjonen automatisk — ingen `storage_state.json` trengs.
 
+**CORS-krav:** `fetch()` med `credentials: 'include'` krever at sidekonteksten
+allerede er på `lovdata.no` — ellers kaster browseren `TypeError: Failed to fetch`
+på grunn av CORS. Naviger til `https://lovdata.no/pro/` **før** du kjører fetch-koden:
+
 ```javascript
+// Steg 1 — kjør først (separat kall):
+async (page) => { await page.goto('https://lovdata.no/pro/'); }
+
+// Steg 2 — deretter fetch (separat kall):
 async (page) => {
   return await page.evaluate(async () => {
     const res = await fetch(
@@ -212,6 +220,19 @@ Pro-søk og bruker første treff. **Verifiser** at treffets path passer
 referansen før du siterer — et fritekst-søk på «Rt. 2000 s. 1811» finner
 ofte saker som *siterer* dommen, ikke selve Finanger I.
 
+**Pre-2008 Rt.-slugs har et opakt suffiks.** Mønsteret er
+`rt-YYYY-PAGENUMBER-SUFFIX` (f.eks. `rt-2000-1811-hrsiv` for sivile saker),
+der suffikset er et sekvensielt tall som Lovdata tildeler — det kan **ikke**
+gjettes deterministisk. Pro UI-søk er den eneste pålitelige måten å finne
+disse på. Ikke forsøk å konstruere slugen fra sidetall alene.
+
+**Pro-søk returnerer innholdstreff, ikke dokumenttreff.** Et søk på
+«St.prp. nr. 100 1991-92 EØS-avtalen» kan gi EU-direktiver fra EØS-vedlegget
+fordi fulltekstsøket slår på alle treff i dokumentkorpuset. For proposisjoner
+og forarbeider: prøv direkte slug-mønstre **først**, og bruk søk bare som
+siste utvei — og sjekk da at topptreffets path faktisk tilsvarer det
+etterspurte dokumentet.
+
 Hvis topp-treffet er feil:
 
 1. Kjør `... search "<referansen>"` og se gjennom topp-N.
@@ -224,11 +245,13 @@ For ukjente dokumenttyper eller når både direkte slug og Pro-søk feiler,
 bruk Playwright MCP-en til å utforske manuelt:
 
 1. `mcp__playwright__browser_navigate` → `https://lovdata.no/pro/#search`
-2. Skriv referansen i Hurtigsøk (`#quickSearchField-input`) og trykk Enter.
-3. Les `a[href^="#document/"]`-anker fra resultatlisten — det første matchende
+2. Klikk tre ganger i Hurtigsøk-feltet for å merke alt (`input.click({ clickCount: 3 })`),
+   deretter skriv referansen. (`page.keyboard.selectAll()` finnes ikke i Playwright.)
+3. Trykk Enter og vent på at resultater rendres.
+4. Les `a[href^="#document/"]`-anker fra resultatlisten — det første matchende
    gir kanonisk `<COLLECTION>/<TYPE>/<SLUG>`.
-4. Hent dokumentet med `... get "<COL>/<TYPE>/<SLUG>"`.
-5. Hvis du fant et nytt mønster (ny samlingsforkortelse, ny slug-regel),
+5. Hent dokumentet med `... get "<COL>/<TYPE>/<SLUG>"`.
+6. Hvis du fant et nytt mønster (ny samlingsforkortelse, ny slug-regel),
    oppdater `references/lovdata-pro-mapping.md` slik at neste gang går
    automatisk.
 
@@ -261,7 +284,11 @@ Hvis brukeren vil rive ned sesjonen, slett `storage_state.json`.
 - **`error: not logged in`** → kjør `... login`.
 - **`error: saved session expired`** → kjør `... login` på nytt.
 - **`error: no document found`** → sjekk referansen for skrivefeil; prøv
-  `... search "..."` for å finne riktig path.
+  `... search "..."` for å finne riktig path. Merk: forarbeider fra før
+  ca. 1968 finnes typisk ikke i Pro. Selv noen 1990-tallsdokumenter mangler
+  (f.eks. `St.prp. nr. 100 (1991-92)` om EØS er ikke indeksert). Eldre
+  NOUer kan dukke opp under `PUBG`-samlingen (se mapping-filen), men
+  returnerer ofte bare metadata.
 - **404 eller suspekt kort innhold for Ot.prp./Prop. L** → `resolve`-kommandoen
   returnerer av og til `FORARBEID/forarbeid/otprp-...` som 404-er. Riktig
   samling er `PROP`. Prøv på nytt med `PROP` i stedet for `FORARBEID`:
