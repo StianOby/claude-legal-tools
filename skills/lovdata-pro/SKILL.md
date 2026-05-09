@@ -284,11 +284,12 @@ Hvis brukeren vil rive ned sesjonen, slett `storage_state.json`.
 - **`error: not logged in`** → kjør `... login`.
 - **`error: saved session expired`** → kjør `... login` på nytt.
 - **`error: no document found`** → sjekk referansen for skrivefeil; prøv
-  `... search "..."` for å finne riktig path. Merk: forarbeider fra før
-  ca. 1968 finnes typisk ikke i Pro. Selv noen 1990-tallsdokumenter mangler
-  (f.eks. `St.prp. nr. 100 (1991-92)` om EØS er ikke indeksert). Eldre
-  NOUer kan dukke opp under `PUBG`-samlingen (se mapping-filen), men
-  returnerer ofte bare metadata.
+  `... search "..."` for å finne riktig path. Sjekk også dekningsterskler
+  (se mapping-filen): lovrelaterte proposisjoner i fulltekst fra sesjon
+  1984/85, NOU-er i fulltekst fra 1994 (1985–1993 varierer), Innstillinger
+  fra sesjon 1991/92. Eldre NOUer kan dukke opp under `PUBG`-samlingen,
+  men har ofte bare metadata. Ikke-lovrelaterte proposisjoner (St.prp. etc.)
+  er aldri fulltekst-indeksert.
 - **404 eller suspekt kort innhold for Ot.prp./Prop. L** → `resolve`-kommandoen
   returnerer av og til `FORARBEID/forarbeid/otprp-...` som 404-er. Riktig
   samling er `PROP`. Prøv på nytt med `PROP` i stedet for `FORARBEID`:

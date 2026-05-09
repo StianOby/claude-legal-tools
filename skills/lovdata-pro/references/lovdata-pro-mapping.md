@@ -64,18 +64,33 @@ matches Pro's actual slugs for the documents in our test set.
 
 ### Coverage cutoff (forarbeider)
 
-Lovdata Pro doesn't index very old preparatory works. Confirmed absent:
+Official Lovdata Pro coverage by document type:
 
-- `Ot.prp. nr. 23 (1961-62)` — nothing at `PROP/forarbeid/otprp-23-196162`,
-  `OTPRP/forarbeid/otprp-23-196162`, or in Pro search.
-- `Innst. O. nr. 49 (1961-62)` — likewise absent.
-- `St.prp. nr. 100 (1991-92)` (EEA ratification) — absent despite being a
-  major document. Even some 1990s propositions are missing.
+**Propositions (Ot.prp. / Prop. L):**
+- Full text from session **1984/85** onwards for all law-related propositions.
+- Selected older Ot.prp. also have full text.
+- Non-law propositions (St.prp., etc.): header + PDF link only — not indexed
+  as full-text forarbeider regardless of age.
+- Page numbers appear **only in PDF** from 2024 onwards (all propositions
+  from session 2025/26).
 
-The practical floor for most forarbeider is around the **late 1960s**. A few
-older NOUs may appear in the `PUBG` collection (metadata-only). When a slug
-404s and search returns no plausible match, surface a clear "likely not in
-Lovdata Pro" message rather than a generic "document not found".
+**NOU:**
+- Full text from **1994** onwards (all NOUs); PDF also from 2003.
+- **1985–1993**: many have only summary or TOC; but many pre-1985 NOUs for
+  central legal areas are available in full text.
+- Pre-1985 NOUs may appear under the `PUBG` collection (often metadata-only).
+
+**Other reports:**
+- NUT series ("Innstillinger og Betenkninger", predecessor to NOU) available,
+  including all Rådsegn from Sivillovbokutvalget.
+
+**Innstillinger:**
+- Law-related from session **1991/92** onwards; some older ones also available.
+- Other Innstillinger + budget from session **1992/93** onwards.
+
+When a slug 404s and search returns no plausible match, surface a "likely not
+in Lovdata Pro as full text" message rather than a generic "document not
+found".
 
 ### Division (SIV vs STR)
 
