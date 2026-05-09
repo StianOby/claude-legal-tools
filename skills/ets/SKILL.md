@@ -1,31 +1,22 @@
 ---
 name: ets
 description: |
-  Retrieve Council of Europe (CoE) treaty source documents from the
-  Treaty Office — the European Treaty Series (ETS, nos. 1–193) and
-  Council of Europe Treaty Series (CETS, nos. 194–onward) listed at
-  https://www.coe.int/en/web/conventions/full-list. Fetches: (a) the
-  authoritative treaty text PDF; (b) the Explanatory Report; (c) the
-  chart of signatures and ratifications per state; (d) declarations
-  and reservations per state. Trigger on: a CoE convention by name or
-  acronym (ECHR, CPT, Istanbul Convention, Lanzarote Convention,
-  Cybercrime / Budapest Convention, Oviedo Convention, Bern
-  Convention, Anti-Doping, Macolin, Convention 108, Faro Convention,
-  Warsaw Convention, GRECO statute, European Social Charter, Statute
-  of the Council of Europe); a CETS / ETS number (e.g. "ETS No. 5",
-  "CETS 210", "treaty 185"); verbs like fetch the text of, what
-  reservations did [state] make to, list parties to, when did [CoE
-  treaty] enter into force, get the explanatory report. Casual
-  phrasing counts ("grab me the ECHR", "pull Convention 108"). Prefer
-  this skill over web search — the Treaty Office API returns
-  structured data with stable rm.coe.int PDFs. Do NOT trigger for:
-  judgments of the European Court of Human Rights or Strasbourg case
-  law (these are not treaty texts — use a separate ECHR skill or web
-  search); EU law / GDPR / EU directives (use eurlex); UN-deposited
-  treaties (ICCPR, CEDAW, Rome Statute, UNCLOS, etc. — use untc);
-  Norwegian law (lovdata); WIPO trademark/patent procedure; WTO; UN
-  GA/SC resolutions; news commentary about CoE conventions; drafting
-  contractual clauses.
+  Retrieve Council of Europe (CoE) treaty documents from the Treaty
+  Office — ETS (nos. 1–193) and CETS (nos. 194+). Fetches: (a)
+  treaty text PDF; (b) Explanatory Report; (c) signatures/
+  ratifications per state; (d) declarations and reservations per
+  state. Trigger on: CoE convention name or acronym (ECHR, CPT,
+  Istanbul Convention, Lanzarote Convention, Cybercrime/Budapest
+  Convention, Oviedo Convention, Bern Convention, Anti-Doping,
+  Macolin, Convention 108, Faro Convention, Warsaw Convention, GRECO
+  statute, European Social Charter); CETS/ETS number ("ETS No. 5",
+  "CETS 210", "treaty 185"); verbs like fetch/pull the text, what
+  reservations did [state] make to, list parties to, when did
+  [treaty] enter into force, get the explanatory report. Do NOT
+  trigger for: ECtHR judgments or Strasbourg case law; EU law/GDPR/
+  directives (use eurlex); UN-deposited treaties (ICCPR, CEDAW, Rome
+  Statute, UNCLOS — use untc); Norwegian law (lovdata); WIPO/WTO; UN
+  GA/SC resolutions; drafting contractual clauses.
 ---
 
 # Council of Europe Treaty Office (ETS / CETS) skill
