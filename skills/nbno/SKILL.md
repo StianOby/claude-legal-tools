@@ -23,8 +23,9 @@ journals, maps, manuscripts, etc. as page images and assemble them into a PDF.
 
 The user's preferences for this skill:
 
-- **Output**: PDF only. Always run with `--pdf`, then delete the page-image
-  folder after the PDF is built.
+- **Output**: PDF only. The wrapper always builds a PDF and removes per-page
+  images automatically — do **not** pass `--pdf` yourself (it is an unknown
+  argument to the wrapper and will cause an error).
 - **Auth**: Prompt every time. Before each run, ask the user which of the
   three auth paths in **Step 2** to take. The default cookie location is
   `~/.nbno/cookie.txt`, populated by the `capture_cookie.py` script.
@@ -71,11 +72,19 @@ Most pre-1900 books and out-of-copyright photos/maps work without login.
 In-copyright Bokhylla content needs a logged-in nb.no session **and** access
 from a Norwegian IP. Ask the user which of the three paths to take.
 
+> **pliktmonografi / pliktperiodika items: try no-auth first.**
+> Legal-deposit material (`pliktmonografi_*`, `pliktperiodika_*`) is often
+> accessible without any authentication — its access model appears to differ
+> from Bokhylla in-copyright content. Always attempt Option A first for these
+> IDs. Only escalate to Option B or C if the download returns an empty PDF or
+> HTTP 401/403 errors.
+
 ### Option A — No auth (open content)
 
 The default. Run `nbno_run.sh` without `--cookie`. Best when the user pasted
-a URN for an old book, sheet music, public-domain photo, etc. If the
-download fails with HTTP 401/403, fall back to Option B.
+a URN for an old book, sheet music, public-domain photo, or any
+`pliktmonografi_*` / `pliktperiodika_*` item. If the download fails with HTTP
+401/403, fall back to Option B.
 
 ### Option B — Cookie capture (recommended for FEIDE / Bokhylla)
 
@@ -328,10 +337,11 @@ open it.
 ## Troubleshooting
 
 - *Command not found `nbno`.* See **Prerequisites** above.
-- *Empty PDF / no images downloaded.* Almost always an auth or geo issue
-  — go to Step 2 and either use the playwright MCP approach (Option B
-  primary), ask the user to run `capture_cookie.py` (Option B alternative),
-  or supply an existing cookie file (Option C).
+- *Empty PDF / no images downloaded.* For `digibok` / Bokhylla content this
+  is almost always an auth or geo issue — go to Step 2 and use Option B or C.
+  For `pliktmonografi_*` / `pliktperiodika_*` items, **do not assume auth is
+  required**: legal-deposit material is often accessible without a cookie.
+  Retry with no `--cookie` flag before escalating to the FEIDE flow.
 - *`--cookie auto` errors with "no cookie file found".* The wrapper looked
   at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't run
   `capture_cookie.py` yet, or they ran it on their own machine but
@@ -349,8 +359,9 @@ open it.
   was too wide. The sandbox has a 45 s timeout; keep batches to ≤ 7 pages.
 - *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque; ask for
   the Referere/Sitere string (URN) instead. Don't guess.
-- *User mentions `pliktavlevering` content.* Same flow — ID prefix will
-  be `pliktmonografi_...` or `pliktperiodika_...`. Note that the content
-  search API will not work for these items; download and read the pages
-  directly.
+- *User mentions `pliktavlevering` content.* ID prefix will be
+  `pliktmonografi_...` or `pliktperiodika_...`. **Try no-auth first** —
+  legal-deposit items are often accessible without FEIDE. The content search
+  API will not work for these items regardless of auth; download and read the
+  pages directly.
   
