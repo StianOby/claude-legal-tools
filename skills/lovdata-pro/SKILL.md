@@ -68,6 +68,43 @@ For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
 
 ---
 
+## Cowork-modus (browser_run_code_unsafe)
+
+I et Cowork-sandbox er Lovdata Pros **JSESSIONID IP-bundet** til maskinen som
+autentiserte — typisk brukerens lokale maskin. Sandboxen kjører på en annen IP,
+og `storage_state.json` vil typisk gi 403 eller en blank sesjonsfeil.
+
+**Foretrukket fremgangsmåte i Cowork:** bruk `mcp__playwright__browser_run_code_unsafe`
+direkte. Playwright MCP-browseren kjører på brukerens maskin og arver den
+autentiserte sesjonen automatisk — ingen `storage_state.json` trengs.
+
+```javascript
+async (page) => {
+  return await page.evaluate(async () => {
+    const res = await fetch(
+      'https://lovdata.no/pro/document/PROP/forarbeid/otprp-79-199192/*',
+      { credentials: 'include' }
+    );
+    const text = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/html');
+    doc.querySelectorAll('script, style, nav, .toolbar').forEach(el => el.remove());
+    const body = doc.querySelector('#lovdataDocument') || doc.querySelector('#documentBody') || doc.body;
+    return body ? body.innerText : '';
+  });
+}
+```
+
+Erstatt URL-en med riktig `<COLLECTION>/<TYPE>/<SLUG>/*`-bane. `rememberMe`-cookien
+kan av og til trigge en ny sesjon som virker, men dette er upålitelig. Python-scriptet
+fungerer godt utenfor Cowork der sandbox og brukermaskin deler IP.
+
+**Når skal du bruke hvilken metode?** Hvis Python-scriptet returnerer sesjonsfeil
+og `mcp__playwright__browser_run_code_unsafe` er tilgjengelig i MCP-listen, bytt
+til fetch-metoden ovenfor.
+
+---
+
 ## Slik bruker du scriptet
 
 ### Hent et dokument (vanligste tilfelle)
@@ -225,6 +262,10 @@ Hvis brukeren vil rive ned sesjonen, slett `storage_state.json`.
 - **`error: saved session expired`** → kjør `... login` på nytt.
 - **`error: no document found`** → sjekk referansen for skrivefeil; prøv
   `... search "..."` for å finne riktig path.
+- **404 eller suspekt kort innhold for Ot.prp./Prop. L** → `resolve`-kommandoen
+  returnerer av og til `FORARBEID/forarbeid/otprp-...` som 404-er. Riktig
+  samling er `PROP`. Prøv på nytt med `PROP` i stedet for `FORARBEID`:
+  `... get "PROP/forarbeid/otprp-79-199192"`. Se mapping-filen for detaljer.
 - **`missing python package`** → installer pakkene som beskrevet i
   Forutsetninger.
 - **Tom eller suspekt kort markdown** (under ~2 KB) → URL-en er gyldig
