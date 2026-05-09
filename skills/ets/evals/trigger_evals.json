@@ -1,0 +1,82 @@
+[
+  {
+    "query": "can you grab me the english text of the ECHR? i want to quote article 6 in a brief",
+    "should_trigger": true
+  },
+  {
+    "query": "what reservations did Türkiye file to the Istanbul Convention before they denounced it. for a comparative paper",
+    "should_trigger": true
+  },
+  {
+    "query": "i need CETS 210 plus its explanatory report. partner needs the travaux for a footnote",
+    "should_trigger": true
+  },
+  {
+    "query": "as of today which states haven't ratified the cybercrime convention (budapest)? need this for a memo about the second additional protocol",
+    "should_trigger": true
+  },
+  {
+    "query": "the lanzarote convention - i need full text + the explanatory report, EN. asylum case prep involving CSE allegations.",
+    "should_trigger": true
+  },
+  {
+    "query": "did Norway lodge a reservation under the convention against torture (CPT, ETS 126)? checking before we cite it in a memo",
+    "should_trigger": true
+  },
+  {
+    "query": "give me the text of CETS 108 and the modernised convention 108+ if possible. data protection question for a client",
+    "should_trigger": true
+  },
+  {
+    "query": "when did the european convention on the legal protection of services based on conditional access enter into force? i think its in the 170s",
+    "should_trigger": true
+  },
+  {
+    "query": "fetch the bern convention please (the wildlife one, ETS 104). i need the english text + the latest list of parties",
+    "should_trigger": true
+  },
+  {
+    "query": "council of europe treaty 005 art 15 derogations - which states have currently posted derogations and what's the text. for a public emergency law piece",
+    "should_trigger": true
+  },
+  {
+    "query": "we got a question about whether arbeidsmiljøloven §15-8 applies to a worker on parental leave. norwegian law question for an internal memo.",
+    "should_trigger": false
+  },
+  {
+    "query": "need the latest GDPR enforcement decision involving Meta — i think it was the irish DPC, around the data transfers issue",
+    "should_trigger": false
+  },
+  {
+    "query": "looking for the strasbourg court's reasoning in big brother watch v UK about article 8 and bulk surveillance — pull the judgment + a summary",
+    "should_trigger": false
+  },
+  {
+    "query": "summarise the ECtHR's case-law on art. 10 ECHR limitations as developed since handyside. i need it as a literature review intro section",
+    "should_trigger": false
+  },
+  {
+    "query": "fetch the ICCPR text in English + French. need it for a footnote in an international law brief",
+    "should_trigger": false
+  },
+  {
+    "query": "what does the rome statute say about head of state immunity, and which states have not ratified it. for a sanctions paper",
+    "should_trigger": false
+  },
+  {
+    "query": "wipo madrid protocol — i need to know the trademark registration fees for international class 25, my client is filing thru norway",
+    "should_trigger": false
+  },
+  {
+    "query": "draft me a 600-word academic note on whether jus cogens really exists as a meaningful CIL category, with footnotes to cassese",
+    "should_trigger": false
+  },
+  {
+    "query": "the WTO appellate body's reasoning in US — Shrimp on PPMs and article XX(g) — pull the report and summarise the chapeau analysis",
+    "should_trigger": false
+  },
+  {
+    "query": "can you draft me a reservation clause to a vendor MSA we're negotiating with a logistics provider — they want broad indemnity, our standard cap is 12mo fees",
+    "should_trigger": false
+  }
+]
