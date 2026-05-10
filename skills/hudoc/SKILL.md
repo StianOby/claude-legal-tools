@@ -119,6 +119,19 @@ languageisocode:"ENG"              ENG | FRE
 kpdate:[2020-01-01T00:00:00Z TO 2024-12-31T00:00:00Z]   date range
 ```
 
+**Reducing output size:** The default search output includes all metadata
+fields (including `scl` and `extractedappno`, which can be very long). For a
+quick scan of many results, use `--select` to request only the fields you need:
+
+```bash
+# Compact scan — just enough to identify and compare results:
+python3 scripts/hudoc.py search '(article:"8") AND (respondent:"NOR")' -n 20 \
+  --select itemid,docname,kpdate,respondent,conclusion
+```
+
+This avoids the "output too large" file-save behaviour when reviewing large
+result sets.
+
 For more on the query language and the field set, see
 `references/query-fields.md`.
 
@@ -144,9 +157,70 @@ typically with paragraph numbers and dates. The output is:
 
 To follow a citation chain, feed any `appnos[0]` value back into
 `fetch`/`metadata`. There's no in-bound "cited by" graph in the public API
-— if the user wants that, you'd need to search for each appno appearing
-inside other judgments' `extractedappno` field, e.g.
-`search 'extractedappno:"14038/88"'` finds cases that reference Soering.
+— if the user wants that, see the next section.
+
+### Finding cases that cite a known case (reverse lookup)
+
+The `extractedappno` field is HUDOC's machine-parsed list of application
+numbers that appear *inside* a judgment's body. Searching it is the most
+powerful way to find all cases that have cited a specific judgment:
+
+```bash
+# Find all cases that cite Abdullah Yaşa v. Turkey (app. no. 44827/08):
+python3 scripts/hudoc.py search 'extractedappno:"44827/08"' -n 30
+
+# Narrow to Grand Chamber cases citing Soering v. UK (14038/88):
+python3 scripts/hudoc.py search '(extractedappno:"14038/88") AND (doctypebranch:GRANDCHAMBER)' -n 20
+```
+
+This covers cases that explicitly discuss or distinguish the cited case, not
+just cases that appear in a table of citations. It also works for tracing how
+a legal principle has evolved: search `extractedappno` for an early leading
+case and sort by date to see the development line.
+
+### Fetching multiple cases in parallel
+
+When fetching several cases at once, wrap each call in its own subshell so
+background processes inherit the correct working directory. **Do not** use a
+bare `&` after a `cd` — background subprocesses don't inherit the `cd`, so
+every call after the first will fail silently with a wrong-path error:
+
+```bash
+# WRONG — only the first background process is in the right directory:
+cd /path/to/skill && python3 scripts/hudoc.py fetch 001-xxx --format text &
+python3 scripts/hudoc.py fetch 001-yyy --format text &   # fails: wrong cwd
+
+# CORRECT — each call in its own subshell:
+SKILL=/path/to/skill
+for id in 001-xxx 001-yyy 001-zzz; do
+  (cd "$SKILL" && python3 scripts/hudoc.py fetch "$id" --format text) &
+done
+wait
+```
+
+Alternatively, pass the full absolute path to the script and use `--cache-dir`
+to keep all output in one place.
+
+### Searching cached text with grep
+
+After fetching, the plain-text extraction lives at
+`cache/items/<itemid>/judgment.txt` (relative to the skill directory). This
+is greppable directly without re-querying HUDOC:
+
+```bash
+# Find paragraph numbers containing "margin of appreciation" across fetched cases:
+grep -n "margin of appreciation" cache/items/*/judgment.txt
+
+# Find the dispositif in all cached judgments:
+grep -l "FOR THESE REASONS" cache/items/*/judgment.txt
+
+# Grep for a specific paragraph number across all cached cases:
+grep -n "^88\." cache/items/*/judgment.txt
+```
+
+This cache-then-grep workflow is much faster than re-querying HUDOC when you
+already have the documents, and it avoids context-window pressure from large
+search result JSON.
 
 ### The user mixes English and French
 
@@ -255,4 +329,15 @@ when answering quick questions.
   inspect the candidates.
 - **Multiple-application cases** — A single judgment can have a dozen
   applicants joined into one case (e.g. `58170/13;62322/14;24960/15`).
-  Searching by any
+  Searching by any one of the constituent application numbers returns the
+  joined case. The `appno` metadata field lists all of them
+  semicolon-separated.
+- **French-only judgments** — Some Chamber judgments against francophone
+  states (France, Belgium, Luxembourg, Switzerland, Monaco) were never
+  translated into English. The script will return a French DOCX or PDF
+  without error; there is no English version to fall back to. If the
+  extracted text is entirely in French and the user expected English, check
+  `languageisocode` in `meta.json` and note this to the user. To search for
+  an English translation explicitly: `search '(appno:"<appno>") AND
+  (languageisocode:"ENG")'` — if it returns nothing, only the French version
+  exists.
