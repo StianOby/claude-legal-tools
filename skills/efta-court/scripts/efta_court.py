@@ -295,9 +295,11 @@ def _resolve_entry(case_canonical: str) -> dict:
     # joined cases or non-canonical: search by slug containing year+number
     n, yr = case_canonical.removeprefix("E-").split("/")
     needle = f"{int(n)}-{int(yr):02d}"
-    for e in idx["cases"]:
-        if needle in e["slug"]:
-            return e
+    matches = [e for e in idx["cases"] if needle in e["slug"]]
+    if matches:
+        # Prefer shorter slug so 'e-15-10' wins over 'e-15-10-costs' or 'e-15-10-order'
+        matches.sort(key=lambda e: len(e["slug"]))
+        return matches[0]
     raise SystemExit(f"Case {case_canonical} not in index. Try `update`.")
 
 
@@ -332,7 +334,7 @@ _DOC_LINK_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _ABOUT_RE = re.compile(
-    r'<h2[^>]*>\s*About this case[^<]*</h2>\s*<div>(.*?)</div>',
+    r'<h2[^>]*>\s*About this case[^<]*</h2>(.*?)(?=<h2|\Z)',
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -409,7 +411,9 @@ _DOC_LABEL_RE = re.compile(
 )
 _DOC_TYPE_NORMAL = {
     "judgment": "judgment",
+    "advisory opinion": "advisory-opinion",
     "order": "order",
+    "costs order": "costs-order",
     "request ao": "request",
     "request": "request",
     "notification": "notification",
@@ -482,12 +486,18 @@ def get_document(case: str, doc_type: str | None, lang: str) -> tuple[Path, Path
     return pdf_p, txt_p
 
 
+def _norm_type(s: str) -> str:
+    """Normalize a document type string: lowercase, collapse hyphens/underscores to spaces."""
+    return re.sub(r'[-_]+', ' ', s.lower().strip())
+
+
 def _choose_doc(docs: list[dict], doc_type: str | None, lang: str) -> dict | None:
     lang = lang.upper()
     candidates = docs
     if doc_type:
-        dt = doc_type.lower().strip()
-        candidates = [d for d in docs if dt in (d.get("type", "").lower())]
+        dt = _norm_type(doc_type)
+        # Substring match in both directions so 'advisory opinion' matches 'advisory-opinion' etc.
+        candidates = [d for d in docs if dt in _norm_type(d.get("type", "")) or _norm_type(d.get("type", "")) in dt]
     # prefer requested language, then EN, then anything
     for L in (lang, "EN"):
         for d in candidates:
@@ -601,8 +611,12 @@ def cmd_search(args: argparse.Namespace) -> None:
         print(json.dumps([{"case": r, "snippet": s} for r, s in hits], indent=2, ensure_ascii=False))
         return
     if not hits:
-        print(f"No hits for {args.query!r}. Try `update` first, or `fetch` likely cases to enrich the local cache.",
-              file=sys.stderr)
+        print(
+            f"No hits for {args.query!r} in local cache.\n"
+            "Topic keywords only match cases you have already fetched.\n"
+            "Workflow: `list --decided --limit 100` → identify candidates → `fetch E-X/YY` each → re-run search with --full-text.",
+            file=sys.stderr,
+        )
         return
     for r, snippet in hits:
         flag = {"Pending": "P", "Decided": "D"}.get(r.get("status") or "", "?")

@@ -110,15 +110,20 @@ Always start with the script's `--help`, then use these recipes:
   Pass a case number in any reasonable form: `E-14/15`, `E-14-15`,
   `e14/15`.
 - **`get <case> [--type T] [--lang L]`** — download a specific PDF
-  (judgment, order, request, notification, opinion-of-aag, …) and
-  also write a plain-text extraction next to it. `--lang` defaults to
+  and write a plain-text extraction next to it. `--lang` defaults to
   EN; pass NO / IS / DE / FR for other language versions when the
   case has them. Without `--type`, the CLI lists what's available.
+  Valid `--type` values (hyphens and spaces are interchangeable):
+  `judgment`, `advisory-opinion`, `order`, `costs-order`, `request`,
+  `notification`, `summary`, `report`, `opinion-aag`, `opinion`.
 - **`search <query> [--party-only] [--year YYYY] [--country C]`** —
-  search local case data. By default searches case parties and titles
-  in the local cache; pass `--full-text` to include text extracted
-  from cached judgment PDFs (slower; only works on cases you've
-  already `fetch`-ed or `get`-ed).
+  search **local cache only** — it cannot search eftacourt.int.
+  In a fresh session with no prior `fetch` calls, topic keywords like
+  "fundamental rights" or "state aid" return nothing even if dozens
+  of cases address the topic. Use the topic-research recipe below to
+  populate the cache first. Pass `--full-text` to also search inside
+  extracted PDF text (only works on cases already `fetch`-ed or
+  `get`-ed).
 - **`status`** — print where the cache lives and how fresh it is.
 
 ### Case-number normalisation
@@ -134,6 +139,38 @@ E-8/25     E-08/25    e-8-25    E0825
 If the user writes only a year-and-number like `8/25`, the CLI assumes
 prefix `E-`. If you're not sure which case the user means, run `search`
 on a name fragment first.
+
+---
+
+## Topic research recipe
+
+`search` cannot find cases by subject matter until you have fetched
+them. For a fresh session, follow this workflow:
+
+```bash
+# 1. Seed the local cache (fetches detail page for each case)
+python3 scripts/efta_court.py list --decided --limit 100
+
+# 2. Fetch the likely candidates (repeat for each case you want to read)
+python3 scripts/efta_court.py fetch E-X/YY
+python3 scripts/efta_court.py get E-X/YY --type judgment
+
+# 3. Now full-text search works
+python3 scripts/efta_court.py search "fundamental rights" --full-text
+# or just grep the extracted text directly
+grep -i "keyword" ~/.cache/efta-court/cases/E-X-YY/judgment-EN.txt
+```
+
+If you already know the subject area, narrow step 1 first:
+- `list --procedure AO --year 2024` for advisory opinions
+- `list --country NO` for Norway-only referrals
+- Party names in `list` output let you spot plausible candidates
+  without fetching every case.
+
+The `--pending`/`--decided` verification pass fetches every recent
+case's detail page on first run. To limit the cost, pass
+`--verify-years 1` (only last year) and run it as a background step
+while you work on other things.
 
 ---
 
@@ -162,7 +199,7 @@ cache/cases/E-14-15/raw.html           # source HTML (for re-parsing if needed)
   "judgment_date": "19/04/2017",
   "procedure": "Request for an advisory opinion",
   "source_court": "Norges Høyesterett",
-  "about": "Request for an Advisory Opinion ...",
+  "about": "Request for an Advisory Opinion ...",   // often empty — not always populated by the site
   "documents": [
     {
       "title": "14/15 Judgment",
@@ -227,6 +264,13 @@ Run `python3 scripts/efta_court.py status` to see the actual path.
 - **Joined cases** (e.g. *Joined Cases E-31/24 and E-32/24*) live at
   their own slug. The CLI resolves either component case to the joined
   page automatically; pass either case number.
+- **Multiple entries for one case number.** Some case numbers have
+  more than one page on eftacourt.int — a main judgment page and a
+  separate costs-order page (e.g. `e-15-10` vs `e-15-10-costs`).
+  The CLI now prefers the shorter slug (the main case), but if you
+  get a costs order when you expected the main judgment, run `fetch`
+  with `--refresh` after checking `meta.json` → `url` to confirm
+  which page was resolved.
 - **Old cases (1994–2003)** sometimes have only a judgment PDF and no
   document index in the structured format. The CLI still extracts text
   from the PDF; just don't expect a fully populated `meta.json`.
