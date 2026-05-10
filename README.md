@@ -7,16 +7,16 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 | Skill | What it does |
 |---|---|
+| `efta-court` | EFTA Court judgments |
+| `ets` | Council of Europe treaty series |
 | `eurlex` | EU legislation and case law from EUR-Lex |
 | `hudoc` | European Court of Human Rights judgments from HUDOC |
-| `efta-court` | EFTA Court judgments |
+| `icj` | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
 | `lovdata-api` | Norwegian legislation from Lovdata (free content) |
 | `lovdata-pro` | Norwegian case law and preparatory works from Lovdata Pro |
-| `norges-traktater` | Norway's treaty register |
 | `nbno` | Documents from the National Library of Norway (Nasjonalbiblioteket) |
+| `norges-traktater` | Norway's treaty register |
 | `untc` | UN Treaty Collection — treaty texts and ratification status |
-| `ets` | Council of Europe treaty series |
-| `icj` | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
 
 ## Research workflow skills
 
