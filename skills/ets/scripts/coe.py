@@ -54,11 +54,11 @@ from pathlib import Path
 # Paths and constants
 # ---------------------------------------------------------------------------
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SKILL_ROOT = SCRIPT_DIR.parent
-CACHE_DIR = SKILL_ROOT / "cache"
+_default_cache = Path.home() / ".cache" / "ets"
+CACHE_DIR = Path(os.environ.get("ETS_CACHE_DIR", _default_cache))
 TREATIES_DIR = CACHE_DIR / "treaties"
 INDEX_PATH = CACHE_DIR / "index.json"
+SEED_INDEX = Path(__file__).resolve().parent.parent / "data" / "index.json"
 
 API_BASE = "https://conventions-ws.coe.int/WS_LFRConventions/"
 # Public token embedded in the Treaty Office page source. Required as
@@ -314,6 +314,7 @@ def lookup_ref(query):
     if qs in ALIASES:
         return (ALIASES[qs], 100, "alias")
     # Fuzzy: build a list of (score, ref, title) over the cached index
+    _seed_index_if_needed()
     if not INDEX_PATH.exists():
         raise SystemExit(
             "Index not built yet. Run: coe.py index\n"
@@ -349,6 +350,14 @@ def lookup_ref(query):
 # Index
 # ---------------------------------------------------------------------------
 
+def _seed_index_if_needed() -> None:
+    """Copy the bundled snapshot to the cache dir if no live index exists yet."""
+    if INDEX_PATH.exists() or not SEED_INDEX.exists():
+        return
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SEED_INDEX, INDEX_PATH)
+
+
 def cmd_index(args):
     """Build/refresh the master treaty index."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -374,6 +383,7 @@ def cmd_index(args):
 
 
 def load_index_or_die():
+    _seed_index_if_needed()
     if not INDEX_PATH.exists():
         raise SystemExit(
             "No cached index. Run: coe.py index"

@@ -41,7 +41,7 @@ All scripts live in `scripts/`. They are plain Python 3 and depend only on `requ
 pip install requests beautifulsoup4 --break-system-packages
 ```
 
-The CLI entry point is `scripts/icj.py`. Run `python scripts/icj.py --help` for the subcommand list. Cached data lives in `data/cache/` and is created on first use.
+The CLI entry point is `scripts/icj.py`. Run `python scripts/icj.py --help` for the subcommand list. Cached data lives in `~/.cache/icj/` (override with `$ICJ_CACHE_DIR`) and is created on first use.
 
 ## Cache and freshness
 
@@ -55,7 +55,7 @@ When the user asks a question that hinges on the *current* state of jurisdiction
 
 ## Subcommands
 
-The CLI groups functionality by data type. Each subcommand prints either machine-friendly JSON (with `--json`) or a short human-readable summary. PDFs are referenced by URL — the skill does not download or parse PDFs by default; the user can fetch them directly if needed.
+The CLI groups functionality by data type. Each subcommand prints either machine-friendly JSON (with `--json`) or a short human-readable summary. PDFs are referenced by URL. Direct HTTP download of icj-cij.org PDFs is blocked by Cloudflare — see **Fetching PDF text** below for the workaround.
 
 ### `cases` — ICJ contentious + advisory cases
 
@@ -103,16 +103,31 @@ Always quote the relevant reservation language verbatim from the declaration tex
 
 When answering substantive questions:
 
-- For **case law**, link to the official PDF on `icj-cij.org` (the URLs returned by `cases show` / `pcij show` are the canonical ones). If the user wants the text of a judgment, point them at the PDF — the skill does not extract PDF text by default. If they explicitly ask, you can use a separate PDF tool to read it.
+- For **case law**, link to the official PDF on `icj-cij.org` (the URLs returned by `cases show` / `pcij show` are the canonical ones). If the user wants the text of a judgment, direct HTTP download is blocked by Cloudflare — use the Playwright workaround described in **Fetching PDF text** below.
 - For **jurisdictional facts**, cite the page name (e.g. "States entitled to appear before the Court") and the date the cache was last refreshed. Always check `status` first if the user's question is about the current legal position.
 - For **declarations**, quote the deposit date and the relevant clause exactly as it appears in the cached text. The skill stores the canonical English version published by the Court.
+
+## Fetching PDF text
+
+Direct HTTP requests to `icj-cij.org` PDF URLs — via `requests`, `curl`, or `urllib` — are blocked by Cloudflare and return a challenge page instead of the PDF. The only reliable method is a Playwright session:
+
+1. Navigate to the HTML case page (e.g. `https://www.icj-cij.org/case/82`) to acquire Cloudflare cookies.
+2. In the same page context, use `page.evaluate()` to fetch the PDF with credentials and return it as base64:
+   ```javascript
+   const r = await fetch(pdfUrl, { credentials: 'include' });
+   const buf = await r.arrayBuffer();
+   return btoa(String.fromCharCode(...new Uint8Array(buf)));
+   ```
+3. Decode the base64 string in Python (`base64.b64decode(...)`) and write the bytes to a `.pdf` file, then read it with a PDF tool.
+
+**Note on Playwright's `filename` parameter:** `browser_evaluate(..., filename="foo.pdf")` saves the file relative to the user's selected *workspace folder*, not the session outputs directory.
 
 ## Out of scope (deliberately)
 
 This skill does not expose:
 
 - **Pleadings, written observations, counter-memorials, or verbatim records of oral hearings.** Even when present in a case page, they are filtered out of `cases show` output. A separate skill will handle hearing documents.
-- **PDF text extraction.** PDFs are referenced by URL; reading them is the user's choice using a generic PDF tool.
+- **PDF text extraction via simple HTTP.** Direct download from icj-cij.org is blocked by Cloudflare; use the Playwright workaround in **Fetching PDF text** above.
 - **Translation.** Documents are surfaced in English by default. French URLs are noted when present but not parsed.
 - **Live-scraping every request.** Jurisdiction data goes through the cache; case data is fetched on demand and cached briefly. The user-facing freshness contract is described above.
 
@@ -134,7 +149,7 @@ icj/
 │   ├── declaration-analysis.md   # how to compare two declarations (Norway-Finland worked example)
 │   ├── pcij-series.md            # Series A/B/A/B/C/D/E/F overview
 │   └── data-codes.md             # ISO-2 codes, document-type codes used in PDF filenames
-└── data/cache/                # populated at runtime; manifest.json + per-page payloads
+                               # runtime cache: ~/.cache/icj/ (or $ICJ_CACHE_DIR)
 ```
 
 When a question maps to one of the reference files, read the relevant file before answering — they encode case-law nuance the SKILL.md keeps short.

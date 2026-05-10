@@ -3,7 +3,7 @@ Shared utilities for the icj skill.
 
 Provides:
 - HTTP fetch with a sensible User-Agent and basic retry.
-- A persistent cache (data/cache/) with a manifest.json keyed by URL,
+- A persistent cache (~/.cache/icj/, or $ICJ_CACHE_DIR) with a manifest.json keyed by URL,
   recording fetch_timestamp, server Last-Modified, ETag, and a content
   SHA-256 hash. Used both for serving cached payloads and for freshness
   checks via HEAD requests.
@@ -40,8 +40,8 @@ BASE = "https://www.icj-cij.org"
 # Default TTL for jurisdiction data (in seconds): 14 days.
 DEFAULT_TTL = 14 * 24 * 3600
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-CACHE_DIR = REPO_ROOT / "data" / "cache"
+_default_cache = Path.home() / ".cache" / "icj"
+CACHE_DIR = Path(os.environ.get("ICJ_CACHE_DIR", _default_cache))
 MANIFEST_PATH = CACHE_DIR / "manifest.json"
 
 

@@ -31,7 +31,7 @@ Examples:
   hudoc.py fetch "Big Brother Watch v. UK" --format pdf -o bbw.pdf
   hudoc.py citations 001-210077
 
-Cache lives in `<skill>/cache/items/<itemid>/` and is reused on every call,
+Cache lives in `~/.cache/hudoc/items/<itemid>/` (or $HUDOC_CACHE_DIR) and is reused on every call,
 so a workflow like search→fetch→citations only hits the network once per
 artifact.
 """
@@ -56,9 +56,8 @@ from xml.etree import ElementTree as ET
 # Paths and constants
 # ---------------------------------------------------------------------------
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SKILL_ROOT = SCRIPT_DIR.parent
-CACHE_DIR = SKILL_ROOT / "cache"
+_default_cache = Path.home() / ".cache" / "hudoc"
+CACHE_DIR = Path(os.environ.get("HUDOC_CACHE_DIR", _default_cache))
 ITEMS_DIR = CACHE_DIR / "items"
 SEARCH_DIR = CACHE_DIR / "searches"
 
