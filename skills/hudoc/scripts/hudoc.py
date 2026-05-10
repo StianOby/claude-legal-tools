@@ -263,7 +263,11 @@ def _score_candidate(c: dict, lang_pref: list[str]) -> tuple:
     return (kind_score, branch_score, lang_score, date_score)
 
 
-def resolve(reference: str, lang_pref: Optional[list[str]] = None) -> dict:
+def resolve(
+    reference: str,
+    lang_pref: Optional[list[str]] = None,
+    doctype_filter: Optional[str] = None,
+) -> dict:
     """
     Turn a human-typed reference into a single best-match HUDOC row.
 
@@ -272,6 +276,10 @@ def resolve(reference: str, lang_pref: Optional[list[str]] = None) -> dict:
       * application number ("14038/88")
       * case name ("Big Brother Watch v. UK", "Soering")
       * docname:"..." or any Lucene clause — passed straight through
+
+    doctype_filter: if set, restrict candidates to rows whose doctypebranch
+    matches (case-insensitive). E.g. "ADMISSIBILITY" when the user explicitly
+    wants the decision rather than a later Grand Chamber judgment.
 
     Returns the columns dict for the chosen item.
     """
@@ -314,6 +322,17 @@ def resolve(reference: str, lang_pref: Optional[list[str]] = None) -> dict:
             f"No HUDOC item matched reference {ref!r}. Try `hudoc.py search` "
             f"with a Lucene query or check the spelling."
         )
+    if doctype_filter:
+        want = doctype_filter.upper()
+        filtered = [r for r in rows if (r.get("doctypebranch") or "").upper() == want]
+        if not filtered:
+            available = sorted({r.get("doctypebranch") or "?" for r in rows})
+            raise RuntimeError(
+                f"No {want!r} row found for {ref!r}. "
+                f"Available doctypebranch values: {', '.join(available)}. "
+                f"Pass the itemid directly to skip resolve filtering."
+            )
+        rows = filtered
     rows.sort(key=lambda c: _score_candidate(c, lang_pref))
     return rows[0]
 
@@ -535,7 +554,8 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 
 def cmd_resolve(args: argparse.Namespace) -> int:
-    item = resolve(args.reference, lang_pref=args.lang_pref.split(","))
+    item = resolve(args.reference, lang_pref=args.lang_pref.split(","),
+                   doctype_filter=args.doctype)
     print(json.dumps(item, indent=2, ensure_ascii=False))
     _save_metadata(item)
     return 0
@@ -547,16 +567,18 @@ def cmd_metadata(args: argparse.Namespace) -> int:
         if cached and not args.refresh:
             print(json.dumps(cached, indent=2, ensure_ascii=False))
             return 0
-        item = resolve(args.reference)
+        item = resolve(args.reference, doctype_filter=args.doctype)
     else:
-        item = resolve(args.reference, lang_pref=args.lang_pref.split(","))
+        item = resolve(args.reference, lang_pref=args.lang_pref.split(","),
+                       doctype_filter=args.doctype)
     _save_metadata(item)
     print(json.dumps(item, indent=2, ensure_ascii=False))
     return 0
 
 
 def cmd_fetch(args: argparse.Namespace) -> int:
-    item = resolve(args.reference, lang_pref=args.lang_pref.split(","))
+    item = resolve(args.reference, lang_pref=args.lang_pref.split(","),
+                   doctype_filter=args.doctype)
     itemid = item["itemid"]
     _save_metadata(item)
 
@@ -596,7 +618,8 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 
 def cmd_citations(args: argparse.Namespace) -> int:
-    item = resolve(args.reference, lang_pref=args.lang_pref.split(","))
+    item = resolve(args.reference, lang_pref=args.lang_pref.split(","),
+                   doctype_filter=args.doctype)
     _save_metadata(item)
     cites = parse_scl(item.get("scl") or "")
     print(json.dumps({
@@ -629,10 +652,15 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    # global lang pref
+    # global lang pref / doctype filter
     lang_arg = ("--lang-pref",)
     lang_kw = dict(default="ENG,FRE",
                    help="Comma-sep ISO codes; first one available wins. Default: ENG,FRE")
+    doctype_arg = ("--doctype",)
+    doctype_kw = dict(default=None, metavar="BRANCH",
+                      help="Filter resolve to this doctypebranch, e.g. ADMISSIBILITY, "
+                           "GRANDCHAMBER, CHAMBER. Useful when an appno has both a "
+                           "decision and a later judgment.")
 
     sp = sub.add_parser("search", help="Lucene-style search; returns JSON.")
     sp.add_argument("query", help='e.g. \'docname:"big brother"\' or \'(article:"8") AND (respondent:"NOR")\'')
@@ -647,11 +675,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     sp = sub.add_parser("resolve", help="Map a name/appno/itemid to a single best HUDOC row.")
     sp.add_argument("reference")
     sp.add_argument(*lang_arg, **lang_kw)
+    sp.add_argument(*doctype_arg, **doctype_kw)
     sp.set_defaults(func=cmd_resolve)
 
     sp = sub.add_parser("metadata", help="Full metadata for a case (cached after first call).")
     sp.add_argument("reference")
     sp.add_argument(*lang_arg, **lang_kw)
+    sp.add_argument(*doctype_arg, **doctype_kw)
     sp.add_argument("--refresh", action="store_true",
                     help="Bypass cache and re-fetch from HUDOC.")
     sp.set_defaults(func=cmd_metadata)
@@ -664,11 +694,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     sp.add_argument("--print", action="store_true",
                     help="With --format text, print the full text to stdout.")
     sp.add_argument(*lang_arg, **lang_kw)
+    sp.add_argument(*doctype_arg, **doctype_kw)
     sp.set_defaults(func=cmd_fetch)
 
     sp = sub.add_parser("citations", help="List ECtHR cases cited (parsed from scl).")
     sp.add_argument("reference")
     sp.add_argument(*lang_arg, **lang_kw)
+    sp.add_argument(*doctype_arg, **doctype_kw)
     sp.set_defaults(func=cmd_citations)
 
     sp = sub.add_parser("show", help="Print previously fetched plain text from cache.")

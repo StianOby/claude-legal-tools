@@ -51,6 +51,7 @@ third-party packages — only the standard library (`urllib`, `zipfile`,
 | The text of a known case | `python3 scripts/hudoc.py fetch "Soering v. UK" --format text` |
 | The text by itemid | `python3 scripts/hudoc.py fetch 001-57619 --format text` |
 | The text by appno | `python3 scripts/hudoc.py fetch 14038/88 --format text` |
+| An admissibility decision (not the later GC judgment) | `python3 scripts/hudoc.py fetch 36813/97 --doctype ADMISSIBILITY --format text` |
 | The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o /tmp/case.pdf` |
 | Just the metadata (no full text) | `python3 scripts/hudoc.py metadata <ref>` |
 | Cases cited by this judgment | `python3 scripts/hudoc.py citations <ref>` |
@@ -231,6 +232,23 @@ when answering quick questions.
   resolutions, press releases, and many committee-level admissibility
   decisions have no Strasbourg case-law field. `citations` will return
   `cited_count: 0`. This is informational, not an error.
+- **Admissibility decision vs. later Grand Chamber judgment (same appno)** —
+  When an application number has both an early admissibility decision *and* a
+  later Grand Chamber judgment (e.g. 36813/97: decision 2003, GC judgment
+  2006), `resolve` scores the GC judgment higher and returns it. To get the
+  admissibility decision specifically, either pass the itemid directly or use
+  `--doctype ADMISSIBILITY`:
+  ```
+  python3 scripts/hudoc.py fetch 36813/97 --doctype ADMISSIBILITY --format text
+  ```
+  If unsure which itemid to use, run `search 'appno:"36813/97"'` to see all
+  rows for that application number and their `doctypebranch` values.
+- **CLIN items (itemid prefix `002-`)** — These are Case-Law Information Note
+  legal summaries, not original judgments. Fetching a `002-` itemid gives you
+  a HUDOC editorial summary, which may omit reasoning and concurring/dissenting
+  opinions. For the primary judgment text always prefer the `001-` itemid.
+  If you only have a `002-` itemid, run `search 'appno:"<appno>"'` to find
+  the corresponding `001-` judgment.
 - **No match for a case name** — `resolve` builds the docname clause as an
   AND-of-tokens, stripping " v. " / " c. " / "vs.". If a name still
   doesn't resolve, fall back to `search 'docname:(token1 token2)'` and
