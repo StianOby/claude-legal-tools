@@ -17,11 +17,12 @@ You will look up each and every reference in the text, check/assess it, and docu
 7) Check Norwegian preparatory works
 8) Check Norwegian case law
 9) Check treaties
-10) Check decisions from the EFTA Court
-11) Check ECtHR case law
-12) Check Norwegian books
-13) Sources not found with the tools
-14) Final verification
+10) Check ICJ case law
+11) Check decisions from the EFTA Court
+12) Check ECtHR case law
+13) Check Norwegian books
+14) Sources not found with the tools
+15) Final verification
 
 The work may be extensive and may run over several sessions. Use the .xlsx file as a worklist along the way, by using the "checked" column to keep track of status. Remember to update the "checked" column after each session, so that the next round can pick up the thread without starting over. Save the .xlsx file after every 10 newly-checked references and at the end of each step.
 
@@ -37,6 +38,7 @@ Verify that you have access to all the relevant tools:
 		- ets
 		- eurlex
 		- hudoc
+		- icj
 		- lovdata-api
 		- lovdata-pro
 		- norges-traktater
@@ -194,8 +196,8 @@ What is most important is that discrepancies (errors and inaccuracies) are flagg
 
 If a single reference contains more than one independent discrepancy, pick the most severe one for the type of discrepancy and severity columns and describe all of them in description.
 
-## How to run steps 4+
-When looking up sources, proceed in the order set out in the next steps (steps 4+) of the workflow.
+## How to run §§4–14
+When looking up sources, proceed in the order set out in §§4–14 of the workflow.
 
 Stop and ask the user whether to proceed to the next step when each of the steps below has been completed – unless explicit authorisation to continue without interruption has been given.
 
@@ -259,20 +261,23 @@ For treaties, use the following tools *in the listed order*:
 	- /ets for treaties in the CoE treaty office database (CETS/ETS)
 	- /norges-traktater for treaties in the Norges Traktater database (should contain all treaties to which Norway is a party)
 
-# 10) Check decisions from the EFTA Court
+# 10) Check ICJ case law
+For ICJ (International Court of Justice) or PCIJ (Permanent Court of International Justice) case law, use the /icj skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
+
+# 11) Check decisions from the EFTA Court
 For EFTA Court case law not found in Zotero, use the /efta-court skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 11) Check ECtHR case law
+# 12) Check ECtHR case law
 For ECtHR case law not found in Zotero, use the /hudoc skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 12) Check Norwegian books
+# 13) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 13) Sources not found with the tools
+# 14) Sources not found with the tools
 If you are unable to find a source after having gone through all the steps above (and used all the tools), enter "source unavailable" in the "checked" column. This applies in particular to non-Norwegian books, journal articles, working papers, and other literature where Zotero is the only available tool: if the item is not in Zotero, mark it "source unavailable". **Do not be afraid to do this – it is *very important* that you only check against *original sources* using *only* the tools defined above.**
 
-# 14) Final verification
-Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§4–12. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
+# 15) Final verification
+Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§4–13. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
 
 At the very end, you must also check:
 	- That all "discrepancy = yes" have a description filled in.
