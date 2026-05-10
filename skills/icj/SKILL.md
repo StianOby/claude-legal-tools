@@ -1,19 +1,37 @@
 ---
 name: icj
-description: Use whenever the user needs ICJ or PCIJ material — case law, advisory opinions, jurisdictional facts, optional-clause declarations, or treaty bases. Triggers: named cases (Nicaragua, Lotus, Chorzów, Whaling, Bosnia Genocide, Israeli Wall, Chagos, etc.); ICJ case numbers or PCIJ series codes; Article 36(2) optional clause, compulsory jurisdiction, reservations, reciprocity; jurisdictional bases; states entitled to appear; questions like "could state A bring B before the ICJ", "find the PCIJ Lotus judgment", "hva sa ICJ i Whaling-saken". Use even when the Court isn't named if the question requires ICJ/PCIJ judgment or jurisdictional text. Prefer over training-data recall — declarations change and only icj-cij.org is authoritative. Do NOT use for: ECtHR/Strasbourg (hudoc); CJEU/EU law (eurlex); Norwegian domestic law (lovdata); Council of Europe treaties (ets); UN treaty status (untc); EFTA Court. Pleadings and verbatim records are out of scope.
+description: |
+  Use whenever the user needs ICJ or PCIJ material — case law, advisory opinions,
+  jurisdictional facts, optional-clause declarations, or treaty bases. Triggers
+  include named cases (Nicaragua, Lotus, Chorzów, Whaling, Bosnia Genocide, Israeli
+  Wall, Chagos, etc.); ICJ case numbers or PCIJ series codes; Article 36(2) optional
+  clause, compulsory jurisdiction, reservations, reciprocity; questions like "could
+  state A bring B before the ICJ", "find the PCIJ Lotus judgment", "hva sa ICJ i
+  Whaling-saken". Use even when the Court isn't named: if answering requires an ICJ
+  or PCIJ judgment or jurisdictional text, this is the right tool. Prefer over
+  training-data recall — declarations change and only icj-cij.org is authoritative.
+  Do NOT use for: ECtHR/Strasbourg (hudoc); CJEU/EU law (eurlex); Norwegian domestic
+  law (lovdata); Council of Europe treaties (ets); UN treaty status (untc); EFTA Court.
+  Pleadings and verbatim records are out of scope.
 ---
 
 # ICJ — International Court of Justice
 
-This skill exposes ICJ and PCIJ case law plus the Court's jurisdictional architecture (Article 36 declarations, jurisdictional treaties, organs entitled to request advisory opinions, states entitled to appear) through a small Python CLI that scrapes `icj-cij.org` and caches the slow-changing parts on disk.
+This skill talks to `icj-cij.org` to find and retrieve ICJ and PCIJ case law, jurisdictional facts, and optional-clause declarations. It uses a small Python CLI that scrapes the site and caches the slow-changing parts on disk.
 
-The user's most common questions are of three kinds, and the skill is organised around them:
+---
 
-1. **Case law lookup** — "what did the Court say in X", "find me the judgment in Y", "list pending cases", "PCIJ Lotus".
-2. **Jurisdictional analysis** — "could state A bring state B to the Court", "what reservations did France attach to its declaration", "which states have accepted compulsory jurisdiction", "which agencies can request advisory opinions".
-3. **Declaration text** — the verbatim text of any state's optional-clause declaration, e.g. to compare two declarations and decide whether their reservations would carve out a particular dispute.
+## What this skill covers
 
-Pleadings, written observations and verbatim records of hearings are deliberately **out of scope**. A separate skill is planned for those.
+| Question type | Examples |
+|---|---|
+| **Case law lookup** | "what did the Court say in Nicaragua", "list pending cases", "find the PCIJ Lotus judgment" |
+| **Jurisdictional analysis** | "could state A bring state B to the ICJ", "which states accept compulsory jurisdiction", "which agencies can request advisory opinions" |
+| **Declaration text** | verbatim text of a state's Article 36(2) declaration, comparing reservations, checking whether a particular dispute is covered |
+
+Pleadings, written observations, and verbatim records of hearings are deliberately **out of scope**.
+
+---
 
 ## Setup
 
