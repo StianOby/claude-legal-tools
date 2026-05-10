@@ -54,6 +54,7 @@ _default_cache = Path.home() / ".cache" / "untc"
 CACHE_DIR = Path(os.environ.get("UNTC_CACHE_DIR", _default_cache))
 TREATIES_DIR = CACHE_DIR / "treaties"
 INDEX_PATH = CACHE_DIR / "index.json"
+SEED_INDEX = SKILL_ROOT / "cache" / "index.json"
 
 BASE = "https://treaties.un.org"
 USER_AGENT = (
@@ -151,14 +152,21 @@ def download_to(url, dest, *, force=False, timeout=60):
 # Reference parsing
 # ---------------------------------------------------------------------------
 
-REF_RE = re.compile(r"^([IVXLCDM]+)-(\d+)([A-Za-z]?)$")
+# Matches:
+#   IV-4        roman-number (standard)
+#   IV-11a      roman-number-letter (no hyphen, used in UNTC URLs)
+#   IV-11-a     roman-number-hyphen-letter (user-friendly form; normalised to IV-11a)
+#   XXVI-b      roman-letter only (e.g. CRC optional protocols in some chapters)
+REF_RE = re.compile(
+    r"^([IVXLCDM]+)-(?:(\d+)-?([A-Za-z]?)|([A-Za-z]))$"
+)
 
 
 @dataclass
 class MTDSGRef:
     chapter_roman: str
     chapter_int: int
-    section: int
+    section: Optional[int]  # None for letter-only refs like XXVI-b
     suffix: str = ""
 
     @classmethod
@@ -167,18 +175,29 @@ class MTDSGRef:
         m = REF_RE.match(s)
         if not m:
             raise ValueError(
-                "bad MTDSG ref %r; expected forms like 'IV-4' or 'XXIII-1'" % raw
+                "bad MTDSG ref %r; expected forms like IV-4, XXIII-1, "
+                "IV-11a, IV-11-a, or XXVI-b" % raw
             )
-        roman, sect, suf = m.group(1), int(m.group(2)), m.group(3).lower()
+        roman = m.group(1)
         if roman not in ROMAN_TO_INT:
             raise ValueError("unknown chapter roman numeral: %s" % roman)
+        if m.group(4):  # letter-only form: XXVI-b
+            sect: Optional[int] = None
+            suf = m.group(4).lower()
+        else:
+            sect = int(m.group(2))
+            suf = (m.group(3) or "").lower()
         return cls(roman, ROMAN_TO_INT[roman], sect, suf)
 
     def __str__(self):
+        if self.section is None:
+            return "%s-%s" % (self.chapter_roman, self.suffix.upper())
         return "%s-%d%s" % (self.chapter_roman, self.section, self.suffix.upper())
 
     @property
     def slug(self):
+        if self.section is None:
+            return "%s-%s" % (self.chapter_roman, self.suffix)
         return "%s-%d%s" % (self.chapter_roman, self.section, self.suffix)
 
 # ---------------------------------------------------------------------------
@@ -251,8 +270,17 @@ def parse_chapter_index(html, chapter_int):
     return out
 
 
+def _seed_index_if_needed():
+    """Copy the bundled snapshot to the cache dir if no live index exists yet."""
+    if INDEX_PATH.exists() or not SEED_INDEX.exists():
+        return
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(str(SEED_INDEX), str(INDEX_PATH))
+
+
 def build_index(*, refresh=False, polite_delay=0.4,
                 chapter_range=DEFAULT_CHAPTER_RANGE):
+    _seed_index_if_needed()
     if INDEX_PATH.exists() and not refresh:
         return json.loads(INDEX_PATH.read_text(encoding="utf-8"))
     index = []
@@ -285,6 +313,7 @@ def build_index(*, refresh=False, polite_delay=0.4,
 
 
 def load_index():
+    _seed_index_if_needed()
     if not INDEX_PATH.exists():
         raise SystemExit(
             "no cached index - run `untc.py index` first to build it."
