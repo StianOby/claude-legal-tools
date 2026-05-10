@@ -83,6 +83,39 @@ Flagg:
 - `--context tittel|tekst` — søk i tittel (standard) eller fulltekst
 - `--max N` — antall treff (standard 20, henter flere sider automatisk)
 
+#### Søkestrategi: bruk norske juridiske termer
+
+Søket matcher mot Lovdatas **norske tittelfeltet** — engelske ord og
+forkortelser gir ingen treff:
+
+| Vil finne | Fungerer IKKE | Bruk i stedet |
+|-----------|--------------|---------------|
+| Haag-konvensjonen om foreldremyndighet (1996) | `"Haag 1996 barn"` | `"foreldremyndighet"` |
+| ILO-konvensjoner generelt | `"ILO"` alene | `"ILO nr. 87"` e.l., eller faglig term |
+| Overenskomsten om int. jernbanetransporter (COTIF) | `"COTIF"` | `"jernbanetransporter"` |
+| EMK | `"ECHR"`, `"human rights"` | `"menneskerettighetskonvensjonen"` |
+| Flyktningkonvensjonen | `"refugee"`, `"1951 Refugee"` | `"flyktning"` |
+
+**For ILO-konvensjoner** er det mest pålitelige å søke på konvensjonsnummeret
+slik det står i den norske tittelen:
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py search "ILO nr. 87"
+python {SKILL_DIR}/scripts/traktater.py search "ILO nr. 98"
+```
+
+Søk på faglig innhold hvis nummeret er ukjent:
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py search "tvangsarbeid"       # ILO 29/105
+python {SKILL_DIR}/scripts/traktater.py search "kollektive forhandlinger"  # ILO 98/154
+python {SKILL_DIR}/scripts/traktater.py search "diskriminering sysselsetting"  # ILO 111
+python {SKILL_DIR}/scripts/traktater.py search "barnearbeid"         # ILO 182
+```
+
+Kjenner du Lovdata-ID-en fra tabellen nedenfor, hopp over søket og gå rett
+til `meta` eller `text`.
+
 ### Hent metadata for én traktat
 
 ```bash
@@ -139,6 +172,8 @@ begge formene — du kan også lime inn hele URL-en
 
 Et knippe vanlige traktater Norge er part i:
 
+**Sentrale menneskerettighets- og humanitærrettslige konvensjoner**
+
 | ID | Navn (kortform) |
 |----|-----------------|
 | `1945-06-26-1` | FN-pakten |
@@ -153,8 +188,29 @@ Et knippe vanlige traktater Norge er part i:
 | `1979-12-18-1` | CEDAW — Kvinnediskrimineringskonvensjonen |
 | `1989-11-20-1` | Barnekonvensjonen (CRC) |
 | `1992-05-02-1` | EØS-avtalen |
+| `1996-10-19-26` | Haag-konvensjonen om foreldremyndighet og beskyttelse av barn (1996) |
 | `2006-12-13-34` | CRPD — Konvensjonen om rettighetene til mennesker med nedsatt funksjonsevne |
 | `2015-12-12-32` | Parisavtalen om klima |
+
+**ILO-kjernekonvensjoner** (søk: `"ILO nr. [X]"` eller faglig term)
+
+| ID | ILO-nr. | Navn (kortform) | Norsk søketerm |
+|----|---------|-----------------|----------------|
+| `1930-06-28-1` | 29 | Tvangsarbeid | `tvangsarbeid` |
+| `1948-07-09-1` | 87 | Foreningsfrihet og organisasjonsrett | `"foreningsfrihet"` |
+| `1949-07-01-5` | 98 | Organisasjonsrett og kollektive forhandlinger | `"kollektive forhandlinger"` |
+| `1951-06-29-1` | 100 | Lik lønn | `"lik lønn"` |
+| `1957-06-25-1` | 105 | Avskaffelse av tvangsarbeid | `tvangsarbeid` |
+| `1958-06-25-1` | 111 | Diskriminering i sysselsetting og yrke | `"diskriminering sysselsetting"` |
+| `1973-06-26-1` | 138 | Minstealder for sysselsetting | `minstealder` |
+| `1999-06-17-1` | 182 | Verste former for barnearbeid | `barnearbeid` |
+
+**Internasjonal transportrett**
+
+| ID | Navn (kortform) | Søketerm hvis ukjent |
+|----|-----------------|----------------------|
+| `1980-05-09-1` | COTIF — Overenskomst om de internasjonale jernbanetransporter | `jernbanetransporter` |
+| `1999-06-03-1` | Protokoll 1999 til COTIF (Vilnius-protokollen) | `jernbanetransporter` |
 
 **Merk:** Norge er **ikke** part i Wien-konvensjonen om traktatretten (1969) — den finnes
 ikke i Lovdatas traktatregister. Bruk `untc`-skill-et for å hente VCLT-teksten direkte
