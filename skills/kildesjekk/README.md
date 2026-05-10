@@ -60,6 +60,7 @@ All of the following must be available in the same Claude session:
 | `ets` | Council of Europe treaty database (CETS/ETS) |
 | `eurlex` | EUR-Lex fallback for MCP gaps |
 | `hudoc` | ECtHR case law |
+| `icj` | ICJ and PCIJ case law |
 | `lovdata-api` | Norwegian statutes and regulations |
 | `lovdata-pro` | Norwegian case law and preparatory works |
 | `nbno` | Norwegian books at Nasjonalbiblioteket |

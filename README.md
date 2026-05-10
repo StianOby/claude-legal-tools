@@ -16,6 +16,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 | `nbno` | Documents from the National Library of Norway (Nasjonalbiblioteket) |
 | `untc` | UN Treaty Collection — treaty texts and ratification status |
 | `ets` | Council of Europe treaty series |
+| `icj` | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
 
 ## Research workflow skills
 
