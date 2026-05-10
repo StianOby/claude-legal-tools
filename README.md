@@ -33,12 +33,12 @@ Skills are installed through **Claude Desktop** — the desktop app for Mac and 
 
 1. Go to the **[Releases](https://github.com/StianOby/claude-legal-tools/releases)** page of this repository. You can also find it by clicking **Releases** in the right-hand sidebar on the GitHub repository page.
 2. Click on the top entry in the list — that is the most recent release.
-3. Scroll down to the **Assets** section and click the `.zip` file for the skill you want to install — for example `lovdata-pro.zip`. The file will download to your computer like any normal file.
+3. Scroll down to the **Assets** section and click the `.zip` file for the skill you want to install — for example `eurlex.zip`. The file will download to your computer like any normal file.
 
 ### Step 2 — Open the Skills panel in Claude Desktop
 
 1. Open the **Claude Desktop** app.
-2. Look for the **Customize** button — it is usually found at the bottom-left of the window, near your profile or settings.
+2. Look for the **Customize** button — it is usually found at the top left of the window.
 3. Click **Customize**, then click **Skills** in the menu that appears.
 
 ### Step 3 — Upload the skill
