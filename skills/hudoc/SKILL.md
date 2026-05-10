@@ -24,9 +24,10 @@ This skill talks to `hudoc.echr.coe.int` to retrieve four things:
    respondent state, conclusion, court instance, importance, date.
 2. **Structured metadata** — itemid, ECLI, doctypebranch, conclusion,
    articles invoked, importance level, language, date, separate opinions.
-3. **The full text of a judgment** — extracted from the official DOCX, with
-   paragraph breaks preserved so paragraph numbering ("§ 47", "paragraph 88")
-   is searchable.
+3. **The full text of a judgment** — extracted from the official DOCX (or PDF
+   as fallback), with paragraph breaks preserved so paragraph numbering
+   ("§ 47", "paragraph 88") is searchable. Automatically retries on server
+   errors (HTTP 500+).
 4. **The official PDF** — for citing and archiving.
 5. **Citations** — every ECtHR case the judgment relies on, parsed from the
    `scl` (Strasbourg case-law cited) metadata field.
@@ -76,21 +77,19 @@ GET /app/conversion/{docx,pdf}/?library=ECHR&id=<itemid>
                                 Document download. No auth.
 ```
 
-A single case usually has 4-30 rows in HUDOC: one judgment per language
-(`HEJUD` English, `HFJUD` French), plus admissibility decisions, legal
-summaries (`CLIN`), press releases (`PR`), communicated cases, and EXECUTION
-resolutions tracking implementation. The script's `resolve` step picks the
-best row for the user's intent — for "Big Brother Watch v. UK" you want the
-Grand Chamber English judgment, not the press release announcing the hearing.
+**Text extraction strategy:** When you request text, the script tries DOCX
+first (better paragraph structure for legal paragraph numbering), then falls
+back to PDF if DOCX fails. On HTTP 5xx errors, it retries up to 3 times with
+exponential backoff (1s, 2s, 4s).
 
 ## Workflow guidance
 
 ### The user names a specific case
 
 1. `python3 scripts/hudoc.py fetch "<reference>" --format text`. This
-   resolves → fetches the DOCX → extracts plain text → caches everything.
-   Stdout shows the resolved itemid, docname, appno, date, court branch,
-   and source URL.
+   resolves → fetches the DOCX (or PDF if DOCX fails) → extracts plain text
+   → caches everything. Stdout shows the resolved itemid, docname, appno, date,
+   court branch, and source URL. On server errors, retries automatically.
 2. Read the text file (path is in the JSON output). Cite paragraph numbers
    directly — the text preserves paragraph breaks, so you can find
    "**88.   Article 3 (art. 3) makes no provision...**" by grepping for

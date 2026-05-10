@@ -43,6 +43,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -122,8 +123,8 @@ LANG_PREFERENCE_DEFAULT = ["ENG", "FRE"]  # English first, French fallback
 # HTTP plumbing
 # ---------------------------------------------------------------------------
 
-def _http_get(url: str, *, accept: str = "application/json") -> bytes:
-    """GET with the magic XHR header. Returns raw bytes."""
+def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -> bytes:
+    """GET with the magic XHR header. Returns raw bytes. Retries on 500 errors."""
     req = urllib.request.Request(
         url,
         headers={
@@ -135,15 +136,23 @@ def _http_get(url: str, *, accept: str = "application/json") -> bytes:
             "X-Requested-With": "XMLHttpRequest",
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            return resp.read()
-    except urllib.error.HTTPError as e:
-        # HUDOC returns its own JSON {"message": ...} for some errors.
-        body = e.read()[:300].decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from None
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Network error fetching {url}: {e}") from None
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            # Retry on 500+ server errors; give up on client errors (4xx)
+            if e.code >= 500 and attempt <= retries:
+                wait = 2 ** (attempt - 1)  # exponential backoff: 1s, 2s, 4s
+                print(f"HTTP {e.code}, retrying in {wait}s ({attempt}/{retries})...", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            body = e.read()[:300].decode("utf-8", errors="replace")
+            raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from None
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Network error fetching {url}: {e}") from None
 
 
 def _query(
@@ -391,15 +400,77 @@ def docx_to_text(docx_path: Path) -> str:
     return "\n\n".join(out_paragraphs) + "\n"
 
 
+def pdf_to_text(pdf_path: Path) -> str:
+    """
+    Extract plain text from a PDF without external deps.
+    Attempts to decompress and extract text from PDF content streams.
+    Less accurate than DOCX but works as a fallback. May not preserve
+    paragraph structure.
+    """
+    import zlib
+    raw = pdf_path.read_bytes()
+    text_parts = []
+
+    # Try to decompress every stream (FlateDecode), then scan for text ops.
+    # Unconditionally attempt zlib.decompress — valid headers include \x78\x01,
+    # \x78\x5e, \x78\x9c, \x78\xda; checking one prefix misses the rest.
+    for match in re.finditer(rb'stream\s*\n(.*?)\nendstream', raw, re.DOTALL):
+        stream_data = match.group(1)
+        try:
+            decompressed = zlib.decompress(stream_data)
+        except zlib.error:
+            continue
+        # PDF literal strings: (text)Tj / (text)TJ. Handle \) escapes.
+        for text_match in re.finditer(rb'\(((?:[^()\\]|\\.)*)\)\s*[Tj]', decompressed):
+            try:
+                text = text_match.group(1).decode('utf-8', errors='ignore')
+                text = text.replace('\\n', ' ').replace('\\t', ' ')
+                if text.strip():
+                    text_parts.append(text.strip())
+            except Exception:
+                pass
+
+    if not text_parts:
+        raise RuntimeError(
+            f"No extractable text found in PDF {pdf_path.name}. "
+            "Download the PDF directly from HUDOC for full content."
+        )
+
+    # Join with newlines, de-duplicate consecutive duplicates
+    lines = []
+    for part in text_parts:
+        if not lines or part != lines[-1]:
+            lines.append(part)
+
+    return '\n'.join(lines) + '\n'
+
+
 def fetch_text(itemid: str) -> Path:
-    """Get the DOCX, extract plain text, cache as .txt next to it."""
+    """
+    Get the text of a judgment. Tries DOCX first (better formatting),
+    falls back to PDF if DOCX fails.
+    """
     txt_path = _item_dir(itemid) / "judgment.txt"
     if txt_path.exists() and txt_path.stat().st_size > 0:
         return txt_path
-    docx_path = fetch_docx(itemid)
-    text = docx_to_text(docx_path)
-    txt_path.write_text(text, encoding="utf-8")
-    return txt_path
+
+    # Try DOCX first (preserves paragraph structure)
+    try:
+        docx_path = fetch_docx(itemid)
+        text = docx_to_text(docx_path)
+        txt_path.write_text(text, encoding="utf-8")
+        return txt_path
+    except Exception as e:
+        print(f"DOCX extraction failed: {e}; trying PDF fallback...", file=sys.stderr)
+
+    # Fallback to PDF
+    try:
+        pdf_path = fetch_pdf(itemid)
+        text = pdf_to_text(pdf_path)
+        txt_path.write_text(text, encoding="utf-8")
+        return txt_path
+    except Exception as e:
+        raise RuntimeError(f"Both DOCX and PDF extraction failed for {itemid}: {e}") from None
 
 
 # ---------------------------------------------------------------------------
