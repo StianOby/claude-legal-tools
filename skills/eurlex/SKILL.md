@@ -30,6 +30,11 @@ following is true:
    reply ends mid-sentence near the 50 000-character mark.
 3. The user asks for a specific paragraph range from a long judgment and you
    need to be sure you are not paging past the MCP's cap.
+4. `mcp__eurlex__eurlex_consolidated` returns "not available" / "nicht verfügbar"
+   for a directive or regulation you have reason to believe exists (e.g. it
+   appears in a citation or has a valid CELEX shape, like `32003L0088`). Use
+   `scripts/eurlex_fetch.py` with the CELEX — the script handles directives and
+   regulations the same way it handles judgments.
 
 If the MCP returns a complete document under its limit, do **not** invoke this
 skill — there is no value in re-fetching.
