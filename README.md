@@ -7,16 +7,16 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 | Skill | What it does |
 |---|---|
-| `efta-court` | EFTA Court judgments |
-| `ets` | Council of Europe treaty series |
-| `eurlex` | EU legislation and case law from EUR-Lex |
-| `hudoc` | European Court of Human Rights judgments from HUDOC |
-| `icj` | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
-| `lovdata-api` | Norwegian legislation from Lovdata (free content) |
-| `lovdata-pro` | Norwegian case law and preparatory works from Lovdata Pro |
-| `nbno` | Documents from the National Library of Norway (Nasjonalbiblioteket) |
-| `norges-traktater` | Norway's treaty register |
-| `untc` | UN Treaty Collection — treaty texts and ratification status |
+| [`efta-court`](skills/efta-court/README.md) | EFTA Court judgments |
+| [`ets`](skills/ets/README.md) | Council of Europe treaty series |
+| [`eurlex`](skills/eurlex/README.md) | EU legislation and case law from EUR-Lex |
+| [`hudoc`](skills/hudoc/README.md) | European Court of Human Rights judgments from HUDOC |
+| [`icj`](skills/icj/README.md) | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
+| [`lovdata-api`](skills/lovdata-api/README.md) | Norwegian legislation from Lovdata (free content) |
+| [`lovdata-pro`](skills/lovdata-pro/README.md) | Norwegian case law and preparatory works from Lovdata Pro |
+| [`nbno`](skills/nbno/README.md) | Documents from the National Library of Norway (Nasjonalbiblioteket) |
+| [`norges-traktater`](skills/norges-traktater/README.md) | Norway's treaty register |
+| [`untc`](skills/untc/README.md) | UN Treaty Collection — treaty texts and ratification status |
 
 ## Research workflow skills
 
@@ -24,7 +24,7 @@ These skills orchestrate the document retrieval skills above to carry out broade
 
 | Skill | What it does | Requires |
 |---|---|---|
-| `kildesjekk` | Verifies every reference and quotation in an academic legal text against the original sources; produces an `.xlsx` worklist with per-reference status and severity-coded discrepancies | All document retrieval skills above |
+| [`kildesjekk`](skills/kildesjekk/README.md) | Verifies every reference and quotation in an academic legal text against the original sources; produces an `.xlsx` worklist with per-reference status and severity-coded discrepancies | All document retrieval skills above |
 
 ## Installing a skill
 
