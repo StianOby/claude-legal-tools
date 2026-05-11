@@ -45,7 +45,7 @@ Verify that you have access to all the relevant tools:
 		- nbno
 		- untc
 	
-If there is a tool you do not have access to, stop and explain which one and why. Feel free to suggest a solution. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools
+If there is a tool you do not have access to, stop and explain which one and why. Feel free to suggest a solution. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: lit-lake MCP: https://github.com/ElliotRoe/lit-lake/ — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Ask for the text document in PDF or DOCX format if not already provided.
 

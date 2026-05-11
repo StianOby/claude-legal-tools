@@ -49,23 +49,23 @@ All of the following must be available in the same Claude session:
 
 | MCP | Purpose |
 |---|---|
-| `lit-lake` | Zotero library (literature, case law, preparatory works) |
-| `eurlex` | EU case law and legislation |
+| [`lit-lake`](https://github.com/ElliotRoe/lit-lake/) | Zotero library (literature, case law, preparatory works) |
+| [`eurlex`](https://github.com/Honeyfield-Org/eurlex-mcp-server) | EU case law and legislation |
 
 **Skills**
 
 | Skill | Purpose |
 |---|---|
-| `efta-court` | EFTA Court decisions |
-| `ets` | Council of Europe treaty database (CETS/ETS) |
-| `eurlex` | EUR-Lex fallback for MCP gaps |
-| `hudoc` | ECtHR case law |
-| `icj` | ICJ and PCIJ case law |
-| `lovdata-api` | Norwegian statutes and regulations |
-| `lovdata-pro` | Norwegian case law and preparatory works |
-| `nbno` | Norwegian books at Nasjonalbiblioteket |
-| `norges-traktater` | Treaties to which Norway is a party |
-| `untc` | UN treaty database (UNTC/UNTS) |
+| [`efta-court`](../efta-court/README.md) | EFTA Court decisions |
+| [`ets`](../ets/README.md) | Council of Europe treaty database (CETS/ETS) |
+| [`eurlex`](../eurlex/README.md) | EUR-Lex fallback for MCP gaps |
+| [`hudoc`](../hudoc/README.md) | ECtHR case law |
+| [`icj`](../icj/README.md) | ICJ and PCIJ case law |
+| [`lovdata-api`](../lovdata-api/README.md) | Norwegian statutes and regulations |
+| [`lovdata-pro`](../lovdata-pro/README.md) | Norwegian case law and preparatory works |
+| [`nbno`](../nbno/README.md) | Norwegian books at Nasjonalbiblioteket |
+| [`norges-traktater`](../norges-traktater/README.md) | Treaties to which Norway is a party |
+| [`untc`](../untc/README.md) | UN treaty database (UNTC/UNTS) |
 
 All skills are available in this repository. Install them alongside kildesjekk
 (see below).
