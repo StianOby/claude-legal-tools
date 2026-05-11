@@ -3,7 +3,7 @@ Stian Øby Johansen's collection of skills and other tools for use with Claude (
 
 ## Document retrieval skills
 
-These skills each connect Claude to a single legal database. Install the ones you need.
+These skills each connect Claude to a single legal database. Install the ones you need. Click the skill name in the table below to open its README file.
 
 | Skill | What it does |
 |---|---|
@@ -20,7 +20,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 ## Research workflow skills
 
-These skills orchestrate the document retrieval skills above to carry out broader academic research tasks. To use them, install both the workflow skill and all the retrieval skills it depends on.
+These skills orchestrate the document retrieval skills above to carry out broader academic research tasks. To use them, install both the workflow skill and all the retrieval skills it depends on. Click the skill name in the table below to open its README file.
 
 | Skill | What it does | Requires |
 |---|---|---|
