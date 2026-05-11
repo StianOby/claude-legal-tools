@@ -29,10 +29,14 @@ import re
 import sys
 from typing import Optional
 
+import time
+
 import requests  # type: ignore[import-untyped]
 
 USER_AGENT = "Mozilla/5.0 (eurlex/1.0)"
 TIMEOUT = 30
+# Seconds to wait after HTTP 202 before each retry (CELLAR renders on-the-fly)
+_RETRY_DELAYS = [5, 10, 10]
 CACHE_ROOT = pathlib.Path(
     os.environ.get("EURLEX_CACHE")
     or pathlib.Path.home() / ".cache" / "eurlex"
@@ -82,16 +86,29 @@ def _strip_to_plain(markup: str) -> str:
 def _try_fetch(celex: str, lang: str, accept: str) -> Optional[bytes]:
     url = f"http://publications.europa.eu/resource/celex/{celex}.{lang}"
     headers = {"Accept": accept, "User-Agent": USER_AGENT}
-    try:
-        r = requests.get(url, headers=headers, timeout=TIMEOUT, allow_redirects=True)
-    except requests.RequestException as e:
-        print(f"[fetch] {accept} -> network error: {e}", file=sys.stderr)
+    for attempt in range(1 + len(_RETRY_DELAYS)):
+        try:
+            r = requests.get(url, headers=headers, timeout=TIMEOUT, allow_redirects=True)
+        except requests.RequestException as e:
+            print(f"[fetch] {accept} -> network error: {e}", file=sys.stderr)
+            return None
+        if r.status_code == 200 and r.content:
+            return r.content
+        if r.status_code == 202 and attempt < len(_RETRY_DELAYS):
+            delay = _RETRY_DELAYS[attempt]
+            print(
+                f"[fetch] {accept} -> HTTP 202 (rendition being generated), "
+                f"retrying in {delay}s ({attempt + 1}/{len(_RETRY_DELAYS)})...",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+            continue
+        print(
+            f"[fetch] {accept} -> HTTP {r.status_code} ({len(r.content)} bytes)",
+            file=sys.stderr,
+        )
         return None
-    if r.status_code != 200 or not r.content:
-        print(f"[fetch] {accept} -> HTTP {r.status_code} ({len(r.content)} bytes)",
-              file=sys.stderr)
-        return None
-    return r.content
+    return None
 
 
 def _pdf_to_text(pdf_bytes: bytes) -> str:
@@ -163,10 +180,34 @@ def fetch(celex: str, lang: str = "ENG", use_cache: bool = True) -> dict:
         source_marker.write_text("pdf")
         return _result(celex, lang, "pdf", raw_pdf, plain, plain_text)
 
+    curia_url = _celex_to_curia_url(celex, lang)
+    if curia_url:
+        curia_hint = (
+            f"Try Curia directly:\n  {curia_url}\n"
+            f"Or: python3 eurlex_curia_fetch.py {celex} --lang {lang}"
+        )
+    else:
+        curia_hint = "Try curia.europa.eu (InfoCuria search) or the printed Reports of Cases."
     raise SystemExit(
-        f"All endpoints failed for CELEX {celex} (lang={lang}). "
-        f"Document may not have a public full-text rendering on EUR-Lex; "
-        f"try curia.europa.eu or the printed Reports of Cases."
+        f"All CELLAR endpoints failed for CELEX {celex} (lang={lang}).\n{curia_hint}"
+    )
+
+
+def _celex_to_curia_url(celex: str, lang: str = "ENG") -> Optional[str]:
+    """Return an InfoCuria search URL for a CJEU CELEX (e.g. 62021CJ0488 → C-488/21)."""
+    m = re.match(r'^6(\d{4})CJ(\d+)$', celex.upper())
+    if not m:
+        return None
+    year, num = m.group(1), int(m.group(2))
+    case = f"C-{num}/{year[2:]}"
+    curia_lang = {
+        "ENG": "EN", "FRA": "FR", "DEU": "DE", "SPA": "ES",
+        "ITA": "IT", "NLD": "NL", "DAN": "DA", "SWE": "SV",
+        "FIN": "FI", "POL": "PL",
+    }.get(lang, "EN")
+    return (
+        f"https://curia.europa.eu/juris/liste.jsf"
+        f"?num={case.replace('/', '%2F')}&language={curia_lang}"
     )
 
 
