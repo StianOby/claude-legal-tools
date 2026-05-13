@@ -212,9 +212,9 @@ The Zotero library (lit-lake MCP) may contain all types of sources, such as judg
 
 When searching for case law in Zotero, it can be useful to search in the field "Case name" (for the title of the judgment) and "Docket number" (which contains the case number, e.g. C-123/17 and HR-2026-123-A).
 
-If you only find metadata and no attachment when you look up an item in Zotero, leave the reference as "checked" = "no" (if the source can be found with other tools, it will then be picked up in the next step).
-
 Note that a single Zotero item may contain multiple attachments (e.g. PDFs). If you cannot find what you are looking for in the primary attachment, see if there are additional attachments.
+
+If don't find any fulltext (e.g. only find metadata and no attachments) when you look up an item in Zotero, leave the reference as "checked" = "no" (if the source can be found with other tools, it will then be picked up in the next step).
 
 Certain Zotero items, notably some monographs, will only have a single PDF attachment with a Table of Contents or a short excerpt, and not the full text. These can be marked as "checked" = "no" (so that they may be picked up in a later step).
 
