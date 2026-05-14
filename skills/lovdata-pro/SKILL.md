@@ -68,6 +68,20 @@ For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
 
 ---
 
+> **⛔ STOP — MANDATORY BEFORE ANY FETCH IN COWORK MODE**
+>
+> Before running any fetch or navigation command, you **must** confirm the
+> user has an active Lovdata Pro session. Do this first, every time:
+>
+> 1. Ask the user: *"Have you logged in to Lovdata Pro recently? If not,
+>    please log in now at <https://lovdata.no/pro/> in your browser."*
+> 2. Wait for confirmation before proceeding.
+>
+> **If you skip this step and the user is not logged in, every fetch will
+> silently fail** (returning a JS-required page or a blank session error)
+> and the resulting debugging will waste significant time. There is no
+> reliable way to detect a missing session after the fact.
+
 ## Cowork-modus (browser_run_code_unsafe)
 
 I et Cowork-sandbox er Lovdata Pros **JSESSIONID IP-bundet** til maskinen som

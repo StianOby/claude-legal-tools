@@ -91,6 +91,20 @@ a URN for an old book, sheet music, public-domain photo, or any
 Use this when the item is in-copyright (Bokhylla) or the user mentions
 FEIDE, BankID, Vipps, or "logged in."
 
+> **⛔ STOP — MANDATORY BEFORE ANY FETCH IN COWORK MODE**
+>
+> Before running any fetch or navigation command, you **must** confirm the
+> user has an active Nasjonalbiblioteket session. Do this first, every time:
+>
+> 1. Ask the user: *"Have you logged in to nb.no recently? If not,
+>    please log in now at <https://nb.no> in your browser."*
+> 2. Wait for confirmation before proceeding.
+>
+> **If you skip this step and the user is not logged in, every fetch will
+> silently fail** (returning a JS-required page or a blank session error)
+> and the resulting debugging will waste significant time. There is no
+> reliable way to detect a missing session after the fact.
+
 #### Primary method for Cowork sessions — playwright MCP
 
 In a Cowork session the most practical approach is to capture the cookie
