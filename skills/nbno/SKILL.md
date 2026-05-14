@@ -131,6 +131,12 @@ directly via the `mcp__playwright__*` tools.
    ```
    Pass this path as `--cookie /tmp/cookie.txt` to the wrapper.
 
+> **Auth scope:** The `authorization` bearer token captured above is valid
+> only for `api.nb.no` (the manifest API). The IIIF image resolver at
+> `www.nb.no/services/image/resolver/` ignores the bearer token entirely —
+> it authenticates via the `nbsso` session cookie plus a correct `referer`
+> header. Both values are needed: bearer for the manifest, nbsso for images.
+
 Cookies on nb.no live roughly 24–48 hours. When downloads start failing
 with auth errors, repeat steps 3–6 to refresh the token.
 
@@ -180,7 +186,99 @@ Request Headers, while logged in.
 
 ---
 
-## Step 3 — Run the wrapper
+## Step 3 — Download options
+
+### Fast path — direct IIIF downloader (recommended for full Bokhylla books)
+
+For full-book `digibok_*` downloads, bypass `nbno_run.sh` entirely and use
+this Python downloader. It fetches pages directly via the IIIF API with
+`ThreadPoolExecutor(12)` and is roughly **20× faster** than batching through
+the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page). Use this path
+any time the user needs more than ~7 pages of Bokhylla content.
+
+Requires: `BEARER` (from the `authorization` header captured in Step 2 Option
+B, steps 3–4) and `NBSSO` (the `nbsso=<value>` cookie from the same capture,
+step 5 — just the `nbsso=...` portion of the full cookie string).
+
+```python
+import json, os, time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+import requests
+from PIL import Image
+
+ITEM_ID = "digibok_2008051600041"   # ← replace
+NBSSO   = "nbsso=<value>"           # ← just the nbsso=... part
+BEARER  = "<token>"                 # ← bearer token for api.nb.no
+OUT_DIR = f"/tmp/nbno_direct/{ITEM_ID}"
+START   = 1     # 1-based, inclusive; None = first page
+STOP    = None  # 1-based, inclusive; None = last page
+
+MANIFEST_CACHE = f"/tmp/nbno_pages/{ITEM_ID}/manifest_urls.json"
+REFERER = f"https://www.nb.no/items/URN:NBN:no-nb_{ITEM_ID}"
+HDR_API = {"authorization": BEARER}
+HDR_IMG = {"cookie": NBSSO, "referer": REFERER}
+
+def fetch_canvas_urls():
+    cache = Path(MANIFEST_CACHE)
+    if cache.exists():
+        return json.loads(cache.read_text())
+    url = f"https://api.nb.no/catalog/v1/items/{ITEM_ID}/manifest"
+    manifest = requests.get(url, headers=HDR_API, timeout=30).json()
+    canvases = manifest["sequences"][0]["canvases"]
+    entries = []
+    for c in canvases:
+        canvas_name = c["@id"].split("/")[-1]
+        base = c["images"][0]["resource"]["service"]["@id"]
+        entries.append({"canvas": canvas_name, "base_url": base})
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(entries, indent=2))
+    return entries
+
+def download_page(entry, idx):
+    if entry["canvas"].endswith("_C2"):          # back cover always 403
+        return idx, None
+    url = f"{entry['base_url']}/full/608,/0/default.jpg"  # 608px is the max allowed width
+    r = requests.get(url, headers=HDR_IMG, timeout=30)
+    if r.status_code == 403:
+        return idx, None
+    r.raise_for_status()
+    path = f"{OUT_DIR}/page_{idx:04d}.jpg"
+    Path(path).write_bytes(r.content)
+    return idx, path
+
+os.makedirs(OUT_DIR, exist_ok=True)
+entries = fetch_canvas_urls()
+total = len(entries)
+start_i = (START or 1) - 1
+stop_i  = (STOP  or total)
+subset  = list(enumerate(entries[start_i:stop_i], start=start_i + 1))
+
+print(f"Downloading pages {start_i+1}–{stop_i} ({len(subset)} total)...")
+t0 = time.time()
+results = {}
+with ThreadPoolExecutor(max_workers=12) as pool:
+    for idx, path in pool.map(lambda x: download_page(*x), subset):
+        results[idx] = path
+print(f"Done in {time.time()-t0:.1f}s")
+
+pages = [Image.open(results[i]).convert("RGB")
+         for i in sorted(results) if results[i]]
+if pages:
+    pdf_path = f"{OUT_DIR}/{ITEM_ID}.pdf"
+    pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
+    print(f"PDF: {pdf_path}")
+```
+
+The manifest canvas list is cached to `MANIFEST_CACHE` after the first fetch —
+subsequent runs skip the round-trip. The back cover (`_C2`) is skipped
+automatically. Keep each Python call under ~40 s; `/tmp` is wiped if the
+sandbox restarts after a timeout.
+
+### Standard path — `nbno_run.sh` wrapper (short ranges / non-Bokhylla)
+
+Use `nbno_run.sh` for non-Bokhylla content or when you only need a short page
+range (≤ 7 pages of `digibok_*`).
 
 > **Fetch only what you need.**
 > Use `--start <int>` and `--stop <int>` to limit the download to a page
@@ -311,11 +409,14 @@ open it.
 ## Important caveats — surface these to the user when relevant
 
 - **Geo-restriction.** A large share of nb.no's collection (especially
-  Bokhylla / in-copyright material) is only accessible from Norwegian IP
-  addresses. The sandbox running this script is **not** in Norway. Items
-  outside the open collection will fail without a Norwegian session cookie
-  or a VPN-routed cookie. Tell the user this if a download returns access
-  errors.
+  Bokhylla / in-copyright material) is nominally geo-restricted to Norwegian
+  IP addresses. However, 403 errors from the sandbox are more commonly caused
+  by wrong URL format (e.g. `pct:75` or `full` instead of a width like `608,`)
+  or wrong auth headers than by actual IP-based blocking. With the correct
+  setup — `608,` width + `nbsso` cookie + correct `referer` — sandbox
+  downloads succeed from non-Norwegian IPs. **Check auth and URL format before
+  assuming geo-restriction.** If errors persist after fixing those, then a
+  Norwegian session cookie from the user's own network is likely required.
 - **Copyright.** Most twentieth-century books are in copyright; access via
   Bokhylla is granted to individuals under a specific agreement and does
   not permit redistribution. The user is responsible for using downloaded
@@ -364,4 +465,8 @@ open it.
   legal-deposit items are often accessible without FEIDE. The content search
   API will not work for these items regardless of auth; download and read the
   pages directly.
+- *Last page (back cover) always returns 403.* The final canvas of Bokhylla
+  books has the ID suffix `_C2` and is systematically restricted at any width.
+  Skip it silently — do not retry. The direct IIIF downloader already handles
+  this automatically.
   
