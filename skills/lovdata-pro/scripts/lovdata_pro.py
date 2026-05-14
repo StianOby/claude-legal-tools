@@ -311,6 +311,7 @@ def _fetch(page, url):
 
 _NOT_FOUND_TITLE = re.compile(r"feilmelding", re.I)
 _REDIRECT_STUB_TITLE = re.compile(r"^\s*LovdataPro\s*$", re.I)
+_JS_REQUIRED_FRAGMENT = "Javascript aktivert"
 
 
 def _looks_like_real_doc(html):
@@ -325,16 +326,62 @@ def _looks_like_real_doc(html):
     return True
 
 
+def _is_collection_mismatch(html):
+    """True when Lovdata returns the 'JavaScript required' stub (~145 chars).
+
+    This response reliably signals a collection mismatch, not a session problem.
+    The fix is to try the SIV/STR counterpart collection.
+    """
+    return _JS_REQUIRED_FRAGMENT in html and len(html) < 500
+
+
+def _swap_siv_str(path):
+    """Return the SIV↔STR counterpart path, or None if not applicable."""
+    parts = path.split("/", 1)
+    if len(parts) != 2:
+        return None
+    collection = parts[0]
+    if collection.endswith("SIV"):
+        return collection[:-3] + "STR/" + parts[1]
+    if collection.endswith("STR"):
+        return collection[:-3] + "SIV/" + parts[1]
+    return None
+
+
 def _doc_url(path):
     return f"https://lovdata.no/pro/document/{path}/*"
 
 
 def _try_paths(page, paths):
+    """Try each path via direct fetch. Automatically adds SIV/STR swap when
+    a collection-mismatch response is detected, so caller need not enumerate
+    both variants for already-resolved paths.
+    """
+    seen = set(paths)
+    mismatch_alts = []
+
     for path in paths:
         url = _doc_url(path)
         status, html = _fetch(page, url)
         if status == 200 and _looks_like_real_doc(html):
             return path, html
+        if _is_collection_mismatch(html):
+            print(
+                f"info: {path} returned JS-required response — collection mismatch;"
+                " trying SIV/STR counterpart",
+                file=sys.stderr,
+            )
+            alt = _swap_siv_str(path)
+            if alt and alt not in seen:
+                seen.add(alt)
+                mismatch_alts.append(alt)
+
+    for path in mismatch_alts:
+        url = _doc_url(path)
+        status, html = _fetch(page, url)
+        if status == 200 and _looks_like_real_doc(html):
+            return path, html
+
     return None
 
 

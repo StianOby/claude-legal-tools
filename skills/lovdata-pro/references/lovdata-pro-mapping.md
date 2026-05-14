@@ -43,10 +43,21 @@ Observed during exploration:
 | Citation form              | Collection | Type slug   | Notes |
 | -------------------------- | ---------- | ----------- | ----- |
 | `HR-YYYY-N-A/B/P/F/...`    | `HRSIV` (sivil) / `HRSTR` (straff) | `avgjorelse` | Modern Supreme Court |
-| `Rt. YYYY s. N`            | `HRSIV` / `HRSTR` | `avgjorelse` | Pre-2008 Supreme Court. Slug pattern: `rt-YYYY-PAGENUMBER-SUFFIX` where SUFFIX is a Lovdata-assigned sequential number (e.g. `rt-2000-1811-hrsiv`). **The suffix cannot be guessed deterministically — use Pro UI search.** |
+| `Rt. YYYY s. N`            | `HRSIV` / `HRSTR` | `avgjorelse` | Pre-2008 Supreme Court. Slug pattern: `rt-YYYY-PAGENUMBER-SUFFIX` where SUFFIX is a Lovdata-assigned sequential number (e.g. `rt-2000-1811-hrsiv`). **The suffix cannot be guessed deterministically — use Pro UI search.** Some page numbers have two separate documents (e.g. `rt-1938-584-166` is a short tvistemål stub; `rt-1938-584-176` is the substantive case). When a short result appears for an old case, try the next sequential suffix before treating it as a dead end. |
 | `LG-YYYY-N`                | `LGSIV` (Gulating sivil) | `avgjorelse` | Lagmannsrett: prefix encodes court (LB Borgarting, LA Agder, LF Frostating, LH Hålogaland, LE Eidsivating) and division (SIV / STR) |
-| `LB-YYYY-N`                | `LBSIV` / `LBSTR` | `avgjorelse` | Borgarting |
+| `LB-YYYY-N`                | `LBSIV` / `LBSTR` | `avgjorelse` | Borgarting lagmannsrett |
 | `RG YYYY s. N`             | varies — older RG cases sit under whichever lagmannsrett actually decided them. Pro renders them via Tingrett (`TRSIV`) when search is the only path | `avgjorelse` | Slugs are irregular; runtime search needed |
+
+**Complete lagmannsrett collection table:**
+
+| Court code | Court name         | Civil   | Criminal |
+| ---------- | ------------------ | ------- | -------- |
+| LB         | Borgarting         | `LBSIV` | `LBSTR`  |
+| LA         | Agder              | `LASIV` | `LASTR`  |
+| LE         | Eidsivating        | `LESIV` | `LESTR`  |
+| LF         | Frostating         | `LFSIV` | `LFSTR`  |
+| LG         | Gulating           | `LGSIV` | `LGSTR`  |
+| LH         | Hålogaland         | `LHSIV` | `LHSTR`  |
 | `Ot.prp. nr. N (YYYY-YY)`  | **`PROP`** for ≥1968-ish, older may be `OTPRP` (not yet confirmed in Pro) | `forarbeid` | Slug: `otprp-N-YYYYYY` (year encoded as 6 digits, no separators). **Watch out:** the `resolve` command sometimes emits `FORARBEID/forarbeid/otprp-...`, which 404s. Always use `PROP`. If a direct get returns 404 or near-empty content for an Ot.prp./Prop. L, retry with `PROP` in place of `FORARBEID`. |
 | `Prop. N L/S/Stortingsm.`  | `PROP` | `forarbeid` | Slug: `prop-N-l-YYYYYY` (lowercase L, year as 6 digits) |
 | `NOU YYYY: N`              | `NOU` | `forarbeid` | Slug: `nou-YYYY-N` (a/b suffix when split into parts: `nou-2001-32a`, `-32b`) |
@@ -96,6 +107,23 @@ found".
 
 Court collections come in pairs: civil (`...SIV`) and criminal (`...STR`).
 The script must try both when the citation doesn't disclose which.
+
+**The split is by subject matter, not era.** HRSTR is not only for old Rt.
+cases — recent Høyesterett decisions in criminal matters also live in HRSTR.
+Heuristic: if the case involves straffeloven, straffeprosess, or EMK artikkel
+6 (fair trial / uskyldspresumsjonen), try HRSTR first. Example: HR-2025-813-A
+(TikTok) is HRSTR despite its modern identifier.
+
+**Redirect URL reveals the correct collection.** If you navigate to a
+wrong-collection URL in the SPA (e.g., `#document/HRSIV/avgjorelse/hr-2025-813-a`),
+Lovdata Pro silently updates the hash to the correct collection
+(`#document/HRSTR/avgjorelse/hr-2025-813-a`). Use this as a manual
+collection-discovery technique when debugging: navigate, read the redirected
+hash, then use that collection in subsequent fetch calls.
+
+The script's `_try_paths` function automatically tries the SIV/STR counterpart
+whenever a collection-mismatch response is detected, so callers need not
+enumerate both variants explicitly.
 
 ---
 
@@ -187,6 +215,13 @@ metadata payload alongside the markdown body.
 
 ## Failure modes seen during exploration
 
+- **Status 200 with ~145 bytes, body contains "Javascript aktivert"** — this
+  is a **collection mismatch signal**, not a session problem. It means you've
+  hit the wrong SIV/STR collection. The fix is always to try the counterpart
+  (`HRSIV` → `HRSTR` or vice versa). Diagnostic rule: `if len(result) < 500
+  and "Javascript aktivert" in result`, retry with the other collection before
+  assuming failure. The script's `_try_paths` detects this automatically and
+  swaps the collection.
 - **Status 200 with 4,765 bytes and title `LovdataPro`** — this is a
   client-side redirect stub. The URL is valid syntactically but the slug
   doesn't resolve to a Pro document. Treat this byte-count as a sentinel for
