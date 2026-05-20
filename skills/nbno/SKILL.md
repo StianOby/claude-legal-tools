@@ -1,22 +1,19 @@
 ---
 name: nbno
 description: >
-  Use this skill any time the user wants to download or work with material from
-  Nasjonalbiblioteket (the Norwegian National Library, nb.no). Triggers include:
-  links to nb.no or urn.nb.no, mentions of "Nasjonalbiblioteket", "Bokhylla",
-  "FEIDE login to nb.no", "digibok", "digavis", "digifoto", "digitidsskrift",
-  "digikart", "digimanus", or "digiprogramrapport"; URN identifiers like
-  "URN:NBN:no-nb_digibok_..."; and natural-language requests such as "last ned
-  boka fra nb.no", "fetch this old Norwegian newspaper", "get the PDF of this
-  nb.no item", "log in to nb.no with FEIDE and download X", or "save these
-  pages from Nasjonalbiblioteket". Covers books, newspapers, photos, journals,
-  maps, manuscripts, sheet music, posters, and programme reports. ALSO use
-  for "Zotero-ready" requests — phrases like "download as a Zotero-ready
-  book", "get this nb.no book into Zotero", "Zotero RDF for nb.no", "OCR and
-  import this book", "make a Zotero record with the PDF attached" — which
-  trigger the dedicated workflow below (PDF + OCR + Zotero RDF pair). Do NOT
-  use for: Lovdata legal texts (use the lovdata skill), generic web scraping,
-  or downloading content the user has no right to access.
+  Use any time the user wants to download or work with material from
+  Nasjonalbiblioteket (Norwegian National Library, nb.no). Triggers: links to
+  nb.no or urn.nb.no; mentions of "Nasjonalbiblioteket", "Bokhylla", "FEIDE
+  login to nb.no", "digibok", "digavis", "digifoto", "digitidsskrift",
+  "digikart", "digimanus", "digiprogramrapport"; URN ids like
+  "URN:NBN:no-nb_digibok_..."; requests like "last ned boka fra nb.no", "get
+  the PDF of this nb.no item", "log in to nb.no with FEIDE and download X".
+  Covers books, newspapers, photos, journals, maps, manuscripts, sheet music,
+  posters, programme reports. ALSO use for "Zotero-ready" requests
+  ("Zotero-ready book", "nb.no book into Zotero", "Zotero RDF for nb.no",
+  "OCR and import this book") — triggers the PDF + OCR + Zotero RDF workflow.
+  Do NOT use for: Lovdata legal texts (use the lovdata skill), generic web
+  scraping, or content the user has no right to access.
 ---
 
 # nbno — download from Nasjonalbiblioteket (nb.no)
