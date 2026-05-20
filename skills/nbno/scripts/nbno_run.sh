@@ -97,23 +97,37 @@ if ! [[ "$ID" =~ ^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|di
 fi
 
 # --- 2. Ensure nbno is installed --------------------------------------------
+# Persistent install target. In Cowork ~/.local/ is wiped between bash calls,
+# but a directory under --out (or anywhere passed via NBNO_PYLIB) survives.
+# Callers can override by setting NBNO_PYLIB explicitly.
+if [[ -n "${NBNO_PYLIB:-}" ]]; then
+  PYLIB="$NBNO_PYLIB"
+else
+  PYLIB="$OUT/_pylib"
+fi
+mkdir -p "$PYLIB/bin"
+export PATH="$PYLIB/bin:$PATH"
+export PYTHONPATH="$PYLIB${PYTHONPATH:+:$PYTHONPATH}"
+
 NBNO_BIN=""
-if command -v nbno >/dev/null 2>&1; then
+if [[ -x "$PYLIB/bin/nbno" ]]; then
+  NBNO_BIN="$PYLIB/bin/nbno"
+elif command -v nbno >/dev/null 2>&1; then
   NBNO_BIN="$(command -v nbno)"
 elif [[ -x "$HOME/.local/bin/nbno" ]]; then
   NBNO_BIN="$HOME/.local/bin/nbno"
 fi
 
 if [[ -z "$NBNO_BIN" ]]; then
-  echo "Installing nbno (one-time)..."
-  if ! pip install --break-system-packages --quiet nbno >/dev/null 2>&1; then
+  echo "Installing nbno (one-time, persistent at $PYLIB)..."
+  if ! pip install --break-system-packages --target "$PYLIB" --upgrade --quiet nbno >/dev/null 2>&1; then
     echo "ERROR: pip install nbno failed." >&2
     exit 2
   fi
-  if command -v nbno >/dev/null 2>&1; then
+  if [[ -x "$PYLIB/bin/nbno" ]]; then
+    NBNO_BIN="$PYLIB/bin/nbno"
+  elif command -v nbno >/dev/null 2>&1; then
     NBNO_BIN="$(command -v nbno)"
-  elif [[ -x "$HOME/.local/bin/nbno" ]]; then
-    NBNO_BIN="$HOME/.local/bin/nbno"
   fi
 fi
 

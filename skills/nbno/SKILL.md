@@ -73,12 +73,22 @@ Most pre-1900 books and out-of-copyright photos/maps work without login.
 In-copyright Bokhylla content needs a logged-in nb.no session **and** access
 from a Norwegian IP. Ask the user which of the three paths to take.
 
-> **pliktmonografi / pliktperiodika items: try no-auth first.**
-> Legal-deposit material (`pliktmonografi_*`, `pliktperiodika_*`) is often
-> accessible without any authentication — its access model appears to differ
-> from Bokhylla in-copyright content. Always attempt Option A first for these
-> IDs. Only escalate to Option B or C if the download returns an empty PDF or
-> HTTP 401/403 errors.
+> **Check `accessInfo` before guessing.**
+> The catalog endpoint
+> `https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_<id>` returns an
+> `accessInfo` block. Two fields are decisive:
+>
+> - `viewability == "NONE"` → auth is mandatory; a no-auth fetch will fail.
+> - non-empty `accessInfo.legalDepositLoginText` (e.g. "4 lisenser for
+>   Feide-brukere…") → FEIDE auth is mandatory.
+>
+> `zotero_book.py` performs this check automatically and refuses to start a
+> no-auth download in those cases (override with `--force-auth`). When
+> driving the IIIF API directly, GET the catalog response first and
+> short-circuit to Option B if either signal is present. This is more
+> reliable than the old "pliktmonografi: try no-auth first" heuristic —
+> some pliktmonografi items are FEIDE-restricted, some aren't, and
+> `accessInfo` tells you which.
 
 ### Option A — No auth (open content)
 
@@ -206,89 +216,139 @@ Request Headers, while logged in.
 ### Fast path — direct IIIF downloader (recommended for full Bokhylla books)
 
 For full-book `digibok_*` downloads, bypass `nbno_run.sh` entirely and use
-this Python downloader. It fetches pages directly via the IIIF API with
-`ThreadPoolExecutor(12)` and is roughly **20× faster** than batching through
-the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page). Use this path
-any time the user needs more than ~7 pages of Bokhylla content.
+the in-process IIIF downloader. It fetches pages directly via the IIIF API
+with `ThreadPoolExecutor(12)` and is roughly **20× faster** than batching
+through the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page).
 
-Requires: `BEARER` (from the `authorization` header captured in Step 2 Option
-B, steps 3–4) and `NBSSO` (the `nbsso=<value>` cookie from the same capture,
-step 5 — just the `nbsso=...` portion of the full cookie string).
+**Preferred: use the orchestrator's downloader directly.**
+`scripts/zotero_book.py:download_via_iiif()` already handles every gotcha
+listed in this file:
+
+- tries both `/items/<id>/manifest` *and* `/iiif/URN:NBN:no-nb_<id>/manifest`
+  (the second form is required for some pliktmonografi items where the
+  first returns 404);
+- fetches `info.json` to pick a width the resolver will actually serve at
+  the requested resolution (the resolver silently downsamples otherwise —
+  asking for `608,` on a book that only lists `[502, 251, …]` returns a
+  502px image which makes OCR unusable);
+- verifies the returned image dimensions with PIL and, on mismatch, falls
+  back to native-resolution `regionByPx` 1024×1024 tiles stitched together;
+- skips the `_C2` back cover automatically.
 
 ```python
-import json, os, time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
+sys.path.insert(0, "{SKILL_DIR}/scripts")
+from zotero_book import download_via_iiif
 from pathlib import Path
-import requests
+
+download_via_iiif(
+    canonical_id="digibok_2008051600041",
+    out_pdf=Path("/tmp/nbno_direct/book.pdf"),
+    bearer="<token>",
+    nbsso="nbsso=<value>",
+    resize_width=1024,    # listed sizes will be checked; actual cap may be lower
+    workers=12,
+    tiles="auto",         # "always" to force tiled, "never" to disable fallback
+)
+```
+
+**Minimal inline recipe** (use only when calling `zotero_book.py` is not an
+option — e.g. you don't have the skill directory on disk):
+
+```python
+import io, json, os, time, urllib.error, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from PIL import Image
 
 ITEM_ID = "digibok_2008051600041"   # ← replace
 NBSSO   = "nbsso=<value>"           # ← just the nbsso=... part
 BEARER  = "<token>"                 # ← bearer token for api.nb.no
-OUT_DIR = f"/tmp/nbno_direct/{ITEM_ID}"
-START   = 1     # 1-based, inclusive; None = first page
-STOP    = None  # 1-based, inclusive; None = last page
+OUT_DIR = Path(f"/tmp/nbno_direct/{ITEM_ID}")
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-MANIFEST_CACHE = f"/tmp/nbno_pages/{ITEM_ID}/manifest_urls.json"
 REFERER = f"https://www.nb.no/items/URN:NBN:no-nb_{ITEM_ID}"
 HDR_API = {"authorization": BEARER}
 HDR_IMG = {"cookie": NBSSO, "referer": REFERER}
 
-def fetch_canvas_urls():
-    cache = Path(MANIFEST_CACHE)
-    if cache.exists():
-        return json.loads(cache.read_text())
-    url = f"https://api.nb.no/catalog/v1/items/{ITEM_ID}/manifest"
-    manifest = requests.get(url, headers=HDR_API, timeout=30).json()
-    canvases = manifest["sequences"][0]["canvases"]
-    entries = []
-    for c in canvases:
-        canvas_name = c["@id"].split("/")[-1]
-        base = c["images"][0]["resource"]["service"]["@id"]
-        entries.append({"canvas": canvas_name, "base_url": base})
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    cache.write_text(json.dumps(entries, indent=2))
-    return entries
+def _get_json(url, headers):
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode())
 
-def download_page(entry, idx):
-    if entry["canvas"].endswith("_C2"):          # back cover always 403
-        return idx, None
-    url = f"{entry['base_url']}/full/608,/0/default.jpg"  # 608px is the max allowed width
-    r = requests.get(url, headers=HDR_IMG, timeout=30)
-    if r.status_code == 403:
-        return idx, None
-    r.raise_for_status()
-    path = f"{OUT_DIR}/page_{idx:04d}.jpg"
-    Path(path).write_bytes(r.content)
-    return idx, path
+def fetch_manifest():
+    for url in (
+        f"https://api.nb.no/catalog/v1/items/{ITEM_ID}/manifest",
+        f"https://api.nb.no/catalog/v1/iiif/URN:NBN:no-nb_{ITEM_ID}/manifest",
+    ):
+        try:
+            return _get_json(url, HDR_API)
+        except urllib.error.HTTPError as e:
+            if e.code != 404: raise
+    raise SystemExit("manifest not found on either endpoint")
 
-os.makedirs(OUT_DIR, exist_ok=True)
-entries = fetch_canvas_urls()
-total = len(entries)
-start_i = (START or 1) - 1
-stop_i  = (STOP  or total)
-subset  = list(enumerate(entries[start_i:stop_i], start=start_i + 1))
+def pick_width(info, target):
+    sizes = sorted({int(s["width"]) for s in info.get("sizes") or [] if s.get("width")},
+                   reverse=True)
+    for w in sizes:
+        if w <= target: return w
+    return sizes[-1] if sizes else target
 
-print(f"Downloading pages {start_i+1}–{stop_i} ({len(subset)} total)...")
+def fetch_tiled(base, info, tile=1024):
+    full_w, full_h = int(info["width"]), int(info["height"])
+    canvas = Image.new("RGB", (full_w, full_h), "white")
+    for y in range(0, full_h, tile):
+        for x in range(0, full_w, tile):
+            tw, th = min(tile, full_w - x), min(tile, full_h - y)
+            url = f"{base}/{x},{y},{tw},{th}/full/0/default.jpg"
+            req = urllib.request.Request(url, headers=HDR_IMG)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                canvas.paste(Image.open(io.BytesIO(r.read())).convert("RGB"), (x, y))
+    buf = io.BytesIO(); canvas.save(buf, "JPEG", quality=92); return buf.getvalue()
+
+canvases = fetch_manifest()["sequences"][0]["canvases"]
+entries = [(c["@id"].split("/")[-1], c["images"][0]["resource"]["service"]["@id"])
+           for c in canvases]
+
+# Probe info.json once; nb.no's resolver is consistent across canvases.
+probe_info = _get_json(f"{entries[0][1]}/info.json", HDR_IMG)
+width = pick_width(probe_info, target=1024)
+print(f"resolver lists widths; using {width}px (target was 1024)")
+
+def fetch_page(idx_entry):
+    idx, (name, base) = idx_entry
+    if name.endswith("_C2"): return idx, None
+    url = f"{base}/full/{width},/0/default.jpg"
+    try:
+        req = urllib.request.Request(url, headers=HDR_IMG)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = r.read()
+    except urllib.error.HTTPError as e:
+        if e.code != 403: raise
+        # Fall back to native-res tiles.
+        info = _get_json(f"{base}/info.json", HDR_IMG)
+        data = fetch_tiled(base, info)
+    # Verify single-shot wasn't silently downsampled.
+    if Image.open(io.BytesIO(data)).size[0] < width - 4:
+        info = _get_json(f"{base}/info.json", HDR_IMG)
+        data = fetch_tiled(base, info)
+    path = OUT_DIR / f"page_{idx:04d}.jpg"
+    path.write_bytes(data)
+    return idx, str(path)
+
 t0 = time.time()
-results = {}
 with ThreadPoolExecutor(max_workers=12) as pool:
-    for idx, path in pool.map(lambda x: download_page(*x), subset):
-        results[idx] = path
-print(f"Done in {time.time()-t0:.1f}s")
+    results = dict(pool.map(fetch_page, enumerate(entries, start=1)))
+print(f"downloaded in {time.time()-t0:.1f}s")
 
-pages = [Image.open(results[i]).convert("RGB")
-         for i in sorted(results) if results[i]]
-if pages:
-    pdf_path = f"{OUT_DIR}/{ITEM_ID}.pdf"
-    pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
-    print(f"PDF: {pdf_path}")
+pages = [Image.open(p).convert("RGB") for _, p in sorted(results.items()) if p]
+pdf = OUT_DIR / f"{ITEM_ID}.pdf"
+pages[0].save(pdf, save_all=True, append_images=pages[1:])
+print(pdf)
 ```
 
-The manifest canvas list is cached to `MANIFEST_CACHE` after the first fetch —
-subsequent runs skip the round-trip. The back cover (`_C2`) is skipped
-automatically. Keep each Python call under ~40 s; `/tmp` is wiped if the
-sandbox restarts after a timeout.
+Keep each Python call under ~40 s; `/tmp` is wiped if the sandbox restarts
+after a timeout.
 
 ### Standard path — `nbno_run.sh` wrapper (short ranges / non-Bokhylla)
 
@@ -404,6 +464,94 @@ machine-readable text rather than a visual check.
 - Use `--psm 6` (uniform block of text) rather than `--psm 1` (the OSD
   model may not be available).
 - Process one page per bash call to stay within the sandbox timeout.
+- The `nno` (Norwegian Nynorsk) language pack is missing from many Cowork
+  sandboxes — only `nor` is preinstalled. The orchestrator's
+  `tesseract_preflight()` helper auto-degrades to whichever requested codes
+  are actually available; when running tesseract by hand, list languages
+  with `tesseract --list-langs` first.
+
+### OCR for whole books — `ocr_chunked.py`
+
+`scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf designed
+for the 45-second Cowork bash limit:
+
+1. Split input into per-page PDFs (cached under
+   `<pdf_dir>/.ocr_cache/<stem>/<hash>/pages/`).
+2. OCR each page with `ocrmypdf --skip-text` (full quality — same preprocess,
+   deskew, optimise as a one-shot run), cached under `…/ocred/`.
+3. Stop launching new pages when the time budget is about to expire; exit
+   with code 2 (partial).
+4. On the call that finishes the last page, merge with pikepdf and exit 0.
+
+```bash
+# Loop until done. Each iteration makes progress; cache survives between calls.
+until python {SKILL_DIR}/scripts/ocr_chunked.py \
+    --pdf "$PDF" \
+    --langs nor+nno \
+    --time-budget 35 \
+    --jobs 4; do
+  echo "partial — re-running..."
+done
+```
+
+Quality is identical to a single-shot ocrmypdf run because each page goes
+through the same pipeline; only the orchestration is chunked. The cache key
+includes the input's mtime + size, so re-downloading the PDF correctly
+invalidates the cache.
+
+On each invocation `ocr_chunked.py` opens every cached page with
+`pikepdf.open` first; any file that fails the check (typically: tesseract
+killed mid-write by a previous timeout) is deleted and regenerated on this
+pass. On the call that finishes the last page, the per-page cache is
+deleted automatically — pass `--keep-intermediates` to retain it for
+debugging.
+
+### Shrinking the output — `shrink_pdf.py`
+
+OCR'd PDFs from the IIIF-tile path are often huge (700–900 MB for a
+~300-page book) because each page is embedded as a lossless Flate-PNG.
+**Do not re-OCR to shrink** — the text layer is already correct and
+re-OCR'ing wastes minutes per book. Instead, recompress the embedded
+images in place:
+
+```bash
+python {SKILL_DIR}/scripts/shrink_pdf.py --pdf book.pdf
+```
+
+Defaults are tuned for **~50 MB on a 350-page text-heavy book**
+(`--quality 70 --max-width 900`, i.e. ~143 KB/page). Override either
+flag if you want a different quality/size tradeoff.
+
+This walks each page's image XObjects, re-encodes as JPEG at the given
+quality, and replaces the streams. The OCR text layer, page tree, and
+bookmarks are untouched. 1-bit monochrome images are skipped (JPEG would
+grow them and degrade them visibly). On a typical IIIF-tile book the
+defaults take ~30 s and produce ~50 MB output.
+
+**Probe-and-extrapolate.** Before each run, `shrink_pdf.py` recompresses
+one middle page and prints the estimated total output size
+(`page × n_pages × 0.95`). The "halve dimensions, halve size" heuristic
+falls apart for typographic detail, so always trust the probe rather
+than a guess. Pass `--probe-only` to print just the estimate and exit
+without writing.
+
+**Never overwrites the input by default.** Output goes to a sibling
+`<stem>_q70_w900.pdf` (the filename encodes the settings). Re-encoding
+an already-shrunk file compounds JPEG artefacts, so leaving the
+high-quality master in place lets you experiment with settings
+non-destructively. Use `--in-place` to overwrite.
+
+`zotero_book.py` also exposes this as `--shrink` with the same defaults
+(`--shrink-quality 70 --shrink-max-width 900`). Because the orchestrator
+keeps the canonical filename for the Zotero RDF, `--shrink` rewrites the
+PDF in place — but **copies the OCRed master to `<basename>.original.pdf`
+first** so re-shrinking with different settings starts from the
+high-quality version, not the already-shrunk one. Pass
+`--shrink-no-keep-master` to skip the copy. Without `--shrink`, the
+orchestrator prints a one-line hint if the output PDF exceeds
+`--shrink-threshold-mb` (default 500). Re-running `zotero_book.py
+--shrink` after the fact is also fine — the master copy makes
+experimentation safe.
 
 ---
 
@@ -423,145 +571,26 @@ open it.
 
 ## Zotero-ready book workflow
 
-Trigger this workflow whenever the user asks for a **Zotero-ready** book from
-nb.no, an **RDF with the PDF attached**, "import this into Zotero with one
-click", or similar phrasing. The end state is a paired `.pdf` + `.rdf` in the
-user's outputs folder; dragging the `.rdf` into Zotero produces a Book item
-with full metadata, an attached searchable PDF, and a single Web Link
-attachment titled **"eBok (nb.no)"**. The Zotero **URL** metadata field is
-left blank by design — the link lives only as the Web Link attachment.
+Trigger whenever the user asks for a **Zotero-ready** book from nb.no, an
+**RDF with the PDF attached**, "import this into Zotero with one click",
+"OCR and import this book", or similar phrasing.
 
-### What the orchestrator does
-
-`scripts/zotero_book.py` runs the full pipeline:
-
-1. **Resolve the ID** — accepts URN form, canonical ID, or `digibok_…`.
-2. **Fetch metadata** from `https://api.nb.no/catalog/v1/items/<URN>`. Pulls
-   title, subtitle, creators (with role detection: aut/cre → author, edt →
-   editor, trl → translator), publisher, place, year, language, ISBN, and
-   page count.
-3. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded and
-   filesystem-safe. The first author's surname wins; falls back to the first
-   organisation/contributor; "Unknown" / "n.d." as last resort.
-4. **Download the full PDF.** Two paths:
-   - **Fast IIIF (preferred for big books):** passes `--bearer` + `--nbsso`
-     to use an in-process `ThreadPoolExecutor(12)` IIIF downloader (mirror
-     of the recipe in "Step 3 — Fast path" above). ~20× faster than the
-     wrapper for full-book downloads.
-   - **`nbno_run.sh` fallback:** any time `--bearer`/`--nbsso` aren't given.
-     Honours `--cookie` if Bokhylla auth is needed.
-5. **OCR with `ocrmypdf`**, language pack `nor+nno` by default. Auto-installs
-   `ocrmypdf` on first use (`pip install --break-system-packages ocrmypdf`).
-   System packages required: `tesseract-ocr`, `tesseract-ocr-nor`,
-   `tesseract-ocr-nno`. Uses `--skip-text` so already-OCRed pages aren't
-   re-processed. Pass `--no-ocr` to skip.
-6. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
-   references the PDF by its bare filename (relative path), so the .rdf and
-   .pdf must sit side by side at import time.
-
-### How to invoke it
+The full pipeline (orchestrator script, every flag, sandbox notes, metadata
+customisation, Zotero-specific troubleshooting) lives in
+[`zotero-ready.md`](zotero-ready.md) next to this file. **Read it before
+running** — it covers the access pre-check, the chunked-OCR flow for big
+books, and the `--shrink` post-step. Quick start:
 
 ```bash
-# Open-content book, no auth (works for pre-1900 / pliktmonografi)
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR"
-
-# Bokhylla book with the fast IIIF path (captured via playwright MCP / capture_cookie.py)
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
-  --bearer "$BEARER" \
-  --nbsso "nbsso=$NBSSO" \
-  --resize 1024
-
-# Same book, slower wrapper fallback (no in-process IIIF)
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" \
-  --cookie auto
-
-# Skip OCR (useful for re-runs when the PDF is already searchable)
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" \
-  --no-ocr
+  --bearer "$BEARER" --nbsso "nbsso=$NBSSO"
 ```
 
-Output:
-
-```
-$OUT_DIR/
-  AUTHOR_TITLE_(YEAR).pdf    # OCRed, searchable
-  AUTHOR_TITLE_(YEAR).rdf    # Zotero RDF — drag-and-drop import
-```
-
-### Sandbox notes
-
-- The Cowork bash sandbox has a 45-second per-call timeout, but
-  `zotero_book.py` is a single long-running Python process. For full Bokhylla
-  books, drive it from `mcp__workspace__bash` with `timeout_ms: 45000` and
-  run the orchestrator in two phases if the OCR step plus download together
-  exceed the limit (`--no-ocr` first, then re-run later to OCR only when the
-  PDF is already on disk).
-- ocrmypdf requires Tesseract + Norwegian language packs at the system
-  level. In the Cowork sandbox these are usually pre-installed; on the
-  user's own machine they need
-  `apt-get install tesseract-ocr tesseract-ocr-nor tesseract-ocr-nno`
-  (Debian/Ubuntu) or the Homebrew/MacPorts equivalent (`brew install
-  tesseract-lang`).
-- **Windows users: run the orchestrator under WSL2**, not native Windows.
-  `zotero_book.py`'s wrapper fallback shells out to `bash`/`nbno_run.sh`,
-  the auto-install of ocrmypdf passes `--break-system-packages` (a PEP 668
-  flag rejected by Windows pip), and the apt language packs above don't
-  exist on native Windows. Under WSL2 (Ubuntu) the Linux instructions apply
-  unchanged. If WSL2 is not available, the **only** native-Windows path
-  that works is the fast IIIF route with `--bearer --nbsso --no-ocr` and
-  OCR done separately afterwards.
-- The RDF and PDF must arrive in the same folder for Zotero's import to find
-  the attachment. The orchestrator always writes them together in `--out`.
-
-### Customising the metadata
-
-If you need to tweak the fetched metadata before the RDF is written (e.g.
-correct an editor that nb.no flagged as author), the recommended pattern is
-to call the orchestrator with `--no-ocr` and inspect the printed metadata,
-then re-run `build_zotero_rdf.py` directly against a hand-edited JSON dump:
-
-```bash
-python -c "
-from zotero_book import normalise_id, fetch_nb_metadata, normalize_metadata
-import json, dataclasses
-book = normalize_metadata(fetch_nb_metadata(normalise_id('digibok_2008051600041')))
-d = dataclasses.asdict(book)
-d['creators'] = [dataclasses.asdict(c) for c in book.creators]
-print(json.dumps(d, indent=2, ensure_ascii=False))
-" > book.json
-
-# Edit book.json by hand, then:
-python {SKILL_DIR}/scripts/build_zotero_rdf.py \
-  --book-json book.json \
-  --pdf-filename Author_Title_(Year).pdf \
-  --nb-url https://www.nb.no/items/URN:NBN:no-nb_digibok_2008051600041 \
-  --out Author_Title_(Year).rdf
-```
-
-### Troubleshooting (Zotero-specific)
-
-- *Zotero imports the book entry but not the PDF.* The .rdf must be in the
-  same folder as the .pdf at import time. Drag the .rdf (not the .pdf) into
-  Zotero. If you move the files between steps, redo the move so both end up
-  paired again.
-- *"Web Link" attachment shows up but the title is the URL.* You're running
-  an older Zotero. Newer versions read the `dc:title` of the linked-URL
-  attachment correctly. Workaround: edit the attachment title in Zotero
-  after import.
-- *Norwegian characters look garbled in author names.* The .rdf is always
-  UTF-8; the issue is usually that the metadata source is stale. Re-run with
-  `--no-ocr` to refresh from the nb.no API and re-emit the .rdf.
-- *`ocrmypdf` complains about missing Norwegian data.* Install the
-  language packs at the system level.
-- *Cookies expire mid-download.* Follow Step 2's re-capture flow and re-run.
+Output is a `.pdf` + `.rdf` pair in `$OUT_DIR`; drag the `.rdf` into
+Zotero. For Bokhylla / pliktmonografi content, follow Step 2 above to
+capture bearer + nbsso first.
 
 ---
 
@@ -570,12 +599,27 @@ python {SKILL_DIR}/scripts/build_zotero_rdf.py \
 - **Geo-restriction.** A large share of nb.no's collection (especially
   Bokhylla / in-copyright material) is nominally geo-restricted to Norwegian
   IP addresses. However, 403 errors from the sandbox are more commonly caused
-  by wrong URL format (e.g. `pct:75` or `full` instead of a width like `608,`)
+  by wrong URL format (e.g. `pct:75` or `full` instead of an explicit width)
   or wrong auth headers than by actual IP-based blocking. With the correct
-  setup — `608,` width + `nbsso` cookie + correct `referer` — sandbox
-  downloads succeed from non-Norwegian IPs. **Check auth and URL format before
-  assuming geo-restriction.** If errors persist after fixing those, then a
-  Norwegian session cookie from the user's own network is likely required.
+  setup — a width drawn from `info.json`'s `sizes[]` array + `nbsso` cookie
+  + correct `referer` — sandbox downloads succeed from non-Norwegian IPs.
+  **Check auth and URL format before assuming geo-restriction.** If errors
+  persist after fixing those, then a Norwegian session cookie from the
+  user's own network is likely required.
+- **Resolver silently downsamples requests above its listed sizes.** Asking
+  for `/full/1024,/0/default.jpg` on an item whose `info.json` only lists
+  `[502, 251, …]` returns a 502-wide image with `HTTP 200` and no warning.
+  Treating that as a 1024-wide image (e.g. assuming 300 DPI for OCR)
+  produces unusable output. Always GET `info.json` first and pick a width
+  from `sizes[]`, or verify the returned image's dimensions with PIL after
+  download. The orchestrator handles both automatically; for inline
+  recipes, follow the pattern in **Step 3 — Fast path**.
+- **Native-resolution tiles work when single-shot doesn't.** When the
+  resolver refuses `/full/<w>,/` for in-copyright/licensed content,
+  `regionByPx` requests up to 1024×1024 are routinely allowed at native
+  resolution. The orchestrator's `--tiles auto` falls back to tiling
+  whenever single-shot returns 403 or is silently downsampled. Use
+  `--tiles always` to force tiling from the start.
 - **Copyright.** Most twentieth-century books are in copyright; access via
   Bokhylla is granted to individuals under a specific agreement and does
   not permit redistribution. The user is responsible for using downloaded
@@ -599,9 +643,11 @@ python {SKILL_DIR}/scripts/build_zotero_rdf.py \
 - *Command not found `nbno`.* See **Prerequisites** above.
 - *Empty PDF / no images downloaded.* For `digibok` / Bokhylla content this
   is almost always an auth or geo issue — go to Step 2 and use Option B or C.
-  For `pliktmonografi_*` / `pliktperiodika_*` items, **do not assume auth is
-  required**: legal-deposit material is often accessible without a cookie.
-  Retry with no `--cookie` flag before escalating to the FEIDE flow.
+  For `pliktmonografi_*` / `pliktperiodika_*` items, GET the catalog
+  response and inspect `accessInfo.legalDepositLoginText` /
+  `accessInfo.viewability` — those fields decide whether FEIDE auth is
+  required (see Step 2's "Check `accessInfo` before guessing" callout).
+  The orchestrator does this automatically; pass `--force-auth` to override.
 - *`--cookie auto` errors with "no cookie file found".* The wrapper looked
   at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't run
   `capture_cookie.py` yet, or they ran it on their own machine but
@@ -620,12 +666,44 @@ python {SKILL_DIR}/scripts/build_zotero_rdf.py \
 - *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque; ask for
   the Referere/Sitere string (URN) instead. Don't guess.
 - *User mentions `pliktavlevering` content.* ID prefix will be
-  `pliktmonografi_...` or `pliktperiodika_...`. **Try no-auth first** —
-  legal-deposit items are often accessible without FEIDE. The content search
-  API will not work for these items regardless of auth; download and read the
-  pages directly.
+  `pliktmonografi_...` or `pliktperiodika_...`. **Check `accessInfo` first**
+  rather than guessing — some pliktmonografi items are open, some are FEIDE-
+  licensed (`legalDepositLoginText` non-empty / `viewability: NONE`). The
+  orchestrator does this automatically. The content search API will not work
+  for these items regardless of auth; download and read pages directly.
 - *Last page (back cover) always returns 403.* The final canvas of Bokhylla
   books has the ID suffix `_C2` and is systematically restricted at any width.
   Skip it silently — do not retry. The direct IIIF downloader already handles
   this automatically.
+- *Manifest URL returns 404 (pliktmonografi item).* nb.no exposes two
+  endpoints — `/items/<id>/manifest` (works for digibok) and
+  `/iiif/URN:NBN:no-nb_<id>/manifest` (required for some pliktmonografi).
+  The orchestrator tries both; if you're driving the API by hand, fall
+  back to the second on 404.
+- *OCR text looks scrambled / wrong characters.* The page image was
+  silently downsampled by the IIIF resolver. Re-download with `--tiles
+  always` and re-OCR. Also confirm `tesseract --list-langs` includes every
+  language you requested — `nno` is missing from many sandboxes.
+- *`ocrmypdf: command not found` between bash calls.* `~/.local/bin` is
+  wiped in Cowork between calls. The orchestrator installs to
+  `<--out>/_pylib/` and prepends `<--out>/_pylib/bin` to `PATH`
+  automatically; if you're running ocrmypdf by hand, install with
+  `pip install --target outputs/_pylib --break-system-packages ocrmypdf`
+  and `export PATH="outputs/_pylib/bin:$PATH"
+  PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
+- *Single ocrmypdf call times out at 45 s on a long book.* Use
+  `scripts/ocr_chunked.py` in a `until … ; do :; done` loop — same OCR
+  quality, per-page cache, makes progress every call.
+- *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
+  Run `scripts/shrink_pdf.py --pdf book.pdf` (or re-run `zotero_book.py`
+  with `--shrink`) to JPEG-recompress the embedded images in place. The
+  text layer is untouched, so this is a pure size optimisation — no need
+  to re-OCR. **Never re-OCR to shrink** — it wastes minutes per book and
+  the OCR text layer doesn't determine file size.
+- *Chunked-OCR run silently produces a final PDF with broken pages.* A
+  previous timeout left structurally-corrupt cache files that were
+  skipped as "done". Newer `ocr_chunked.py` validates every cache file
+  with `pikepdf.open` at startup and deletes any that fail; older runs
+  may have shipped before that fix — delete `<pdf_dir>/.ocr_cache/` and
+  re-run.
   
