@@ -10,9 +10,13 @@ description: >
   boka fra nb.no", "fetch this old Norwegian newspaper", "get the PDF of this
   nb.no item", "log in to nb.no with FEIDE and download X", or "save these
   pages from Nasjonalbiblioteket". Covers books, newspapers, photos, journals,
-  maps, manuscripts, sheet music, posters, and programme reports. Do NOT use
-  for: Lovdata legal texts (use the lovdata skill), generic web scraping, or
-  downloading content the user has no right to access.
+  maps, manuscripts, sheet music, posters, and programme reports. ALSO use
+  for "Zotero-ready" requests — phrases like "download as a Zotero-ready
+  book", "get this nb.no book into Zotero", "Zotero RDF for nb.no", "OCR and
+  import this book", "make a Zotero record with the PDF attached" — which
+  trigger the dedicated workflow below (PDF + OCR + Zotero RDF pair). Do NOT
+  use for: Lovdata legal texts (use the lovdata skill), generic web scraping,
+  or downloading content the user has no right to access.
 ---
 
 # nbno — download from Nasjonalbiblioteket (nb.no)
@@ -417,6 +421,142 @@ it with a `computer://` link, e.g.:
 
 Do not narrate the contents of the PDF beyond what's needed; let the user
 open it.
+
+---
+
+## Zotero-ready book workflow
+
+Trigger this workflow whenever the user asks for a **Zotero-ready** book from
+nb.no, an **RDF with the PDF attached**, "import this into Zotero with one
+click", or similar phrasing. The end state is a paired `.pdf` + `.rdf` in the
+user's outputs folder; dragging the `.rdf` into Zotero produces a Book item
+with full metadata, an attached searchable PDF, and a single Web Link
+attachment titled **"eBok (nb.no)"**. The Zotero **URL** metadata field is
+left blank by design — the link lives only as the Web Link attachment.
+
+### What the orchestrator does
+
+`scripts/zotero_book.py` runs the full pipeline:
+
+1. **Resolve the ID** — accepts URN form, canonical ID, or `digibok_…`.
+2. **Fetch metadata** from `https://api.nb.no/catalog/v1/items/<URN>`. Pulls
+   title, subtitle, creators (with role detection: aut/cre → author, edt →
+   editor, trl → translator), publisher, place, year, language, ISBN, and
+   page count.
+3. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded and
+   filesystem-safe. The first author's surname wins; falls back to the first
+   organisation/contributor; "Unknown" / "n.d." as last resort.
+4. **Download the full PDF.** Two paths:
+   - **Fast IIIF (preferred for big books):** passes `--bearer` + `--nbsso`
+     to use an in-process `ThreadPoolExecutor(12)` IIIF downloader (mirror
+     of the recipe in "Step 3 — Fast path" above). ~20× faster than the
+     wrapper for full-book downloads.
+   - **`nbno_run.sh` fallback:** any time `--bearer`/`--nbsso` aren't given.
+     Honours `--cookie` if Bokhylla auth is needed.
+5. **OCR with `ocrmypdf`**, language pack `nor+nno` by default. Auto-installs
+   `ocrmypdf` on first use (`pip install --break-system-packages ocrmypdf`).
+   System packages required: `tesseract-ocr`, `tesseract-ocr-nor`,
+   `tesseract-ocr-nno`. Uses `--skip-text` so already-OCRed pages aren't
+   re-processed. Pass `--no-ocr` to skip.
+6. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
+   references the PDF by its bare filename (relative path), so the .rdf and
+   .pdf must sit side by side at import time.
+
+### How to invoke it
+
+```bash
+# Open-content book, no auth (works for pre-1900 / pliktmonografi)
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2008051600041 \
+  --out "$OUT_DIR"
+
+# Bokhylla book with the fast IIIF path (captured via playwright MCP / capture_cookie.py)
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2008051600041 \
+  --out "$OUT_DIR" \
+  --bearer "$BEARER" \
+  --nbsso "nbsso=$NBSSO" \
+  --resize 1024
+
+# Same book, slower wrapper fallback (no in-process IIIF)
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2008051600041 \
+  --out "$OUT_DIR" \
+  --cookie auto
+
+# Skip OCR (useful for re-runs when the PDF is already searchable)
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2008051600041 \
+  --out "$OUT_DIR" \
+  --no-ocr
+```
+
+Output:
+
+```
+$OUT_DIR/
+  AUTHOR_TITLE_(YEAR).pdf    # OCRed, searchable
+  AUTHOR_TITLE_(YEAR).rdf    # Zotero RDF — drag-and-drop import
+```
+
+### Sandbox notes
+
+- The Cowork bash sandbox has a 45-second per-call timeout, but
+  `zotero_book.py` is a single long-running Python process. For full Bokhylla
+  books, drive it from `mcp__workspace__bash` with `timeout_ms: 45000` and
+  run the orchestrator in two phases if the OCR step plus download together
+  exceed the limit (`--no-ocr` first, then re-run later to OCR only when the
+  PDF is already on disk).
+- ocrmypdf requires Tesseract + Norwegian language packs at the system
+  level. In the Cowork sandbox these are usually pre-installed; on the
+  user's own machine they need
+  `apt-get install tesseract-ocr tesseract-ocr-nor tesseract-ocr-nno`
+  (Debian/Ubuntu) or the Homebrew/MacPorts equivalent (`brew install
+  tesseract-lang`).
+- The RDF and PDF must arrive in the same folder for Zotero's import to find
+  the attachment. The orchestrator always writes them together in `--out`.
+
+### Customising the metadata
+
+If you need to tweak the fetched metadata before the RDF is written (e.g.
+correct an editor that nb.no flagged as author), the recommended pattern is
+to call the orchestrator with `--no-ocr` and inspect the printed metadata,
+then re-run `build_zotero_rdf.py` directly against a hand-edited JSON dump:
+
+```bash
+python -c "
+from zotero_book import normalise_id, fetch_nb_metadata, normalize_metadata
+import json, dataclasses
+book = normalize_metadata(fetch_nb_metadata(normalise_id('digibok_2008051600041')))
+d = dataclasses.asdict(book)
+d['creators'] = [dataclasses.asdict(c) for c in book.creators]
+print(json.dumps(d, indent=2, ensure_ascii=False))
+" > book.json
+
+# Edit book.json by hand, then:
+python {SKILL_DIR}/scripts/build_zotero_rdf.py \
+  --book-json book.json \
+  --pdf-filename Author_Title_(Year).pdf \
+  --nb-url https://www.nb.no/items/URN:NBN:no-nb_digibok_2008051600041 \
+  --out Author_Title_(Year).rdf
+```
+
+### Troubleshooting (Zotero-specific)
+
+- *Zotero imports the book entry but not the PDF.* The .rdf must be in the
+  same folder as the .pdf at import time. Drag the .rdf (not the .pdf) into
+  Zotero. If you move the files between steps, redo the move so both end up
+  paired again.
+- *"Web Link" attachment shows up but the title is the URL.* You're running
+  an older Zotero. Newer versions read the `dc:title` of the linked-URL
+  attachment correctly. Workaround: edit the attachment title in Zotero
+  after import.
+- *Norwegian characters look garbled in author names.* The .rdf is always
+  UTF-8; the issue is usually that the metadata source is stale. Re-run with
+  `--no-ocr` to refresh from the nb.no API and re-emit the .rdf.
+- *`ocrmypdf` complains about missing Norwegian data.* Install the
+  language packs at the system level.
+- *Cookies expire mid-download.* Follow Step 2's re-capture flow and re-run.
 
 ---
 
