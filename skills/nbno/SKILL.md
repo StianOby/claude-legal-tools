@@ -513,6 +513,14 @@ $OUT_DIR/
   `apt-get install tesseract-ocr tesseract-ocr-nor tesseract-ocr-nno`
   (Debian/Ubuntu) or the Homebrew/MacPorts equivalent (`brew install
   tesseract-lang`).
+- **Windows users: run the orchestrator under WSL2**, not native Windows.
+  `zotero_book.py`'s wrapper fallback shells out to `bash`/`nbno_run.sh`,
+  the auto-install of ocrmypdf passes `--break-system-packages` (a PEP 668
+  flag rejected by Windows pip), and the apt language packs above don't
+  exist on native Windows. Under WSL2 (Ubuntu) the Linux instructions apply
+  unchanged. If WSL2 is not available, the **only** native-Windows path
+  that works is the fast IIIF route with `--bearer --nbsso --no-ocr` and
+  OCR done separately afterwards.
 - The RDF and PDF must arrive in the same folder for Zotero's import to find
   the attachment. The orchestrator always writes them together in `--out`.
 
