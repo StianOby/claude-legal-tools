@@ -22,12 +22,23 @@ uses nb.no's IIIF API to fetch page images and assemble them into a PDF.
 
 ```
 nbno/
-├── SKILL.md                   # the skill manifest Claude reads
+├── SKILL.md                   # the skill manifest Claude reads (lean router)
+├── auth.md                    # authentication procedures (referenced by SKILL.md)
+├── reading-ocr.md             # page reading, OCR, and PDF-shrink procedures
+├── zotero-ready.md            # full Zotero-ready (PDF + OCR + RDF) workflow
 ├── README.md                  # you are here
 └── scripts/
     ├── nbno_run.sh            # download wrapper
-    └── capture_cookie.py      # interactive FEIDE login cookie capture
+    ├── capture_cookie.py      # interactive FEIDE login cookie capture
+    ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
+    ├── build_zotero_rdf.py    # Zotero RDF generation
+    ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
+    └── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
 ```
+
+SKILL.md is kept deliberately lean — it routes to `auth.md`, `reading-ocr.md`,
+and `zotero-ready.md` so only the procedures relevant to a given task are
+loaded into Claude's context.
 
 ## Requirements
 

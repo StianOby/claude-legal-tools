@@ -90,130 +90,32 @@ from a Norwegian IP. Ask the user which of the three paths to take.
 > some pliktmonografi items are FEIDE-restricted, some aren't, and
 > `accessInfo` tells you which.
 
-### Option A — No auth (open content)
+Three auth paths — pick one based on the item:
 
-The default. Run `nbno_run.sh` without `--cookie`. Best when the user pasted
-a URN for an old book, sheet music, public-domain photo, or any
-`pliktmonografi_*` / `pliktperiodika_*` item. If the download fails with HTTP
-401/403, fall back to Option B.
+- **Option A — No auth (open content).** The default. Run `nbno_run.sh`
+  without `--cookie`. Best for old books, sheet music, public-domain
+  photos/maps, and `pliktmonografi_*` / `pliktperiodika_*` items. On HTTP
+  401/403, fall back to Option B.
+- **Option B — Cookie capture (FEIDE / Bokhylla).** Use when the item is
+  in-copyright or the user mentions FEIDE, BankID, Vipps, or "logged in."
+  Capture via playwright MCP (Cowork) or `capture_cookie.py` (durable file).
+- **Option C — Manual cookie file (legacy).** The user already has a cookie
+  text file from DevTools; pass it with `--cookie <path>`.
 
-### Option B — Cookie capture (recommended for FEIDE / Bokhylla)
+> **⛔ STOP — before any fetch of authenticated content (Option B/C) in
+> Cowork, confirm the user has an active nb.no session.** Ask: *"Have you
+> logged in to nb.no recently? If not, please log in now at <https://nb.no>
+> in your browser,"* and wait for confirmation. If you skip this and the user
+> is not logged in, **every fetch silently fails** (JS-required page or blank
+> session) with no reliable way to detect it after the fact — wasting
+> significant debugging time.
 
-Use this when the item is in-copyright (Bokhylla) or the user mentions
-FEIDE, BankID, Vipps, or "logged in."
-
-> **⛔ STOP — MANDATORY BEFORE ANY FETCH IN COWORK MODE**
->
-> Before running any fetch or navigation command, you **must** confirm the
-> user has an active Nasjonalbiblioteket session. Do this first, every time:
->
-> 1. Ask the user: *"Have you logged in to nb.no recently? If not,
->    please log in now at <https://nb.no> in your browser."*
-> 2. Wait for confirmation before proceeding.
->
-> **If you skip this step and the user is not logged in, every fetch will
-> silently fail** (returning a JS-required page or a blank session error)
-> and the resulting debugging will waste significant time. There is no
-> reliable way to detect a missing session after the fact.
-
-#### Primary method for Cowork sessions — playwright MCP
-
-In a Cowork session the most practical approach is to capture the cookie
-directly via the `mcp__playwright__*` tools.
-
-> **Before proceeding: check that Playwright MCP is installed.**
-> Look for `mcp__playwright__*` tools in your available tool set. If they
-> are absent, stop and tell the user:
->
-> > "This method requires the **Playwright MCP** server — a browser
-> > automation layer that lets Claude drive a real Chromium window and
-> > inspect its network traffic. Without it I cannot capture the nb.no
-> > authentication cookie automatically.
-> >
-> > Install it from the official repository:
-> > [github.com/microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp)
-> >
-> > Once installed and connected to your Claude session (you may need to
-> > restart the session), come back and I will continue from here."
->
-> Do not proceed with steps 1–6 until `mcp__playwright__*` tools are
-> confirmed available. Fall back to Option B (`capture_cookie.py`) or
-> Option C (manual cookie file) if the user cannot install the MCP.
-
-1. Navigate to nb.no and let the user complete login in the visible window.
-2. Ask the user to open the book page in the viewer.
-3. Call `mcp__playwright__browser_network_requests` filtered on `api.nb.no`
-   to list recent requests.
-4. Find the `manifest?fields=...` entry; call
-   `mcp__playwright__browser_network_request` with `part: "request-headers"`
-   on that entry to retrieve the `authorization` token.
-5. Retrieve the cookie string separately with
-   `mcp__playwright__browser_evaluate` using `() => document.cookie`.
-6. Write both values to a two-line file (e.g. `/tmp/cookie.txt`):
-   ```
-   authorization=<token>
-   cookie=<full cookie string>
-   ```
-   Pass this path as `--cookie /tmp/cookie.txt` to the wrapper.
-
-> **Auth scope:** The `authorization` bearer token captured above is valid
-> only for `api.nb.no` (the manifest API). The IIIF image resolver at
-> `www.nb.no/services/image/resolver/` ignores the bearer token entirely —
-> it authenticates via the `nbsso` session cookie plus a correct `referer`
-> header. Both values are needed: bearer for the manifest, nbsso for images.
->
-> **Lighter cookie often suffices for tiles.** In practice the `_nblb`
-> session cookie alone has returned `200` on every IIIF tile request, without
-> the full FEIDE bearer + `nbsso` combination. Try the lighter auth path
-> first (just the session cookie + `referer`) and only escalate to capturing
-> the full bearer token if tiles start returning `403`.
-
-Cookies on nb.no live roughly 24–48 hours. When downloads start failing
-with auth errors, repeat steps 3–6 to refresh the token.
-
-#### Alternative for repeated or automated use — `capture_cookie.py`
-
-The skill ships a script at `scripts/capture_cookie.py` that opens a real
-Chromium window, lets the user complete FEIDE/BankID/Vipps login
-interactively, and writes the captured `authorization` + `cookie` headers
-to `~/.nbno/cookie.txt`. This approach is better when you expect to run
-multiple sessions and want a durable cookie file.
-
-The script must run on the user's own machine (it needs a visible browser —
-the sandbox has no display). On first run:
-
-```bash
-pip install playwright
-playwright install chromium
-python {SKILL_DIR}/scripts/capture_cookie.py
-```
-
-After capture, the user has `~/.nbno/cookie.txt` (Windows:
-`C:\Users\<name>\.nbno\cookie.txt`). To make that file reachable from the
-sandbox, ask the user to either:
-
-1. Mount their `.nbno/` folder via `request_cowork_directory` (cleanest —
-   works for repeat runs), or
-2. Upload `cookie.txt` once into the session (you can then pass the upload
-   path to `--cookie`).
-
-Then invoke the wrapper with `--cookie auto` (resolves to
-`~/.nbno/cookie.txt` inside the sandbox — adjust the path accordingly if
-the cookie is mounted/uploaded elsewhere, in which case pass
-`--cookie /path/to/cookie.txt` explicitly).
-
-### Option C — Manual cookie file (legacy)
-
-If the user already has a cookie text file from DevTools, accept its path
-and pass it through with `--cookie <path>`. Format (per nbno's README):
-
-```
-authorization=<token>
-cookie=<full cookie header>
-```
-
-The user obtains it from DevTools → Network → `manifest?fields=...` →
-Request Headers, while logged in.
+> **📄 Read [`auth.md`](auth.md) before you capture or use any cookie.** It
+> has the exact playwright-MCP capture steps, the `capture_cookie.py` setup,
+> the cookie-file format, the bearer-vs-`nbsso` auth-scope rules, and the
+> lighter `_nblb` tip. Don't improvise auth from memory — the header details
+> are exact and a wrong one yields a blank session or a silently downsampled
+> image (HTTP 200), which is slow to debug.
 
 ---
 
@@ -449,169 +351,19 @@ passed `--keep-images`.
 
 ---
 
-## Inspecting pages — visual reading vs OCR
+## Inspecting pages, OCR, and shrinking — see [`reading-ocr.md`](reading-ocr.md)
 
-When you need to read specific page content (e.g. to determine the canvas
-offset, verify a source, or check a passage), rendering pages to PNG and
-reading them with Claude's image-reading capability (the Read tool) is
-faster and more reliable than OCR.
+Once you have the PDF you may need to **read specific pages** (to find the
+canvas offset or verify a passage), **OCR** the whole book, or **shrink** a
+bloated output.
 
-### Visual reading (recommended)
-
-```python
-import fitz  # PyMuPDF
-
-doc = fitz.open("/tmp/nbno_out/<item>.pdf")
-page = doc[0]  # 0-based index; canvas N = index N-1
-mat = fitz.Matrix(1, 1)  # 1× scale → approx 1652 × 2272 px from a --resize 75 PDF
-pix = page.get_pixmap(matrix=mat)
-pix.save("/tmp/page_01.png")
-```
-
-Then use the Read tool on `/tmp/page_01.png`. Rendering at 1× from a
-`--resize 75` PDF gives approximately 1652 × 2272 px, which stays within
-the Read tool's ~2000 px limit. Do **not** use `fitz.Matrix(1.5, 1.5)` or
-higher from a 75%-resize PDF — the result (~2479 × 3409 px) exceeds the
-limit. If 1× images are still too large, resize with PIL before saving:
-
-```python
-from PIL import Image
-img = Image.open("/tmp/page_01.png")
-img = img.resize((img.width // 2, img.height // 2))
-img.save("/tmp/page_01_small.png")
-```
-
-### OCR via tesseract (if needed)
-
-OCR is possible but requires extra setup. Only use it when you need
-machine-readable text rather than a visual check.
-
-- **`TESSDATA_PREFIX` needs more than just `.traineddata` files.** Pointing
-  it at a bare `/tmp` with a downloaded `nor.traineddata` works for plain
-  `tesseract` but **fails for `ocrmypdf`**, which also needs the `configs/`
-  and `tessconfigs/` directories and `pdf.ttf` from the system tessdata dir.
-  Build a complete prefix dir by copying those alongside your language data:
-
-  ```bash
-  TESS_SYS=/usr/share/tesseract-ocr/4.00/tessdata   # adjust version if needed
-  mkdir -p /tmp/myts
-  cp /tmp/nor.traineddata /tmp/myts/                 # your downloaded lang(s)
-  cp "$TESS_SYS"/eng.traineddata /tmp/myts/
-  cp "$TESS_SYS"/osd.traineddata /tmp/myts/
-  cp -r "$TESS_SYS"/configs /tmp/myts/
-  cp -r "$TESS_SYS"/tessconfigs /tmp/myts/
-  cp "$TESS_SYS"/pdf.ttf /tmp/myts/
-  export TESSDATA_PREFIX=/tmp/myts
-  ```
-
-  Confirm the system path with `dpkg -L tesseract-ocr-eng | grep tessdata`
-  if `4.00` doesn't exist. Plain `tesseract` (visual-check OCR below) only
-  needs the `.traineddata` files, so a bare `TESSDATA_PREFIX=/tmp` is fine
-  there — the extra files matter specifically for the `ocrmypdf` pipeline.
-- Use `--psm 6` (uniform block of text) rather than `--psm 1` (the OSD
-  model may not be available).
-- Process one page per bash call to stay within the sandbox timeout.
-- The `nno` (Norwegian Nynorsk) language pack is missing from many Cowork
-  sandboxes — only `nor` is preinstalled. The orchestrator's
-  `tesseract_preflight()` helper auto-degrades to whichever requested codes
-  are actually available; when running tesseract by hand, list languages
-  with `tesseract --list-langs` first.
-
-### OCR for whole books — `ocr_chunked.py`
-
-`scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf designed
-for the 45-second Cowork bash limit:
-
-1. Split input into per-page PDFs (cached under
-   `<pdf_dir>/.ocr_cache/<stem>/<hash>/pages/`).
-2. OCR each page with `ocrmypdf --skip-text` (full quality — same preprocess,
-   deskew, optimise as a one-shot run), cached under `…/ocred/`.
-3. Stop launching new pages when the time budget is about to expire; exit
-   with code 2 (partial).
-4. On the call that finishes the last page, merge with pikepdf and exit 0.
-
-Run **one invocation per bash tool call** — exit code 0 means done, exit
-code 2 means partial (call it again):
-
-```bash
-python {SKILL_DIR}/scripts/ocr_chunked.py \
-    --pdf "$PDF" \
-    --langs nor+nno \
-    --time-budget 35 \
-    --jobs 4
-```
-
-> **⛔ Do NOT wrap this in a single-call `until … ; do … ; done` loop.**
-> A single `ocr_chunked.py` invocation can itself exceed the 45 s sandbox
-> timeout (one page's OCR may run past the `--time-budget`, which is only
-> checked *between* pages). If you put the loop inside one bash call, that
-> first iteration blows the tool timeout and you never regain control to
-> re-invoke — the loop never iterates.
->
-> The correct Cowork pattern is to **call the bash tool repeatedly, once per
-> iteration**, inspecting the exit code (and progress output) between calls:
-> re-run on exit 2, stop on exit 0. The per-page cache survives between
-> calls, so every invocation makes forward progress. Keep `--time-budget`
-> safely under the tool timeout (35 is a good default for a 45 s limit).
-
-Quality is identical to a single-shot ocrmypdf run because each page goes
-through the same pipeline; only the orchestration is chunked. The cache key
-includes the input's mtime + size, so re-downloading the PDF correctly
-invalidates the cache.
-
-On each invocation `ocr_chunked.py` opens every cached page with
-`pikepdf.open` first; any file that fails the check (typically: tesseract
-killed mid-write by a previous timeout) is deleted and regenerated on this
-pass. On the call that finishes the last page, the per-page cache is
-deleted automatically — pass `--keep-intermediates` to retain it for
-debugging.
-
-### Shrinking the output — `shrink_pdf.py`
-
-OCR'd PDFs from the IIIF-tile path are often huge (700–900 MB for a
-~300-page book) because each page is embedded as a lossless Flate-PNG.
-**Do not re-OCR to shrink** — the text layer is already correct and
-re-OCR'ing wastes minutes per book. Instead, recompress the embedded
-images in place:
-
-```bash
-python {SKILL_DIR}/scripts/shrink_pdf.py --pdf book.pdf
-```
-
-Defaults are tuned for **~50 MB on a 350-page text-heavy book**
-(`--quality 70 --max-width 900`, i.e. ~143 KB/page). Override either
-flag if you want a different quality/size tradeoff.
-
-This walks each page's image XObjects, re-encodes as JPEG at the given
-quality, and replaces the streams. The OCR text layer, page tree, and
-bookmarks are untouched. 1-bit monochrome images are skipped (JPEG would
-grow them and degrade them visibly). On a typical IIIF-tile book the
-defaults take ~30 s and produce ~50 MB output.
-
-**Probe-and-extrapolate.** Before each run, `shrink_pdf.py` recompresses
-one middle page and prints the estimated total output size
-(`page × n_pages × 0.95`). The "halve dimensions, halve size" heuristic
-falls apart for typographic detail, so always trust the probe rather
-than a guess. Pass `--probe-only` to print just the estimate and exit
-without writing.
-
-**Never overwrites the input by default.** Output goes to a sibling
-`<stem>_q70_w900.pdf` (the filename encodes the settings). Re-encoding
-an already-shrunk file compounds JPEG artefacts, so leaving the
-high-quality master in place lets you experiment with settings
-non-destructively. Use `--in-place` to overwrite.
-
-`zotero_book.py` also exposes this as `--shrink` with the same defaults
-(`--shrink-quality 70 --shrink-max-width 900`). Because the orchestrator
-keeps the canonical filename for the Zotero RDF, `--shrink` rewrites the
-PDF in place — but **copies the OCRed master to `<basename>.original.pdf`
-first** so re-shrinking with different settings starts from the
-high-quality version, not the already-shrunk one. Pass
-`--shrink-no-keep-master` to skip the copy. Without `--shrink`, the
-orchestrator prints a one-line hint if the output PDF exceeds
-`--shrink-threshold-mb` (default 500). Re-running `zotero_book.py
---shrink` after the fact is also fine — the master copy makes
-experimentation safe.
+> **📄 Read [`reading-ocr.md`](reading-ocr.md) before doing any of these.**
+> It covers visual page reading (render to PNG + Read tool — preferred over
+> OCR), the `tesseract` / `TESSDATA_PREFIX` setup (`ocrmypdf` needs more than
+> the bare `.traineddata` files), the resumable `ocr_chunked.py` flow (**must
+> be driven by repeated bash calls — never a single-call `until` loop**), and
+> `shrink_pdf.py`. Skipping it leads to scrambled OCR, poster-size pages, or
+> sandbox timeouts.
 
 ---
 
@@ -727,11 +479,11 @@ capture bearer + nbsso first.
   at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't run
   `capture_cookie.py` yet, or they ran it on their own machine but
   haven't mounted/uploaded the file into the sandbox. Walk them through
-  Step 2 Option B again.
+  Option B again (procedure in [`auth.md`](auth.md)).
 - *Auth used to work, now downloads fail with HTTP 401/403.* The cookie
   has expired (typical lifetime: 24–48h on nb.no). For the playwright MCP
-  approach, repeat the network-request capture steps. For `capture_cookie.py`,
-  re-run the script.
+  approach, repeat the network-request capture steps; for `capture_cookie.py`,
+  re-run the script (both detailed in [`auth.md`](auth.md)).
 - *`mv: unable to remove target: Operation not permitted`.* You used a
   mounted workspace directory for `--out` and a same-named PDF already
   exists there. Switch to `--out /tmp/nbno_out` and copy afterward with
@@ -758,7 +510,8 @@ capture bearer + nbsso first.
 - *OCR text looks scrambled / wrong characters.* The page image was
   silently downsampled by the IIIF resolver. Re-download with `--tiles
   always` and re-OCR. Also confirm `tesseract --list-langs` includes every
-  language you requested — `nno` is missing from many sandboxes.
+  language you requested — `nno` is missing from many sandboxes. (OCR setup
+  detailed in [`reading-ocr.md`](reading-ocr.md).)
 - *`ocrmypdf: command not found` between bash calls.* `~/.local/bin` is
   wiped in Cowork between calls. The orchestrator installs to
   `<--out>/_pylib/` and prepends `<--out>/_pylib/bin` to `PATH`
