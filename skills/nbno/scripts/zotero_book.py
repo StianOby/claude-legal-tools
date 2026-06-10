@@ -450,6 +450,87 @@ def _fetch_page_tiled(
     return buf.getvalue()
 
 
+# A4 portrait height in inches (297 mm). Each downloaded canvas is treated as
+# one A4-ish book page; anchoring its physical height to A4 lets us derive the
+# correct DPI from the actual pixel height. This matters because the cover and
+# the content pages of an nb.no book are scanned at *different* pixel heights
+# (e.g. a 2560 px cover vs 3368 px content pages), so a single fixed DPI
+# mis-sizes one or the other.
+_A4_HEIGHT_IN = 297.0 / 25.4  # ≈ 11.69
+
+
+def _page_dpi(height_px: int) -> int:
+    """DPI that places a `height_px`-tall image at A4 height (297 mm)."""
+    return max(1, round(height_px / _A4_HEIGHT_IN))
+
+
+def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
+    """Bundle page JPEGs into a PDF with a correct, per-page A4 MediaBox.
+
+    Two DPI traps this guards against — both seen in real downloads:
+
+    * PIL's PDF writer applies ONE resolution to every page in a save_all
+      run and defaults to 72 DPI, so a multi-page book comes out with a
+      huge (poster-size) MediaBox.
+    * img2pdf honours the DPI embedded in each JPEG and falls back to 96
+      DPI when none is present (again poster-size); it also ignores its own
+      dpi= argument when JPEG metadata is present. So the DPI must be baked
+      into each JPEG's metadata, not passed as a convert() argument.
+
+    We compute each page's DPI from its real pixel height (anchored to A4),
+    re-save each JPEG with that DPI embedded, and let img2pdf assemble them
+    (compact JPEG streams, exact per-page A4 MediaBox). If img2pdf can't be
+    imported or installed, we fall back to PIL at the median per-page DPI —
+    not exact for mixed page sizes, but far better than the 72 DPI default.
+    """
+    from PIL import Image
+
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import img2pdf  # noqa: F401
+    except ImportError:
+        print("[pdf] installing img2pdf (one-time)...")
+        _pip_install_to_pylib(["img2pdf"])
+        try:
+            import img2pdf  # type: ignore  # noqa: F811
+        except ImportError:
+            img2pdf = None  # type: ignore
+
+    if img2pdf is not None:
+        dpi_paths: List[str] = []
+        for p in page_paths:
+            with Image.open(p) as im:
+                im = im.convert("RGB")
+                dpi = _page_dpi(im.height)
+                dp = str(Path(p).with_suffix(".dpi.jpg"))
+                im.save(dp, "JPEG", quality=95, dpi=(dpi, dpi))
+                dpi_paths.append(dp)
+        try:
+            with open(out_pdf, "wb") as fh:
+                fh.write(img2pdf.convert(dpi_paths))
+        finally:
+            for dp in dpi_paths:
+                try:
+                    os.unlink(dp)
+                except OSError:
+                    pass
+        return
+
+    # Fallback: single-resolution PIL PDF at the median per-page DPI.
+    dpis = []
+    for p in page_paths:
+        with Image.open(p) as im:
+            dpis.append(_page_dpi(im.height))
+    dpis.sort()
+    median_dpi = dpis[len(dpis) // 2] if dpis else 200
+    print(f"[pdf] img2pdf unavailable; assembling with PIL at {median_dpi} DPI "
+          "(uniform — mixed page sizes may be slightly off).")
+    images = [Image.open(p).convert("RGB") for p in page_paths]
+    images[0].save(str(out_pdf), save_all=True, append_images=images[1:],
+                   resolution=float(median_dpi))
+
+
 def download_via_iiif(
     canonical_id: str,
     out_pdf: Path,
@@ -594,10 +675,7 @@ def download_via_iiif(
     if not page_paths:
         raise SystemExit("ERROR: no pages downloaded — check bearer/nbsso.")
 
-    from PIL import Image
-    images = [Image.open(p).convert("RGB") for p in page_paths]
-    out_pdf.parent.mkdir(parents=True, exist_ok=True)
-    images[0].save(str(out_pdf), save_all=True, append_images=images[1:])
+    _assemble_pages_to_pdf(page_paths, out_pdf)
     for p in page_paths:
         try:
             os.unlink(p)

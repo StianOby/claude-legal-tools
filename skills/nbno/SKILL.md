@@ -161,6 +161,12 @@ directly via the `mcp__playwright__*` tools.
 > `www.nb.no/services/image/resolver/` ignores the bearer token entirely —
 > it authenticates via the `nbsso` session cookie plus a correct `referer`
 > header. Both values are needed: bearer for the manifest, nbsso for images.
+>
+> **Lighter cookie often suffices for tiles.** In practice the `_nblb`
+> session cookie alone has returned `200` on every IIIF tile request, without
+> the full FEIDE bearer + `nbsso` combination. Try the lighter auth path
+> first (just the session cookie + `referer`) and only escalate to capturing
+> the full bearer token if tiles start returning `403`.
 
 Cookies on nb.no live roughly 24–48 hours. When downloads start failing
 with auth errors, repeat steps 3–6 to refresh the token.
@@ -294,7 +300,13 @@ def pick_width(info, target):
         if w <= target: return w
     return sizes[-1] if sizes else target
 
+A4_HEIGHT_IN = 297 / 25.4  # ≈ 11.69 — anchor each page's height to A4
+
 def fetch_tiled(base, info, tile=1024):
+    # Read per-canvas dimensions from THIS page's info.json — not a cached
+    # cover size. Content pages (~2336×3368) are larger than the cover
+    # (~1877×2560); using one fixed canvas size would tile only the top-left
+    # corner and leave the rest of every page black.
     full_w, full_h = int(info["width"]), int(info["height"])
     canvas = Image.new("RGB", (full_w, full_h), "white")
     for y in range(0, full_h, tile):
@@ -341,9 +353,24 @@ with ThreadPoolExecutor(max_workers=12) as pool:
     results = dict(pool.map(fetch_page, enumerate(entries, start=1)))
 print(f"downloaded in {time.time()-t0:.1f}s")
 
-pages = [Image.open(p).convert("RGB") for _, p in sorted(results.items()) if p]
+# Assemble with per-page DPI so the PDF gets a correct A4 MediaBox.
+# Pitfalls: PIL's save_all applies ONE resolution to all pages (default 72
+# DPI → poster-size pages); img2pdf falls back to 96 DPI unless the DPI is
+# *embedded in each JPEG* (its own dpi= argument is ignored when metadata
+# exists). So bake the per-page DPI into each JPEG, then let img2pdf assemble.
+import img2pdf  # pip install --break-system-packages img2pdf
+dpi_paths = []
+for _, p in sorted(results.items()):
+    if not p:
+        continue
+    im = Image.open(p).convert("RGB")
+    dpi = round(im.height / A4_HEIGHT_IN)
+    dp = p.replace(".jpg", ".dpi.jpg")
+    im.save(dp, "JPEG", quality=95, dpi=(dpi, dpi))
+    dpi_paths.append(dp)
 pdf = OUT_DIR / f"{ITEM_ID}.pdf"
-pages[0].save(pdf, save_all=True, append_images=pages[1:])
+with open(pdf, "wb") as fh:
+    fh.write(img2pdf.convert(dpi_paths))
 print(pdf)
 ```
 
@@ -614,6 +641,21 @@ capture bearer + nbsso first.
   from `sizes[]`, or verify the returned image's dimensions with PIL after
   download. The orchestrator handles both automatically; for inline
   recipes, follow the pattern in **Step 3 — Fast path**.
+- **PDF page sizing — embed per-page DPI, or pages come out poster-sized.**
+  When assembling page images into a PDF, two traps produce a wrong (huge)
+  MediaBox: (1) PIL's `Image.save(..., save_all=True)` applies a single
+  resolution to every page and defaults to 72 DPI; (2) img2pdf falls back to
+  96 DPI when a JPEG carries no DPI metadata, and **ignores its own `dpi=`
+  argument** when the JPEG *does* carry metadata. The fix used by
+  `zotero_book.py` and the inline recipe: derive each page's DPI from its real
+  pixel height anchored to A4 (`dpi = round(height_px / (297/25.4))`), bake it
+  into each JPEG with `img.save(..., dpi=(dpi, dpi))`, then assemble with
+  img2pdf. The cover and content pages of an nb.no book are scanned at
+  different pixel heights, so a single fixed DPI mis-sizes one or the other —
+  always compute it per page. Also, when tiling a page, read **that canvas's**
+  `width`/`height` from its own `info.json`; reusing the cover's dimensions
+  fetches only the top-left corner of every content page and leaves the rest
+  black.
 - **Native-resolution tiles work when single-shot doesn't.** When the
   resolver refuses `/full/<w>,/` for in-copyright/licensed content,
   `regionByPx` requests up to 1024×1024 are routinely allowed at native
