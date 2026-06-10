@@ -90,7 +90,7 @@ if [[ "$ID" =~ ^https?:// ]]; then
   exit 1
 fi
 
-if ! [[ "$ID" =~ ^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z]+$ ]]; then
+if ! [[ "$ID" =~ ^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z_]+$ ]]; then
   echo "ERROR: ID '$ID' does not look like a canonical nb.no media ID." >&2
   echo "       Expected something like 'digibok_2008051600041'." >&2
   exit 1

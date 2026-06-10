@@ -486,8 +486,28 @@ img.save("/tmp/page_01_small.png")
 OCR is possible but requires extra setup. Only use it when you need
 machine-readable text rather than a visual check.
 
-- Download `nor.traineddata` (and `osd.traineddata`) to `/tmp` and set
-  `TESSDATA_PREFIX=/tmp` before running tesseract.
+- **`TESSDATA_PREFIX` needs more than just `.traineddata` files.** Pointing
+  it at a bare `/tmp` with a downloaded `nor.traineddata` works for plain
+  `tesseract` but **fails for `ocrmypdf`**, which also needs the `configs/`
+  and `tessconfigs/` directories and `pdf.ttf` from the system tessdata dir.
+  Build a complete prefix dir by copying those alongside your language data:
+
+  ```bash
+  TESS_SYS=/usr/share/tesseract-ocr/4.00/tessdata   # adjust version if needed
+  mkdir -p /tmp/myts
+  cp /tmp/nor.traineddata /tmp/myts/                 # your downloaded lang(s)
+  cp "$TESS_SYS"/eng.traineddata /tmp/myts/
+  cp "$TESS_SYS"/osd.traineddata /tmp/myts/
+  cp -r "$TESS_SYS"/configs /tmp/myts/
+  cp -r "$TESS_SYS"/tessconfigs /tmp/myts/
+  cp "$TESS_SYS"/pdf.ttf /tmp/myts/
+  export TESSDATA_PREFIX=/tmp/myts
+  ```
+
+  Confirm the system path with `dpkg -L tesseract-ocr-eng | grep tessdata`
+  if `4.00` doesn't exist. Plain `tesseract` (visual-check OCR below) only
+  needs the `.traineddata` files, so a bare `TESSDATA_PREFIX=/tmp` is fine
+  there — the extra files matter specifically for the `ocrmypdf` pipeline.
 - Use `--psm 6` (uniform block of text) rather than `--psm 1` (the OSD
   model may not be available).
 - Process one page per bash call to stay within the sandbox timeout.
@@ -510,16 +530,29 @@ for the 45-second Cowork bash limit:
    with code 2 (partial).
 4. On the call that finishes the last page, merge with pikepdf and exit 0.
 
+Run **one invocation per bash tool call** — exit code 0 means done, exit
+code 2 means partial (call it again):
+
 ```bash
-# Loop until done. Each iteration makes progress; cache survives between calls.
-until python {SKILL_DIR}/scripts/ocr_chunked.py \
+python {SKILL_DIR}/scripts/ocr_chunked.py \
     --pdf "$PDF" \
     --langs nor+nno \
     --time-budget 35 \
-    --jobs 4; do
-  echo "partial — re-running..."
-done
+    --jobs 4
 ```
+
+> **⛔ Do NOT wrap this in a single-call `until … ; do … ; done` loop.**
+> A single `ocr_chunked.py` invocation can itself exceed the 45 s sandbox
+> timeout (one page's OCR may run past the `--time-budget`, which is only
+> checked *between* pages). If you put the loop inside one bash call, that
+> first iteration blows the tool timeout and you never regain control to
+> re-invoke — the loop never iterates.
+>
+> The correct Cowork pattern is to **call the bash tool repeatedly, once per
+> iteration**, inspecting the exit code (and progress output) between calls:
+> re-run on exit 2, stop on exit 0. The per-page cache survives between
+> calls, so every invocation makes forward progress. Keep `--time-budget`
+> safely under the tool timeout (35 is a good default for a 45 s limit).
 
 Quality is identical to a single-shot ocrmypdf run because each page goes
 through the same pipeline; only the orchestration is chunked. The cache key
@@ -734,8 +767,11 @@ capture bearer + nbsso first.
   and `export PATH="outputs/_pylib/bin:$PATH"
   PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
 - *Single ocrmypdf call times out at 45 s on a long book.* Use
-  `scripts/ocr_chunked.py` in a `until … ; do :; done` loop — same OCR
-  quality, per-page cache, makes progress every call.
+  `scripts/ocr_chunked.py`, calling the bash tool **repeatedly** (one
+  invocation per call; re-run on exit 2, stop on exit 0) — same OCR quality,
+  per-page cache, makes progress every call. Do **not** wrap it in a
+  single-call `until … ; do … ; done` loop: one invocation can itself exceed
+  45 s, so the loop times out on its first iteration and never re-runs.
 - *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
   Run `scripts/shrink_pdf.py --pdf book.pdf` (or re-run `zotero_book.py`
   with `--shrink`) to JPEG-recompress the embedded images in place. The
