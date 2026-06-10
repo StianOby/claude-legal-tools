@@ -22,6 +22,30 @@ jobs:
           COMMIT_NUM=$(git rev-list --count HEAD)
           echo "value=skills-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
 
+      - name: Build changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --list 'skills-*' --sort=-creatordate | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+            echo "Commits since ${PREV_TAG}:"
+          else
+            RANGE="HEAD"
+            echo "All commits (no previous release found):"
+          fi
+          {
+            echo "body<<CHANGELOG_EOF"
+            if [ -n "$PREV_TAG" ]; then
+              echo "### Changes since ${PREV_TAG}"
+            else
+              echo "### Changes"
+            fi
+            echo ""
+            git log --no-merges --pretty=format:'- %s (%h)' "$RANGE"
+            echo ""
+            echo "CHANGELOG_EOF"
+          } >> $GITHUB_OUTPUT
+
       - name: Package skills
         run: |
           for skill_dir in skills/*/; do
@@ -34,4 +58,5 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.value }}
           name: ${{ steps.tag.outputs.value }}
+          body: ${{ steps.changelog.outputs.body }}
           files: "*.zip"
