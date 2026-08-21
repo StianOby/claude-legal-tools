@@ -235,9 +235,31 @@ def search_index(index: dict, query: str, max_results: int = 15) -> list[dict]:
     return results[:max_results]
 
 
+_BLOCK_TAGS = r"</?(article|section|h1|h2|h3|h4|h5|h6|p|li|dd|dt|tr|div|ul|ol)[^>]*>"
+
+_ENTITIES = (
+    ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
+    ("&nbsp;", " "), ("&#160;", " "), ("&quot;", '"'), ("&#39;", "'"),
+)
+
+
+def _html_to_text(chunk: str) -> str:
+    """Konverter HTML-fragment til ren tekst med bevart avsnittsstruktur."""
+    # Blokknivå-tagger blir linjeskift; inline-tagger (span, a, ...) fjernes sporløst
+    chunk = re.sub(_BLOCK_TAGS, "\n", chunk, flags=re.I)
+    chunk = re.sub(r"<br\s*/?>", "\n", chunk, flags=re.I)
+    text = re.sub(r"<[^>]+>", "", chunk)
+
+    for entity, char in _ENTITIES:
+        text = text.replace(entity, char)
+
+    text = re.sub(r"[ \t]+", " ", text)
+    return "\n".join(line.strip() for line in text.split("\n") if line.strip()).strip()
+
+
 def get_law_text(xml_path: str, paragraph: str | None = None) -> str:
     """
-    Hent tekst fra en XML-fil.
+    Hent tekst fra en dokumentfil (XHTML, til tross for .xml-endelsen).
     Hvis paragraph er oppgitt (f.eks. '4-6' eller '§4-6'), hentes bare den paragrafen.
     """
     with open(xml_path, encoding="utf-8") as f:
@@ -262,22 +284,21 @@ def get_law_text(xml_path: str, paragraph: str | None = None) -> str:
             return f"Paragraf {paragraph} ble ikke funnet i dette dokumentet."
 
         start = match.start()
-        # Find the next sibling article at same nesting level
-        next_article = re.search(r"<article[^>]*data-name=", content[start + 10 :])
-        end = (start + 10 + next_article.start()) if next_article else (start + 8000)
+        # Avslutt på neste paragraf-artikkel eller seksjonsslutt — unngår at
+        # neste kapitteloverskrift lekker inn, og kutter ikke vilkårlig etter N tegn.
+        nxt = re.search(r"<article[^>]*data-name=|</section>", content[start + 10 :])
+        end = (start + 10 + nxt.start()) if nxt else len(content)
         chunk = content[start:end]
     else:
-        # Full document — strip header boilerplate, return body text
-        body_start = content.find('<body>')
-        chunk = content[body_start:] if body_start >= 0 else content
+        # Full document — hopp over header (metadata + innholdsfortegnelse), returner body-tekst
+        header_end = content.find("</header>")
+        if header_end >= 0:
+            chunk = content[header_end + len("</header>"):]
+        else:
+            body_start = content.find("<body>")
+            chunk = content[body_start:] if body_start >= 0 else content
 
-    # Strip HTML tags and clean whitespace
-    text = re.sub(r"<[^>]+>", " ", chunk)
-    text = re.sub(r"\s+", " ", text).strip()
-    # Remove HTML entities
-    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
-    text = text.replace("&nbsp;", " ").replace("&quot;", '"')
-    return text
+    return _html_to_text(chunk)
 
 
 def find_by_dokid(index: dict, dokid: str) -> str | None:
