@@ -235,7 +235,7 @@ def search_index(index: dict, query: str, max_results: int = 15) -> list[dict]:
     return results[:max_results]
 
 
-_BLOCK_TAGS = r"</?(article|section|h1|h2|h3|h4|h5|h6|p|li|dd|dt|tr|div|ul|ol)[^>]*>"
+_BLOCK_TAGS = r"</?(article|section|h1|h2|h3|h4|h5|h6|p|li|dd|dt|tr|div|ul|ol|table|thead|tbody|caption)[^>]*>"
 
 _ENTITIES = (
     ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
@@ -247,6 +247,8 @@ def _html_to_text(chunk: str) -> str:
     """Konverter HTML-fragment til ren tekst med bevart avsnittsstruktur."""
     # Blokknivå-tagger blir linjeskift; inline-tagger (span, a, ...) fjernes sporløst
     chunk = re.sub(_BLOCK_TAGS, "\n", chunk, flags=re.I)
+    # Celleskille. Kun sluttag — matcher man også starttag blir separatoren doblet ("| |").
+    chunk = re.sub(r"</(td|th)>", " | ", chunk, flags=re.I)
     chunk = re.sub(r"<br\s*/?>", "\n", chunk, flags=re.I)
     text = re.sub(r"<[^>]+>", "", chunk)
 
@@ -254,7 +256,11 @@ def _html_to_text(chunk: str) -> str:
         text = text.replace(entity, char)
 
     text = re.sub(r"[ \t]+", " ", text)
-    return "\n".join(line.strip() for line in text.split("\n") if line.strip()).strip()
+    return "\n".join(
+        line.strip().strip("|").strip()
+        for line in text.split("\n")
+        if line.strip().strip("|").strip()
+    ).strip()
 
 
 def get_law_text(xml_path: str, paragraph: str | None = None) -> str:
