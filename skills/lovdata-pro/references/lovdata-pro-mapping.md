@@ -1,8 +1,10 @@
 # Lovdata Pro — URL & DOM mapping
 
-This file captures what we observed exploring `lovdata.no/pro` with Playwright.
-It's the source of truth for the script's URL and selector logic. When Lovdata
-changes their site, update this file alongside the script.
+This file captures what we observed exploring `lovdata.no/pro` (originally with
+Playwright; the skill now drives Claude Desktop's built-in browser instead —
+see `SKILL.md`). It's the source of truth for the URL and selector logic in
+`scripts/browser/lovdata_pro.js`. When Lovdata changes their site, update this
+file alongside the script.
 
 ---
 
@@ -106,7 +108,7 @@ found".
 ### Division (SIV vs STR)
 
 Court collections come in pairs: civil (`...SIV`) and criminal (`...STR`).
-The script must try both when the citation doesn't disclose which.
+`lovdata_pro.js` must try both when the citation doesn't disclose which.
 
 **The split is by subject matter, not era.** HRSTR is not only for old Rt.
 cases — recent Høyesterett decisions in criminal matters also live in HRSTR.
@@ -121,24 +123,34 @@ Lovdata Pro silently updates the hash to the correct collection
 collection-discovery technique when debugging: navigate, read the redirected
 hash, then use that collection in subsequent fetch calls.
 
-The script's `_try_paths` function automatically tries the SIV/STR counterpart
-whenever a collection-mismatch response is detected, so callers need not
-enumerate both variants explicitly.
+`lovdata_pro.js`'s `tryPaths()` function automatically tries the SIV/STR
+counterpart whenever a collection-mismatch response is detected, so callers
+(i.e. `load()`) need not enumerate both variants explicitly.
 
 ---
 
 ## Authentication
 
 - Login is via SSO/FEIDE/email-password depending on the user. The skill never
-  stores or sees credentials — it launches a headed Playwright browser and
-  asks the user to complete login interactively.
-- Once logged in, Playwright captures `storage_state.json` (cookies + local
-  storage). All subsequent requests reuse it in headless mode.
-- The session cookie is HttpOnly, so it doesn't appear in `document.cookie`.
-  Playwright's `context.cookies()` and `storage_state.json` capture it correctly.
+  stores or sees credentials — it asks the user to log in interactively inside
+  Claude Desktop's built-in browser pane (Cowork).
+- The built-in browser has a persistent profile on the user's own machine, so
+  cookies (including the HttpOnly session cookie) persist across turns and
+  conversations without the skill saving or reading them itself — unlike the
+  Playwright-era script, there is no `storage_state.json` and nothing for the
+  skill to manage on disk.
 - Logged-in landing page: `https://lovdata.no/pro/#myPage` — title becomes
-  `Min side - Lovdata Pro`. We use that as a "still logged in" probe before
-  every fetch session.
+  `Min side - Lovdata Pro`. `__lp.isLoggedIn()` uses this as a "still logged
+  in" probe before every fetch.
+- **Spike 2 findings** (confirmed 2026-09-05): `location.hash` is **not** a
+  usable discriminator — it stays `#myPage` in both the logged-in and
+  logged-out states (Lovdata swaps the rendered content client-side without
+  touching the hash). Only `document.title` distinguishes them:
+  - Logged in: `"Min side - Lovdata Pro"`
+  - Logged out: bare `"Lovdata"` (body text includes "Logg inn i Lovdata
+    Pro")
+
+  `isLoggedIn()` therefore checks `document.title` only.
 
 ---
 
@@ -152,15 +164,35 @@ Two layers:
    a first-pass fallback for case law that's also on the free site.
 
 2. **Pro search inside the SPA** is GWT-RPC over `LovdataPro/GWT.rpc?fulltextSearchService`.
-   The wire format is positional Java-typed serialization — too brittle to
-   replicate from scratch. Drive it via Playwright instead:
-   - Navigate to `https://lovdata.no/pro/#result&q=<encodeURIComponent(query)>`
-   - Wait ~2 s for the SPA to render results (no good DOM signal — poll until
-     `a[href^="#document/"]` appears, or sleep)
-   - Extract result hrefs: `Array.from(document.querySelectorAll('a')).map(a => a.getAttribute('href')).filter(h => h && h.startsWith('#document/'))`
+   **Confirmed by spike 3 (2026-09-05):** the request/response is a
+   comma-separated stream of numbers, type-tag characters, and string-table
+   references (e.g. `//OK["o","Bx",0,0,425,0,5,0,0,0.0,0.0,...`) — GWT's
+   positional serialization with an obfuscated string table, not JSON. No
+   separate JSON/REST search endpoint exists to call directly; hand-parsing
+   or replicating this format is impractical.
+   - **Submitting the query requires a real click (spike 4, 2026-09-05).**
+     Tested three ways to submit a query typed into
+     `#quickSearchField-input`: (a) setting `input.value` + dispatching
+     synthetic `input`/`keydown` events, (b) a synthetic `KeyboardEvent`
+     Enter, (c) a *real* `computer` keyboard Enter after typing. **None of
+     these trigger Lovdata's GWT search handler** — `location.hash` and the
+     result anchors stay unchanged in all three cases. Only an actual
+     `computer.left_click` on the search button (the 🔍 icon next to the
+     input, found via `find`/`read_page`) submits the query. After that
+     click, the hash updates (e.g. `#result&id=2780&q=Finanger*%20dissen*`)
+     and results render within ~2 s.
+   - Because of this, `lovdata_pro.js` cannot own the whole search flow —
+     the SKILL.md workflow types the query (`computer.type`) and clicks the
+     search button (`computer.left_click`) at the tool-call level, in
+     whichever tab currently has the search UI open (a second tab if the
+     main parked tab's `window.__lp.cache` needs to survive). Only *after*
+     that click does it call `__lp.readSearchResults(n)`, which just reads
+     `a[href^="#document/"]` anchors already rendered in the DOM — it takes
+     no query parameter and performs no action of its own.
    - Each href has the form `#document/<COLLECTION>/<TYPE>/<SLUG>?searchResultContext=...&rowNumber=...&totalHits=...`
    - The first match is usually correct for direct-citation queries; for
-     ambiguous queries the script can return the top N and let the caller pick.
+     ambiguous queries `__lp.readSearchResults()` returns the top N and lets
+     the caller pick.
 
 Free-text search does NOT find the cited document by reference — it finds
 documents that *cite* it, or documents whose full text happens to contain
@@ -198,18 +230,35 @@ The fully-rendered page at `/*` has this structure (from
 </div>
 ```
 
-For markdown extraction, the script targets `#documentBody` and:
+For text extraction, `lovdata_pro.js`'s `toText()` targets `#documentBody`
+(not `#lovdataDocument` — that also wraps the separate `#documentMeta`
+sidebar, which would leak metadata-table noise into every section/page and
+break `sectionRange()`'s heading-to-heading walk) and:
 
-- Strips `.documentButtonsBar` toolbars (per-chapter share/note icons).
-- Maps `<h1>`/`<h2>`/`<h3>` to markdown headings.
-- Maps `<p class="avsnitt">` to plain paragraphs.
-- Preserves `<table>` (Pro uses real HTML tables for metadata blocks).
-- Resolves footnote/reference anchors (`<a class="namedAnchor">`) — usually
-  fine to drop the empty anchors and keep the destination text inline.
+- Strips `.documentButtonsBar` toolbars (per-chapter share/note icons) before
+  extraction, via `stripNoise()`.
+- Maps `<h1>`–`<h6>` to markdown-style `#`/`##`/… heading lines.
+- Maps `<p>`/`<li>` to plain lines.
+- Preserves `<table>` as pipe rows (Pro uses real HTML tables for metadata
+  blocks, and occasionally in body text).
+- Within headings/`<p>`/`<li>`/table cells, `inlineText()` (not raw
+  `textContent`) renders `<strong>`/`<b>` as `**bold**`, `<em>`/`<i>` as
+  `*italic*`, and `<sup>` as `^superscript^`, so e.g. bold §-titles in
+  statute text quoted inside forarbeider survive extraction instead of
+  merging invisibly into the surrounding paragraph. Confirmed by a live
+  check against `HRSIV/avgjorelse/hr-2016-2554-p` that Høyesterett's
+  "(77)"-style avsnitt numbers are real DOM text, not CSS-generated
+  content — see `CLAUDE.md` for that check and how to re-run it.
+- Footnote/reference anchors (`<a class="namedAnchor">`) are left as-is;
+  `inlineText()`/`toText()` just read text content so empty anchors
+  contribute nothing.
 
 Metadata block (title, dato, utgiver, henvisninger, etc.) sits in a `<table>`
-near the top of `#documentBody`. The script extracts it into a JSON
-metadata payload alongside the markdown body.
+under `#documentMeta` (falling back to `#documentBody` if that ID isn't
+present for a given document type). `extractMetadata()` in `lovdata_pro.js`
+picks the one table among possibly several whose rows look like genuine
+key/value pairs (≥3 rows, keys ≤40 chars) and extracts it into a JSON payload
+kept separate from the body text.
 
 ---
 
@@ -220,8 +269,8 @@ metadata payload alongside the markdown body.
   hit the wrong SIV/STR collection. The fix is always to try the counterpart
   (`HRSIV` → `HRSTR` or vice versa). Diagnostic rule: `if len(result) < 500
   and "Javascript aktivert" in result`, retry with the other collection before
-  assuming failure. The script's `_try_paths` detects this automatically and
-  swaps the collection.
+  assuming failure. `isCollectionMismatch()` in `lovdata_pro.js` detects this
+  automatically and `tryPaths()` swaps the collection.
 - **Status 200 with 4,765 bytes and title `LovdataPro`** — this is a
   client-side redirect stub. The URL is valid syntactically but the slug
   doesn't resolve to a Pro document. Treat this byte-count as a sentinel for

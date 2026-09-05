@@ -1,9 +1,13 @@
 # lovdata-pro — Norsk rettspraksis og forarbeider
 
-A self-contained Claude skill for retrieving Norwegian case law and preparatory
-works from [Lovdata Pro](https://lovdata.no/pro/). The skill never paraphrases
-from training-data recall — every quote is fetched live from Lovdata's servers
-using a saved browser session.
+A Claude skill for retrieving Norwegian case law and preparatory works from
+[Lovdata Pro](https://lovdata.no/pro/), using Claude Desktop's built-in
+browser (Cowork). The skill never paraphrases from training-data recall —
+every quote is fetched live from Lovdata's servers in the user's own,
+already-logged-in browser session.
+
+**This skill requires Claude Desktop with Cowork.** It does not run in
+Claude Code CLI — there is no built-in browser tool surface there.
 
 ## What it can do
 
@@ -11,8 +15,10 @@ using a saved browser session.
 - Fetch court of appeal decisions (LB/LA/LE/LF/LG/LH-YYYY-N)
 - Fetch district court decisions (TR-YYYY-N)
 - Fetch preparatory works: NOU, Prop. L, Ot.prp., Innst.
+- Navigate large documents by table of contents, section, or full-text grep
+  instead of dumping the whole thing
 - Run full-text Pro searches
-- Output documents as markdown, JSON (with metadata), HTML, or PDF
+- Write a full local copy to file on request (dump mode)
 
 For current statute and regulation text (gjeldende lov/forskrift), use the
 free `lovdata` skill instead.
@@ -21,75 +27,67 @@ free `lovdata` skill instead.
 
 ```
 lovdata-pro/
-├── SKILL.md                        # the skill manifest Claude reads
-├── README.md                       # you are here
+├── SKILL.md                         # the skill manifest Claude reads
+├── README.md                        # you are here
 ├── references/
-│   └── lovdata-pro-mapping.md      # URL patterns and collection codes
+│   └── lovdata-pro-mapping.md       # URL patterns, collection codes, DOM notes
 └── scripts/
-    └── lovdata_pro.py              # the CLI
+    ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
+    └── browser/
+        └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
 ```
 
-Session state is written to a writable user directory outside the skill folder:
-
-| Platform | Default path |
-|---|---|
-| Windows | `%LOCALAPPDATA%\lovdata-pro` |
-| Linux / macOS | `~/.cache/lovdata-pro` (or `$XDG_CACHE_HOME/lovdata-pro`) |
-| Override | Set `$LOVDATA_PRO_DATA_DIR` to any path |
-
-Run `python scripts/lovdata_pro.py status` to see the path in use.
+There is no session/state directory and no stored credentials of any kind.
+Cowork's built-in browser has its own persistent profile on the user's
+machine — the user logs in to Lovdata Pro once in the browser pane, and
+cookies persist across turns and conversations the same way they would in
+any browser.
 
 ## Requirements
 
-- **Python 3.8+**
-- **playwright**, **beautifulsoup4**, **html2text** — install once:
-
-  ```bash
-  pip install playwright beautifulsoup4 html2text
-  python -m playwright install chromium
-  ```
-
-- **Lovdata Pro subscription** — the script logs in using your existing browser
-  session; no credentials are stored.
-- **Network access** to `lovdata.no`.
+- **Claude Desktop** with **Cowork** enabled (the built-in browser tool
+  surface, `mcp__Claude_Browser__*`).
+- **Python 3.8+** — only for `scripts/lovdata_ref.py`, which has no
+  dependencies beyond the standard library.
+- **Lovdata Pro subscription**, with the user able to log in interactively
+  in the browser pane (SSO/FEIDE supported, same as lovdata.no normally).
 
 ## Quickstart
 
+The skill drives this itself when triggered from a natural-language request;
+this is what it does under the hood, for reference.
+
 ```bash
-# first-time login (opens a real browser window)
-python scripts/lovdata_pro.py login
-
-# check session status
-python scripts/lovdata_pro.py status
-
-# fetch a Supreme Court decision
-python scripts/lovdata_pro.py get "HR-2016-2554-P"
-
-# fetch preparatory works
-python scripts/lovdata_pro.py get "NOU 2022:8"
-python scripts/lovdata_pro.py get "Prop. 107 L (2024-2025)"
-python scripts/lovdata_pro.py get "Innst. 521 L (2024-2025)"
-
-# fetch an older Rt. decision
-python scripts/lovdata_pro.py get "Rt. 2000 s. 1811"
-
-# write large documents to file (recommended for NOUs and Prop.s)
-python scripts/lovdata_pro.py get "NOU 2022:8" -o nou-2022-8.md
-
-# search
-python scripts/lovdata_pro.py search "Holship boikott EØS"
-python scripts/lovdata_pro.py search "presumsjonsprinsippet" -n 20
-
-# debug: resolve a reference without fetching
-python scripts/lovdata_pro.py resolve "HR-2016-2554-P"
+# Step 1 — resolve a reference to candidate Pro paths (no network access)
+python scripts/lovdata_ref.py resolve "HR-2016-2554-P"
+python scripts/lovdata_ref.py resolve "NOU 2022:8" --json-array
 ```
+
+```javascript
+// Step 2 — in the browser tab, via javascript_tool:
+// (paste scripts/browser/lovdata_pro.js once per tab first)
+await __lp.isLoggedIn()
+await __lp.load(["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-2554-p"])
+await __lp.section("HRSIV/avgjorelse/hr-2016-2554-p", 3)
+await __lp.grep("NOU/forarbeid/nou-2022-8", "urfolk")
+await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
+```
+
+```javascript
+// Search: type the query and click the search button via the computer
+// tool (JS-dispatched events and Enter don't submit Lovdata's GWT search),
+// then read the rendered results back:
+await __lp.readSearchResults(10)
+```
+
+See `SKILL.md` for the full workflow, error handling, and citation format.
 
 ## Reference formats
 
 | Reference type | Example |
 |---|---|
 | Modern Supreme Court | `HR-2016-2554-P` |
-| Norsk Retstidende (pre-2008) | `Rt. 2000 s. 1811` |
+| Norsk Retstidende (pre-2008) | `Rt. 2000 s. 1811` (needs search — see below) |
 | Court of appeal | `LB-2021-12345`, `LA-2019-67890` |
 | District court | `TR-2020-11111` |
 | NOU | `NOU 2022:8` |
@@ -101,29 +99,22 @@ python scripts/lovdata_pro.py resolve "HR-2016-2554-P"
 Court codes for lagmannsrett: LB (Borgarting), LA (Agder), LE (Eidsivating),
 LF (Frostating), LG (Gulating), LH (Hålogaland).
 
-## Output formats
-
-| Flag | Output |
-|---|---|
-| *(default)* | Markdown (stdout) |
-| `--format json` | `{title, metadata, markdown}` — includes Stikkord, Henvisninger |
-| `--format html` | Raw HTML from Lovdata's document body |
-| `--format pdf -o file.pdf` | PDF rendered by the browser |
+Pre-2008 Rt. decisions, RG decisions, and other irregular citations don't
+have a deterministic slug — `lovdata_ref.py resolve` returns `parsed: false`
+for these, and the skill falls back to search (typing the query and clicking
+the search button, then `__lp.readSearchResults()`).
 
 ## Login and sessions
 
-The script never stores your password. On first use, run `login` — a real
-browser window opens and you complete login (SSO/FEIDE supported). The script
-detects the `#myPage` state and saves only the session cookies to
-`storage_state.json`. Sessions typically last several weeks; re-run `login`
-when they expire.
-
-To revoke the saved session, delete `storage_state.json` from the state
-directory shown by `status`.
+The skill never sees or stores a password. The user logs in to Lovdata Pro
+directly in the Cowork browser pane (SSO/FEIDE supported); Claude only
+checks `__lp.isLoggedIn()` and waits for confirmation. Sessions persist in
+the browser's own profile the same way they would in any browser — there is
+nothing for the skill to save or expire on its end. When a session does
+expire (Lovdata's own timeout, typically some weeks), `isLoggedIn()` catches
+it and the skill asks the user to log in again.
 
 ## Installing as a Claude skill
-
-**Recommended — Claude Desktop (for use with Cowork):**
 
 1. Download the latest `lovdata-pro.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
@@ -131,15 +122,8 @@ directory shown by `status`.
    **Create skill** → **Upload a skill**, and upload the zip.
 
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
-for full details, including how to enable Skills on your plan.
+for full details, including how to enable Skills and Cowork on your plan.
 
-**Alternative — symlink from a local clone (Claude Code CLI):**
-
-- macOS / Linux:
-  `ln -s /path/to/lovdata-pro ~/.claude/skills/lovdata-pro`
-- Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\lovdata-pro" "C:\path\to\lovdata-pro"`
-
-Then describe the task in Claude Code ("what did Høyesterett hold in
-HR-2016-2554-P?") and the trigger description in `SKILL.md` will activate the
-skill automatically.
+This skill is not installable in Claude Code CLI — describing the task there
+("what did Høyesterett hold in HR-2016-2554-P?") will not trigger it, since
+the built-in browser tools it depends on don't exist outside Claude Desktop.

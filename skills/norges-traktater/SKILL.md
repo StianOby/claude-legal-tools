@@ -231,10 +231,11 @@ en tom kropp, gjør følgende:
 1. Bekreft at teksten faktisk er tom på den åpne siden ved å åpne URL-en
    i feilmeldingen og se etter «Du har ikke tilgang til dette dokumentet» eller
    en tom innholdsboks. Det er normalt.
-2. Hvis brukeren har Lovdata Pro tilgjengelig, bruk
-   `lovdata-pro`-skill-en — kjør `python {LOVDATA_PRO_DIR}/scripts/lovdata_pro.py
-   get "TRAKTAT/traktat/YYYY-MM-DD-N"`. Pro-scriptet bruker den samme
-   slug-mekanikken og henter teksten i markdown.
+2. Hvis brukeren har Lovdata Pro tilgjengelig og du kjører i Claude Desktop
+   med Cowork, bruk `lovdata-pro`-skill-en — samme slug-mekanikk, men
+   dokumentet hentes via `__lp.load("TRAKTAT/traktat/YYYY-MM-DD-N")` i
+   browser-fanen (se `lovdata-pro/SKILL.md`). `lovdata-pro` krever Cowork; i
+   Claude Code CLI er den ikke tilgjengelig.
 3. Hvis brukeren ikke har Pro: returnér metadata grundig, opplys at full norsk
    tekst er Pro-only på lovdata.no, og foreslå alternativer:
    - For multilaterale FN-traktater → `untc`-skillet (originaltekst på

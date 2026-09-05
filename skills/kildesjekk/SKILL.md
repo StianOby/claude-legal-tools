@@ -33,6 +33,7 @@ Verify that you have access to all the relevant tools:
 	- MCP servers:
 		- lit-lake MCP (Zotero)
 		- eurlex MCP
+	- Claude Desktop's built-in browser (Cowork — `mcp__Claude_Browser__*` tools).
 	- Skills:
 		- efta-court
 		- ets
