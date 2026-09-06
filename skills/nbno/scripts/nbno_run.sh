@@ -14,16 +14,23 @@
 #               [--start N] [--stop N] [--resize N] [--title] [--cover]
 #               [--keep-images]
 #
-# `--cookie auto` resolves to ~/.nbno/cookie.txt (populated by the companion
-# capture_cookie.py script that drives a Playwright login flow against
-# nb.no).
+# `--cookie auto` resolves to ~/.nbno/cookie.txt, a durable cookie file the
+# user creates by copying nbsso out of their browser's DevTools (see auth.md).
+#
+# Cookie-file format (two lines; the second is the one that matters):
+#   authorization=<token>      # optional — may be empty or omitted entirely
+#   cookie=nbsso=<v>; _nblb=<v>
+# api.nb.no authenticates by cookie, so captures from the built-in browser
+# carry no bearer token. An empty `authorization=` line is accepted: it is
+# stripped before the file reaches the nbno CLI, which would otherwise send a
+# literal empty Authorization header on every request.
 #
 # Exit codes:
 #   0 success, PDF placed in <out>
 #   1 invalid arguments
 #   2 unable to install or run nbno
 #   3 nbno ran but produced no PDF (likely auth/geo issue)
-#   4 cookie file missing or invalid path
+#   4 cookie file missing, unreadable, or without a usable cookie= line
 
 set -uo pipefail
 
@@ -48,7 +55,7 @@ while [[ $# -gt 0 ]]; do
     --title)     TITLE=1; shift ;;
     --cover)     COVER=1; shift ;;
     --keep-images) KEEP_IMAGES=1; shift ;;
-    -h|--help)   sed -n '2,28p' "$0"; exit 0 ;;
+    -h|--help)   sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -66,9 +73,11 @@ if [[ "$COOKIE" == "auto" ]]; then
     echo "Using cookie file: $COOKIE"
   else
     echo "ERROR: --cookie auto specified but no file at $DEFAULT_COOKIE." >&2
-    echo "       Run capture_cookie.py on your machine to populate it:" >&2
-    echo "         pip install playwright && playwright install chromium" >&2
-    echo "         python scripts/capture_cookie.py" >&2
+    echo "       Create it on your own machine: log in to nb.no, open" >&2
+    echo "       DevTools (F12) -> Application -> Cookies -> www.nb.no, and" >&2
+    echo "       copy the nbsso value into two lines:" >&2
+    echo "         authorization=" >&2
+    echo "         cookie=nbsso=<value>; _nblb=<value>" >&2
     echo "       Then make sure the file is reachable from this sandbox" >&2
     echo "       (mount the ~/.nbno folder or upload cookie.txt)." >&2
     exit 4
@@ -76,6 +85,49 @@ if [[ "$COOKIE" == "auto" ]]; then
 elif [[ -n "$COOKIE" && ! -f "$COOKIE" ]]; then
   echo "ERROR: --cookie path '$COOKIE' does not exist." >&2
   exit 4
+fi
+
+# --- 0b. Validate and sanitise the cookie file ------------------------------
+# The nbno CLI copies every `authorization=`/`cookie=` line straight into its
+# request headers. A capture from the built-in browser has no bearer token, so
+# its `authorization=` line is empty — which would make the CLI send a literal
+# empty Authorization header on every request. Strip it instead.
+SANITISED_COOKIE=""
+cleanup_cookie() { [[ -n "$SANITISED_COOKIE" ]] && rm -f "$SANITISED_COOKIE"; }
+trap cleanup_cookie EXIT
+
+if [[ -n "$COOKIE" ]]; then
+  if [[ ! -r "$COOKIE" ]]; then
+    echo "ERROR: cookie file '$COOKIE' is not readable." >&2
+    exit 4
+  fi
+  # Step 3 cds into a scratch WORKDIR before invoking nbno, so a relative
+  # --cookie path would no longer resolve. Absolutise it here.
+  COOKIE="$(cd "$(dirname "$COOKIE")" && pwd)/$(basename "$COOKIE")"
+  # Tolerates leading whitespace and CRLF line endings (Windows captures).
+  COOKIE_VAL="$(sed -n 's/\r$//; s/^[[:space:]]*cookie[[:space:]]*=[[:space:]]*//p' "$COOKIE" | head -n1)"
+  AUTH_VAL="$(sed -n 's/\r$//; s/^[[:space:]]*authorization[[:space:]]*=[[:space:]]*//p' "$COOKIE" | head -n1)"
+
+  if [[ -z "$COOKIE_VAL" ]]; then
+    echo "ERROR: cookie file '$COOKIE' has no non-empty 'cookie=' line." >&2
+    echo "       Expected format (authorization may be empty or absent):" >&2
+    echo "         authorization=" >&2
+    echo "         cookie=nbsso=<value>; _nblb=<value>" >&2
+    exit 4
+  fi
+
+  if [[ "$COOKIE_VAL" != *nbsso=* ]]; then
+    echo "Note: cookie file has no nbsso= pair. That is fine for public-domain" >&2
+    echo "      and Bokhylla items (Bokhylla only needs a Norwegian IP), but" >&2
+    echo "      FEIDE-licensed items will 403 on every page without it." >&2
+  fi
+
+  if [[ -z "$AUTH_VAL" ]]; then
+    echo "Cookie file carries no bearer token — expected; api.nb.no authenticates by cookie."
+    SANITISED_COOKIE="$(mktemp)"
+    printf 'cookie=%s\n' "$COOKIE_VAL" > "$SANITISED_COOKIE"
+    COOKIE="$SANITISED_COOKIE"
+  fi
 fi
 
 # --- 1. Normalise the ID -----------------------------------------------------

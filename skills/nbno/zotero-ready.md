@@ -11,10 +11,15 @@ an attached searchable PDF, and a single Web Link attachment titled
 **"eBok (nb.no)"**. The Zotero **URL** metadata field is left blank by
 design — the link lives only as the Web Link attachment.
 
-Read `SKILL.md` first for the underlying nb.no concepts: ID forms (Step 1),
-authentication options (Step 2), the IIIF download paths and their
-gotchas (Step 3), and the shrink/OCR helpers. This file documents the
-orchestrator on top of those.
+Read `SKILL.md` first for the underlying nb.no concepts: the browser session
+and access classification (Step 0), ID forms (Step 1), authentication options
+(Step 2), the IIIF download paths and their gotchas (Step 3), and the
+shrink/OCR helpers. This file documents the orchestrator on top of those.
+
+**Auth in one line:** `--bearer` is optional and normally unavailable —
+`api.nb.no` authenticates by cookie. Public-domain and Bokhylla items need no
+credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
+`--nbsso` plus a digital loan the user takes in a browser.
 
 ## What the orchestrator does
 
@@ -27,24 +32,31 @@ orchestrator on top of those.
    page count.
 3. **Access pre-check.** Inspects `accessInfo.viewability` and
    `accessInfo.legalDepositLoginText` from the catalog response. If either
-   signals FEIDE/Bokhylla restriction and no auth (bearer/nbsso/cookie) was
-   passed, the script exits with a clear error instead of starting a doomed
-   no-auth download. Override with `--force-auth` if you have reason to
-   believe `accessInfo` is wrong.
+   signals FEIDE restriction and no auth (nbsso/bearer/cookie) was passed,
+   the script exits with a clear error instead of starting a doomed no-auth
+   download. Override with `--force-auth` if you have reason to believe
+   `accessInfo` is wrong. `accessInfo` is IP- and session-dependent, so the
+   pre-check sends `--nbsso` when you supply it and sees what the user's own
+   session sees. It cannot tell you whether your IP is Norwegian — for a
+   geo-gated item (`accessAllowedFrom: NORWAY` / `NB`) run
+   `scripts/geo_check.py` first.
 4. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded and
    filesystem-safe. The first author's surname wins; falls back to the first
    organisation/contributor; "Unknown" / "n.d." as last resort.
 5. **Download the full PDF.** Two paths:
-   - **Fast IIIF (preferred for big books):** with `--bearer` + `--nbsso`
-     the in-process `ThreadPoolExecutor(12)` downloader takes over. It
+   - **Fast IIIF (preferred for big books):** with `--nbsso` (`--bearer` is
+     optional and rarely available) the in-process
+     `ThreadPoolExecutor(12)` downloader takes over. It
      tries both manifest endpoints (`/items/…` and `/iiif/URN:…`), reads
      `info.json` to pick a width the resolver will actually serve, verifies
      returned dimensions, and falls back to native-resolution
      `regionByPx` tiles (1024×1024) when the single-shot request is
      refused or silently downsampled. `--tiles always` forces tiled mode
      for every page; `--tiles never` disables fallback.
-   - **`nbno_run.sh` fallback:** any time `--bearer`/`--nbsso` aren't given.
-     Honours `--cookie` if Bokhylla auth is needed.
+   - **`nbno_run.sh` fallback:** any time neither `--nbsso` nor `--bearer`
+     is given. Honours `--cookie` if FEIDE auth is needed. To use the fast
+     path for an open item (no credentials at all), call
+     `download_via_iiif()` directly — it takes no required auth arguments.
 6. **OCR with `ocrmypdf`**, language pack `nor+nno` by default.
    - Auto-installs `ocrmypdf` to a persistent pip --target so the binary
      survives across Cowork bash invocations. By default the target is
@@ -69,13 +81,19 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR"
 
-# Bokhylla book with the fast IIIF path (captured via playwright MCP / capture_cookie.py)
+# Bokhylla book from a Norwegian IP — no credential at all, but tiles-only.
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
-  --bearer "$BEARER" \
+  --tiles always --resize 1024
+
+# FEIDE-licensed book: nbsso only (no bearer), after the user has taken the
+# digital loan in a browser. See SKILL.md Step 0.
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2014050705024 \
+  --out "$OUT_DIR" \
   --nbsso "nbsso=$NBSSO" \
-  --resize 1024
+  --tiles always --resize 1024
 
 # Same book, slower wrapper fallback (no in-process IIIF)
 python {SKILL_DIR}/scripts/zotero_book.py \
@@ -94,7 +112,7 @@ python {SKILL_DIR}/scripts/zotero_book.py \
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
-  --bearer "$BEARER" --nbsso "nbsso=$NBSSO" \
+  --nbsso "nbsso=$NBSSO" \
   --no-ocr
 
 until python {SKILL_DIR}/scripts/ocr_chunked.py \
@@ -106,7 +124,7 @@ until python {SKILL_DIR}/scripts/ocr_chunked.py \
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
-  --bearer "$BEARER" --nbsso "nbsso=$NBSSO" \
+  --nbsso "nbsso=$NBSSO" \
   --tiles always
 
 # Same again, but recompress images after OCR — typical result is ~50%
@@ -114,7 +132,7 @@ python {SKILL_DIR}/scripts/zotero_book.py \
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
-  --bearer "$BEARER" --nbsso "nbsso=$NBSSO" \
+  --nbsso "nbsso=$NBSSO" \
   --tiles always --shrink
 ```
 
@@ -190,7 +208,7 @@ and has no role in the final deliverable.
   rejected by Windows pip), and the apt language packs above don't exist
   on native Windows. Under WSL2 (Ubuntu) the Linux instructions apply
   unchanged. If WSL2 is not available, the **only** native-Windows path
-  that works is the fast IIIF route with `--bearer --nbsso --no-ocr` and
+  that works is the fast IIIF route with `--nbsso --no-ocr` and
   OCR done separately afterwards.
 - The RDF and PDF must arrive in the same folder for Zotero's import to find
   the attachment. The orchestrator always writes them together in `--out`.
@@ -235,5 +253,9 @@ python {SKILL_DIR}/scripts/build_zotero_rdf.py \
   `--no-ocr` to refresh from the nb.no API and re-emit the .rdf.
 - *`ocrmypdf` complains about missing Norwegian data.* Install the
   language packs at the system level.
-- *Cookies expire mid-download.* Follow `SKILL.md` Step 2's re-capture
-  flow and re-run.
+- *Cookies expire mid-download.* Re-read the cookie (`SKILL.md` Step 0 step 7
+  with the browser, or re-copy `nbsso` from DevTools) and re-run. If the item is
+  FEIDE-licensed, check the digital loan is still active before blaming the
+  cookie — loans are time-limited too.
+- *Every page 403s although the login is fine.* Geo, not auth: check
+  `accessAllowedFrom` and the egress IP with `scripts/geo_check.py`.

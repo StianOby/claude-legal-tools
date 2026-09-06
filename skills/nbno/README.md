@@ -14,7 +14,8 @@ uses nb.no's IIIF API to fetch page images and assemble them into a PDF.
   manuscripts (`digimanus`), programme reports (`digiprogramrapport`),
   and legal-deposit material (`pliktmonografi`, `pliktperiodika`).
 - Authenticate with nb.no via FEIDE/BankID/Vipps to access in-copyright
-  Bokhylla content.
+  legal-deposit content — from the Cowork built-in browser where available,
+  otherwise a manual cookie file.
 - Download partial page ranges to keep batches fast.
 - Assemble all pages into a single PDF and discard the intermediate images.
 
@@ -26,19 +27,22 @@ nbno/
 ├── auth.md                    # authentication procedures (referenced by SKILL.md)
 ├── reading-ocr.md             # page reading, OCR, and PDF-shrink procedures
 ├── zotero-ready.md            # full Zotero-ready (PDF + OCR + RDF) workflow
+├── iiif-download.md           # inline IIIF recipe + the resolver's gotchas
 ├── README.md                  # you are here
 └── scripts/
     ├── nbno_run.sh            # download wrapper
-    ├── capture_cookie.py      # interactive FEIDE login cookie capture
+    ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
     ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
     ├── build_zotero_rdf.py    # Zotero RDF generation
     ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
-    └── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
+    ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
+    └── browser/
+        └── nbno_auth.js       # in-page helper for the built-in browser
 ```
 
-SKILL.md is kept deliberately lean — it routes to `auth.md`, `reading-ocr.md`,
-and `zotero-ready.md` so only the procedures relevant to a given task are
-loaded into Claude's context.
+SKILL.md is kept deliberately lean — it routes to `auth.md`,
+`reading-ocr.md`, `iiif-download.md` and `zotero-ready.md` so only the
+procedures relevant to a given task are loaded into Claude's context.
 
 ## Requirements
 
@@ -47,12 +51,8 @@ loaded into Claude's context.
 - **`nbno` CLI** — the wrapper installs it automatically on first run via
   `pip install --break-system-packages nbno`. If auto-install fails, run
   that command manually.
-- **Python 3** with `playwright` — only needed for `capture_cookie.py`
-  (cookie capture for FEIDE login). Install:
-  ```bash
-  pip install playwright
-  playwright install chromium
-  ```
+- **Nothing else.** Cookie capture uses the Cowork built-in browser where
+  available; everywhere else you paste two cookie values from DevTools.
 
 ## Quickstart
 
@@ -68,9 +68,9 @@ bash scripts/nbno_run.sh \
   --out "/tmp/nbno_out" \
   --start 10 --stop 16
 
-# in-copyright Bokhylla content (after running capture_cookie.py)
+# FEIDE-licensed content (after capturing nbsso and taking the digital loan)
 bash scripts/nbno_run.sh \
-  --id "digibok_2008051600041" \
+  --id "digibok_2014050705024" \
   --out "/tmp/nbno_out" \
   --cookie auto \
   --start 1 --stop 7 \
@@ -96,42 +96,78 @@ folder after the PDF is assembled.
 | `--keep-images` | Skip deletion of the per-page image folder |
 
 Exit codes: `0` success, `1` bad arguments, `2` nbno install/run failure,
-`3` no PDF produced (auth/geo issue), `4` cookie file missing.
+`3` no PDF produced (auth/geo issue), `4` cookie file missing, unreadable, or
+without a usable `cookie=` line.
 
 ## Authentication
 
-Most pre-1900 books and public-domain material work without login. In-copyright
-Bokhylla content requires a logged-in nb.no session **and** a Norwegian IP.
+Less is needed than you might expect. `api.nb.no` authenticates by cookie, so
+**there is no bearer token to capture**, and access divides cleanly by item
+class (verified 2026-09-06 from a Norwegian IP):
 
-### Option A — No auth (open content)
+| Item class | `accessAllowedFrom` | Credential needed | Image requests |
+|---|---|---|---|
+| Public domain | `EVERYWHERE` | **none** | single-shot or tiles |
+| Bokhylla | `NORWAY` | **none** — a Norwegian IP is the whole requirement | tiles only |
+| FEIDE-licensed (`legalDepositLoginText` set) | `NB` | **`nbsso`** + an active digital loan | tiles only |
 
-Run without `--cookie`. If the download returns HTTP 401/403, use Option B.
-
-### Option B — Cookie capture (FEIDE / Bokhylla)
-
-Run `capture_cookie.py` on your local machine to open a Chromium window, let
-you complete FEIDE/BankID/Vipps login interactively, and write the captured
-`authorization` and `cookie` headers to `~/.nbno/cookie.txt`:
+Geo is enforced at the **image resolver**, not the API: from a non-Norwegian
+IP the manifest and `accessInfo` return 200 and every page image returns 403,
+no matter who is logged in. Check first:
 
 ```bash
-pip install playwright && playwright install chromium
-python scripts/capture_cookie.py
+python scripts/geo_check.py --id digibok_2008051600041 [--nbsso "nbsso=<v>"]
 ```
 
-Cookies typically live 24–48 hours. Re-run the script when downloads start
-failing with auth errors.
+FEIDE-licensed items additionally need a **digital loan**, taken by the user
+in a browser (the dialog reads *"Ved å klikke OK vil du foreta et
+tidsbegrenset digitalt lån"*). It is time-limited and consumes one of the
+item's licences, so the skill never clicks OK on the user's behalf.
+
+### Option A — No auth (open content, and Bokhylla from Norway)
+
+Run without `--cookie`. If page images 403, check `accessAllowedFrom` and
+your IP *before* reaching for a cookie.
+
+### Option B — Session capture (FEIDE-licensed items only)
+
+In Claude Desktop/Cowork the skill captures `nbsso` from the **built-in
+browser** (`SKILL.md` Step 0, using `scripts/browser/nbno_auth.js`). Because
+the safety classifier blocks cookie reads that Claude initiates on its own,
+it will ask you to type a sentence naming the action first — that is expected,
+not a bug.
+
+Fallback ladder when the built-in browser is unavailable: Claude in Chrome →
+manual DevTools cookie. Claude Code CLI has no built-in browser and lands on
+the manual route, which costs one copy-paste:
+
+1. Log in to nb.no in your own browser and open the item. Accept the digital
+   loan if prompted.
+2. DevTools (F12) → **Application** → **Cookies** → `https://www.nb.no`.
+3. Copy the `nbsso` value into `~/.nbno/cookie.txt`:
+   ```
+   authorization=
+   cookie=nbsso=<value>; _nblb=<value>
+   ```
+4. Use `--cookie auto` (or `--nbsso "nbsso=<value>"`).
+
+Cookies typically live 24–48 hours; re-copy when downloads start failing with
+auth errors. Note that a FEIDE-licensed item needs you in a browser for the
+digital loan anyway, so this adds nothing to the trip.
 
 ### Option C — Manual cookie file
 
-Supply a cookie text file captured from DevTools (Network → `manifest?fields=...`
-→ Request Headers while logged in):
+Supply a cookie text file captured from DevTools (Application → Cookies →
+nb.no — you need `nbsso`; `_nblb` grants nothing on its own):
 
 ```
-authorization=<token>
-cookie=<full cookie header>
+authorization=
+cookie=nbsso=<value>; _nblb=<value>
 ```
 
-Pass it with `--cookie /path/to/cookie.txt`.
+The `authorization` line may be empty or omitted — the wrapper strips an
+empty one before the `nbno` CLI sees it. Pass the file with
+`--cookie /path/to/cookie.txt`.
 
 ## Identifying items
 
@@ -177,11 +213,16 @@ skill automatically.
 
 ## Caveats
 
-- **Geo-restriction.** Much of nb.no's collection is only accessible from
-  Norwegian IP addresses. The skill cannot bypass this; the user needs a
-  Norwegian session cookie or a VPN-routed cookie.
+- **Geo-restriction.** Items with `accessAllowedFrom: NORWAY` or `NB` serve
+  page images only to Norwegian IPs, and no cookie changes that. The skill
+  cannot bypass it. Both the sandbox and the browser pane egress from your own
+  machine's IP, so a VPN on your machine covers both — your call, not the
+  skill's.
 - **Copyright.** Access to Bokhylla is granted to individuals under a
-  specific agreement and does not permit redistribution.
+  specific agreement and does not permit redistribution. The built-in
+  browser keeps a persistent profile, so a later session can download under
+  your FEIDE identity without a fresh login — the same agreement still
+  applies.
 - **Rate limiting.** `nbno` is multi-threaded by default. If downloads fail
   with HTTP errors, retry with a smaller `--start`/`--stop` range.
 - **Content search API.** The nb.no content search API does not work for

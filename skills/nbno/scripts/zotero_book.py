@@ -9,9 +9,15 @@ Run from the nbno skill's scripts/ folder (or copy alongside nbno_run.sh):
         --id URN:NBN:no-nb_digibok_2008051600041 \\
         --out /path/to/outputs/folder \\
         [--cookie auto | --cookie /path/cookie.txt] \\
-        [--bearer "<token>" --nbsso "nbsso=<value>"] \\
+        [--nbsso "nbsso=<value>"] [--bearer "<token>"] \\
         [--resize 75] \\
         [--no-ocr]
+
+Auth, in short: `api.nb.no` authenticates by cookie, so `--nbsso` alone is
+enough and `--bearer` is optional (kept for older DevTools captures that
+happen to include one). Public-domain and Bokhylla items need no cookie at
+all — Bokhylla only needs a Norwegian IP. FEIDE-licensed items need `--nbsso`
+*and* an active digital loan taken by the user in a browser.
 
 What it produces:
 
@@ -29,8 +35,8 @@ Pipeline:
   2. Fetch metadata from https://api.nb.no/catalog/v1/items/<URN>.
   3. Compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
   4. Download the full book PDF.
-       - If --bearer + --nbsso are supplied, use the fast IIIF downloader
-         in-process (recommended for big books).
+       - If --nbsso (and/or --bearer) is supplied, use the fast IIIF
+         downloader in-process (recommended for big books).
        - Otherwise shell out to nbno_run.sh, with --cookie if provided.
   5. Run ocrmypdf (-l nor+nno) unless --no-ocr.
   6. Render the Zotero RDF via build_zotero_rdf.build_rdf.
@@ -171,10 +177,20 @@ _LANG_TO_ZOTERO = {
 }
 
 
-def fetch_nb_metadata(canonical_id: str, timeout: float = 30.0) -> dict:
-    """Hit api.nb.no for the JSON metadata blob."""
+def fetch_nb_metadata(canonical_id: str, timeout: float = 30.0,
+                      nbsso: Optional[str] = None) -> dict:
+    """Hit api.nb.no for the JSON metadata blob.
+
+    The endpoint needs no auth, but `accessInfo` is both IP- and
+    session-dependent: the same Bokhylla item reports viewability NONE
+    anonymously and ALL to a logged-in Norwegian session. Pass `nbsso` when
+    you have it so the pre-check sees what the user's own session sees.
+    """
     url = f"https://api.nb.no/catalog/v1/items/{urn_form(canonical_id)}"
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    headers = {"Accept": "application/json"}
+    if nbsso:
+        headers["cookie"] = nbsso
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -534,8 +550,8 @@ def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
 def download_via_iiif(
     canonical_id: str,
     out_pdf: Path,
-    bearer: str,
-    nbsso: str,
+    bearer: Optional[str] = None,
+    nbsso: Optional[str] = None,
     resize_width: int = 1024,
     workers: int = 12,
     tiles: str = "auto",
@@ -547,6 +563,14 @@ def download_via_iiif(
     width (the resolver silently downsamples otherwise), and falls back to
     native-resolution tiles when single-shot is refused.
 
+    Auth is optional. `api.nb.no` serves manifests and metadata without any
+    credential and otherwise authenticates by cookie, so `bearer` is never
+    required — when it is absent the `nbsso` cookie is sent to api.nb.no as
+    well, which is what makes the response reflect the user's own session.
+    Public-domain and Bokhylla items need no credential at all (Bokhylla
+    needs a Norwegian IP instead); only FEIDE-licensed items require `nbsso`
+    plus a digital loan the user has taken in a browser.
+
     tiles ∈ {"auto", "always", "never"}:
       - auto:   single-shot first, tile only on 403 or dimension mismatch
       - always: skip single-shot entirely; tile every page
@@ -557,7 +581,11 @@ def download_via_iiif(
     import tempfile
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
     referer = f"https://www.nb.no/items/{urn_form(canonical_id)}"
-    hdr_api = {"authorization": bearer} if bearer else {}
+    hdr_api: Dict[str, str] = {}
+    if bearer:
+        hdr_api["authorization"] = bearer
+    elif nbsso:
+        hdr_api["cookie"] = nbsso
     hdr_img = {"referer": referer}
     if nbsso:
         hdr_img["cookie"] = nbsso
@@ -673,7 +701,14 @@ def download_via_iiif(
 
     page_paths = [results[i] for i in sorted(results) if results[i]]
     if not page_paths:
-        raise SystemExit("ERROR: no pages downloaded — check bearer/nbsso.")
+        raise SystemExit(
+            "ERROR: no pages downloaded. Check, in this order: (1) is the "
+            "egress IP Norwegian? accessAllowedFrom NORWAY/NB items 403 on "
+            "every page regardless of login; (2) for a FEIDE-licensed item, "
+            "has the user taken the digital loan in a browser "
+            "(legalDepositReservationStatus == TAKENBYCURRENTUSER) and is "
+            "--nbsso set?"
+        )
 
     _assemble_pages_to_pdf(page_paths, out_pdf)
     for p in page_paths:
@@ -882,10 +917,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Cookie file path (or 'auto' for ~/.nbno/cookie.txt). "
                          "Used by the nbno_run.sh fallback path.")
     ap.add_argument("--bearer", default=None,
-                    help="Bearer token for api.nb.no — enables the fast IIIF "
-                         "in-process downloader. Pair with --nbsso.")
+                    help="OPTIONAL bearer token for api.nb.no. Not needed — "
+                         "api.nb.no authenticates by cookie — but accepted "
+                         "for older DevTools captures that include one.")
     ap.add_argument("--nbsso", default=None,
-                    help="nbsso=<value> cookie pair for IIIF image fetches.")
+                    help="nbsso=<value> cookie pair. Enables the fast IIIF "
+                         "in-process downloader and is the only credential "
+                         "FEIDE-licensed items actually need.")
     ap.add_argument("--resize", type=int, default=None,
                     help="Page width in pixels for IIIF (default 1024) or "
                          "percentage for nbno_run.sh (suggested 75).")
@@ -941,7 +979,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     os.environ.setdefault("NBNO_OUT_DIR", str(out_dir))
 
     print(f"[meta] fetching nb.no metadata for {canonical}...")
-    blob = fetch_nb_metadata(canonical)
+    blob = fetch_nb_metadata(canonical, nbsso=args.nbsso)
     book = normalize_metadata(blob)
 
     # Access pre-check: if accessInfo says FEIDE-restricted and the caller
@@ -957,10 +995,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         raise SystemExit(
             f"ERROR: this item requires FEIDE/Bokhylla auth "
             f"({access.reason}).\n"
-            "       Capture a session via the playwright MCP flow in SKILL.md "
-            "Step 2 Option B,\n"
-            "       then re-run with --bearer + --nbsso (fast IIIF) or "
+            "       Capture a session via SKILL.md Step 0 (built-in browser) "
+            "or the fallbacks in auth.md,\n"
+            "       then re-run with --nbsso (fast IIIF) or "
             "--cookie /path/to/cookie.txt (wrapper).\n"
+            "       FEIDE-licensed items also need a digital loan the user "
+            "takes in a browser first.\n"
             "       Override with --force-auth if you believe accessInfo is wrong."
         )
 
@@ -979,8 +1019,13 @@ def main(argv: Optional[List[str]] = None) -> int:
           f"place: {book.place or '?'}")
 
     # ---- Download -----------------------------------------------------------
-    if args.bearer and args.nbsso:
-        print("[dl] using fast IIIF in-process downloader (bearer+nbsso)")
+    # --nbsso alone is enough: api.nb.no authenticates by cookie, so the
+    # bearer is optional. --bearer alone still selects this path for callers
+    # who captured one and no cookie.
+    if args.nbsso or args.bearer:
+        creds = "+".join(k for k, v in (("nbsso", args.nbsso),
+                                        ("bearer", args.bearer)) if v)
+        print(f"[dl] using fast IIIF in-process downloader ({creds})")
         download_via_iiif(
             canonical_id=canonical,
             out_pdf=pdf_path,
