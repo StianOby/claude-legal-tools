@@ -114,23 +114,51 @@ if (!window.__nb) {
       };
     }
 
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
     // Turn the opaque https://www.nb.no/items/<hash> URL the user pasted into
     // a canonical id. Run this with the tab parked on that page.
-    async function resolveUrn() {
-      // 1. The URL itself may already carry the URN.
-      const fromUrl = normId(location.href);
-      if (fromUrl) return { id: fromUrl, urn: urnForm(fromUrl), via: 'url' };
+    //
+    // nb.no is client-rendered, so calling this straight after a navigate
+    // races the render: the DOM branches miss and it falls through to the
+    // catalog branch or not_found. Rather than making every caller sleep
+    // first, the page branches are polled until the URN appears or waitMs
+    // (default 5000) runs out. Pass {waitMs: 0} to check once and return.
+    async function resolveUrn(opts) {
+      const o = opts || {};
+      const waitMs = o.waitMs === undefined ? 5000 : Math.max(0, Number(o.waitMs) || 0);
+      const started = Date.now();
+      const deadline = started + waitMs;
+      const waited = () => Date.now() - started;
 
-      // 2. The "Referere/Sitere" block links to urn.nb.no.
-      const links = document.querySelectorAll('a[href*="urn.nb.no"]');
-      for (let i = 0; i < links.length; i++) {
-        const id = normId(links[i].getAttribute('href'));
-        if (id) return { id: id, urn: urnForm(id), via: 'urn-link' };
+      for (;;) {
+        // 1. The URL itself may already carry the URN.
+        const fromUrl = normId(location.href);
+        if (fromUrl) {
+          return { id: fromUrl, urn: urnForm(fromUrl), via: 'url', waitedMs: waited() };
+        }
+
+        // 2. The "Referere/Sitere" block links to urn.nb.no.
+        //    Observed 2026-09-06 to match nothing on a fully rendered item
+        //    page — the cite link is not a plain urn.nb.no anchor. Kept
+        //    because it is free and exact when it does fire, but branch 3 is
+        //    what actually carries this in practice: don't weaken it on the
+        //    assumption that this one backs it up.
+        const links = document.querySelectorAll('a[href*="urn.nb.no"]');
+        for (let i = 0; i < links.length; i++) {
+          const id = normId(links[i].getAttribute('href'));
+          if (id) return { id: id, urn: urnForm(id), via: 'urn-link', waitedMs: waited() };
+        }
+
+        // 3. The rendered page embeds the URN in metadata / JSON payloads.
+        const inPage = normId(document.documentElement.innerHTML);
+        if (inPage) {
+          return { id: inPage, urn: urnForm(inPage), via: 'page', waitedMs: waited() };
+        }
+
+        if (Date.now() >= deadline) break;
+        await sleep(300);
       }
-
-      // 3. The rendered page embeds the URN in metadata / JSON payloads.
-      const inPage = normId(document.documentElement.innerHTML);
-      if (inPage) return { id: inPage, urn: urnForm(inPage), via: 'page' };
 
       // 4. Last resort: ask the catalog about the opaque path segment.
       const seg = location.pathname.split('/').filter(Boolean).pop();
@@ -138,11 +166,14 @@ if (!window.__nb) {
         const r = await getJson(API + '/items/' + encodeURIComponent(seg));
         if (!r.error) {
           const id = normId(JSON.stringify(r.json || {}));
-          if (id) return { id: id, urn: urnForm(id), via: 'catalog' };
+          if (id) return { id: id, urn: urnForm(id), via: 'catalog', waitedMs: waited() };
         }
       }
 
-      return { error: 'not_found', detail: 'no URN on ' + location.href };
+      return {
+        error: 'not_found',
+        detail: 'no URN on ' + location.href + ' after ' + waited() + 'ms',
+      };
     }
 
     // The two nb.no cookies that are readable from document.cookie (neither

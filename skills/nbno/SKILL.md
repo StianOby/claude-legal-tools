@@ -169,12 +169,21 @@ the item:
 2. **Items URL** — `https://www.nb.no/items/<opaque-hash>?...`. The opaque
    hash is **not** the ID nbno expects. Resolve it, in this order:
    - **Preferred, when the browser tools are available:** navigate the pane
-     to the pasted URL and call `await __nb.resolveUrn()` → `{id, urn, via}`.
-     It reads the URN from the URL, the "Referere/Sitere" link, the rendered
-     page, or the catalog — whichever answers first.
+     to the pasted URL, **re-paste `nbno_auth.js`** (navigation wiped it),
+     then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It reads the
+     URN from the URL, a `urn.nb.no` link, the rendered page, or the catalog
+     — whichever answers first, and `via` says which.
+     > nb.no is client-rendered, so the page is usually still empty the
+     > instant a navigate returns. **You do not need to sleep first** —
+     > `resolveUrn()` polls for up to 5 s on its own and returns as soon as
+     > the URN appears (`waitedMs` tells you how long it actually took). In
+     > practice the rendered page is what answers, `via: "page"`.
    - Otherwise: ask the user to click "Referere/Sitere" on nb.no and paste
      the URN. **Do not guess a canonical ID from the hash** — there is no
      derivation.
+   - Sanity-check the result before downloading a whole book on it: the
+     `title` from `__nb.access(id)` should match the item page you were
+     looking at.
 3. **Already canonical** — the user pastes `digibok_2008051600041` directly
    → use as-is.
 
