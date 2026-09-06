@@ -307,10 +307,17 @@ download_via_iiif(
 ```
 
 > **Anything that is not public domain is tiles-only.** Single-shot
-> `/full/<w>,/` returns 403 at every width for Bokhylla and FEIDE-licensed
+> `/full/<w>,/` returns 403 at every width for Bokhylla and legal-deposit
 > items. `--tiles auto` recovers per page, but pass `--tiles always` whenever
 > `accessInfo.license != "publicdomain"` to skip one wasted round-trip per
 > page.
+>
+> **Tiling ignores the requested width.** Tiles are fetched at each canvas's
+> native resolution, so `--resize` / `resize_width` governs only the
+> single-shot path and caps nothing under `--tiles always`. Expect full-size
+> pages — and heterogeneous ones, since canvases within a book differ (1562,
+> 1571 and 2024 px wide in the same volume). To get smaller output, shrink
+> afterwards with `--shrink`, not by asking for a narrower width.
 
 **Driving the IIIF API by hand?** If `zotero_book.py` is not available (e.g.
 you don't have the skill directory on disk), the full inline recipe lives in

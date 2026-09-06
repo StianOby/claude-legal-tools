@@ -140,7 +140,7 @@ New flags worth knowing about:
 
 | flag | purpose |
 | --- | --- |
-| `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. |
+| `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. **`always` ignores `--resize`** — tiles are fetched at each canvas's native resolution, so pages come out full-size whatever width you asked for. |
 | `--ocr-jobs N`   | parallel jobs for ocrmypdf (default 4) |
 | `--force-auth`   | skip the `accessInfo` pre-check; attempt the chosen path regardless |
 | `--no-ocr`       | skip OCR (use with `ocr_chunked.py` afterwards for big books) |

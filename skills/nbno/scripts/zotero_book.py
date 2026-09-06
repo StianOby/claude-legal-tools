@@ -636,30 +636,41 @@ def download_via_iiif(
         base = c["images"][0]["resource"]["service"]["@id"]
         entries.append({"canvas": canvas_name, "base_url": base})
 
-    print(f"[iiif] manifest has {len(entries)} canvases; "
-          f"target width {resize_width}, tiles={tiles}")
-
-    # info.json shape varies very little between canvases of the same item,
-    # so peek at the first usable canvas to learn the resolver's listed
-    # sizes and pick a width that won't be silently downsampled.
+    # resize_width only governs the single-shot path. Tiled pages are fetched
+    # as native-resolution regionByPx tiles and come out at each canvas's own
+    # full size, so under tiles="always" the width is not a cap on anything.
     chosen_width = resize_width
-    info_probe: Optional[dict] = None
-    for e in entries:
-        if e["canvas"].endswith("_C2"):
-            continue
-        try:
-            info_probe = _fetch_iiif_info(e["base_url"], hdr_img)
-            chosen_width = _pick_iiif_width(info_probe, resize_width)
-            break
-        except urllib.error.HTTPError:
-            continue
-    if info_probe is None:
-        print("[iiif] WARNING: could not fetch info.json for any canvas; "
-              "using requested width unchecked.")
-    elif chosen_width != resize_width:
-        print(f"[iiif] requested {resize_width}px; resolver lists "
-              f"{sorted({int(s['width']) for s in info_probe.get('sizes') or []})} "
-              f"→ using {chosen_width}px to avoid silent downsample.")
+    if tiles == "always":
+        print(f"[iiif] manifest has {len(entries)} canvases; tiles=always "
+              "— every page fetched as native-resolution tiles "
+              f"(--resize {resize_width} does not apply)")
+    else:
+        print(f"[iiif] manifest has {len(entries)} canvases; "
+              f"target width {resize_width}, tiles={tiles}")
+
+        # info.json shape varies very little between canvases of the same
+        # item, so peek at the first usable canvas to learn the resolver's
+        # listed sizes and pick a width that won't be silently downsampled.
+        # Skipped entirely under tiles="always": chosen_width is unused there,
+        # so probing would cost a round-trip and print a width that caps
+        # nothing.
+        info_probe: Optional[dict] = None
+        for e in entries:
+            if e["canvas"].endswith("_C2"):
+                continue
+            try:
+                info_probe = _fetch_iiif_info(e["base_url"], hdr_img)
+                chosen_width = _pick_iiif_width(info_probe, resize_width)
+                break
+            except urllib.error.HTTPError:
+                continue
+        if info_probe is None:
+            print("[iiif] WARNING: could not fetch info.json for any canvas; "
+                  "using requested width unchecked.")
+        elif chosen_width != resize_width:
+            print(f"[iiif] requested {resize_width}px; resolver lists "
+                  f"{sorted({int(s['width']) for s in info_probe.get('sizes') or []})} "
+                  f"→ using {chosen_width}px to avoid silent downsample.")
 
     downsample_count = 0
     tile_count = 0
