@@ -356,17 +356,25 @@ range (≤ 7 pages of `digibok_*`).
 > expensive, and stresses nb.no's servers. Always ask the user which pages
 > they need before running without these flags.
 >
-> **Keep each batch to ≤ 7 pages** when running in the Cowork bash sandbox.
 > Each `nbno_run.sh` invocation has a fixed startup overhead of ~25 s
 > (manifest fetch, item resolution, etc.); each additional page adds ~1–2 s.
-> The sandbox timeout is 45 s. Batches of 7 pages complete reliably; 8 is
-> risky; 10+ almost always times out (the process may still finish in the
-> background, but the PDF will not be immediately available).
 >
 > Examples:
 > - Single page: `--start 42 --stop 42`
 > - A short batch: `--start 10 --stop 16`
-> - Full book: omit both flags (slow — prefer batches)
+> - Full book: omit both flags
+
+> **The 45 s bash timeout is a default, not a ceiling — raise it instead of
+> splitting the work.** The bash tool takes an explicit timeout (up to ~600 s);
+> pass it and a long download runs to completion in one call. A full
+> 173-canvas tiled book took ~40 s wall in one foreground call. Only fall back
+> to `--start`/`--stop` batching when a job genuinely cannot fit in the raised
+> timeout, or when you only want part of the book anyway.
+>
+> **Do not use `nohup … &` to background the work.** The process does not
+> survive the bash call returning: it is killed and its log is left empty, so
+> you poll a file that will never fill. Run in the foreground with a raised
+> timeout instead.
 
 > **Use `/tmp` for `--out`, not a mounted workspace directory.**
 > If `--out` points to a mounted workspace folder and a PDF with the same
@@ -569,8 +577,10 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   mounted workspace directory for `--out` and a same-named PDF already
   exists there. Switch to `--out /tmp/nbno_out` and copy afterward with
   `shutil.copy2`.
-- *Wrapper times out / PDF not created.* Your `--start`/`--stop` range
-  was too wide. The sandbox has a 45 s timeout; keep batches to ≤ 7 pages.
+- *Wrapper times out / PDF not created.* The bash call hit its timeout. The
+  45 s default is not a ceiling — re-run passing an explicit timeout (up to
+  ~600 s) before narrowing the `--start`/`--stop` range. Backgrounding with
+  `nohup … &` does **not** work: the process dies when the call returns.
 - *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque; ask for
   the Referere/Sitere string (URN) instead. Don't guess.
 - *User mentions `pliktavlevering` content.* ID prefix will be

@@ -183,8 +183,9 @@ empty one before the `nbno` CLI sees it. Pass the file with
 numbers. On a first run, download canvases 1–7 and inspect the page footer to
 determine the offset between canvas numbers and printed pages.
 
-In a Cowork bash sandbox (45 s timeout), keep batches to **≤ 7 pages**. Each
-batch has ~25 s startup overhead; each additional page adds ~1–2 s. Always
+In a Cowork bash sandbox the 45 s bash timeout is a *default*: pass an
+explicit timeout (up to ~600 s) and a full book downloads in one call. If you
+do batch, each batch has ~25 s startup overhead and each page adds ~1–2 s. Always
 write output to `/tmp`, not a mounted workspace directory — files in mounted
 directories cannot be overwritten from bash.
 

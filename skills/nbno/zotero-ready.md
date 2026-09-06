@@ -173,10 +173,14 @@ and has no role in the final deliverable.
 
 ## Sandbox notes
 
-- The Cowork bash sandbox has a 45-second per-call timeout. `zotero_book.py`
-  is a single long-running Python process; for full Bokhylla books, split
-  the work into a `--no-ocr` download call followed by `ocr_chunked.py`
-  invoked in a loop until it exits 0.
+- **The 45-second bash timeout is a default, not a ceiling.** Pass the bash
+  tool an explicit timeout (up to ~600 s) and `zotero_book.py` runs to
+  completion in one call — a 173-canvas tiled book downloaded in ~40 s wall.
+  Reach for splitting only when a job cannot fit even then, which in practice
+  means OCR rather than download: use `--no-ocr` for the download call and
+  `ocr_chunked.py` afterwards. `nohup … &` does **not** survive the call
+  returning — the process is killed and its log stays empty, so never
+  background-and-poll.
 - **Sandbox timeouts may keep work running in the background.** When a
   bash call reports `Command timed out after 45000ms`, the killed Python
   process can still flush files to disk for several seconds after control
