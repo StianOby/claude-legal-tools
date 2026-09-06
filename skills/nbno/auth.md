@@ -21,7 +21,7 @@ the older bearer-token and `_nblb` guidance, both of which were wrong.
 |---|---|---|---|---|
 | Public domain (`accessAllowedFrom: EVERYWHERE`) | 200, no auth | 200 | 200 | **none** |
 | Bokhylla (`license: bokhylla`, `accessAllowedFrom: NORWAY`) | 200, no auth | **403 always** | 200 | **none** — a Norwegian IP is the whole requirement |
-| FEIDE-licensed (`license: copyrighted`, `accessAllowedFrom: NB`, `legalDepositLoginText` set) | 200, no auth | **403 always** | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
+| Legal deposit (`accessAllowedFrom: NB`, `license: copyrighted`) | 200, no auth | **403 always** | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
 
 Four consequences, each of which contradicts something the skill used to say:
 
@@ -42,10 +42,32 @@ Four consequences, each of which contradicts something the skill used to say:
 - **`referer` is not required.** Send it anyway (it costs nothing and matches
   what the viewer does), but it is not what gates the resolver.
 
-`accessInfo` is **IP- and session-dependent**: the same Bokhylla item reports
-`viewability: NONE` with a FEIDE login text from Spain, and `viewability: ALL`
-with no such text from Norway. Read it *with* the user's session — from the
-browser pane, or with `--nbsso` in the sandbox — not anonymously.
+### Which `accessInfo` field to trust
+
+`accessAllowedFrom` describes the **item** and reads the same for everyone.
+Everything else in the block describes **your current request** and inverts
+under you:
+
+| field | anonymous | logged in (loan active) |
+|---|---|---|
+| `accessAllowedFrom` | `NB` | `NB` |
+| `viewability` | `NONE` | `ALL` |
+| `legalDepositLoginText` | present | **absent** |
+| `legalDepositReservationStatus` | absent | `TAKENBYCURRENTUSER` |
+
+Measured on `digibok_2014050705024` from one IP, one minute apart, 2026-09-06.
+`legalDepositLoginText` is the *"log in to read this"* prompt — of course it
+vanishes once you are logged in.
+
+**So classify on `accessAllowedFrom`, and use the rest for status only.**
+Keying on `viewability`/`legalDepositLoginText` makes a logged-in session with
+an active loan look like it needs no credential, when its images still 403
+without `nbsso`. `check_nb_access()` in `zotero_book.py` had exactly that bug.
+
+The same asymmetry appears geographically: the same Bokhylla item reports
+`viewability: NONE` with a login prompt from Spain and `viewability: ALL` from
+Norway. Read `accessInfo` *with* the user's session — from the browser pane,
+or with `--nbsso` in the sandbox — not anonymously.
 
 ### Geo is enforced at the image resolver, not at the API
 
@@ -70,9 +92,11 @@ python {SKILL_DIR}/scripts/geo_check.py --id digibok_2008051600041 [--nbsso "nbs
 
 New to the skill, and the one part of the flow that hard-requires a browser.
 
-An item with a non-empty `legalDepositLoginText` (e.g. *"4 lisenser for
-Feide-brukere ved norske universitet og høyskoler"*) is not readable just
-because the user is logged in. Opening its page shows a dialog:
+An `accessAllowedFrom: NB` item is not readable just because the user is
+logged in. Anonymously it advertises the requirement in
+`legalDepositLoginText` (e.g. *"4 lisenser for Feide-brukere ved norske
+universitet og høyskoler"*); to a logged-in user that prompt is gone but the
+loan is still needed. Opening the item's page shows a dialog:
 
 > *Ved å klikke OK vil du foreta et tidsbegrenset digitalt lån*  — **OK** / **Avbryt**
 
@@ -101,8 +125,8 @@ and the egress IP before reaching for a cookie.
 
 ## Option B — Session capture (FEIDE-licensed items)
 
-Needed only when `legalDepositLoginText` is non-empty — that is the one class
-where a cookie changes the outcome.
+Needed only for `accessAllowedFrom: NB` items — that is the one class where a
+cookie changes the outcome.
 
 Try these in order and **say which one you are using**; do not silently
 degrade from one to the next.

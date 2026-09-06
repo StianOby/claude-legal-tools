@@ -109,7 +109,7 @@ class (verified 2026-09-06 from a Norwegian IP):
 |---|---|---|---|
 | Public domain | `EVERYWHERE` | **none** | single-shot or tiles |
 | Bokhylla | `NORWAY` | **none** — a Norwegian IP is the whole requirement | tiles only |
-| FEIDE-licensed (`legalDepositLoginText` set) | `NB` | **`nbsso`** + an active digital loan | tiles only |
+| Legal deposit (`license: copyrighted`) | `NB` | **`nbsso`** + an active digital loan | tiles only |
 
 Geo is enforced at the **image resolver**, not the API: from a non-Norwegian
 IP the manifest and `accessInfo` return 200 and every page image returns 403,

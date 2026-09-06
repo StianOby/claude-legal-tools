@@ -71,6 +71,12 @@ through the tool channel is not viable for a book.
 2. **Paste the helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js`
    via `javascript_tool`. Idempotent — safe to paste again in the same tab.
    It defines `window.__nb`.
+   > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
+   > `navigate` or `preview_start` destroys it. Re-paste after every
+   > navigation — the `if (!window.__nb)` guard makes that free when it is
+   > still there. `__nb.access()`, `status()` and `manifest()` fetch
+   > cross-origin and do **not** need the tab parked anywhere in particular;
+   > only `resolveUrn()` reads the current page.
 3. **Check the session.** `await __nb.status()` → `{loggedIn, loginProvider,
    roles, ip}`.
    - Not logged in → *"Logg inn på nb.no i browser-panelet (Feide/BankID/
@@ -82,11 +88,28 @@ through the tool channel is not viable for a book.
      nb.no session.
 4. **Classify the item.** `await __nb.access("<id>")` → `accessInfo`:
 
-   | signal | what it means | what to do |
+   **Classify on `accessAllowedFrom`.** It describes the item and reads the
+   same for everyone. The other access fields describe *your current
+   request* and move under you (see the warning below).
+
+   | `accessAllowedFrom` | class | what to do |
    |---|---|---|
-   | `isPublicDomain`, or `accessAllowedFrom: EVERYWHERE` | open | no cookie; single-shot fine |
-   | `license: bokhylla` (`accessAllowedFrom: NORWAY`) | Bokhylla | **no cookie** from a Norwegian IP; tiles only (`--tiles always`) |
-   | `legalDepositLoginText` non-empty (`accessAllowedFrom: NB`) | FEIDE-licensed | needs `nbsso` **and** a digital loan; tiles only |
+   | `EVERYWHERE` | open (`license: publicdomain`) | no cookie; single-shot fine |
+   | `NORWAY` | Bokhylla (`license: bokhylla`) | **no cookie** from a Norwegian IP; tiles only (`--tiles always`) |
+   | `NB` | legal deposit (`license: copyrighted`) | needs `nbsso` **and** a digital loan; tiles only |
+
+   > **Do not classify on `viewability` or `legalDepositLoginText`.** Both are
+   > session-dependent. `legalDepositLoginText` is the *"log in to read this"*
+   > prompt, so it is present anonymously and **absent once you are logged
+   > in**; `viewability` flips NONE → ALL the moment you may read the item.
+   > Reading `digibok_2014050705024` anonymously and as a logged-in FEIDE user
+   > from the same IP gave `NONE` + prompt, then `ALL` + no prompt — while
+   > `accessAllowedFrom: NB` stayed put in both. An `NB` item still needs
+   > `nbsso` when those two fields look reassuring.
+   >
+   > Use them for *status*, not classification: `viewability == "ALL"` means
+   > "readable right now", and `legalDepositReservationStatus` tells you
+   > whether the loan is active.
 
 5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and
    `status().ip` is not a Norwegian address, **page images will 403 no matter
@@ -178,14 +201,17 @@ material.** Everything else is decided by `accessInfo` and the egress IP.
 > `https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_<id>` returns an
 > `accessInfo` block. It needs no auth — but it is **IP- and
 > session-dependent**, so read it with the user's session (`__nb.access()` in
-> the pane, or `--nbsso` in the sandbox), not anonymously. Three fields are
-> decisive:
+> the pane, or `--nbsso` in the sandbox), not anonymously.
 >
-> - `accessAllowedFrom` — `EVERYWHERE` = open; `NORWAY` / `NB` = geo-gated.
-> - `viewability == "NONE"` → not currently readable by this session (for
->   FEIDE items, usually because no digital loan is active).
-> - non-empty `legalDepositLoginText` (e.g. "4 lisenser for Feide-brukere…")
->   → FEIDE-licensed: needs `nbsso` **and** a digital loan.
+> - **`accessAllowedFrom` is the one field to classify on** — it describes the
+>   item, not your request. `EVERYWHERE` = open, no credential. `NORWAY` =
+>   Bokhylla, Norwegian IP but no cookie. `NB` = legal deposit, needs `nbsso`
+>   **and** an active digital loan.
+> - `viewability` and `legalDepositLoginText` describe *this request* and
+>   invert when you log in — see the warning in Step 0 step 4. Read them for
+>   status ("can I read it right now?"), never to decide what to capture.
+> - `legalDepositReservationStatus == "TAKENBYCURRENTUSER"` means the digital
+>   loan is active. Anything else on an `NB` item means it is not.
 >
 > `zotero_book.py` performs this check automatically and refuses to start a
 > no-auth download in those cases (override with `--force-auth`). This is more
@@ -200,7 +226,7 @@ Auth paths — pick one based on the item:
   need no cookie at all. Run `nbno_run.sh` without `--cookie`, or call
   `download_via_iiif()` with no credentials.
 - **Option B — Session capture.** Only for FEIDE-licensed items
-  (`legalDepositLoginText` non-empty). Primary path is **Step 0** above;
+  (`accessAllowedFrom: NB`). Primary path is **Step 0** above;
   `auth.md` has the full fallback ladder (built-in browser → Claude in Chrome
   → manual DevTools cookie). Never ask the user to install browser-automation
   tooling for this.
@@ -497,9 +523,9 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   FEIDE-licensed items, a missing digital loan — go to Step 0, or Step 2 if
   the browser tools are unavailable.
   For `pliktmonografi_*` / `pliktperiodika_*` items, GET the catalog
-  response and inspect `accessInfo.legalDepositLoginText` /
-  `accessInfo.viewability` — those fields decide whether FEIDE auth is
-  required (see Step 2's "Check `accessInfo` before guessing" callout).
+  response and inspect `accessInfo.accessAllowedFrom` — `NB` means FEIDE
+  auth plus a digital loan is required (see Step 2's "Check `accessInfo`
+  before guessing" callout).
   The orchestrator does this automatically; pass `--force-auth` to override.
 - *`--cookie auto` errors with "no cookie file found".* The wrapper looked
   at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't made
@@ -525,7 +551,7 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
 - *User mentions `pliktavlevering` content.* ID prefix will be
   `pliktmonografi_...` or `pliktperiodika_...`. **Check `accessInfo` first**
   rather than guessing — some pliktmonografi items are open, some are FEIDE-
-  licensed (`legalDepositLoginText` non-empty / `viewability: NONE`). The
+  licensed (`accessAllowedFrom: NB`). The
   orchestrator does this automatically. The content search API will not work
   for these items regardless of auth; download and read pages directly.
 - *Last page (back cover) always returns 403.* The final canvas of Bokhylla

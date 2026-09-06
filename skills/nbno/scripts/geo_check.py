@@ -23,9 +23,11 @@ Reading the output:
   - loginProvider null                     → not logged in (or cookie expired)
   - accessAllowedFrom EVERYWHERE           → no cookie needed, single-shot OK
   - accessAllowedFrom NORWAY (bokhylla)    → Norwegian IP, no cookie, tiles only
-  - accessAllowedFrom NB + legalDepositLoginText
-                                           → nbsso + a digital loan the user
-                                             takes in a browser; tiles only
+  - accessAllowedFrom NB                   → nbsso + a digital loan the user
+                                             takes in a browser; tiles only.
+                                             Classify on this field, not on
+                                             viewability/legalDepositLoginText
+                                             — those invert once you log in
   - accessAllowedFrom NORWAY/NB from a non-Norwegian IP
                                            → page images will 403 regardless
                                              of login. Stop before downloading.

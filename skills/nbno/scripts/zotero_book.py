@@ -125,39 +125,76 @@ class AccessHint:
     Set early in the pipeline so we can short-circuit a wasted no-auth attempt
     for FEIDE-licensed material instead of letting the download fail opaquely.
     """
-    __slots__ = ("requires_auth", "viewability", "login_text", "reason")
+    __slots__ = ("requires_auth", "geo_gated", "access_allowed_from",
+                 "viewability", "login_text", "reason")
 
-    def __init__(self, requires_auth: bool, viewability: str,
+    def __init__(self, requires_auth: bool, geo_gated: bool,
+                 access_allowed_from: str, viewability: str,
                  login_text: str, reason: str) -> None:
         self.requires_auth = requires_auth
+        self.geo_gated = geo_gated
+        self.access_allowed_from = access_allowed_from
         self.viewability = viewability
         self.login_text = login_text
         self.reason = reason
 
     def __repr__(self) -> str:
         return (f"AccessHint(requires_auth={self.requires_auth}, "
+                f"geo_gated={self.geo_gated}, "
+                f"access_allowed_from={self.access_allowed_from!r}, "
                 f"viewability={self.viewability!r}, reason={self.reason!r})")
+
+
+# accessAllowedFrom values, in increasing order of restriction:
+#   EVERYWHERE — open, no credential, works from any IP
+#   NORWAY     — Bokhylla: Norwegian IP, but no cookie
+#   NB         — legal deposit: Norwegian IP *and* nbsso *and* a digital loan
+_GEO_GATED_FROM = {"NORWAY", "NB"}
+_COOKIE_GATED_FROM = {"NB"}
 
 
 def check_nb_access(api_blob: dict) -> AccessHint:
     """Inspect the catalog response for signals that auth is required.
 
-    Triggers on either viewability == NONE or a non-empty
-    accessInfo.legalDepositLoginText — both are reliable markers that the
-    item is restricted to FEIDE / Bokhylla and a no-auth fetch will fail.
+    Keys on `accessAllowedFrom`, which is a property of the item and is the
+    same whoever asks. The other access fields are properties of *this
+    request* and shift under you:
+
+      - `viewability` is NONE anonymously and ALL once the caller may read it;
+      - `legalDepositLoginText` is the "log in to read this" prompt, so it is
+        present anonymously and **absent** once the caller is logged in;
+      - `legalDepositReservationStatus` only appears for a logged-in user.
+
+    Verified 2026-09-06 by reading digibok_2014050705024 anonymously and as a
+    logged-in FEIDE user from the same IP a minute apart. Keying on those
+    fields alone made this function report requires_auth=False for a
+    FEIDE-licensed item whose images still 403 without nbsso — the exact case
+    the pre-check exists to catch.
     """
     access = api_blob.get("accessInfo") or {}
+    allowed_from = (access.get("accessAllowedFrom") or "").strip().upper()
     viewability = (access.get("viewability") or "").strip().upper()
     login_text = (access.get("legalDepositLoginText") or "").strip()
+
+    geo_gated = allowed_from in _GEO_GATED_FROM
     requires_auth = False
     reason = ""
-    if viewability == "NONE":
+    if allowed_from in _COOKIE_GATED_FROM:
         requires_auth = True
-        reason = "accessInfo.viewability == NONE"
+        reason = (f"accessInfo.accessAllowedFrom == {allowed_from} "
+                  "(legal deposit: needs nbsso and an active digital loan)")
     elif login_text:
         requires_auth = True
         reason = f"accessInfo.legalDepositLoginText present ({login_text[:80]!r})"
-    return AccessHint(requires_auth, viewability or "?", login_text, reason)
+    elif viewability == "NONE" and allowed_from != "EVERYWHERE":
+        # Keep the old signal as a backstop for item classes we haven't
+        # characterised, but never let it fire on an item the API says is
+        # readable from everywhere.
+        requires_auth = True
+        reason = "accessInfo.viewability == NONE"
+
+    return AccessHint(requires_auth, geo_gated, allowed_from or "?",
+                      viewability or "?", login_text, reason)
 
 # ISO 639-2/B → Zotero language tag. Zotero accepts plain ISO 639-2 codes,
 # but a few popular ones translate to two-letter forms for prettier display.
@@ -986,21 +1023,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     # didn't pass bearer/nbsso/cookie, fail fast with a clear message rather
     # than letting the IIIF resolver return 403 on every page.
     access = check_nb_access(blob)
-    print(f"[access] viewability={access.viewability}; "
+    print(f"[access] accessAllowedFrom={access.access_allowed_from}; "
+          f"viewability={access.viewability}; "
           f"requires_auth={access.requires_auth}")
     if access.login_text:
         print(f"[access] legalDepositLoginText: {access.login_text}")
+    if access.geo_gated:
+        print(f"[access] GEO-GATED: images are served only from "
+              f"{access.access_allowed_from}. If this machine's IP is not "
+              "Norwegian, every page will 403 regardless of login — run "
+              "geo_check.py to see the IP nb.no sees.")
     have_auth = bool(args.bearer or args.nbsso or args.cookie)
     if access.requires_auth and not have_auth and not args.force_auth:
         raise SystemExit(
-            f"ERROR: this item requires FEIDE/Bokhylla auth "
+            f"ERROR: this item needs a credential this run does not have "
             f"({access.reason}).\n"
             "       Capture a session via SKILL.md Step 0 (built-in browser) "
             "or the fallbacks in auth.md,\n"
             "       then re-run with --nbsso (fast IIIF) or "
             "--cookie /path/to/cookie.txt (wrapper).\n"
-            "       FEIDE-licensed items also need a digital loan the user "
-            "takes in a browser first.\n"
+            "       An accessAllowedFrom=NB item also needs a digital loan "
+            "the user takes in a browser first.\n"
+            f"       Note this item is also geo-gated to "
+            f"{access.access_allowed_from}: from a non-Norwegian IP no "
+            "credential helps.\n"
             "       Override with --force-auth if you believe accessInfo is wrong."
         )
 

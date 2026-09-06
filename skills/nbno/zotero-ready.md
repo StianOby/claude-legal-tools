@@ -30,9 +30,9 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    title, subtitle, creators (role detection: aut/cre → author, edt →
    editor, trl → translator), publisher, place, year, language, ISBN, and
    page count.
-3. **Access pre-check.** Inspects `accessInfo.viewability` and
-   `accessInfo.legalDepositLoginText` from the catalog response. If either
-   signals FEIDE restriction and no auth (nbsso/bearer/cookie) was passed,
+3. **Access pre-check.** Keys on `accessInfo.accessAllowedFrom` — the one
+   access field that is not session-dependent. If it says `NB` (legal
+   deposit) and no auth (nbsso/bearer/cookie) was passed,
    the script exits with a clear error instead of starting a doomed no-auth
    download. Override with `--force-auth` if you have reason to believe
    `accessInfo` is wrong. `accessInfo` is IP- and session-dependent, so the
