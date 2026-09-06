@@ -119,7 +119,22 @@ if [[ -n "$COOKIE" ]]; then
   if [[ "$COOKIE_VAL" != *nbsso=* ]]; then
     echo "Note: cookie file has no nbsso= pair. That is fine for public-domain" >&2
     echo "      and Bokhylla items (Bokhylla only needs a Norwegian IP), but" >&2
-    echo "      FEIDE-licensed items will 403 on every page without it." >&2
+    echo "      legal-deposit items will 403 on every page without it." >&2
+  fi
+
+  # nb.no cookies live 24-48h. A stale file is the nastiest failure mode here:
+  # it is perfectly well-formed, so nothing rejects it, and the resulting 403s
+  # look like a geo or auth problem. Shared paths like /tmp/cookie.txt are the
+  # usual source — a previous session leaves one behind, possibly owned by
+  # another uid, and the next run picks it up.
+  COOKIE_AGE_H=""
+  if COOKIE_MTIME="$(stat -c %Y "$COOKIE" 2>/dev/null)" && [[ -n "$COOKIE_MTIME" ]]; then
+    COOKIE_AGE_H=$(( ( $(date +%s) - COOKIE_MTIME ) / 3600 ))
+  fi
+  if [[ -n "$COOKIE_AGE_H" && "$COOKIE_AGE_H" -ge 24 ]]; then
+    echo "WARNING: cookie file is ${COOKIE_AGE_H}h old ($COOKIE)." >&2
+    echo "         nb.no cookies expire after roughly 24-48h. If pages 403," >&2
+    echo "         re-capture the cookie before debugging auth or geo." >&2
   fi
 
   if [[ -z "$AUTH_VAL" ]]; then

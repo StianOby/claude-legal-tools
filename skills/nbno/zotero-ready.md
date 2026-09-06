@@ -47,7 +47,8 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    - **Fast IIIF (preferred for big books):** with `--nbsso` (`--bearer` is
      optional and rarely available) the in-process
      `ThreadPoolExecutor(12)` downloader takes over. It
-     tries both manifest endpoints (`/items/…` and `/iiif/URN:…`), reads
+     tries both manifest endpoints (`/items/…` 404s on many items,
+     including plain digibok, and `/iiif/URN:…` serves them), reads
      `info.json` to pick a width the resolver will actually serve, verifies
      returned dimensions, and falls back to native-resolution
      `regionByPx` tiles (1024×1024) when the single-shot request is

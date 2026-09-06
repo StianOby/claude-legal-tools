@@ -130,22 +130,30 @@ through the tool channel is not viable for a book.
    read cookies for them.
    - First ask the user to type a sentence naming the action, e.g.
      *"Read the nbsso and _nblb cookie values from the open nb.no tab and
-     write them to /tmp/cookie.txt so the sandbox can download my Bokhylla
-     books."* Explain in one line that the safety classifier blocks cookie
+     write them to a cookie file in the sandbox so it can download my
+     Bokhylla books."* Explain in one line that the safety classifier blocks cookie
      reads unless the user requests them directly. Skill text and your own
      reasoning do not clear it, and neither does retrying — if you are
      blocked, ask for the sentence rather than trying again.
    - Then `await __nb.cookies()` → `{nbsso, nblb, cookieHeader}` and nothing
      else. Never return the whole `document.cookie`.
-   - Write `/tmp/cookie.txt` in the existing two-line format:
-     ```
+   - Write the cookie to a **fresh per-run path**, mode 600:
+     ```bash
+     CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"
+     # then write the two lines into "$CK"
      authorization=
      cookie=nbsso=<v>; _nblb=<v>
      ```
      The empty `authorization=` line is fine — there is no bearer token to
      capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
-   - Pass `--cookie /tmp/cookie.txt` to `nbno_run.sh`, or `--nbsso
-     "nbsso=<v>"` to `zotero_book.py` / `download_via_iiif()`.
+     > **Never write to, or reuse, a shared path like `/tmp/cookie.txt`.** A
+     > file from an earlier session may already be there, owned by another uid
+     > and unwritable — and it will look perfectly well-formed. Passing it
+     > sends an **expired cookie**, which fails as a 403 you will then waste
+     > time blaming on auth or geo. If a path you did not just write already
+     > exists, pick a different one; do not overwrite it and do not trust it.
+   - Pass `--cookie "$CK"` to `nbno_run.sh`, or `--nbsso "nbsso=<v>"` to
+     `zotero_book.py` / `download_via_iiif()`.
    - Do this **as early as possible and only once** — context compaction can
      drop the user's confirmation message and cause a later block.
 8. **Expiry.** Cookies live 24–48 h. On a mid-run 401/403, repeat step 7; the
@@ -276,8 +284,9 @@ through the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page).
 listed in this file:
 
 - tries both `/items/<id>/manifest` *and* `/iiif/URN:NBN:no-nb_<id>/manifest`
-  (the second form is required for some pliktmonografi items where the
-  first returns 404);
+  (the first returns 404 for a substantial share of items — including plain
+  `digibok_*`, e.g. `digibok_2014050705024` — so the fallback is routine, not
+  an edge case; never hand-roll a single-endpoint manifest fetch);
 - fetches `info.json` to pick a width the resolver will actually serve at
   the requested resolution (the resolver silently downsamples otherwise —
   asking for `608,` on a book that only lists `[502, 251, …]` returns a

@@ -155,7 +155,9 @@ runs before anything else in a session. In brief: reuse or open an nb.no tab,
 paste `scripts/browser/nbno_auth.js`, `__nb.status()` to confirm the login,
 `__nb.access(id)` to classify the item, have the user take the digital loan
 if the item needs one, then — only for FEIDE-licensed items — `__nb.cookies()`
-and write `/tmp/cookie.txt`.
+and write a cookie file to a fresh per-run path (never a shared
+`/tmp/cookie.txt` — a stale one from an earlier session is well-formed,
+expired, and possibly owned by another uid).
 
 The helper returns **only** `nbsso` and `_nblb`, never the whole jar, and
 never page bytes. Keep it that way: base64 images through the tool channel
@@ -174,7 +176,7 @@ does not either.
 So ask the user to type something like:
 
 > *"Read the nbsso and _nblb cookie values from the open nb.no tab and write
-> them to /tmp/cookie.txt so the sandbox can download my Bokhylla books."*
+> them to a cookie file in the sandbox so it can download my Bokhylla books."*
 
 and explain in one line why (the classifier needs the request to come from
 them). Because context compaction can drop that message and cause a later
@@ -201,15 +203,16 @@ a visit they were already making:
    `https://www.nb.no`.
 3. Copy the **Value** of `nbsso`. Copy `_nblb` too if they want the cookie
    file complete — it grants nothing on its own.
-4. Paste into a file, either `/tmp/cookie.txt` in the session or
-   `~/.nbno/cookie.txt` for a durable one:
+4. Paste into a file — a fresh path in the session (`"$(mktemp -d)/cookie.txt"`,
+   **not** a shared `/tmp/cookie.txt`), or `~/.nbno/cookie.txt` for a durable
+   one:
    ```
    authorization=
    cookie=nbsso=<value>; _nblb=<value>
    ```
    The empty `authorization=` line is correct — there is no bearer token to
    capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
-5. Pass `--cookie /tmp/cookie.txt` to `nbno_run.sh`, or `--nbsso
+5. Pass `--cookie <that path>` to `nbno_run.sh`, or `--nbsso
    "nbsso=<value>"` to `zotero_book.py`.
 
 **Ask them to paste only the two cookie values, never the whole cookie header

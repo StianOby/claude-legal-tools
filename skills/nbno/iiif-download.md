@@ -187,7 +187,8 @@ systematically restricted at any width — skip it silently, do not retry.
 
 ### Bonus: two manifest endpoints
 
-`/catalog/v1/items/<id>/manifest` works for most `digibok`; some
-`pliktmonografi` items return 404 there and need
-`/catalog/v1/iiif/URN:NBN:no-nb_<id>/manifest`. Try the first, fall back to
-the second on 404.
+`/catalog/v1/items/<id>/manifest` 404s for a substantial share of items and
+`/catalog/v1/iiif/URN:NBN:no-nb_<id>/manifest` serves them instead. This is
+**not** a `pliktmonografi`-only quirk — plain `digibok` items hit it too
+(`digibok_2014050705024` is one). Always try both, in that order, on 404. A
+single-endpoint fetch dies with `KeyError: 'sequences'` on the 404 body.
