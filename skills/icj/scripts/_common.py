@@ -2,13 +2,15 @@
 Shared utilities for the icj skill.
 
 Provides:
-- HTTP fetch with a sensible User-Agent and basic retry.
-- A persistent cache (~/.cache/icj/, or $ICJ_CACHE_DIR) with a manifest.json keyed by URL,
-  recording fetch_timestamp, server Last-Modified, ETag, and a content
-  SHA-256 hash. Used both for serving cached payloads and for freshness
-  checks via HEAD requests.
+- HTTP fetch (standard library urllib) with a sensible User-Agent and retry.
+- A persistent cache (~/.cache/icj/, or $ICJ_CACHE_DIR) with a manifest.json
+  keyed by URL, recording fetch_timestamp, server Last-Modified, ETag, and a
+  content SHA-256 hash. Used both for serving cached payloads and for
+  freshness checks via HEAD requests.
 - ISO-2 country code helpers used by the declarations module.
 - Small helpers for printing JSON or human output uniformly.
+
+No third-party packages are required.
 """
 
 from __future__ import annotations
@@ -18,22 +20,15 @@ import json
 import os
 import sys
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-try:
-    import requests
-except ImportError:  # pragma: no cover
-    sys.stderr.write(
-        "[icj] The 'requests' package is required. "
-        "Install with: pip install requests beautifulsoup4 --break-system-packages\n"
-    )
-    raise
-
 USER_AGENT = (
-    "icj-skill/1.0 (+https://github.com/) "
-    "Python-requests; harvests public ICJ pages for offline analysis"
+    "icj-skill/2.0 (+https://github.com/StianOby/claude-legal-tools) "
+    "Python-urllib; reads public ICJ pages for legal research"
 )
 BASE = "https://www.icj-cij.org"
 
@@ -47,31 +42,47 @@ MANIFEST_PATH = CACHE_DIR / "manifest.json"
 
 # --- HTTP ---------------------------------------------------------------
 
-def _session() -> "requests.Session":
-    s = requests.Session()
-    s.headers["User-Agent"] = USER_AGENT
-    return s
+@dataclass
+class Response:
+    status: int
+    headers: dict
+    body: bytes
+
+    @property
+    def text(self) -> str:
+        return self.body.decode("utf-8", errors="replace")
 
 
-def http_get(url: str, *, timeout: int = 30, retries: int = 2) -> "requests.Response":
-    """GET with one retry on transient errors. Raises on final failure."""
-    s = _session()
+def _request(url: str, *, method: str = "GET", timeout: int = 30) -> Response:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,*/*"},
+                                 method=method)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        body = b"" if method == "HEAD" else r.read()
+        return Response(r.status, {k: v for k, v in r.headers.items()}, body)
+
+
+def http_get(url: str, *, timeout: int = 30, retries: int = 2) -> Response:
+    """GET with retries on transient errors (network, 5xx). Raises on final failure."""
     last_exc: Optional[Exception] = None
     for attempt in range(retries + 1):
         try:
-            r = s.get(url, timeout=timeout, allow_redirects=True)
-            r.raise_for_status()
-            return r
-        except requests.RequestException as e:
+            return _request(url, timeout=timeout)
+        except urllib.error.HTTPError as e:
             last_exc = e
-            if attempt < retries:
-                time.sleep(1.5 * (attempt + 1))
-    raise RuntimeError(f"GET {url} failed after {retries + 1} attempts: {last_exc}")
+            if e.code < 500:
+                break
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            last_exc = e
+        if attempt < retries:
+            time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f"GET {url} failed: {last_exc}")
 
 
-def http_head(url: str, *, timeout: int = 15) -> "requests.Response":
-    s = _session()
-    return s.head(url, timeout=timeout, allow_redirects=True)
+def http_head(url: str, *, timeout: int = 15) -> Response:
+    try:
+        return _request(url, method="HEAD", timeout=timeout)
+    except urllib.error.HTTPError as e:
+        return Response(e.code, {k: v for k, v in e.headers.items()}, b"")
 
 
 # --- Cache manifest -----------------------------------------------------
@@ -110,22 +121,21 @@ class CacheEntry:
 def _load_manifest() -> dict[str, CacheEntry]:
     if not MANIFEST_PATH.exists():
         return {}
-    with MANIFEST_PATH.open() as f:
-        raw = json.load(f)
+    try:
+        raw = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
     return {url: CacheEntry.from_json(e) for url, e in raw.items()}
 
 
 def _save_manifest(manifest: dict[str, CacheEntry]) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     tmp = MANIFEST_PATH.with_suffix(".json.tmp")
-    with tmp.open("w") as f:
-        json.dump(
-            {url: e.to_json() for url, e in manifest.items()},
-            f,
-            indent=2,
-            sort_keys=True,
-        )
-    tmp.replace(MANIFEST_PATH)
+    tmp.write_text(
+        json.dumps({url: e.to_json() for url, e in manifest.items()}, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    os.replace(tmp, MANIFEST_PATH)
 
 
 def _cache_path_for(url: str) -> Path:
@@ -133,7 +143,7 @@ def _cache_path_for(url: str) -> Path:
     # Use a short hash to avoid pathological URL lengths and special chars.
     h = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
     # Keep a hint of the URL in the filename so manual cache inspection is sane.
-    tail = url.rsplit("/", 1)[-1] or "index"
+    tail = url.rstrip("/").rsplit("/", 1)[-1] or "index"
     safe_tail = "".join(c if c.isalnum() or c in "-_." else "_" for c in tail)[:60]
     return CACHE_DIR / f"{safe_tail}.{h}.html"
 
@@ -158,7 +168,7 @@ def fetch_cached(
         age = now - entry.fetched_at
         if age < ttl:
             payload_path = CACHE_DIR / entry.path
-            if payload_path.exists():
+            if payload_path.exists() and payload_path.stat().st_size > 0:
                 return payload_path.read_text(encoding="utf-8"), entry, False
     # Refetch
     r = http_get(url)
@@ -166,7 +176,9 @@ def fetch_cached(
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
     payload_path = _cache_path_for(url)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    payload_path.write_text(text, encoding="utf-8")
+    tmp = payload_path.with_name(payload_path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, payload_path)
     entry = CacheEntry(
         url=url,
         path=payload_path.name,
@@ -192,38 +204,32 @@ def get_cached_only(url: str) -> Optional[tuple[str, CacheEntry]]:
     return payload_path.read_text(encoding="utf-8"), entry
 
 
-def freshness_report(urls: list[str]) -> list[dict]:
+def freshness_report(urls: list[str], *, ttl: int = DEFAULT_TTL) -> list[dict]:
     """For each URL, compare the cached entry to a HEAD request.
 
     Returns a list of dicts with: url, cached_at (iso), age_days, server_last_modified,
     head_status, changed (bool: server reports a different Last-Modified or ETag,
-    or the URL is uncached).
+    or the URL is uncached, or — when the server sends no validators — the cache
+    is older than the TTL).
     """
     manifest = _load_manifest()
+    ttl_days = ttl / 86400
     out = []
     for url in urls:
         entry = manifest.get(url)
         info: dict = {"url": url}
         if entry is None:
-            info.update(
-                {
-                    "cached": False,
-                    "changed": True,
-                    "reason": "not in cache",
-                }
-            )
+            info.update({"cached": False, "changed": True, "reason": "not in cache"})
             out.append(info)
             continue
         info["cached"] = True
-        info["cached_at"] = time.strftime(
-            "%Y-%m-%d %H:%M UTC", time.gmtime(entry.fetched_at)
-        )
+        info["cached_at"] = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(entry.fetched_at))
         info["age_days"] = round((time.time() - entry.fetched_at) / 86400, 1)
         info["cached_last_modified"] = entry.last_modified
         info["cached_etag"] = entry.etag
         try:
             r = http_head(url)
-            info["head_status"] = r.status_code
+            info["head_status"] = r.status
             srv_lm = r.headers.get("Last-Modified")
             srv_etag = r.headers.get("ETag")
             info["server_last_modified"] = srv_lm
@@ -238,11 +244,9 @@ def freshness_report(urls: list[str]) -> list[dict]:
                 reason = "ETag differs"
             elif not srv_lm and not srv_etag:
                 # Server gives no validators — fall back to TTL-based suspicion.
-                if info["age_days"] > 14:
+                if info["age_days"] > ttl_days:
                     changed = True
-                    reason = (
-                        "no Last-Modified/ETag from server; cache older than 14 days"
-                    )
+                    reason = f"no Last-Modified/ETag from server; cache older than {ttl_days:g} days"
             info["changed"] = changed
             if reason:
                 info["reason"] = reason
@@ -256,10 +260,11 @@ def freshness_report(urls: list[str]) -> list[dict]:
 
 # --- Country codes ------------------------------------------------------
 
-# Minimal mapping for the states with a deposited Article 36(2) declaration.
+# Mapping for the states with a deposited Article 36(2) declaration
+# (checked against the live /declarations index, September 2026).
 # The skill resolves user input ("Norway") -> ISO-2 ("no") via this table.
-# Keep it conservative — when a state is absent here, declarations.show falls
-# back to a substring search across the live declarations index.
+# When a state is absent here, declarations.show falls back to a substring
+# search across the live declarations index.
 NAME_TO_ISO2 = {
     "australia": "au",
     "austria": "at",

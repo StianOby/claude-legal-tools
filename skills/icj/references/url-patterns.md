@@ -33,15 +33,34 @@ Both work; the cache stores whichever was actually fetched.
 
 ```
 https://www.icj-cij.org/case/<N>
+https://www.icj-cij.org/case/<N>/<section>
 ```
 
-`<N>` is the case ID (1..199 as of 2026). The page lists every document
-in the case grouped under H4 headings: *Institution of proceedings,
-Written proceedings, Oral proceedings, Other documents, Orders,
-Judgments, Summaries of Judgments and Orders, Press releases*.
+`<N>` is the case ID (1..199 as of 2026). The case page itself shows the
+title and "latest developments" plus a tab bar (an `<aside>` outside
+`<main>`) linking to one subpage per section. Each subpage has a single
+H4 with the section name and the PDF links. Section slugs seen so far:
 
-The skill exposes only the decision-adjacent buckets. Pleadings (Written
-proceedings) and verbatim records (Oral proceedings) are filtered out.
+| Slug | Content |
+|------|---------|
+| `institution-proceedings` | Application / special agreement |
+| `request-advisory-opinion` | Request for an advisory opinion |
+| `written-proceedings` | Pleadings (filtered out by default) |
+| `oral-proceedings`, `oral-statements` | Verbatim records (filtered out by default) |
+| `other-documents` | Other documents |
+| `orders` | Orders |
+| `judgments` | Judgments |
+| `advisory-opinions` | Advisory opinions |
+| `summaries` | Summaries of Judgments and Orders |
+| `press-releases` | Press releases |
+| `provisional-measures`, `intervention`, `discontinuance` | Procedural sub-collections (some cases) |
+
+The skill reads the slugs from the tab bar rather than hard-coding them, so
+new sections appear automatically. Only `written-proceedings`,
+`oral-proceedings` and `oral-statements` are treated as pleadings.
+
+Note that `/list-of-all-cases` lists concluded cases only; pending cases
+are on `/pending-cases` (titles only).
 
 ## Per-state declarations
 
@@ -109,3 +128,6 @@ where `<X>` is `A`, `B`, or `AB`, `<NN>` is the two-digit case number, and
 - A `?page=N` query string is accepted on listing pages, but the listings
   used by this skill (`/decisions`, `/list-of-all-cases`) currently render
   all entries on one page.
+- PDF downloads (`/sites/default/files/...pdf`) are behind a Cloudflare
+  challenge and return 403 to any non-browser client; the HTML pages are
+  not.

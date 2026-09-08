@@ -10,14 +10,14 @@ where relevant).
 from __future__ import annotations
 
 import re
-from typing import Optional
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
-
-from _common import BASE, fetch_cached, resolve_state, warn
+from _common import BASE, fetch_cached, resolve_state
+from _html import main_content, parse
 
 INDEX_URL = f"{BASE}/index.php/declarations"
+
+_DECL_HREF = re.compile(r"^(?:https?://[^/]+)?/declarations/([a-z]{2})/?$")
 
 
 def _per_state_url(cc: str) -> str:
@@ -32,20 +32,20 @@ def index(*, force_refresh: bool = False) -> dict:
     Each entry: {state, deposit_date, iso2, url}.
     """
     html, entry, _ = fetch_cached(INDEX_URL, force_refresh=force_refresh)
-    soup = BeautifulSoup(html, "html.parser")
-    main = soup.find("main") or soup
+    main = main_content(parse(html))
     items: list[dict] = []
-    # The index renders each state as a header (h5) containing an <a> to
-    # /declarations/<cc>. Grab every link of that shape.
-    for a in main.find_all("a", href=True):
-        href = a["href"]
-        m = re.match(r"^(?:https?://[^/]+)?/declarations/([a-z]{2})/?$", href)
+    seen: set[str] = set()
+    # The index renders each state as a link to /declarations/<cc> whose text
+    # reads "Norway 24 June 1996".
+    for a in main.find_all("a"):
+        m = _DECL_HREF.match(a.get("href") or "")
         if not m:
             continue
         cc = m.group(1)
-        text = a.get_text(" ", strip=True)
-        # Text typically reads: "Norway 24 June 1996"
-        # Split on first run of spaces followed by a digit.
+        text = a.get_text()
+        if not text or cc in seen:
+            continue
+        seen.add(cc)
         parts = re.split(r"\s+(?=\d)", text, maxsplit=1)
         if len(parts) == 2:
             state_name, deposit_date = parts[0].strip(), parts[1].strip()
@@ -56,30 +56,21 @@ def index(*, force_refresh: bool = False) -> dict:
                 "state": state_name,
                 "iso2": cc,
                 "deposit_date": deposit_date,
-                "url": urljoin(BASE, href),
+                "url": urljoin(BASE, a["href"]),
             }
         )
-    # De-dup while preserving order — the index sometimes repeats links.
-    seen = set()
-    deduped = []
-    for it in items:
-        key = it["iso2"]
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(it)
     # Pull the introductory paragraph(s)
     intro_parts = []
     for p in main.find_all("p", limit=8):
-        t = p.get_text(" ", strip=True)
+        t = p.get_text()
         if t and len(t) > 30:
             intro_parts.append(t)
     return {
         "url": INDEX_URL,
         "fetched_at": entry.fetched_at,
-        "count": len(deduped),
+        "count": len(items),
         "intro": "\n\n".join(intro_parts[:4]),
-        "states": deduped,
+        "states": items,
     }
 
 
@@ -109,35 +100,28 @@ def show(name_or_code: str, *, force_refresh: bool = False) -> dict:
             }
     url = _per_state_url(cc)
     html, entry, _ = fetch_cached(url, force_refresh=force_refresh)
-    soup = BeautifulSoup(html, "html.parser")
-    main = soup.find("main") or soup
-    # Drop nav/footer noise
-    for sel in ["nav", "footer"]:
-        for n in main.find_all(sel):
-            n.decompose()
+    main = main_content(parse(html))
     # The declaration text sits inside the page body, after the H1
     # (which is generic) and an H3 with the state name.
     h3 = main.find("h3")
-    state_name = h3.get_text(" ", strip=True) if h3 else cc.upper()
-    # Collect all paragraphs after the H3.
+    state_name = h3.get_text() if h3 else cc.upper()
     parts: list[str] = []
-    started = False
-    for el in main.descendants:
+    started = h3 is None
+    for el in main.iter():
         if el is h3:
             started = True
             continue
-        if not started:
+        if not started or el.tag is None:
             continue
-        name = getattr(el, "name", None)
-        if name in ("p", "li"):
-            t = el.get_text(" ", strip=True)
+        if el.tag in ("p", "li"):
+            t = el.get_text()
             # Stop when we hit the secondary navigation block.
             if t in ("Jurisdiction", "Top Menu", "Footer menu"):
                 break
             if t:
                 parts.append(t)
-        elif name in ("h2", "h3") and el is not h3:
-            t = el.get_text(" ", strip=True)
+        elif el.tag in ("h2", "h3"):
+            t = el.get_text()
             if t and t not in ("Jurisdiction",):
                 parts.append(f"## {t}")
     text = "\n\n".join(parts).strip()
@@ -152,8 +136,4 @@ def show(name_or_code: str, *, force_refresh: bool = False) -> dict:
 
 def compare(states: list[str], *, force_refresh: bool = False) -> dict:
     """Return the text of two or more declarations side by side."""
-    out = []
-    for s in states:
-        d = show(s, force_refresh=force_refresh)
-        out.append(d)
-    return {"declarations": out}
+    return {"declarations": [show(s, force_refresh=force_refresh) for s in states]}

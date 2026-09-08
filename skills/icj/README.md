@@ -4,7 +4,7 @@
 
 Three things, all rooted at icj-cij.org:
 
-1. **Case law** — ICJ contentious + advisory cases (`/list-of-all-cases`, `/case/<N>`, `/decisions`) and PCIJ Series A/B/A/B (judgments and advisory opinions, 1922-1940).
+1. **Case law** — ICJ contentious + advisory cases (`/list-of-all-cases`, `/pending-cases`, `/case/<N>/<section>`, `/decisions`) and PCIJ Series A/B/A/B (judgments and advisory opinions, 1922-1940). Judgment PDFs are Cloudflare-protected; read them through the Claude Cowork internal browser (see `SKILL.md`).
 2. **Jurisdiction** — the seven `/index.php/...` pages: states-entitled-to-appear, states-not-members, states-not-parties, basis-of-jurisdiction, treaties, organs-agencies-authorized, declarations.
 3. **Article 36(2) declarations** — the verbatim text of every state's optional-clause declaration, accessible by name or ISO-2 code; supports `compare` for side-by-side reading.
 
@@ -40,16 +40,13 @@ python scripts/icj.py status                          # cache freshness
 python scripts/icj.py refresh                         # update changed pages
 ```
 
-Requires `requests` and `beautifulsoup4`:
-
-```
-pip install requests beautifulsoup4
-```
+Standard library only (Python 3.9+); nothing to install.
 
 ## Cache
 
-`data/cache/` holds scraped HTML keyed by URL with a manifest tracking
-`fetched_at`, `Last-Modified`, `ETag`, and a SHA-256 of the body.
+`~/.cache/icj/` (or `$ICJ_CACHE_DIR`) holds scraped HTML keyed by URL with
+a manifest tracking `fetched_at`, `Last-Modified`, `ETag`, and a SHA-256 of
+the body. Nothing is written inside the skill folder.
 `status` does HEAD requests against the cached URLs to flag changes;
 `refresh` re-downloads anything stale (or `--all` for everything). Default
 TTL: 14 days.

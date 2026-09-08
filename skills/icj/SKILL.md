@@ -35,13 +35,9 @@ Pleadings, written observations, and verbatim records of hearings are deliberate
 
 ## Setup
 
-All scripts live in `scripts/`. They are plain Python 3 and depend only on `requests` and `beautifulsoup4`:
+All scripts live in `scripts/`. They are plain Python 3 (3.9+) using only the standard library — no packages to install.
 
-```bash
-pip install requests beautifulsoup4 --break-system-packages
-```
-
-The CLI entry point is `scripts/icj.py`. Run `python scripts/icj.py --help` for the subcommand list. Cached data lives in `~/.cache/icj/` (override with `$ICJ_CACHE_DIR`) and is created on first use.
+The CLI entry point is `scripts/icj.py`. Run `python3 scripts/icj.py --help` for the subcommand list. Cached data lives in `~/.cache/icj/` (override with `$ICJ_CACHE_DIR`) and is created on first use; the cache is never written inside the skill folder.
 
 ## Cache and freshness
 
@@ -55,12 +51,12 @@ When the user asks a question that hinges on the *current* state of jurisdiction
 
 ## Subcommands
 
-The CLI groups functionality by data type. Each subcommand prints either machine-friendly JSON (with `--json`) or a short human-readable summary. PDFs are referenced by URL. Direct HTTP download of icj-cij.org PDFs is blocked by Cloudflare — see **Fetching PDF text** below for the workaround.
+The CLI groups functionality by data type. Each subcommand prints either machine-friendly JSON (with `--json`) or a short human-readable summary. PDFs are referenced by URL. Direct HTTP download of icj-cij.org PDFs is blocked by Cloudflare — see **Fetching PDF text** below for how to read them anyway.
 
 ### `cases` — ICJ contentious + advisory cases
 
-- `cases list [--pending] [--year YYYY] [--country XX] [--advisory] [--contentious]` — list the Court's cases. Default lists all 170+ cases. `list-of-all-cases` is the source.
-- `cases show <case_id>` — show a case page: title, parties, key dates, and links to all judgments / orders / advisory opinions / summaries / press releases. **Pleadings and oral proceedings are intentionally omitted** from the output (see "Out of scope" below).
+- `cases list [--pending] [--year YYYY] [--country XX] [--advisory] [--contentious]` — list the Court's cases. The site's `list-of-all-cases` page holds only *concluded* cases (with years and type); pending cases live on `pending-cases` with title only. The default merges both (pending entries carry `"pending": true`, blank years, and a case type inferred from the title); `--pending` shows only the pending ones.
+- `cases show <case_id>` — show a case: title and links to all judgments / orders / advisory opinions / summaries / press releases / institution documents, grouped by section. The documents are read from the per-section subpages (`/case/<N>/orders`, `/judgments`, `/press-releases`, `/institution-proceedings`, `/summaries`, `/other-documents`, and for advisory cases `/request-advisory-opinion`, `/advisory-opinions`) — the case page itself only lists "latest developments". **Pleadings and oral proceedings are intentionally omitted** unless you pass `--include-pleadings` (see "Out of scope" below).
 - `cases recent [--limit N]` — the latest decisions across all cases (mirrors the `/decisions` page).
 - `cases search "query"` — substring search over case titles in the cache.
 
@@ -77,7 +73,7 @@ PCIJ Series C (pleadings/oral arguments), Series D (organisational acts), Series
 - `jurisdiction non-un` — text of `/states-not-members` (states that became party to the Statute without being UN members).
 - `jurisdiction non-parties` — text of `/states-not-parties` (states not party to the Statute to which the Court may be open under Art. 35(2) and SC Resolution 9 (1946)).
 - `jurisdiction basis` — text of `/basis-of-jurisdiction` (the Court's own description of how jurisdiction can be founded: special agreement, treaty clause, optional clause, forum prorogatum, Article 35).
-- `jurisdiction treaties [--year YYYY] [--search QUERY]` — the long table of treaties that confer jurisdiction on the Court.
+- `jurisdiction treaties [--year YYYY] [--search QUERY]` — the table of treaties that confer jurisdiction on the Court (year, date, place, title and clause, contracting parties). `--search` matches title and parties; note the page lists treaties *notified to the Registry*, so well-known compromissory clauses (Genocide Convention Art. IX) may be absent — check the convention itself via `untc` or `ets`.
 - `jurisdiction organs` — text of `/organs-agencies-authorized` (UN organs and specialized agencies entitled to request advisory opinions, with the list of opinions each has requested).
 
 ### `declarations` — Article 36(2) optional-clause declarations
@@ -103,31 +99,32 @@ Always quote the relevant reservation language verbatim from the declaration tex
 
 When answering substantive questions:
 
-- For **case law**, link to the official PDF on `icj-cij.org` (the URLs returned by `cases show` / `pcij show` are the canonical ones). If the user wants the text of a judgment, direct HTTP download is blocked by Cloudflare — use the Playwright workaround described in **Fetching PDF text** below.
+- For **case law**, link to the official PDF on `icj-cij.org` (the URLs returned by `cases show` / `pcij show` are the canonical ones). If the user wants the text of a judgment, direct HTTP download is blocked by Cloudflare — read it through the Claude Cowork internal browser as described in **Fetching PDF text** below.
 - For **jurisdictional facts**, cite the page name (e.g. "States entitled to appear before the Court") and the date the cache was last refreshed. Always check `status` first if the user's question is about the current legal position.
 - For **declarations**, quote the deposit date and the relevant clause exactly as it appears in the cached text. The skill stores the canonical English version published by the Court.
 
 ## Fetching PDF text
 
-Direct HTTP requests to `icj-cij.org` PDF URLs — via `requests`, `curl`, or `urllib` — are blocked by Cloudflare and return a challenge page instead of the PDF. The only reliable method is a Playwright session:
+Direct HTTP requests to `icj-cij.org` PDF URLs — via `curl`, `urllib` or any script, whatever the User-Agent — are answered by Cloudflare with a 403 challenge page instead of the PDF (verified September 2026). The HTML pages the CLI uses are not affected. To read a judgment, use the **Claude Cowork internal browser**, which passes the challenge like an ordinary browser:
 
-1. Navigate to the HTML case page (e.g. `https://www.icj-cij.org/case/82`) to acquire Cloudflare cookies.
-2. In the same page context, use `page.evaluate()` to fetch the PDF with credentials and return it as base64:
+1. Get the PDF URL from `cases show <N>` or `pcij show <code>`.
+2. In the internal browser, first open the HTML case page (e.g. `https://www.icj-cij.org/case/82`) so the Cloudflare cookies are set, then open the PDF URL in the same browser session. The built-in PDF viewer renders the text; read and quote from it there, with the paragraph numbers.
+3. If the user needs the file itself, save it from the browser (download) or, where the browser tool can run page scripts, fetch it as base64 from the case page context and write the decoded bytes to a `.pdf` file:
    ```javascript
    const r = await fetch(pdfUrl, { credentials: 'include' });
    const buf = await r.arrayBuffer();
    return btoa(String.fromCharCode(...new Uint8Array(buf)));
    ```
-3. Decode the base64 string in Python (`base64.b64decode(...)`) and write the bytes to a `.pdf` file, then read it with a PDF tool.
+   then `base64.b64decode(...)` in Python and read the PDF with a PDF tool.
 
-**Note on Playwright's `filename` parameter:** `browser_evaluate(..., filename="foo.pdf")` saves the file relative to the user's selected *workspace folder*, not the session outputs directory.
+If no browser tool is available in the session, give the user the PDF URL and quote only what `cases show` / the summaries page provides; do not reconstruct judgment text from memory.
 
 ## Out of scope (deliberately)
 
 This skill does not expose:
 
 - **Pleadings, written observations, counter-memorials, or verbatim records of oral hearings.** Even when present in a case page, they are filtered out of `cases show` output. A separate skill will handle hearing documents.
-- **PDF text extraction via simple HTTP.** Direct download from icj-cij.org is blocked by Cloudflare; use the Playwright workaround in **Fetching PDF text** above.
+- **PDF text extraction via simple HTTP.** Direct download from icj-cij.org is blocked by Cloudflare; read PDFs through the Claude Cowork internal browser as described in **Fetching PDF text** above.
 - **Translation.** Documents are surfaced in English by default. French URLs are noted when present but not parsed.
 - **Live-scraping every request.** Jurisdiction data goes through the cache; case data is fetched on demand and cached briefly. The user-facing freshness contract is described above.
 
@@ -138,10 +135,11 @@ icj/
 ├── SKILL.md
 ├── scripts/
 │   ├── icj.py            # CLI entry point; thin dispatcher to the modules below
-│   ├── _common.py        # HTTP, cache manifest, freshness, country codes
+│   ├── _common.py        # HTTP (urllib), cache manifest, freshness, country codes
+│   ├── _html.py          # minimal DOM over html.parser (no BeautifulSoup needed)
 │   ├── jurisdiction.py   # the 7 /index.php/... pages
 │   ├── declarations.py   # /declarations and /declarations/<cc>
-│   ├── cases.py          # /list-of-all-cases, /case/<N>, /decisions
+│   ├── cases.py          # /list-of-all-cases, /pending-cases, /case/<N>/<section>, /decisions
 │   └── pcij.py           # /pcij-series-{a,b,ab}
 ├── references/
 │   ├── url-patterns.md       # all URLs, PDF naming, doc-type codes

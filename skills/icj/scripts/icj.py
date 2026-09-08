@@ -94,28 +94,29 @@ def _print_case_show(payload):
         f"  decision documents: {payload['decision_documents_count']}  "
         f"(pleadings excluded: {payload['pleadings_excluded_count']})"
     )
+    if payload.get("warning"):
+        print(f"  WARNING: {payload['warning']}")
     print()
     for sec in payload.get("decision_sections", []):
-        print(f"--- {sec['section']} ---")
+        print(f"--- {sec['section']} ---   {sec.get('url', '')}")
+        if sec.get("error"):
+            print(f"  (could not fetch: {sec['error']})")
         for it in sec["items"]:
             date = it.get("date") or ""
-            print(f"  {date:<11} {it['label']}")
+            lang = f" [{it['lang']}]" if it.get("lang") else ""
+            print(f"  {date:<11} {it['label']}{lang}")
             print(f"      {it['url']}")
         print()
     if payload.get("pleadings_sections"):
         for sec in payload["pleadings_sections"]:
-            print(f"--- {sec['section']} (pleadings — included on request) ---")
+            print(f"--- {sec['section']} (pleadings — included on request) ---   {sec.get('url', '')}")
             for it in sec["items"]:
                 print(f"  {it['label']}  {it['url']}")
             print()
-    if payload.get("unknown_sections"):
-        print("--- other sections ---")
-        for sec in payload["unknown_sections"]:
-            print(f"  ({sec['section']}: {len(sec['items'])} items)")
 
 
 def _print_recent(payload):
-    print(f"Latest decisions ({payload['count']}):")
+    print(f"Latest decisions ({payload['count']}):  source: {payload.get('source_url', '')}")
     for d in payload["decisions"]:
         print(f"  {d['decision_title']}  --  {d['case_title']}  (case {d['case_id']})")
         if d.get("subtitle"):
@@ -148,11 +149,13 @@ def _print_pcij_show(payload):
 
 
 def _print_treaties(payload):
-    print(f"Treaties conferring jurisdiction: {payload['count']} matched")
-    for t in payload["items"][:200]:
-        print(f"  - {t['text'][:120]}")
+    print(f"Treaties conferring jurisdiction: {payload['count']} matched "
+          f"(of {payload.get('count_total', '?')} listed)  source: {payload['url']}")
+    for t in payload["items"][:300]:
+        print(f"  - {t['year']} {t['date']:<12} {t['place']:<16} {t['title'][:110]}")
+        print(f"        parties: {t['parties']}")
         if t.get("url"):
-            print(f"      {t['url']}")
+            print(f"        {t['url']}")
 
 
 def _print_text_block(payload):
@@ -241,6 +244,12 @@ def main(argv=None):
     dc = decl_sub.add_parser("compare")
     _add_common_flags(dc)
     dc.add_argument("states", type=str, nargs="+")
+
+    # Declaration texts and case titles contain characters outside cp1252;
+    # never let the console encoding turn a successful fetch into a crash.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     args = parser.parse_args(argv)
 
