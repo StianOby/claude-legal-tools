@@ -29,8 +29,8 @@ katalog som `scripts/lovdata.py` ligger i.
 ## Innhold — hva dekkes
 
 Frie datapakker (ingen API-nøkkel nødvendig):
-- **NL** — Gjeldende norske lover (782 XML-filer, daglig oppdatert)
-- **SF** — Gjeldende sentrale forskrifter (3733 XML-filer, daglig oppdatert)
+- **NL** — Gjeldende norske lover (ca. 760 XML-filer, daglig oppdatert)
+- **SF** — Gjeldende sentrale forskrifter (over 5000 XML-filer, daglig oppdatert)
 
 Lokale forskrifter (LF) er ikke inkludert i de frie pakkene.
 
@@ -81,19 +81,15 @@ Erstatt `{SKILL_DIR}` med basiskatalogens sti fra "Base directory for this skill
 python {SKILL_DIR}/scripts/lovdata.py search "søkeord"
 ```
 
-Søker i titler og DokID. Returner liste med tittel, DokID og sist-endret-dato.
+Søker i titler, Lovdatas korttitler/forkortelser (`aml`, `fvl`, `Grl.`) og
+DokID. Returnerer liste med tittel, korttittel, DokID og sist-endret-dato.
+Eksakt treff på forkortelse rangeres først.
 
 **Eksempler:**
 ```
 python .../lovdata.py search "arbeidsmiljø"
-python .../lovdata.py search "forvaltning"
+python .../lovdata.py search "aml"
 python .../lovdata.py search "internkontroll"
-```
-
-### Hent full lovtekst
-
-```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62"
 ```
 
 ### Hent en spesifikk paragraf
@@ -104,7 +100,28 @@ python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "§4-6"
 python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
 ```
 
-Returner ren tekst av paragrafen med alle ledd, inkl. endringshistorikk.
+Returnerer ren tekst av paragrafen med alle ledd, inkl. endringshistorikk.
+Listepunkter beholder markøren (`a.`, `b.`, `1.`), slik at «annet ledd
+bokstav b» kan siteres presist.
+
+### Hent et kapittel
+
+```bash
+python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
+```
+
+Foretrekk kapittel fremfor hele loven når spørsmålet gjelder et tema
+(f.eks. arbeidstid = aml. kapittel 10).
+
+### Hent full lovtekst
+
+```bash
+python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" --out aml.txt
+```
+
+Hele lover er ofte svært lange (arbeidsmiljøloven er over 200 000 tegn).
+Bruk `--out FIL` og les filen i deler i stedet for å skrive alt til
+terminalen; uten `--out` skrives teksten til stdout.
 
 ### Sjekk status
 
@@ -129,16 +146,19 @@ Vanlige lover og forkortelser:
 - `NL/lov/1967-02-10` — forvaltningsloven (fvl.)
 - `NL/lov/2006-05-19-16` — offentleglova (offl.)
 - `NL/lov/2005-05-20-28` — straffeloven (strl.)
-- `NL/lov/1902-05-22-10` — straffeloven 1902 (opphevet)
 - `NL/lov/1981-05-22-25` — straffeprosessloven (strpl.)
 - `NL/lov/2005-05-20-25` — tvisteloven (tvl.)
 - `NL/lov/1999-07-02-63` — pasientrettighetsloven
 - `NL/lov/1999-07-02-64` — helsepersonelloven
 - `NL/lov/1992-11-04-126` — arbeidstvistloven
 - `NL/lov/2013-06-21-58` — likestillings- og diskrimineringsloven
+- `NL/lov/2023-12-20-108` — digitalsikkerhetsloven
+- `NL/lov/2024-12-13-76` — ekomloven
 - `SF/forskrift/1996-12-06-1127` — internkontrollforskriften (HMS)
 
-Kjenner du ikke DokID, bruk `search` og finn den riktige.
+Kjenner du ikke DokID, bruk `search` og finn den riktige. Pakkene inneholder
+bare *gjeldende* regelverk: opphevede lover (f.eks. straffeloven 1902) finnes
+ikke her — bruk `lovdata-pro` for historiske versjoner.
 
 ---
 
@@ -156,7 +176,8 @@ Kjenner du ikke DokID, bruk `search` og finn den riktige.
 
 1. Kjør `update`.
 2. Kjør `search` med relevante norske søkeord.
-3. Hent relevante dokumenter/paragrafer med `get`.
+3. Hent relevante kapitler (`get <dokid> kapN`) eller paragrafer med `get`;
+   hent hele loven med `--out` bare når det virkelig trengs.
 4. Presenter relevante bestemmelser med sitat på norsk.
 
 ### Bruker spør om nylige endringer
@@ -211,3 +232,5 @@ lovtekst for alle praktiske formål.
 - **Dokument ikke funnet**: Prøv `search` med andre søkeord; husk at lokale
   forskrifter (LF) ikke er inkludert i de frie pakkene.
 - **Tom paragraf**: Paragrafen kan være opphevet — sjekk lovteksten rundt.
+- **Filen finnes ikke lenger**: Indeksen er utdatert — kjør `index` (eller
+  `update`) på nytt.

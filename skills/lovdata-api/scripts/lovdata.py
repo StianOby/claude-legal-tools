@@ -12,9 +12,11 @@ Bruk:
   python lovdata.py update                     Sjekk og last ned oppdaterte pakker
   python lovdata.py status                     Vis nedlastningsstatus og datoer
   python lovdata.py index                      Bygg søkeindeks (kjøres automatisk etter update)
-  python lovdata.py search <søkeord>           Søk i titler og innhold
+  python lovdata.py search <søkeord>           Søk i titler, korttitler (aml, fvl ...) og DokID
   python lovdata.py get <dokid>                Hent full lovtekst (f.eks. NL/lov/2005-06-17-62)
   python lovdata.py get <dokid> <paragraf>     Hent spesifikk paragraf (f.eks. §4-6 eller 4-6)
+  python lovdata.py get <dokid> kap4           Hent et helt kapittel
+  python lovdata.py get <dokid> --out FIL      Skriv teksten til fil i stedet for stdout
 
 Tilstand og nedlastede data lagres i en skrivbar brukerkatalog (ikke i selve
 ferdighetskatalogen, som ofte er skrivebeskyttet når skillet er installert).
@@ -25,12 +27,17 @@ Stien velges slik:
   4. ~/.cache/lovdata — ellers
 """
 
+from __future__ import annotations
+
 import argparse
+import html
 import json
 import os
 import re
+import shutil
 import sys
 import tarfile
+import tempfile
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -154,36 +161,93 @@ def download_package(filename: str, dest: Path, api_key: str | None = None):
         headers["X-API-Key"] = api_key
     req = urllib.request.Request(url, headers=headers)
     print(f"  Laster ned {filename} ...", flush=True)
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        data = resp.read()
-    with open(dest, "wb") as f:
-        f.write(data)
-    print(f"  Lastet ned {len(data) // 1024} KB", flush=True)
+    # Skriv til en midlertidig fil og bytt inn atomisk, slik at en avbrutt
+    # nedlasting aldri etterlater et halvt arkiv under det endelige navnet.
+    tmp = dest.with_name(dest.name + ".part")
+    size = 0
+    with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as f:
+        while True:
+            block = resp.read(1 << 20)
+            if not block:
+                break
+            f.write(block)
+            size += len(block)
+    if size == 0:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"tom nedlasting: {filename}")
+    os.replace(tmp, dest)
+    print(f"  Lastet ned {size // 1024} KB", flush=True)
 
 
 # --- Pakke- og indekshåndtering ----------------------------------------------
 
 def extract_package(archive_path: Path, extract_to: Path):
-    extract_to.mkdir(parents=True, exist_ok=True)
+    """Pakk ut arkivet flatt til extract_to.
+
+    Utpakkingen skjer først til en midlertidig søsterkatalog som deretter
+    byttes inn for den gamle. Feiler utpakkingen, står den gamle katalogen
+    urørt, og indeksen peker aldri på en halvferdig fil-samling.
+    """
+    extract_to.parent.mkdir(parents=True, exist_ok=True)
     print(f"  Pakker ut til {extract_to} ...", flush=True)
-    with tarfile.open(archive_path, "r:bz2") as tf:
-        # Extract only the inner files (strip leading directory component)
-        members = tf.getmembers()
-        for member in members:
-            # Flatten: remove leading directory (e.g. nl/ or sf/)
-            parts = Path(member.name).parts
-            if len(parts) >= 2:
-                member.name = parts[-1]  # just the filename
-            elif len(parts) == 1:
-                continue  # skip the directory entry itself
-            tf.extract(member, path=extract_to)
-    print(f"  Pakket ut {len(members)} filer", flush=True)
+    tmp_dir = Path(tempfile.mkdtemp(prefix=extract_to.name + ".", dir=extract_to.parent))
+    count = 0
+    try:
+        with tarfile.open(archive_path, "r:bz2") as tf:
+            for member in tf:
+                if not member.isfile():
+                    continue  # katalogoppføringer, lenker o.l.
+                # Flat struktur: behold bare filnavnet (fjerner nl/ eller sf/ og
+                # hindrer samtidig at stier med ../ havner utenfor katalogen).
+                name = Path(member.name).name
+                if not name or name.startswith("."):
+                    continue
+                src = tf.extractfile(member)
+                if src is None:
+                    continue
+                with src, open(tmp_dir / name, "wb") as out:
+                    shutil.copyfileobj(src, out)
+                count += 1
+        if count == 0:
+            raise RuntimeError(f"arkivet {archive_path.name} inneholdt ingen filer")
+        old_dir = None
+        if extract_to.exists():
+            old_dir = extract_to.with_name(extract_to.name + ".old")
+            if old_dir.exists():
+                shutil.rmtree(old_dir)
+            os.replace(extract_to, old_dir)
+        os.replace(tmp_dir, extract_to)
+        if old_dir is not None:
+            shutil.rmtree(old_dir, ignore_errors=True)
+    except BaseException:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
+    print(f"  Pakket ut {count} filer", flush=True)
+
+
+def _read_header(xml_file: Path) -> str:
+    """Les dokumenthodet (til og med metadata-listen <dl>), ikke hele filen."""
+    with open(xml_file, encoding="utf-8") as f:
+        content = f.read(8000)
+        while "</dl>" not in content and "</header>" not in content:
+            more = f.read(8000)
+            if not more:
+                break
+            content += more
+    return content
+
+
+def _dd(content: str, cls: str) -> str:
+    m = re.search(rf'<dd class="{cls}">(.*?)</dd>', content, flags=re.S)
+    return html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip() if m else ""
 
 
 def build_index(data_dir: Path) -> dict:
     """
     Bygger en søkeindeks over alle nedlastede lover og forskrifter.
-    Returnerer en dict: {filename: {title, dokid, base, lastChange}}
+    Returnerer en dict: {"<subdir>/<filnavn>": {title, titleShort, dokid, base,
+    lastChange, filename}}. Nøkkelen er relativ til datakatalogen, slik at
+    indeksen fortsatt virker om datakatalogen flyttes.
     """
     index = {}
     for base_key, pkg in PACKAGES.items():
@@ -193,23 +257,16 @@ def build_index(data_dir: Path) -> dict:
         base_code = "NL" if pkg["subdir"] == "nl" else "SF"
         for xml_file in sorted(subdir.glob("*.xml")):
             try:
-                with open(xml_file, encoding="utf-8") as f:
-                    content = f.read(3000)
+                content = _read_header(xml_file)
                 title_m = re.search(r"<title>([^<]+)</title>", content)
-                dokid_m = re.search(
-                    r'class="dokid">DokumentID</dt><dd class="dokid">([^<]+)</dd>', content
-                )
-                last_m = re.search(
-                    r'class="lastChangeInForce">Ikrafttredelse av siste endring</dt>'
-                    r'<dd class="lastChangeInForce">([^<]+)</dd>',
-                    content,
-                )
-                if dokid_m:
-                    index[str(xml_file)] = {
-                        "title": title_m.group(1).strip() if title_m else "",
-                        "dokid": dokid_m.group(1).strip(),
+                dokid = _dd(content, "dokid")
+                if dokid:
+                    index[f"{pkg['subdir']}/{xml_file.name}"] = {
+                        "title": html.unescape(title_m.group(1)).strip() if title_m else "",
+                        "titleShort": _dd(content, "titleShort"),
+                        "dokid": dokid,
                         "base": base_code,
-                        "lastChange": last_m.group(1).strip() if last_m else "",
+                        "lastChange": _dd(content, "lastChangeInForce"),
                         "filename": xml_file.name,
                     }
             except Exception:
@@ -217,61 +274,137 @@ def build_index(data_dir: Path) -> dict:
     return index
 
 
+def index_path(key: str) -> Path:
+    """Filsti for en indeksnøkkel (relativ til DATA_DIR; eldre indekser brukte absolutte stier)."""
+    p = Path(key)
+    return p if p.is_absolute() else DATA_DIR / key
+
+
+def _save_index(index: dict):
+    tmp = INDEX_FILE.with_name(INDEX_FILE.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(index, f, ensure_ascii=False)
+    os.replace(tmp, INDEX_FILE)
+
+
+def _load_index() -> dict:
+    if not INDEX_FILE.exists():
+        print("Ingen indeks funnet. Kjør 'python lovdata.py update' først.", file=sys.stderr)
+        sys.exit(1)
+    with open(INDEX_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
 # --- Søk og oppslag ----------------------------------------------------------
 
+def _short_forms(title_short: str) -> list[str]:
+    """Lovdatas korttittel har formen «Arbeidsmiljøloven – aml»; returner
+    begge delene (uten avsluttende punktum) i små bokstaver."""
+    parts = re.split(r"\s+[–-]\s+", title_short)
+    return [p.strip().rstrip(".").lower() for p in parts if p.strip()]
+
+
 def search_index(index: dict, query: str, max_results: int = 15) -> list[dict]:
-    """Søk i indeksen etter tittel eller dokid (case-insensitive)."""
-    query_lower = query.lower()
+    """Søk i indeksen etter tittel, korttittel/forkortelse eller dokid (case-insensitive).
+
+    En forkortelse som «aml» eller «Grl.» treffer Lovdatas korttittel
+    eksakt og rangeres først; deretter delstrengtreff i tittel og korttittel.
+    """
+    q = query.strip().rstrip(".").lower()
+    if not q:
+        return []
     results = []
     for path, meta in index.items():
         score = 0
-        if query_lower in meta["title"].lower():
-            score += 2
-        if query_lower in meta["dokid"].lower():
+        short = meta.get("titleShort", "")
+        forms = _short_forms(short) if short else []
+        if q in forms:
+            score += 6
+        elif short and q in short.lower():
             score += 3
+        if q in meta["dokid"].lower():
+            score += 3
+        if q in meta["title"].lower():
+            score += 2
         if score:
             results.append({**meta, "_score": score, "_path": path})
-    results.sort(key=lambda x: -x["_score"])
+    results.sort(key=lambda x: (-x["_score"], x["title"]))
     return results[:max_results]
 
 
 _BLOCK_TAGS = r"</?(article|section|h1|h2|h3|h4|h5|h6|p|li|dd|dt|tr|div|ul|ol|table|thead|tbody|caption)[^>]*>"
 
-_ENTITIES = (
-    ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
-    ("&nbsp;", " "), ("&#160;", " "), ("&quot;", '"'), ("&#39;", "'"),
-)
+_MARK = "\x01"  # midlertidig markør for listepunkt, fjernes i _html_to_text
+
+
+def _list_marker(m: re.Match) -> str:
+    """Behold bokstav/nummer fra <li data-name="a."> som tekst, slik at
+    «bokstav a» i et ledd kan siteres og gjenfinnes."""
+    return "\n" + _MARK + html.unescape(m.group(1)) + "\n"
 
 
 def _html_to_text(chunk: str) -> str:
     """Konverter HTML-fragment til ren tekst med bevart avsnittsstruktur."""
+    # Listepunkter: skriv ut markøren (a., 1., ...) før teksten
+    chunk = re.sub(r'<li[^>]*\sdata-name="([^"]+)"[^>]*>', _list_marker, chunk, flags=re.I)
     # Blokknivå-tagger blir linjeskift; inline-tagger (span, a, ...) fjernes sporløst
     chunk = re.sub(_BLOCK_TAGS, "\n", chunk, flags=re.I)
     # Celleskille. Kun sluttag — matcher man også starttag blir separatoren doblet ("| |").
     chunk = re.sub(r"</(td|th)>", " | ", chunk, flags=re.I)
     chunk = re.sub(r"<br\s*/?>", "\n", chunk, flags=re.I)
     text = re.sub(r"<[^>]+>", "", chunk)
-
-    for entity, char in _ENTITIES:
-        text = text.replace(entity, char)
+    text = html.unescape(text).replace("\xa0", " ")
 
     text = re.sub(r"[ \t]+", " ", text)
-    return "\n".join(
-        line.strip().strip("|").strip()
-        for line in text.split("\n")
-        if line.strip().strip("|").strip()
-    ).strip()
+    lines: list[str] = []
+    pending_marker = ""
+    for line in text.split("\n"):
+        line = line.strip().strip("|").strip()
+        if not line:
+            continue
+        if line.startswith(_MARK):
+            # Listepunktets tekst ligger i et eget blokkelement på neste linje;
+            # sett markøren foran den («a. når arbeidet er ...»).
+            pending_marker = line[len(_MARK):] + " "
+            continue
+        lines.append(pending_marker + line)
+        pending_marker = ""
+    if pending_marker:
+        lines.append(pending_marker.strip())
+    return "\n".join(lines).strip()
 
 
-def get_law_text(xml_path: str, paragraph: str | None = None) -> str:
+_CHAPTER_RE = re.compile(r"^(?:kap(?:ittel|\.)?|chapter)\s*([0-9]+[A-Za-z]*)$", re.I)
+
+
+def _element_end(content: str, start: int, tag: str) -> int:
+    """Posisjon rett etter slutt-taggen som lukker elementet <tag> som starter
+    ved start, med hensyn til nøstede elementer av samme type."""
+    depth = 0
+    for m in re.finditer(rf"<{tag}\b[^>]*>|</{tag}>", content[start:]):
+        depth += -1 if m.group(0).startswith("</") else 1
+        if depth == 0:
+            return start + m.end()
+    return len(content)
+
+
+def get_law_text(xml_path: str | Path, paragraph: str | None = None) -> str:
     """
     Hent tekst fra en dokumentfil (XHTML, til tross for .xml-endelsen).
-    Hvis paragraph er oppgitt (f.eks. '4-6' eller '§4-6'), hentes bare den paragrafen.
+    Hvis paragraph er oppgitt (f.eks. '4-6' eller '§4-6'), hentes bare den paragrafen;
+    'kap4' / 'kapittel 4' henter hele kapittelet.
     """
     with open(xml_path, encoding="utf-8") as f:
         content = f.read()
 
-    if paragraph:
+    chap = _CHAPTER_RE.match(paragraph.strip()) if paragraph else None
+    if chap:
+        name = "kap" + chap.group(1)
+        m = re.search(rf'<section[^>]*data-name="{re.escape(name)}"', content, flags=re.I)
+        if not m:
+            return f"Kapittel {chap.group(1)} ble ikke funnet i dette dokumentet."
+        chunk = content[m.start():_element_end(content, m.start(), "section")]
+    elif paragraph:
         # Normalize: ensure it starts with §
         para_norm = paragraph.strip()
         if not para_norm.startswith("§"):
@@ -361,15 +494,15 @@ def cmd_update(args, state: dict) -> dict:
                 "lastModified": remote_modified,
                 "downloaded": datetime.now(timezone.utc).isoformat(),
             }
+            save_state(state)  # husk denne pakken selv om neste skulle feile
             updated_any = True
         else:
             print(f"  {pkg_info['description']}: oppdatert ({local_modified})")
 
-    if updated_any:
+    if updated_any or not INDEX_FILE.exists():
         print("Bygger søkeindeks ...")
         index = build_index(DATA_DIR)
-        with open(INDEX_FILE, "w", encoding="utf-8") as f:
-            json.dump(index, f, ensure_ascii=False)
+        _save_index(index)
         print(f"  Indekserte {len(index)} dokumenter")
 
     state["last_checked"] = datetime.now(timezone.utc).isoformat()
@@ -400,18 +533,13 @@ def cmd_index(args, state: dict):
     print("Bygger søkeindeks ...")
     _ensure_data_root()
     index = build_index(DATA_DIR)
-    with open(INDEX_FILE, "w", encoding="utf-8") as f:
-        json.dump(index, f, ensure_ascii=False)
+    _save_index(index)
     print(f"Indekserte {len(index)} dokumenter")
 
 
 def cmd_search(args, state: dict):
-    """Søk i titler."""
-    if not INDEX_FILE.exists():
-        print("Ingen indeks funnet. Kjør 'python lovdata.py update' først.", file=sys.stderr)
-        sys.exit(1)
-    with open(INDEX_FILE, encoding="utf-8") as f:
-        index = json.load(f)
+    """Søk i titler, korttitler og DokID."""
+    index = _load_index()
     results = search_index(index, args.query)
     if not results:
         print(f"Ingen treff for '{args.query}'")
@@ -419,17 +547,15 @@ def cmd_search(args, state: dict):
     print(f"Treff for '{args.query}' ({len(results)} resultater):\n")
     for r in results:
         print(f"  [{r['base']}] {r['title']}")
+        if r.get("titleShort"):
+            print(f"         Korttittel: {r['titleShort']}")
         print(f"         DokID: {r['dokid']}  Sist endret: {r['lastChange'] or 'ukjent'}")
         print()
 
 
 def cmd_get(args, state: dict):
-    """Hent lovtekst for et dokid, evt. for en spesifikk paragraf."""
-    if not INDEX_FILE.exists():
-        print("Ingen indeks funnet. Kjør 'python lovdata.py update' først.", file=sys.stderr)
-        sys.exit(1)
-    with open(INDEX_FILE, encoding="utf-8") as f:
-        index = json.load(f)
+    """Hent lovtekst for et dokid, evt. for en spesifikk paragraf eller et kapittel."""
+    index = _load_index()
 
     path = find_by_dokid(index, args.dokid)
     if not path:
@@ -443,13 +569,32 @@ def cmd_get(args, state: dict):
         sys.exit(1)
 
     meta = index[path]
+    file_path = index_path(path)
+    if not file_path.exists():
+        print(f"Filen for {meta['dokid']} finnes ikke lenger ({file_path}). "
+              "Kjør 'python lovdata.py index' for å bygge indeksen på nytt.", file=sys.stderr)
+        sys.exit(1)
     paragraph = getattr(args, "paragraph", None)
-    text = get_law_text(path, paragraph)
+    text = get_law_text(file_path, paragraph)
 
-    print(f"=== {meta['title']} ===")
-    print(f"DokID: {meta['dokid']}  |  Sist endret: {meta['lastChange'] or 'ukjent'}")
+    header = [f"=== {meta['title']} ==="]
+    if meta.get("titleShort"):
+        header.append(f"Korttittel: {meta['titleShort']}")
+    header.append(f"DokID: {meta['dokid']}  |  Sist endret: {meta['lastChange'] or 'ukjent'}")
     if paragraph:
-        print(f"Paragraf: {paragraph}")
+        header.append(f"Paragraf: {paragraph}")
+
+    out = getattr(args, "out", None)
+    if out:
+        out_path = Path(out).expanduser()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(header) + "\n\n" + text + "\n")
+        print("\n".join(header))
+        print(f"Skrev {len(text)} tegn til {out_path}")
+        return
+
+    print("\n".join(header))
     print()
     print(text)
 
@@ -469,7 +614,14 @@ def main():
 
     p_get = subparsers.add_parser("get", help="Hent lovtekst")
     p_get.add_argument("dokid", help="DokumentID, f.eks. NL/lov/2005-06-17-62")
-    p_get.add_argument("paragraph", nargs="?", help="Paragraf, f.eks. §4-6 eller 4-6")
+    p_get.add_argument("paragraph", nargs="?", help="Paragraf (§4-6 eller 4-6) eller kapittel (kap4)")
+    p_get.add_argument("--out", metavar="FIL", help="Skriv teksten til denne filen i stedet for stdout")
+
+    # Windows-konsollen bruker cp1252 som standard; lovtekst inneholder tegn
+    # utenfor den (f.eks. kyrilliske bokstaver og typografiske mellomrom).
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     args = parser.parse_args()
     if not args.command:

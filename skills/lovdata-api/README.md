@@ -8,11 +8,13 @@ downloaded XML files, which are updated daily.
 ## What it can do
 
 - Download and keep current Lovdata's two free data packages:
-  - **NL** — all current Norwegian laws (782 XML files)
-  - **SF** — all current central regulations (3 733 XML files)
-- Search across titles and document IDs.
-- Retrieve the full text of any law or regulation.
-- Retrieve a single numbered section (paragraph) with amendment history.
+  - **NL** — all current Norwegian laws (about 760 XML files)
+  - **SF** — all current central regulations (over 5 000 XML files)
+- Search across titles, Lovdata's short titles / abbreviations (`aml`,
+  `fvl`, `Grl.`) and document IDs.
+- Retrieve the full text of any law or regulation (to stdout or a file).
+- Retrieve a single numbered section (paragraph) with amendment history,
+  or a whole chapter.
 - Report download status and data freshness.
 
 Local regulations (LF) are not included in the free packages.
@@ -54,17 +56,24 @@ python scripts/lovdata.py update
 # check what is downloaded and when
 python scripts/lovdata.py status
 
-# search by keyword (searches titles and document IDs)
+# search by keyword or abbreviation (titles, short titles, document IDs)
 python scripts/lovdata.py search "arbeidsmiljø"
+python scripts/lovdata.py search "aml"
 
-# retrieve a full law by DokID
-python scripts/lovdata.py get "NL/lov/2005-06-17-62"
+# retrieve a full law by DokID (full texts can be very long; --out writes to a file)
+python scripts/lovdata.py get "NL/lov/2005-06-17-62" --out aml.txt
 
 # retrieve a single section
 python scripts/lovdata.py get "NL/lov/2005-06-17-62" "§4-6"
 # or without the § sign:
 python scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
+
+# retrieve a whole chapter
+python scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
 ```
+
+Section text keeps list markers (`a.`, `b.`, `1.`) so that "annet ledd
+bokstav b" can be quoted and located.
 
 ## DokID format
 
@@ -87,15 +96,21 @@ Common laws and their short-form IDs:
 | helsepersonelloven | `NL/lov/1999-07-02-64` |
 | internkontrollforskriften (HMS) | `SF/forskrift/1996-12-06-1127` |
 
-If the DokID is unknown, use `search` to find it.
+If the DokID is unknown, use `search` to find it; Lovdata's own short
+titles (`Arbeidsmiljøloven – aml`) are indexed, so searching for the
+abbreviation usually works.
 
 ## Update mechanism
 
 `lovdata.py update` calls `https://api.lovdata.no/v1/publicData/list`
 (no authentication) and compares the `lastModified` timestamps against
 those recorded in `state.json`. If a package has been updated, the new
-tarball is downloaded and extracted. Subsequent runs are near-instant when
-nothing has changed.
+tarball is downloaded to a temporary file and extracted into a temporary
+directory that replaces the old one only after extraction succeeded, so an
+interrupted update never leaves a half-populated data set. The search index
+(`data/index.json`) is rebuilt after every update and keyed by path relative
+to the data directory, so the directory can be moved. Subsequent runs are
+near-instant when nothing has changed.
 
 ## With an API key
 
