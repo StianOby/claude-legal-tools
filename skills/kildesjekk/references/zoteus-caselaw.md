@@ -11,14 +11,20 @@ Norwegian judgments are `case` items. How the identifiers are stored (Zotero fie
 | `shortTitle` | Holship | Finanger I | *(empty)* | Tomt i LNF-område |
 | `history` | *(empty)* | … Høyesterett HR-2000-49-B, nr. 55/1999. | *(empty)* | Bergen tingrett TBERG-2007-170926 - … |
 
-Some items, typically unpublished lower-court decisions, have only party names in `caseName` (e.g. "Dennis mot Stiftelsen Flyktningehjelpen") and an empty `docketNumber`. Search those by party name.
+Some items, typically unpublished lower-court decisions, have only party names in `caseName` (e.g. "Dennis mot Stiftelsen Flyktningehjelpen") and an empty `docketNumber`. Search those by party name. Lower-court items may carry an HTML snapshot rather than a PDF; `zotero_get_fulltext` reads those too.
+
+## How the search behaves
+
+- Every space-separated word in `q` must match, in any one field. "Holship Transportarbeiderforbund" finds Holship; "Holship Finanger" finds nothing.
+- The default search covers `caseName`, creators and year. When it finds nothing, Zoteus retries automatically across all fields (`docketNumber`, `history`, …) and the PDF text, and marks the response `broadened: true`.
+- With `itemType: "case"` only parent items come back. Hits from inside a PDF are returned as the *attachment* item, so the filter hides them. To search inside judgment texts, drop `itemType`, then call `zotero_get_item` on the attachment key and follow `parentItem`.
 
 ## Recipe
 
-1. **Search `caseName`** with the identifier as written in the reference. The default `qmode` matches title (= `caseName`), creators and year, and each space-separated word in `q` must match somewhere.
-2. **No hit?** Retry with `qmode: "everything"`, which adds `docketNumber`, `history`, notes and the PDF text. Then try the popular name.
+1. **Search `caseName`** with `itemType: "case"` and the identifier as written in the reference. The automatic broadening also covers `docketNumber` and `history`.
+2. **No hit?** Try the popular name. Then, if the case may be filed under another identifier, search without `itemType` so PDF text counts, and resolve attachments to their parent — see the pitfalls below.
 3. **Confirm** the candidate with `zotero_get_item` (`include_children: true`): identifier, `court` and `dateDecided` must match the reference.
-4. **Read the first page** with `zotero_get_fulltext` and `page_range: "1-1"` to rule out a false positive before filling in the worklist.
+4. **Read the first page** with `zotero_get_fulltext` and `page_range: "1-1"` to rule out a false positive before filling in the worklist. The header of a Supreme Court PDF carries the HR number and, for older cases, the Rt. citation as well ("HR-2000-49-B - Rt-2000-1811").
 
 ### Modern HR case (e.g. HR-2016-2554-P Holship)
 
@@ -26,10 +32,9 @@ Some items, typically unpublished lower-court decisions, have only party names i
 {"tool": "zotero_search_items", "q": "HR-2016-2554", "itemType": "case", "limit": 10}
 ```
 
-Fallback if nothing is found — covers `docketNumber` and the judgment text:
+Fallback by popular name:
 
 ```json
-{"tool": "zotero_search_items", "q": "HR-2016-2554", "qmode": "everything", "itemType": "case", "limit": 10}
 {"tool": "zotero_search_items", "q": "Holship", "itemType": "case", "limit": 10}
 ```
 
@@ -39,10 +44,10 @@ Fallback if nothing is found — covers `docketNumber` and the judgment text:
 {"tool": "zotero_search_items", "q": "Rt. 2000 s. 1811", "itemType": "case", "limit": 10}
 ```
 
-Fallbacks: the popular name (`"q": "Finanger"`), or the HR number if the reference gives one — `history` often holds it, so use `qmode: "everything"`:
+Fallbacks: the popular name (`"q": "Finanger"`), or the HR number if the reference gives one — `history` often holds it, and the broadened search reaches it:
 
 ```json
-{"tool": "zotero_search_items", "q": "HR-2000-49-B", "qmode": "everything", "itemType": "case", "limit": 10}
+{"tool": "zotero_search_items", "q": "HR-2000-49-B", "itemType": "case", "limit": 10}
 ```
 
 When confirming with `zotero_get_item`, check `reporter` = "Rt.", `reporterVolume` = "2000" and `firstPage` = "1811".
@@ -61,6 +66,25 @@ Confirm `reporter` = "RG", `reporterVolume` = "1966", `firstPage` = "1". Because
 {"tool": "zotero_search_items", "q": "LG-2008-135938", "itemType": "case", "limit": 10}
 ```
 
-## Pitfall: non-breaking hyphens
+### Case cited only inside another judgment's text
 
-Court PDFs and Lovdata print format often render the hyphens in case numbers as U+2011 NON-BREAKING HYPHEN rather than ASCII U+002D, to keep the number from breaking across lines. `caseName` and `docketNumber` are typed by the user and normally use ASCII hyphens, so the default search is unaffected. In `qmode: "everything"` the PDF text is searched too, and a search on the full identifier can silently miss such files. If that happens, retry with the parts separated by spaces (`"q": "HR 2018 456"`) — every word must match, in any field or in the text — or with the popular name. Always read the first page of the hit to rule out false positives.
+```json
+{"tool": "zotero_search_items", "q": "HR 2016 2554 P", "qmode": "everything", "limit": 25}
+```
+
+No `itemType`: hits are attachment items. Resolve each with `zotero_get_item` and read `parentItem`. Note the spaces instead of hyphens — see below.
+
+## Pitfalls when searching inside PDF text
+
+Tested against a personal library with indexed PDFs:
+
+| Query | Result |
+|---|---|
+| `HR-2016-2554-P` (as written) | 42 attachments, the Holship judgment **not** among them |
+| `HR 2016 2554 P` (spaces) | 12 hits, Holship included |
+| `LF-1998-997` (as written) | 2 hits, the right one |
+| `LF 1998 997` (spaces) | 21 hits, the right one plus noise |
+| `Rt. 1997 side 337` | the judgment that contains it verbatim was **not** returned — "Rt" is too short, "side" too common |
+| `å tvinge Holship til å inngå tariffavtale` | the right attachment returned |
+
+So, when you must search inside texts: try the identifier as written, then with spaces in place of hyphens, then a popular name or a distinctive phrase of 5–8 consecutive words. Rt. citations are effectively unsearchable in text; use the case name. Whether U+2011 non-breaking hyphens in court PDFs add to the problem has not been isolated. Metadata searches with `itemType: "case"` on `caseName` and `docketNumber` are not affected and work reliably with the identifier as written.

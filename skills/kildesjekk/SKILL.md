@@ -214,22 +214,33 @@ The Zotero library (zoteus MCP) may contain all types of sources, such as judgme
 All tools are called against the personal library; do not pass `library_type` or `library_id`.
 
 ## Finding the item
-Search with `zotero_search_items`. Put the most distinctive part of the reference in `q` (author surname plus a title word, a case number, a citation number). The default `qmode` matches title, creators and year only. Set `qmode: "everything"` when the string you are looking for lives in another field or inside the PDF text — this is how case numbers, docket numbers and preparatory-work citation numbers are found. Narrow with `itemType` when the category is known (e.g. `case`, `book`, `journalArticle`, `bookSection`) and use `response_format: "detailed"` when you need to disambiguate between similar hits.
+Search with `zotero_search_items`. Put the most distinctive part of the reference in `q` (author surname plus a title word, a case number, a citation number). Every space-separated word in `q` must match. The default `qmode` matches title, creators and year; when that finds nothing, Zoteus automatically retries in `everything` mode (all fields, notes and PDF text) and marks the response `broadened: true`. Narrow with `itemType` when the category is known (e.g. `case`, `book`, `journalArticle`, `bookSection`) and use `response_format: "detailed"` when you need to disambiguate between similar hits.
 
-For case law, the default quick search matches the "Case name" field. The case number (e.g. C-123/17, HR-2026-123-A) is in "Docket number" and is found with `qmode: "everything"`.
+Two things to know about the `itemType` filter:
+- Matches inside the PDF text are returned as the *attachment* item, not its parent. An `itemType` filter therefore hides them. When you need a hit from inside the text, search without `itemType`, then call `zotero_get_item` on the attachment key and follow its `parentItem` to the record.
+- Matches in metadata fields (e.g. "Docket number", "History") are returned as the parent item and survive the filter.
 
-Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (see §7); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`.
+Searching inside PDF text is reliable only for distinctive strings. Short tokens ("Rt.") and common words ("side") get lost, and hyphenated identifiers behave inconsistently: in testing "HR-2016-2554-P" missed the judgment while "HR 2016 2554 P" found it, whereas "LF-1998-997" worked as written. When a text search fails, retry with spaces in place of hyphens, then with a distinctive phrase of 5–8 consecutive words. Metadata searches on `caseName`, `docketNumber` and the like are not affected.
+
+For case law, the default quick search matches the "Case name" field. The case number (e.g. C-123/17, HR-2026-123-A) is in "Docket number" and is reached by the broadened search.
+
+Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (preferred) or `report` depending on how they were entered (see §7); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`. `statute` items keep their name in `nameOfAct`, so search results list them as "(untitled)" — recognise them by `shortTitle` (e.g. "UNCLOS", "ECHR") and confirm with `zotero_get_item`. Treaty numbers sit in `publicLawNumber` ("ETS No. 5") or `code`/`codeNumber` ("UNTS" 1833) and are reached by the broadened search.
 
 Confirm every hit with `zotero_get_item` (`item_key`, `include_children: true`). This returns the full record (all bibliographic fields) plus the child attachments and notes. Check author, title, year and edition against the reference before reading, and note the attachment keys.
 
 ## Reading the source
 Read the text with `zotero_get_fulltext`. Passing the parent `item_key` resolves the item's best PDF (or EPUB) automatically. Useful parameters:
-- `page_range` (e.g. `"41-43"`, 1-based PDF pages) to read a pinpointed passage in full.
-- `outline: true` to get the PDF's table of contents, which helps map printed pagination to PDF pages.
-- `query` to return the passages most relevant to a quotation or claim.
-- `max_chars` — the default cap is 12 000 characters (maximum 100 000). Raise it when you need to read a quotation in context, or page through with successive `page_range` calls.
+- `query` — returns the passages most relevant to a phrase, each with an approximate page. This is the fastest way to locate a quotation: pass a distinctive phrase of 5–8 consecutive words from it.
+- `page_range` (e.g. `"41-43"`, 1-based PDF pages) — reads a span in full. Use it to verify a quotation verbatim in context and to read the running header.
+- `max_chars` — the default cap is 12 000 characters (maximum 100 000). Raise it when you need to read a quotation in context.
+- `outline: true` returns the PDF's table of contents only when Zoteus has its optional PDF parser installed. If it errors, skip it.
 
-Page numbers in the output are PDF pages, not printed pages. Establish the offset once per item (compare a printed page number visible in the text with the PDF page it appears on) and always use the printed pagination in the worklist.
+Page numbers: unless that optional parser is installed, every page number Zoteus reports is an estimate (`pageApprox`, `pageSource: "approximate"`) derived from character counts, and the estimate drifts through a document — in testing the gap between PDF page and printed page was 5 at PDF page 30 and 3 at page 60 of the same book. Therefore:
+- Never convert an estimated page to a printed page with a fixed offset for the whole item.
+- To reach a printed pinpoint, read a small `page_range` near the expected position, find the running header or printed page number in the text, and step forward or back until the header shows the cited page. Use the printed pagination in the worklist.
+- To verify a quotation: `query` with a distinctive phrase, note `pageApprox`, read a `page_range` around it, confirm the text verbatim, and take the printed page number from the header.
+
+PDFs larger than about 20 MB are served from Zotero's stored index rather than re-extracted; the response says so in `notice`. `page_range` and `query` still work.
 
 Note that a single Zotero item may contain multiple attachments (e.g. PDFs). `zotero_get_fulltext` selects one attachment automatically; if it does not contain what you are looking for, take the other attachment keys from the `zotero_get_item` children list and call `zotero_get_fulltext` with that attachment key as `item_key`.
 
@@ -238,9 +249,10 @@ If you don't find any fulltext (e.g. only metadata and no attachments, or `zoter
 Certain Zotero items, notably some monographs, will only have a single PDF attachment with a Table of Contents or a short excerpt, and not the full text. These can be marked as "checked" = "no" (so that they may be picked up in a later step).
 
 ## Semantic search (secondary)
-`zotero_semantic_search` searches by meaning and, if the user has built a full-text index, also inside PDF bodies. Not every user has built this index, so:
+`zotero_semantic_search` searches by meaning and, if the user has built a full-text index, also inside PDF bodies. It always searches the personal library and cannot be pointed at a group library. Not every user has built this index, so:
 - Always call it with `auto_build: false`. If it reports an empty or missing index, skip it — do not start an index build.
 - Use it only after the metadata search in "Finding the item" has been tried: to find a quotation whose reference appears to be wrong (candidate for "Wrong source" or "Wrong page/section/paragraph"), or when a work you would expect to be in the library did not surface by title/creator.
+- Hits are often listed as "(untitled)" with only a key, snippet and score. Identify each hit with `zotero_get_item` before doing anything else with it.
 - A semantic hit is a lead, never a verification. Always open the record with `zotero_get_item` and read the passage with `zotero_get_fulltext` before filling in the worklist.
 
 # 5) Check EU legal sources
@@ -252,19 +264,16 @@ If there is something you cannot find, write "source unavailable" in the "checke
 *Always* and *only* use the /lovdata-api skill to find Norwegian statutes and regulations. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 7) Check Norwegian preparatory works
-Norwegian preparatory works (Ot.prp., Prop. L/S, St.prp., St.meld., NOU, Innst.) are stored in Zotero as item type `bill`. The citation number is *not* in the title field — the title is the document's own title (e.g. "Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)"). The citation number is spread over these fields:
-- **`code`** — the series, e.g. "Ot.prp. nr.", "Prop.", "NOU", "Innst.". Spelling varies between items ("Ot.prop. nr." also occurs), so match loosely.
-- **`billNumber`** — the document number, sometimes with the letter suffix ("3", "71 L", "521 L", "8").
-- **`codeVolume`** — the session, e.g. "1998-99" or "2024-2025". Empty for NOUs.
-- **`date`** — the document date. Its year is what the default quick search matches.
-- **sponsor** creator — the ministry for government bills, the committee (*…komiteen*) for Innst., the *utvalg* for NOUs.
+Norwegian preparatory works (Ot.prp., Prop. L/S, St.prp., St.meld., NOU, Innst.) are stored in Zotero without the citation number in the title field — the title is the document's own title (e.g. "Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)"). Two storage models occur, and a library may contain both:
+- **`bill` items** (the preferred model): series in `code` ("Ot.prp. nr.", "Prop.", "NOU", "Innst."; spelling varies), number in `billNumber` ("3", "71 L", "521 L"), session in `codeVolume` ("1998-99", "2024-2025"; empty for NOUs), the document date in `date`, and the ministry, committee or *utvalg* as sponsor.
+- **`report` items** (older entries): series in `seriesTitle` ("Ot.prp.", "Norges Offentlige Utredninger"), document number in `reportNumber` ("3", "18"), kind in `reportType` ("Proposisjon", "NOU"), session in `date` ("1998-99"), and the ministry, committee or *utvalg* as creator.
 
 Lookup recipe:
-1. `zotero_search_items` with `itemType: "bill"` and `q` set to the year — one call per year of the session — plus, if the reference gives it, a distinctive word from the document title. Keep the default `qmode`: it matches title, creators and year, which keeps PDF-text noise out of the results.
-2. Call `zotero_get_item` on each candidate and confirm that `code`, `billNumber` and `codeVolume` together reproduce the cited number.
-3. Verify by reading the first page (`zotero_get_fulltext` with `page_range: "1-1"`) that the document carries the cited number before treating the source as found in Zotero.
+1. `zotero_search_items` with `itemType: "bill || report"` and `q` set to the session exactly as cited ("1998-99"). The default search finds nothing in the title, broadens automatically, and matches the session in `codeVolume` or `date`. If that returns nothing, search the year instead — for a session, one call per year — since `bill` items carry the document date rather than the session in `date`. Add a distinctive word from the document title to `q` when the reference gives one.
+2. Call `zotero_get_item` on each candidate: the search result lists only key, type, title, creators and date, even with `response_format: "detailed"`, so the series, number and session fields are visible nowhere else. Confirm that they reproduce the cited number in whichever model applies. Match loosely: series spellings differ ("Ot.prp. nr." and "Ot.prop. nr." both occur), numbers may carry an "L"/"S" suffix, and sessions may be written "1998-99" or "1998-1999".
+3. Verify by reading the first page (`zotero_get_fulltext` with `page_range: "1-1"`) that the document carries the cited number before treating the source as found in Zotero. The typeset cover often drops the punctuation ("Ot prp nr 3 (1998-99)"), so compare the numbers, not the exact string.
 
-Worked examples for Ot.prp./Prop./St.prp., NOU and Innst., and the fallback when the year search returns too many hits, are in `references/zoteus-prepworks.md`. Read that file before searching.
+Worked examples for both models, covering Ot.prp./Prop./St.prp., NOU and Innst., plus the fallback when the year search returns too many hits, are in `references/zoteus-prepworks.md`. Read that file before searching.
 
 **For Norwegian preparatory works *not* found in Zotero**, use the /lovdata-pro skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
@@ -275,7 +284,7 @@ Norwegian court judgments are stored in Zotero as item type `case` with this pat
 - **`reporter`**, **`reporterVolume`** and **`firstPage`** hold the print citation for Rt. and RG cases ("Rt.", "2000", "1811").
 - **`court`** holds the court, **`dateDecided`** the date, **`shortTitle`** the popular name ("Finanger I", "Holship"), and **`history`** may hold the HR number of an Rt. case and the lower-court case numbers.
 
-Search `caseName` first: `zotero_search_items` with `itemType: "case"`, default `qmode`, and `q` set to the identifier as written in the reference or to the popular name. Fall back to `qmode: "everything"`, which also covers `docketNumber`, `history` and the PDF text. Do not rely on the author/creator field: it is usually the court, but some items name the judges instead. Confirm with `zotero_get_item` that identifier, court and date match, and read the first page of the judgment to make sure it is the right case.
+Search `caseName` first: `zotero_search_items` with `itemType: "case"` and `q` set to the identifier as written in the reference or to the popular name. If the title does not match, the search broadens automatically to `docketNumber`, `history` and the other fields. To search inside the judgment text (for a case cited only in the body, or for a quotation), repeat the search *without* `itemType` — text hits are returned as attachment items — and follow `parentItem` from `zotero_get_item`. Do not rely on the author/creator field: it is usually the court, but some items name the judges instead. Confirm with `zotero_get_item` that identifier, court and date match, and read the first page of the judgment to make sure it is the right case.
 
 Example calls for modern HR cases, older Rt. cases and RG cases, plus the non-breaking-hyphen pitfall, are in `references/zoteus-caselaw.md`. Read that file before searching.
 
