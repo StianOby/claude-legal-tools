@@ -18,8 +18,8 @@
     {
       "id": 3,
       "name": "norwegian-finanger-citation",
-      "prompt": "Hva sa EFTA-domstolen i sak E-1/99 (Finanger I) om hvorvidt EØS-loven gir privatpersoner direkte krav mot staten ved feilaktig gjennomføring av direktiver? Gi meg et direkte sitat fra dommen med avsnittsnummer, og en korrekt henvisning på norsk juridisk form.",
-      "expected_output": "Reply in Norwegian. Correctly identifies E-1/99 Finanger, fetches the judgment, and quotes from the dispositif or relevant paragraphs about state liability / direct effect under EEA law. Citation in Norwegian form (Sak E-1/99 Finanger). Should NOT confuse with E-2/12 (Finanger II concerning state liability).",
+      "prompt": "Hva sa EFTA-domstolen i sak E-1/99 (Finanger) om hvorvidt motorvognforsikringsdirektivene er til hinder for en nasjonal regel som avskjærer erstatning til en passasjer som visste at føreren var beruset? Gi meg et direkte sitat fra dommen med avsnittsnummer, og en korrekt henvisning på norsk juridisk form.",
+      "expected_output": "Reply in Norwegian. Correctly identifies E-1/99 Storebrand Skadeforsikring AS v Veronika Finanger (advisory opinion of 17 November 1999, referred by Norges Høyesterett), fetches the judgment, and quotes the dispositif or the relevant paragraphs on whether the motor vehicle insurance directives preclude a national rule excluding compensation for a passenger who knew the driver was intoxicated. Citation in Norwegian form (Sak E-1/99 Finanger, avsnitt X). Must NOT frame E-1/99 as a state-liability case: EEA state liability comes from E-9/97 Sveinbjörnsdóttir and E-4/01 Karlsson, and Finanger II (Rt. 2005 s. 1365) is a Norwegian Supreme Court judgment, not an EFTA Court case, so the skill should not try to fetch it from eftacourt.int.",
       "files": []
     }
   ]

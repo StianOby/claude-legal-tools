@@ -21,14 +21,16 @@ efta-court/
 ├── README.md
 ├── scripts/
 │   └── efta_court.py       # single self-contained CLI; stdlib only
-├── evals/
-│   └── evals.json          # task-eval prompts
-└── cache/                  # written to a user dir at runtime (see below)
+└── evals/
+    └── evals.json          # task-eval prompts
 ```
+
+The cache (index, case pages, PDFs) is *not* inside the skill folder; it is
+written to a user directory at runtime (see below).
 
 ## Requirements
 
-- **Python 3.8+**
+- **Python 3.9+**
 - No required third-party packages — the basic flows (index, fetch, search)
   use the standard library only.
 - **PDF text extraction** (optional but recommended):

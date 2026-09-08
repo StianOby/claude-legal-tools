@@ -35,7 +35,7 @@ the user's question, you should use this skill.
 | Type | Code | Started by | Typical citation form |
 |---|---|---|---|
 | Advisory opinion | AO | Reference from a national court of NO/IS/LI | `E-1/95` |
-| Infringement action | INF | EFTA Surveillance Authority (ESA) v EFTA State | `E-2/12` |
+| Infringement action | INF | EFTA Surveillance Authority (ESA) v EFTA State | `E-2/06` |
 | Direct action against ESA | DA | Private party v ESA | `E-15/10` |
 
 Common case naming you'll see: `E-1/94` (the very first case), `E-2/11`
@@ -118,12 +118,15 @@ Always start with the script's `--help`, then use these recipes:
   `notification`, `summary`, `report`, `opinion-aag`, `opinion`.
 - **`search <query> [--party-only] [--year YYYY] [--country C]`** —
   search **local cache only** — it cannot search eftacourt.int.
-  In a fresh session with no prior `fetch` calls, topic keywords like
-  "fundamental rights" or "state aid" return nothing even if dozens
-  of cases address the topic. Use the topic-research recipe below to
-  populate the cache first. Pass `--full-text` to also search inside
-  extracted PDF text (only works on cases already `fetch`-ed or
-  `get`-ed).
+  The REST index holds only case numbers, so party names, subject
+  keywords and topics match only cases whose detail page has been
+  fetched (by `fetch`, `get`, or the verification pass that
+  `list --pending/--decided` runs for recent cases). In a fresh
+  session, "ESA v Norway" or "state aid" return nothing even if
+  dozens of cases match. Use the topic-research recipe below to
+  populate the cache first. `--party-only` matches only the parties
+  (case title); `--full-text` also searches inside extracted PDF text
+  (only for cases already `get`-ed).
 - **`status`** — print where the cache lives and how fresh it is.
 
 ### Case-number normalisation
@@ -148,7 +151,10 @@ on a name fragment first.
 them. For a fresh session, follow this workflow:
 
 ```bash
-# 1. Seed the local cache (fetches detail page for each case)
+# 1. Seed the local cache. This verifies the status of every case from the
+#    last 3 years by fetching its detail page (parties, About text), and
+#    marks older cases Decided without fetching them. Use --verify-years N
+#    to widen or narrow the window.
 python3 scripts/efta_court.py list --decided --limit 100
 
 # 2. Fetch the likely candidates (repeat for each case you want to read)
@@ -176,12 +182,13 @@ while you work on other things.
 
 ## Output format and how to present results
 
-`fetch` writes two files into the cache and prints both paths:
+`fetch` writes three files under the cache directory (see "Where the
+cache lives" below) and prints the directory path:
 
 ```
-cache/cases/E-14-15/meta.json          # parsed metadata
-cache/cases/E-14-15/summary.txt        # human-readable summary
-cache/cases/E-14-15/raw.html           # source HTML (for re-parsing if needed)
+<cache>/cases/E-14-15/meta.json          # parsed metadata
+<cache>/cases/E-14-15/summary.txt        # human-readable summary
+<cache>/cases/E-14-15/raw.html           # source HTML (for re-parsing if needed)
 ```
 
 `meta.json` is the source of truth for factual questions:
@@ -193,29 +200,43 @@ cache/cases/E-14-15/raw.html           # source HTML (for re-parsing if needed)
   "url": "https://eftacourt.int/cases/e-14-15/",
   "status": "Decided",
   "type": "AO",
+  "procedure_code": "AO",
   "language_of_request": "Norwegian",
-  "date_submitted": "12/06/2015",
-  "hearing_date": "16/05/2016",
-  "judgment_date": "19/04/2017",
-  "procedure": "Request for an advisory opinion",
-  "source_court": "Norges Høyesterett",
-  "about": "Request for an Advisory Opinion ...",   // often empty — not always populated by the site
+  "date_submitted": "05/06/2015",
+  "hearing_date": "11/11/2015",
+  "judgment_date": "19/04/2016",
+  "procedure": "Advisory Opinion",
+  "source_court": "Norges Hoyesterett, Norway",
+  "country": "NO",
+  "about": "Articles 31, 53 and 54 EEA – Competition law – ...\nRequest for an Advisory Opinion from the EFTA Court by the Supreme Court of Norway ...",
+  "timeline": [
+    {"date": "05/06/2015", "event": "Request received from the Supreme Court of Norway"},
+    {"date": "18/08/2015", "event": "Written observations received from the Government of Norway"}
+  ],
   "documents": [
     {
-      "title": "14/15 Judgment",
+      "label": "14/15 Judgment 19/04/2016 EN",
+      "type": "judgment",
       "lang": "EN",
-      "date": "19/04/2017",
-      "url": "https://eftacourt.int/download/14-15-judgment/?wpdmdl=4912"
+      "date": "19/04/2016",
+      "url": "https://eftacourt.int/download/14-15-judgment/?wpdmdl=1223"
     }
   ]
 }
 ```
 
+`about` is the subject-matter keyword line plus the site's short
+description; `timeline` lists the dated procedural events from the case
+page. Both may be empty for old cases. `type` is the site's own label and
+is unreliable for ESA actions (it says "DA" for some infringement cases);
+use `procedure_code` (AO/INF/DA), which is derived from the procedure
+text and the party names.
+
 `get` writes the requested PDF and a `.txt` extraction:
 
 ```
-cache/cases/E-14-15/judgment-EN.pdf
-cache/cases/E-14-15/judgment-EN.txt
+<cache>/cases/E-14-15/judgment-EN.pdf
+<cache>/cases/E-14-15/judgment-EN.txt
 ```
 
 ### When you present an EFTA Court case to the user
@@ -225,9 +246,11 @@ cache/cases/E-14-15/judgment-EN.txt
    EFTA Court judgments are paragraph-numbered — keep the numbering when
    quoting (e.g. *Holship*, para 90).
 3. Cite using the form: *Case E-14/15 Holship Norge AS v Norsk
-   Transportarbeiderforbund [2017] EFTA Ct. Rep. 1, para X*. If the
-   user is writing in Norwegian, the conventional citation is *Sak
-   E-14/15 Holship*.
+   Transportarbeiderforbund, judgment of 19 April 2016, para X*. Add
+   the EFTA Court Reports reference (*[2016] EFTA Ct. Rep. 240*) only
+   when you have verified it — the report page is not on the case page
+   and must not be guessed. If the user is writing in Norwegian, the
+   conventional citation is *Sak E-14/15 Holship, avsnitt X*.
 4. Link to the case page (`meta.json` → `url`) and to the specific PDF
    you quoted from (`documents[i].url`).
 5. If the case is still pending (`status: Pending`), say so plainly —
@@ -265,12 +288,19 @@ Run `python3 scripts/efta_court.py status` to see the actual path.
   their own slug. The CLI resolves either component case to the joined
   page automatically; pass either case number.
 - **Multiple entries for one case number.** Some case numbers have
-  more than one page on eftacourt.int — a main judgment page and a
-  separate costs-order page (e.g. `e-15-10` vs `e-15-10-costs`).
-  The CLI now prefers the shorter slug (the main case), but if you
-  get a costs order when you expected the main judgment, run `fetch`
-  with `--refresh` after checking `meta.json` → `url` to confirm
-  which page was resolved.
+  more than one page on eftacourt.int — a main judgment page plus a
+  costs-order page (`e-15-10-costs`), an interpretation page
+  (`e-02-12-int`) or a joined-cases page. The CLI resolves to the page
+  whose title is exactly the case number, then to the shortest slug, so
+  the main case wins. Check `meta.json` → `url` if in doubt; the other
+  pages are not reachable by case number, only via their document
+  links.
+- **Filters on unverified cases.** The REST index tags only advisory
+  opinions with a referring court, so `--country` and `--procedure`
+  cannot see ESA actions until their detail pages have been fetched.
+  The CLI prints a note with the number of skipped cases; run
+  `list --decided` (which verifies recent cases) or `fetch` the
+  candidates to fill the gaps.
 - **Old cases (1994–2003)** sometimes have only a judgment PDF and no
   document index in the structured format. The CLI still extracts text
   from the PDF; just don't expect a fully populated `meta.json`.
@@ -280,4 +310,11 @@ Run `python3 scripts/efta_court.py status` to see the actual path.
   authoritative.
 - **PDF parsing fails on a scanned old judgment**: fall back to citing
   the PDF URL directly and tell the user to read it. Don't paraphrase
-  from memo
+  from memory — say that the text could not be extracted and what the
+  user can do about it (install `pypdf` or `poppler-utils`, or open the
+  PDF).
+- **Windows / non-UTF-8 locales.** All cache files are written and read
+  as UTF-8 and writes are atomic, so a crash mid-download never leaves
+  a truncated file that later looks like a cache hit. If an old cache
+  from before this behaviour misbehaves, delete the case directory and
+  run `fetch --refresh`.
