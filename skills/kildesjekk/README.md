@@ -34,8 +34,8 @@ kildesjekk/
 ├── SKILL.md                          # Skill manifest Claude reads
 ├── README.md                         # This file
 └── references/
-    ├── zotero-sql-caselaw.md         # SQL patterns for Norwegian case law in Zotero
-    └── zotero-sql-prepworks.md       # SQL patterns for preparatory works in Zotero
+    ├── zoteus-caselaw.md             # Zoteus lookup recipes for Norwegian case law
+    └── zoteus-prepworks.md           # Zoteus lookup recipes for preparatory works
 ```
 
 No scripts — kildesjekk is an orchestrator that delegates to the skills and MCP
@@ -49,8 +49,20 @@ All of the following must be available in the same Claude session:
 
 | MCP | Purpose |
 |---|---|
-| [`lit-lake`](https://github.com/ElliotRoe/lit-lake/) | Zotero library (literature, case law, preparatory works) |
 | [`eurlex`](https://github.com/Honeyfield-Org/eurlex-mcp-server) | EU case law and legislation |
+| [`zoteus`](https://github.com/oscardvs/zoteus) | Zotero library (literature, case law, preparatory works) |
+
+_Zoteus_ reads your personal Zotero library through the Zotero desktop app.
+For the skill to work you need:
+
+- Zotero desktop running, _with_ **Settings → Advanced → "Allow other
+  applications on this computer to communicate with Zotero"** _enabled_.
+- Zotero's own PDF full-text indexing complete for the library (Settings →
+  General → Full-text indexing). Lookups by case number and preparatory-work
+  citation number rely on it.
+- Optional: a Zoteus semantic index built with `ZOTEUS_INDEX_FULLTEXT=true`.
+  The skill uses semantic search only as a secondary lookup and works without
+  it.
 
 **Skills**
 

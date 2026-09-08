@@ -31,7 +31,7 @@ Each step of the workflow is explained in detail below.
 # 1) Startup
 Verify that you have access to all the relevant tools:
 	- MCP servers:
-		- lit-lake MCP (Zotero)
+		- zoteus MCP (Zotero; tools named `zotero_*`). Call `zotero_whoami` and confirm it reports the Zotero desktop app as reachable — reading PDFs depends on it.
 		- eurlex MCP
 	- Claude Desktop's built-in browser (Cowork — `mcp__Claude_Browser__*` tools).
 	- Skills:
@@ -46,7 +46,7 @@ Verify that you have access to all the relevant tools:
 		- nbno
 		- untc
 	
-If there is a tool you do not have access to, stop and explain which one and why. Feel free to suggest a solution. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: lit-lake MCP: https://github.com/ElliotRoe/lit-lake/ — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
+If there is a tool you do not have access to, stop and explain which one and why. Feel free to suggest a solution. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Ask for the text document in PDF or DOCX format if not already provided.
 
@@ -206,18 +206,42 @@ Use only the tools specified below, and only in the manner specified. If you do 
 
 At each of the following steps, look only at references whose checked value is still "no" and which fall within the source category that step covers. Skip references that belong to a different category — they will be handled in the step appropriate to their type.
 
-# 4) Check sources found in the Zotero library (with lit-lake MCP, the preferred tool)
-The Zotero library (lit-lake MCP) may contain all types of sources, such as judgments of domestic and international courts, treaties, statutes, preparatory works, legislation, and literature. Use the Zotero library for all sources you find there, except:
+# 4) Check sources found in the Zotero library (with the zoteus MCP, the preferred tool)
+The Zotero library (zoteus MCP) may contain all types of sources, such as judgments of domestic and international courts, treaties, statutes, preparatory works, legislation, and literature. Use the Zotero library for all sources you find there, except:
 - Norwegian statutes and regulations
 - EU legislation (regulations and directives)
 
-When searching for case law in Zotero, it can be useful to search in the field "Case name" (for the title of the judgment) and "Docket number" (which contains the case number, e.g. C-123/17 and HR-2026-123-A).
+All tools are called against the personal library; do not pass `library_type` or `library_id`.
 
-Note that a single Zotero item may contain multiple attachments (e.g. PDFs). If you cannot find what you are looking for in the primary attachment, see if there are additional attachments.
+## Finding the item
+Search with `zotero_search_items`. Put the most distinctive part of the reference in `q` (author surname plus a title word, a case number, a citation number). The default `qmode` matches title, creators and year only. Set `qmode: "everything"` when the string you are looking for lives in another field or inside the PDF text — this is how case numbers, docket numbers and preparatory-work citation numbers are found. Narrow with `itemType` when the category is known (e.g. `case`, `book`, `journalArticle`, `bookSection`) and use `response_format: "detailed"` when you need to disambiguate between similar hits.
 
-If don't find any fulltext (e.g. only find metadata and no attachments) when you look up an item in Zotero, leave the reference as "checked" = "no" (if the source can be found with other tools, it will then be picked up in the next step).
+For case law, the default quick search matches the "Case name" field. The case number (e.g. C-123/17, HR-2026-123-A) is in "Docket number" and is found with `qmode: "everything"`.
+
+Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (see §7); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`.
+
+Confirm every hit with `zotero_get_item` (`item_key`, `include_children: true`). This returns the full record (all bibliographic fields) plus the child attachments and notes. Check author, title, year and edition against the reference before reading, and note the attachment keys.
+
+## Reading the source
+Read the text with `zotero_get_fulltext`. Passing the parent `item_key` resolves the item's best PDF (or EPUB) automatically. Useful parameters:
+- `page_range` (e.g. `"41-43"`, 1-based PDF pages) to read a pinpointed passage in full.
+- `outline: true` to get the PDF's table of contents, which helps map printed pagination to PDF pages.
+- `query` to return the passages most relevant to a quotation or claim.
+- `max_chars` — the default cap is 12 000 characters (maximum 100 000). Raise it when you need to read a quotation in context, or page through with successive `page_range` calls.
+
+Page numbers in the output are PDF pages, not printed pages. Establish the offset once per item (compare a printed page number visible in the text with the PDF page it appears on) and always use the printed pagination in the worklist.
+
+Note that a single Zotero item may contain multiple attachments (e.g. PDFs). `zotero_get_fulltext` selects one attachment automatically; if it does not contain what you are looking for, take the other attachment keys from the `zotero_get_item` children list and call `zotero_get_fulltext` with that attachment key as `item_key`.
+
+If you don't find any fulltext (e.g. only metadata and no attachments, or `zotero_get_fulltext` returns nothing even with `fallback: true`) when you look up an item in Zotero, leave the reference as "checked" = "no" (if the source can be found with other tools, it will then be picked up in a later step).
 
 Certain Zotero items, notably some monographs, will only have a single PDF attachment with a Table of Contents or a short excerpt, and not the full text. These can be marked as "checked" = "no" (so that they may be picked up in a later step).
+
+## Semantic search (secondary)
+`zotero_semantic_search` searches by meaning and, if the user has built a full-text index, also inside PDF bodies. Not every user has built this index, so:
+- Always call it with `auto_build: false`. If it reports an empty or missing index, skip it — do not start an index build.
+- Use it only after the metadata search in "Finding the item" has been tried: to find a quotation whose reference appears to be wrong (candidate for "Wrong source" or "Wrong page/section/paragraph"), or when a work you would expect to be in the library did not surface by title/creator.
+- A semantic hit is a lead, never a verification. Always open the record with `zotero_get_item` and read the passage with `zotero_get_fulltext` before filling in the worklist.
 
 # 5) Check EU legal sources
 Use the /eurlex skill for EU sources (case law, directives, regulations) that are not in Zotero — it tries the eurlex MCP first and falls back to its bundled scripts when needed.
@@ -228,31 +252,32 @@ If there is something you cannot find, write "source unavailable" in the "checke
 *Always* and *only* use the /lovdata-api skill to find Norwegian statutes and regulations. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 7) Check Norwegian preparatory works
-Norwegian preparatory works (Ot.prp., Prop. L, St.prp., NOU, Innst.) are often stored in Zotero without the citation number in the title field. The citation number can be reconstructed from the Zotero fields **number** (document number), **type/code** (e.g. "Ot.prp.", "NOU"), and **date** (session year, e.g. "1998-99"). In lit-lake:
+Norwegian preparatory works (Ot.prp., Prop. L/S, St.prp., St.meld., NOU, Innst.) are stored in Zotero as item type `bill`. The citation number is *not* in the title field — the title is the document's own title (e.g. "Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)"). The citation number is spread over these fields:
+- **`code`** — the series, e.g. "Ot.prp. nr.", "Prop.", "NOU", "Innst.". Spelling varies between items ("Ot.prop. nr." also occurs), so match loosely.
+- **`billNumber`** — the document number, sometimes with the letter suffix ("3", "71 L", "521 L", "8").
+- **`codeVolume`** — the session, e.g. "1998-99" or "2024-2025". Empty for NOUs.
+- **`date`** — the document date. Its year is what the default quick search matches.
+- **sponsor** creator — the ministry for government bills, the committee (*…komiteen*) for Innst., the *utvalg* for NOUs.
 
-- **`date`** is exposed as `reference_items.year` — use this as the primary filter. For a session year like "(1998-99)", search both years: `year IN ('1998', '1999')`.
-- **`number`** and **`type/code`** are not separate columns in lit-lake, but the citation number string appears in the first `fulltext_chunk`. Use a LIKE search on document content to narrow the result.
+Lookup recipe:
+1. `zotero_search_items` with `itemType: "bill"` and `q` set to the year — one call per year of the session — plus, if the reference gives it, a distinctive word from the document title. Keep the default `qmode`: it matches title, creators and year, which keeps PDF-text noise out of the results.
+2. Call `zotero_get_item` on each candidate and confirm that `code`, `billNumber` and `codeVolume` together reproduce the cited number.
+3. Verify by reading the first page (`zotero_get_fulltext` with `page_range: "1-1"`) that the document carries the cited number before treating the source as found in Zotero.
 
-For example SQL queries covering Ot.prp./Prop. L/St.prp. (ministry-authored, filter by `authors LIKE '%departement%'`), NOU (committee-authored — `departement` filter does NOT apply; rely on year + fulltext), and Innst. (committee-authored — use `authors LIKE '%komite%'`), see `references/zotero-sql-prepworks.md`. Read that file before constructing the query.
-
-Always verify the retrieved item by checking that the first `fulltext_chunk` confirms the citation number before treating the source as found in Zotero.
-
-**Note on NOUs and Innst.:** Both are authored by named committees (*utvalg*, *komité*), not ministries, so `authors LIKE '%departement%'` will miss them. For NOUs, filter by year and search fulltext. For Innst., use `authors LIKE '%komite%'` as the type discriminator (parallel to `'%departement%'` for government bills).
+Worked examples for Ot.prp./Prop./St.prp., NOU and Innst., and the fallback when the year search returns too many hits, are in `references/zoteus-prepworks.md`. Read that file before searching.
 
 **For Norwegian preparatory works *not* found in Zotero**, use the /lovdata-pro skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 8) Check Norwegian case law
-Norwegian court judgments in Zotero have a specific storage pattern:
+Norwegian court judgments are stored in Zotero as item type `case` with this pattern:
+- **`caseName`** (shown as the title) holds the identifier and, in parentheses, the popular name or the parties: "HR-2016-2554-P (Holship Norge mot Norges Transportarbeiderforbund)", "Rt. 2000 s. 1811 (Finanger I)", "RG 1966 s. 1", "LG-2008-135938 (Tomt i LNF-område)". Some items, especially unpublished lower-court decisions, carry only the party names.
+- **`docketNumber`** holds the case number: modern cases as `HR-YYYY-NNNN-X` or `LG-YYYY-NNNNNN`; older Supreme Court cases as the court's own number ("Sak nr. 55/1999"). May be empty.
+- **`reporter`**, **`reporterVolume`** and **`firstPage`** hold the print citation for Rt. and RG cases ("Rt.", "2000", "1811").
+- **`court`** holds the court, **`dateDecided`** the date, **`shortTitle`** the popular name ("Finanger I", "Holship"), and **`history`** may hold the HR number of an Rt. case and the lower-court case numbers.
 
-- **`year` is null** for all judgments — year-based filtering does not work.
-- **`title` is usually null** as well.
-- The **case identifier** reliably appears in the first `fulltext_chunk`. Modern cases appear as `HR-YYYY-NNN-X`; older Supreme Court cases appear in Lovdata print format as `Rt-YYYY-NNNN`; lower court cases published in Rettens Gang appear as `RG-YYYY-NNNN`.
+Search `caseName` first: `zotero_search_items` with `itemType: "case"`, default `qmode`, and `q` set to the identifier as written in the reference or to the popular name. Fall back to `qmode: "everything"`, which also covers `docketNumber`, `history` and the PDF text. Do not rely on the author/creator field: it is usually the court, but some items name the judges instead. Confirm with `zotero_get_item` that identifier, court and date match, and read the first page of the judgment to make sure it is the right case.
 
-Do not filter by `authors` — that field may be populated differently by different users (e.g. with the names of the judges rather than the court). Instead, search directly in the fulltext for the case reference or case name, and verify carefully that the retrieved item is actually the right case.
-
-For example SQL queries covering modern HR cases and older Rt. cases in Lovdata print format, see `references/zotero-sql-caselaw.md`. Read that file before constructing the query.
-
-Always read the `snippet` to confirm the result is the correct judgment before treating the source as found.
+Example calls for modern HR cases, older Rt. cases and RG cases, plus the non-breaking-hyphen pitfall, are in `references/zoteus-caselaw.md`. Read that file before searching.
 
 **For Norwegian case law *not* found in Zotero**, use the /lovdata-pro skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
