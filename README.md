@@ -9,7 +9,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 |---|---|
 | [`efta-court`](skills/efta-court/README.md) | EFTA Court judgments |
 | [`ets`](skills/ets/README.md) | Council of Europe treaty series |
-| [`eurlex`](skills/eurlex/README.md) | EU legislation and case law from EUR-Lex |
+| [`eurlex`](skills/eurlex/README.md) | EU legislation and case law from EUR-Lex (usage guide for the [eurlex MCP server](https://github.com/Honeyfield-Org/eurlex-mcp-server), which must be installed) |
 | [`hudoc`](skills/hudoc/README.md) | European Court of Human Rights judgments from HUDOC |
 | [`icj`](skills/icj/README.md) | ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations |
 | [`lovdata-api`](skills/lovdata-api/README.md) | Norwegian legislation from Lovdata (free content) |

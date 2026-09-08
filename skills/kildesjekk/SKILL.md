@@ -256,7 +256,7 @@ Certain Zotero items, notably some monographs, will only have a single PDF attac
 - A semantic hit is a lead, never a verification. Always open the record with `zotero_get_item` and read the passage with `zotero_get_fulltext` before filling in the worklist.
 
 # 5) Check EU legal sources
-Use the /eurlex skill for EU sources (case law, directives, regulations) that are not in Zotero — it tries the eurlex MCP first and falls back to its bundled scripts when needed.
+Use the /eurlex skill for EU sources (case law, directives, regulations) that are not in Zotero — it is a guide to the eurlex MCP tools (case number/ECLI to CELEX, paging long judgments by paragraph offset, consolidated versions).
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 

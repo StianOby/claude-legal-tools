@@ -70,7 +70,7 @@ For the skill to work you need:
 |---|---|
 | [`efta-court`](../efta-court/README.md) | EFTA Court decisions |
 | [`ets`](../ets/README.md) | Council of Europe treaty database (CETS/ETS) |
-| [`eurlex`](../eurlex/README.md) | EUR-Lex fallback for MCP gaps |
+| [`eurlex`](../eurlex/README.md) | Usage guide for the eurlex MCP (case numbers to CELEX, paragraph paging, consolidated versions) |
 | [`hudoc`](../hudoc/README.md) | ECtHR case law |
 | [`icj`](../icj/README.md) | ICJ and PCIJ case law |
 | [`lovdata-api`](../lovdata-api/README.md) | Norwegian statutes and regulations |

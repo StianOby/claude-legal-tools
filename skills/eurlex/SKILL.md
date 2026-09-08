@@ -1,143 +1,119 @@
 ---
 name: eurlex
-description: Fetch EU legal documents (regulations, directives, CJEU judgments, opinions) from EUR-Lex when the eurlex MCP returns "Document not found", truncates at its 50 000-character cap, or returns empty content (char_count 0). Use as a SECONDARY path — always try the eurlex MCP first. Trigger when a CELEX/ECLI lookup via the MCP fails, when the user needs paragraphs past ~50 KB of a long judgment, when the user provides a CELEX you've previously seen the MCP reject, or when the MCP returns empty content.
+description: |
+  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62014CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/14, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. This skill has no scripts: it is a usage guide for the eurlex MCP server (mcp__eurlex__* tools), which must be installed. It tells you how to convert case numbers to CELEX, page long judgments with eurlex_structure offsets, pick plain vs xhtml, and cite correctly. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
-# eurlex
+# eurlex — using the EUR-Lex MCP well
 
-A small toolkit that wraps the EUR-Lex content-negotiated CELLAR endpoint
-(`publications.europa.eu/resource/celex/<CELEX>.<LANG>`) so you can retrieve
-documents that the `mcp__eurlex__*` tools cannot return: older judgments that
-the MCP reports as "Document not found", and long judgments that it truncates
-at the hard-coded 50 000-character cap.
+This skill contains no code. Everything is done with the eurlex MCP server
+([Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server)),
+whose tools appear as `mcp__eurlex__eurlex_*`. If those tools are missing,
+stop and tell the user the server has to be added first:
 
-## Prerequisites
-
-This skill requires the eurlex MCP to be available as the primary path. If
-`mcp__eurlex__*` tools are missing, install the MCP server first:
-[Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server)
-
-## When to invoke this skill
-
-Use the eurlex MCP **first**. Only fall back to this skill when one of the
-following is true:
-
-1. `mcp__eurlex__eurlex_fetch` raises `Document not found` for a CELEX you have
-   reason to believe exists (e.g. it appears in a citation, in scholarly
-   writing, on the Curia website, or has a valid CELEX shape).
-2. The MCP returned content but it is clearly truncated — i.e. the cited
-   paragraph number is higher than the last paragraph in the response, or the
-   reply ends mid-sentence near the 50 000-character mark.
-3. The user asks for a specific paragraph range from a long judgment and you
-   need to be sure you are not paging past the MCP's cap.
-4. `mcp__eurlex__eurlex_consolidated` returns "not available" / "nicht verfügbar"
-   for a directive or regulation you have reason to believe exists (e.g. it
-   appears in a citation or has a valid CELEX shape, like `32003L0088`). Use
-   `scripts/eurlex_fetch.py` with the CELEX — the script handles directives and
-   regulations the same way it handles judgments.
-5. `mcp__eurlex__eurlex_fetch` returned success but `char_count` is 0 or the
-   body is empty — the MCP silently succeeds for judgments whose CELLAR rendition
-   is still being generated. Treat any zero-length result as "not found" and fall
-   back to `eurlex_fetch.py` (which retries HTTP 202 with backoff). If that also
-   fails after retries, try `eurlex_curia_fetch.py`.
-
-If the MCP returns a complete document under its limit, do **not** invoke this
-skill — there is no value in re-fetching.
-
-## What the toolkit does
-
-Three thin Python scripts (no compiled deps, only `requests` + `pypdf`):
-
-- `scripts/eurlex_fetch.py` — fetch a CELEX by content negotiation. Tries
-  `Accept: text/html`, then `application/xml` (XHTML rendition of FMX4), then
-  PDF (text-extracted with `pypdf`). Retries up to 3× when CELLAR returns HTTP
-  202 (rendition being generated on-the-fly). Caches results to `~/.cache/eurlex/`.
-- `scripts/eurlex_curia_fetch.py` — fetch from InfoCuria (curia.europa.eu) as a
-  last resort when all CELLAR endpoints fail. Converts the CELEX to a case
-  number (e.g. `62021CJ0488` → `C-488/21`), searches InfoCuria for the docid,
-  and fetches the printable HTML rendition. Accepts CELEX or case number directly.
-  Caches to the same `~/.cache/eurlex/` directory.
-- `scripts/eurlex_paragraphs.py` — slice the cached plain text by paragraph
-  number range (e.g. `--from 73 --to 91`) for CJEU/General Court judgments.
-- `scripts/eurlex_search.py` — thin wrapper over the EUR-Lex public search
-  page; intended only as a last resort if the MCP's SPARQL search also fails.
-
-## Quick start
-
-```bash
-# 1. Install once per environment
-pip install --user requests pypdf
-
-# 2. Fetch a judgment the MCP rejected (retries HTTP 202 automatically)
-python3 scripts/eurlex_fetch.py 62002CJ0371 --lang ENG --plain
-# -> prints full plain text; cached to ~/.cache/eurlex/
-
-# 3. Get just paragraphs 73-91 from a long judgment
-python3 scripts/eurlex_fetch.py 62016CJ0569 --lang ENG --plain > /tmp/bauer.txt
-python3 scripts/eurlex_paragraphs.py /tmp/bauer.txt --from 73 --to 91
-
-# 4. Curia fallback when EUR-Lex CELLAR still fails after retries
-python3 scripts/eurlex_curia_fetch.py 62021CJ0488 --lang ENG
-# or with the case number directly:
-python3 scripts/eurlex_curia_fetch.py "C-488/21" --lang EN
+```json
+"eurlex": { "command": "npx", "args": ["-y", "eurlex-mcp-server"] }
 ```
 
-## Why not the kevin91nl/eurlex PyPI package?
+## Tool map
 
-The package was the obvious fallback candidate, but it has two problems for
-this use case:
+| Need | Tool | Notes |
+|---|---|---|
+| Text of an act or judgment | `eurlex_fetch` | `celex_id`, `eli` or `oj_ref`; `format: "plain"` or `"xhtml"`; paginated |
+| In-force version of an act | `eurlex_consolidated` | `celex_id` **or** `doc_type`+`year`+`number`; returns `consolidation_date` |
+| Outline with character offsets | `eurlex_structure` | Lists articles; for case law lists `Paragraph N` with offset |
+| Dates, in-force status, authors, legal basis | `eurlex_metadata` | `null` dates mean "not recorded" |
+| Find case law | `eurlex_case_law` | by `ecli`, `celex_id`, party `query`, or `related_celex` (cases interpreting an act) |
+| Find legislation | `eurlex_search`, `eurlex_by_eurovoc` | title substring / EuroVoc concept |
+| What cites / amends / repeals what | `eurlex_citations` | `direction: cites | cited_by | both` |
+| National implementing measures | `eurlex_transposition` | directive CELEX + optional country |
+| Plain-language summary (LEGISSUM) | `eurlex_summary` | may return `total_summaries: 0` |
+| Anything else | `eurlex_sparql` | read-only SELECT/ASK against Cellar |
 
-1. It pins `pandas==1.2.4`, which has to compile from source on modern Python
-   and pulls in a heavy build chain.
-2. Its parser is **regulation-centric** — it returns a DataFrame keyed on
-   `article` / `article_subtitle` / `ref`. Judgments are paragraph-numbered
-   with no Articles, so the parser produces empty frames for them.
+Language is a 3-letter Cellar code (`ENG`, `FRA`, `DEU`, `DAN`, `SWE`, …).
+Norwegian is not an EU language and EUR-Lex has no Norwegian texts; for
+Norwegian users fetch `ENG` (what Norwegian legal writing cites) and, when
+wording matters, the language of the case (see "Authentic language" below).
 
-The **fetcher** in that package is just a content-negotiated GET against the
-exact same `publications.europa.eu/resource/celex/<CELEX>` URL plus
-multiple-choice handling. We do the same in `eurlex_fetch.py` with `requests`
-directly, no pandas, no SPARQL, plus paragraph-aware parsing.
+## Identifiers: getting to a CELEX
 
-## Failure modes the toolkit handles
+The MCP takes CELEX everywhere, plus ECLI in `eurlex_case_law` and ELI /
+OJ references for legislation. Convert what the user gives you:
 
-| Failure                                  | Fallback path                                                    |
-|------------------------------------------|------------------------------------------------------------------|
-| MCP "Document not found" — old judgments | `Accept: text/html` on `/resource/celex/<CELEX>.<LANG>`          |
-| HTML 404 — newer judgments (≈2014+)      | `Accept: application/xml` returns the XHTML rendition            |
-| Both 404 — non-public docs               | `Accept: application/pdf` + `pypdf` text extraction              |
-| HTTP 202 — rendition being generated     | `eurlex_fetch.py` retries up to 3× at 5–10 s intervals          |
-| MCP returns empty content (char_count 0) | Same as above — 202 is the usual root cause                      |
-| All CELLAR endpoints exhausted           | `eurlex_curia_fetch.py` searches InfoCuria (independent store)   |
-| 50 000-char MCP truncation               | Native fetch has no cap; cache plain text and slice it           |
+- **Case number → CELEX (sector 6):** `6` + 4-digit year + type + number
+  padded to 4 digits. `C-131/14` → `62014CJ0131`. Court of Justice:
+  `CJ` judgment, `CO` order, `CC` Advocate General opinion. General Court:
+  `TJ` judgment, `TO` order. Joined cases use the first number. Old cases
+  keep their real year: `26/62` (Van Gend en Loos) → `61962CJ0026`.
+- **ECLI:** pass straight to `eurlex_case_law` (`ecli: "ECLI:EU:C:2014:317"`);
+  the result gives the CELEX and title.
+- **Case name only** ("Schrems II", "Bauer"): `eurlex_case_law` with `query`
+  matches the *title*, which starts "Judgment of the Court … " and contains
+  the party names, so search the party name, not the nickname; narrow with
+  `date_from`/`date_to` or `court`. If that fails, use `related_celex` with
+  the act the case interprets, or `eurlex_sparql`.
+- **Act name / number:** `eurlex_consolidated` with `doc_type: "reg"`,
+  `year: 2016`, `number: 679` needs no CELEX at all. Otherwise
+  `eurlex_search` (`resource_type: "REG"|"DIR"|"DEC"`) or ELI short form
+  `reg/2016/679` in `eurlex_fetch`.
 
-## Curia fallback
+## Quoting a paragraph of a long judgment
 
-`eurlex_curia_fetch.py` uses InfoCuria's search-then-fetch pattern:
+Long judgments exceed one `eurlex_fetch` call (default 20 000 chars, max
+50 000 per call). Do not page blindly from the start:
 
-1. Converts CELEX to a case number: `62021CJ0488` → `C-488/21`
-2. GETs `https://curia.europa.eu/juris/liste.jsf?num=C-488%2F21&language=EN`
-3. Parses the result page for a `docid` parameter in document links
-4. GETs the printable rendition:
-   `https://curia.europa.eu/juris/document/document_print.jsf?docid=<ID>&doclang=EN&part=1`
-5. Strips HTML to plain text and caches under `~/.cache/eurlex/<CELEX>_<LANG>/curia.*`
+1. `eurlex_structure(celex_id, language)` — read the `offset` of
+   `Paragraph N` for the first paragraph you need.
+2. `eurlex_fetch(celex_id, language, format: "plain", offset: <that offset>,
+   max_chars: …)` — offsets are for **plain** text in the **same language**;
+   mixing `xhtml` or another language misaligns them.
+3. Keep calling with `next_offset` until you have the last paragraph; stop
+   when `next_offset` is `null`.
+4. Quote verbatim with the paragraph number. Never reconstruct a paragraph
+   from memory; if the fetched text does not contain it, say so.
 
-The script also accepts a case number directly (`C-488/21`) if you don't have the CELEX.
+`eurlex_structure` caps at 300 entries and sets `truncated: true` for very
+large documents; then fetch by offset ranges and read paragraph numbers from
+the text itself.
 
-## Failure modes the toolkit does NOT solve
+For legislation, `eurlex_structure` gives article offsets the same way;
+prefer `eurlex_consolidated` when the user wants what is in force, and
+report the `consolidation_date` alongside the quote.
 
-- Cases with no electronic full text anywhere (some old orders, some AG opinions
-  that predate digital archiving). If `eurlex_curia_fetch.py` also fails, the
-  user needs the printed *Reports of Cases* or a library with Westlaw EU.
-- Documents that are paywalled (rare on EUR-Lex, more common for early reporter
-  texts). Direct the user to a library copy.
-- Pinpoint citations to footnotes inside an AG opinion — the paragraph parser
-  follows main-body paragraph numbering only.
+## Authentic language
 
-## Notes on language selection
+Judgments are authentic only in the language of the case (usually the
+referring court's). If the user's argument turns on exact wording, fetch
+that language too (`eurlex_metadata` and the ECLI page show it; the case
+language is also printed at the end of the judgment) and quote both.
 
-CELEX language codes on the CELLAR endpoint are three-letter ISO 639-2/B:
-`ENG`, `FRA`, `DEU`, `SPA`, `ITA`, `NLD`, `POL`, `SWE`, `DAN`, `FIN`, etc.
-Norwegian is **not** an EU official language and EUR-Lex does not host
-Norwegian translations of CJEU judgments. If the user reads Norwegian, fetch
-the English (`ENG`) text — that is what Norwegian academic legal writing
-typically cites alongside the original-language version.
+## When something is missing
+
+- **`total_chars: 0` or an error for a CELEX that should exist:** try
+  `format: "plain"` vs `"xhtml"`, another language (`FRA` is the working
+  language and most complete), and retry once after a short wait — Cellar
+  renders some documents on demand. Confirm the CELEX with `eurlex_case_law`
+  (`ecli`) or `eurlex_search` before concluding it is absent.
+- **`eurlex_consolidated` says no consolidated version:** the act was never
+  amended (fetch the original) or is a decision/judgment (not consolidated).
+- **Truly absent from Cellar** (some early orders, unpublished AG opinions,
+  material from before electronic publication): say so and give the
+  InfoCuria search URL for the user to check manually:
+  `https://curia.europa.eu/juris/liste.jsf?num=C-131%2F14&language=EN`.
+  Do not guess text.
+
+## Citing
+
+- Case law: *Case C‑131/14 Google Spain, ECLI:EU:C:2014:317, para 80.* Give
+  the ECLI (from `eurlex_case_law`/`eurlex_metadata`) and the EUR-Lex URL
+  `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0131`.
+- Legislation: article + paragraph + the act's full title once, then short
+  title; for consolidated text add "as consolidated on <consolidation_date>".
+- Match the user's language in your reply but keep quotes in the language
+  fetched, with your own translation after if the user writes Norwegian.
+
+## Scope boundaries
+
+EEA law as applied by the EFTA Court → `efta-court`. ECHR case law → `hudoc`.
+Council of Europe treaties → `ets`. Norwegian implementation of EU/EEA acts
+→ `lovdata-api` / `lovdata-pro`; Norway's treaty commitments → `norges-traktater`.
