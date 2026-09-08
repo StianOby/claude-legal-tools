@@ -18,7 +18,7 @@ description: |
 
 # HUDOC — European Court of Human Rights case law
 
-This skill talks to `hudoc.echr.coe.int` to retrieve four things:
+This skill talks to `hudoc.echr.coe.int` to retrieve five things:
 
 1. **Search results** — filtered by case name, application number, article,
    respondent state, conclusion, court instance, importance, date.
@@ -26,8 +26,10 @@ This skill talks to `hudoc.echr.coe.int` to retrieve four things:
    articles invoked, importance level, language, date, separate opinions.
 3. **The full text of a judgment** — extracted from the official DOCX (or PDF
    as fallback), with paragraph breaks preserved so paragraph numbering
-   ("§ 47", "paragraph 88") is searchable. Automatically retries on server
-   errors (HTTP 500+).
+   ("§ 47", "paragraph 88") is searchable. Footnotes are appended under a
+   `FOOTNOTES` heading and referenced in the body as `[fn N]`, so citations
+   the Court puts in footnotes are greppable too. Automatically retries on
+   server errors (HTTP 500+).
 4. **The official PDF** — for citing and archiving.
 5. **Citations** — every ECtHR case the judgment relies on, parsed from the
    `scl` (Strasbourg case-law cited) metadata field.
@@ -42,15 +44,20 @@ languages) are supported.
 ## How to use
 
 The whole skill is one self-contained Python CLI: `scripts/hudoc.py`. No
-third-party packages — only the standard library (`urllib`, `zipfile`,
-`xml.etree`). Run it from this skill's directory; the cache lives in
-`./cache/items/<itemid>/` relative to the script.
+third-party packages for the normal DOCX path — only the standard library
+(`urllib`, `zipfile`, `xml.etree`); `pypdf` or poppler's `pdftotext` is
+needed only for the rare PDF-only documents. Run it from this skill's
+directory. The cache is *not* in the skill folder: it lives in
+`$HUDOC_CACHE_DIR` if set, otherwise `~/.cache/hudoc/items/<itemid>/`.
+Every `fetch` prints the absolute `path` of the file it wrote — use that
+rather than guessing.
 
 | The user wants… | Run |
 |---|---|
 | The text of a known case | `python3 scripts/hudoc.py fetch "Soering v. UK" --format text` |
 | The text by itemid | `python3 scripts/hudoc.py fetch 001-57619 --format text` |
 | The text by appno | `python3 scripts/hudoc.py fetch 14038/88 --format text` |
+| The text by ECLI | `python3 scripts/hudoc.py fetch ECLI:CE:ECHR:1989:0707JUD001403888 --format text` |
 | An admissibility decision (not the later GC judgment) | `python3 scripts/hudoc.py fetch 36813/97 --doctype ADMISSIBILITY --format text` |
 | The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o /tmp/case.pdf` |
 | Just the metadata (no full text) | `python3 scripts/hudoc.py metadata <ref>` |
@@ -166,15 +173,22 @@ numbers that appear *inside* a judgment's body. Searching it is the most
 powerful way to find all cases that have cited a specific judgment:
 
 ```bash
-# Find all cases that cite Abdullah Yaşa v. Turkey (app. no. 44827/08):
-python3 scripts/hudoc.py search 'extractedappno:"44827/08"' -n 30
+# Find all English-language judgments and decisions that cite
+# Abdullah Yaşa v. Turkey (app. no. 44827/08):
+python3 scripts/hudoc.py search '(extractedappno:"44827/08") AND (doctype:HEJUD OR doctype:HEDEC)' -n 30 --select itemid,docname,kpdate,doctypebranch
 
 # Narrow to Grand Chamber cases citing Soering v. UK (14038/88):
 python3 scripts/hudoc.py search '(extractedappno:"14038/88") AND (doctypebranch:GRANDCHAMBER)' -n 20
 ```
 
-This covers cases that explicitly discuss or distinguish the cited case, not
-just cases that appear in a table of citations. It also works for tracing how
+Always add the `doctype` filter (`HEJUD`/`HEDEC` for English originals,
+`HFJUD`/`HFDEC` for French): the collection also holds third-party
+translations, legal summaries and press releases (e.g. "[Czech Translation]
+summary by the Ministry of Justice"), which otherwise appear first because
+the default sort is date descending. Filtering on `doctypebranch` does not
+exclude them, since translations carry the branch of the original. This covers cases that explicitly
+discuss or distinguish the cited case, not just cases that appear in a
+table of citations. It also works for tracing how
 a legal principle has evolved: search `extractedappno` for an early leading
 case and sort by date to see the development line.
 
@@ -198,24 +212,26 @@ done
 wait
 ```
 
-Alternatively, pass the full absolute path to the script and use `--cache-dir`
-to keep all output in one place.
+Alternatively, pass the full absolute path to the script; the cache is
+shared through `$HUDOC_CACHE_DIR` / `~/.cache/hudoc` regardless of the
+working directory.
 
 ### Searching cached text with grep
 
 After fetching, the plain-text extraction lives at
-`cache/items/<itemid>/judgment.txt` (relative to the skill directory). This
-is greppable directly without re-querying HUDOC:
+`<cache>/items/<itemid>/judgment.txt`, where `<cache>` is `$HUDOC_CACHE_DIR`
+or `~/.cache/hudoc`. This is greppable directly without re-querying HUDOC:
 
 ```bash
+C=${HUDOC_CACHE_DIR:-$HOME/.cache/hudoc}
 # Find paragraph numbers containing "margin of appreciation" across fetched cases:
-grep -n "margin of appreciation" cache/items/*/judgment.txt
+grep -n "margin of appreciation" "$C"/items/*/judgment.txt
 
 # Find the dispositif in all cached judgments:
-grep -l "FOR THESE REASONS" cache/items/*/judgment.txt
+grep -l "FOR THESE REASONS" "$C"/items/*/judgment.txt
 
 # Grep for a specific paragraph number across all cached cases:
-grep -n "^88\." cache/items/*/judgment.txt
+grep -n "^88\." "$C"/items/*/judgment.txt
 ```
 
 This cache-then-grep workflow is much faster than re-querying HUDOC when you
@@ -288,12 +304,17 @@ dismissed") all matter for legal accuracy.
 ## Cache layout
 
 ```
-cache/items/<itemid>/
-  meta.json        Parsed metadata from /app/query/results
-  judgment.docx    Official DOCX from /app/conversion/docx/
-  judgment.pdf     Official PDF from /app/conversion/pdf/
-  judgment.txt    Plain-text extraction of the DOCX
+$HUDOC_CACHE_DIR or ~/.cache/hudoc/
+  items/<itemid>/
+    meta.json        Parsed metadata from /app/query/results
+    judgment.docx    Official DOCX from /app/conversion/docx/
+    judgment.pdf     Official PDF from /app/conversion/pdf/
+    judgment.txt     Plain-text extraction of the DOCX (footnotes appended)
 ```
+
+Files are written atomically and validated (a DOCX must be a ZIP, a PDF must
+start with `%PDF`), so an HTML error page from HUDOC is never cached as a
+document.
 
 `meta.json` is what `metadata` writes; it's the most useful starting point
 for factual questions (parties, conclusion, articles, separate opinions,

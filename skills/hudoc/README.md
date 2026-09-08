@@ -2,7 +2,9 @@
 
 Pure-Python skill that lets Claude lookup and download European Court of
 Human Rights case law from the HUDOC database — text, PDF/DOCX, structured
-metadata, and citation chains.
+metadata, and citation chains. Standard library only for the normal DOCX
+path; `pypdf` (or poppler's `pdftotext`) is used only for the rare items
+that exist solely as PDF.
 
 See `SKILL.md` for the full workflow guide. Quick test:
 
@@ -20,14 +22,12 @@ hudoc/
 ├── README.md
 ├── scripts/
 │   └── hudoc.py            # single self-contained CLI; stdlib only
-├── references/
-│   └── query-fields.md     # HUDOC Lucene query syntax + field reference
-├── evals/
-│   ├── evals.json          # task-eval prompts (lookup, search, citations)
-│   └── trigger_evals.json  # description-optimization triggering tests
-└── cache/
-    └── items/<itemid>/     # populated on first fetch
+└── references/
+    └── query-fields.md     # HUDOC Lucene query syntax + field reference
 ```
+
+Downloads are cached outside the skill folder, under `$HUDOC_CACHE_DIR` if
+set and otherwise `~/.cache/hudoc/items/<itemid>/`.
 
 ## Installing as a Claude skill
 

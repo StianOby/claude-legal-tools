@@ -47,6 +47,8 @@ import time
 import urllib.parse
 import urllib.request
 import urllib.error
+import shutil
+import subprocess
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -117,6 +119,33 @@ DOCTYPEBRANCH = {
 }
 
 LANG_PREFERENCE_DEFAULT = ["ENG", "FRE"]  # English first, French fallback
+
+
+# ---------------------------------------------------------------------------
+# Atomic, validated file helpers
+# ---------------------------------------------------------------------------
+
+def _has_content(p: Path) -> bool:
+    try:
+        return p.stat().st_size > 0
+    except OSError:
+        return False
+
+
+def _write_bytes(p: Path, data: bytes) -> None:
+    """Write via a temp file + rename so an interrupted download never
+    leaves a partial file that later counts as a cache hit."""
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, p)
+
+
+def _write_text(p: Path, text: str) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, p)
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +223,8 @@ def _flatten_columns(api_result: dict) -> list[dict]:
 ITEMID_RE = re.compile(r"^\d{3}-\d+(?:-\d+)?$")
 # Application numbers are NUMBER/YY (e.g. 14038/88; sometimes joined with ;)
 APPNO_RE = re.compile(r"^\d{1,6}/\d{2}(?:;\d{1,6}/\d{2})*$")
+# European Case Law Identifiers, e.g. ECLI:CE:ECHR:1989:0707JUD001403888
+ECLI_RE = re.compile(r"^ECLI:CE:ECHR:\d{4}:\d{4}[A-Z]{3}\d{9,12}$", re.IGNORECASE)
 
 
 def looks_like_itemid(s: str) -> bool:
@@ -202,6 +233,10 @@ def looks_like_itemid(s: str) -> bool:
 
 def looks_like_appno(s: str) -> bool:
     return bool(APPNO_RE.match(s.strip()))
+
+
+def looks_like_ecli(s: str) -> bool:
+    return bool(ECLI_RE.match(s.strip()))
 
 
 def _score_candidate(c: dict, lang_pref: list[str]) -> tuple:
@@ -274,6 +309,7 @@ def resolve(
     Accepts:
       * raw itemid (skips network if cached)
       * application number ("14038/88")
+      * ECLI ("ECLI:CE:ECHR:1989:0707JUD001403888")
       * case name ("Big Brother Watch v. UK", "Soering")
       * docname:"..." or any Lucene clause — passed straight through
 
@@ -299,6 +335,10 @@ def resolve(
         # Use the first appno only when there's a list; HUDOC indexes them
         first_app = ref.split(";")[0]
         api = _query(f'appno:"{first_app}"', length=50)
+    elif looks_like_ecli(ref):
+        # An ECLI identifies one judgment; rows differ only by language /
+        # translation, so the usual scoring picks the preferred version.
+        api = _query(f'ecli:"{ref.upper()}"', length=50)
     elif ":" in ref and not ref.startswith('"'):
         # Caller already wrote a Lucene clause (e.g. `docname:"foo"`).
         api = _query(ref, length=50)
@@ -350,7 +390,7 @@ def _item_dir(itemid: str) -> Path:
 def _save_metadata(item: dict) -> Path:
     itemid = item["itemid"]
     p = _item_dir(itemid) / "meta.json"
-    p.write_text(json.dumps(item, indent=2, ensure_ascii=False), encoding="utf-8")
+    _write_text(p, json.dumps(item, indent=2, ensure_ascii=False))
     return p
 
 
@@ -370,8 +410,11 @@ def _download(url: str) -> bytes:
 
 
 def fetch_pdf(itemid: str) -> Path:
+    """Download the official PDF. The conversion endpoint answers 204 with
+    an empty body when no PDF exists and may serve an HTML error page with
+    200, so the bytes are validated before they are cached."""
     p = _item_dir(itemid) / "judgment.pdf"
-    if p.exists() and p.stat().st_size > 0:
+    if _has_content(p):
         return p
     url = (
         PDF_URL
@@ -380,14 +423,24 @@ def fetch_pdf(itemid: str) -> Path:
             {"library": "ECHR", "id": itemid, "filename": f"{itemid}.pdf"}
         )
     )
-    p.write_bytes(_download(url))
+    data = _download(url)
+    if not data.startswith(b"%PDF"):
+        raise RuntimeError(
+            f"HUDOC returned no PDF for {itemid} ({len(data)} bytes, "
+            f"starts {data[:20]!r})"
+        )
+    _write_bytes(p, data)
     return p
 
 
 def fetch_docx(itemid: str) -> Path:
+    """Download the official DOCX; validated as a real ZIP container before
+    caching so an HTML error page can never poison later runs."""
     p = _item_dir(itemid) / "judgment.docx"
-    if p.exists() and p.stat().st_size > 0:
-        return p
+    if _has_content(p):
+        if zipfile.is_zipfile(p):
+            return p
+        p.unlink()  # stale invalid cache entry from an older version
     url = (
         DOCX_URL
         + "?"
@@ -395,7 +448,13 @@ def fetch_docx(itemid: str) -> Path:
             {"library": "ECHR", "id": itemid, "filename": f"{itemid}.docx"}
         )
     )
-    p.write_bytes(_download(url))
+    data = _download(url)
+    if not data.startswith(b"PK"):
+        raise RuntimeError(
+            f"HUDOC returned no DOCX for {itemid} ({len(data)} bytes, "
+            f"starts {data[:20]!r})"
+        )
+    _write_bytes(p, data)
     return p
 
 
@@ -404,64 +463,83 @@ def docx_to_text(docx_path: Path) -> str:
     Extract plain text from a HUDOC DOCX without external deps.
     Walks word/document.xml, joins paragraphs with newlines, and preserves
     paragraph breaks so paragraph numbers ("§ 47") are easy to find.
+
+    Footnotes (word/footnotes.xml) are appended as a numbered list under a
+    "FOOTNOTES" heading, and each footnote reference in the body is marked
+    [fn N], so citations that the Court puts in footnotes remain greppable.
     """
-    NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     with zipfile.ZipFile(docx_path) as z:
         with z.open("word/document.xml") as f:
             tree = ET.parse(f)
+        footnotes_xml = z.read("word/footnotes.xml") if "word/footnotes.xml" in z.namelist() else None
+
+    def para_text(para) -> str:
+        parts = []
+        for el in para.iter():
+            if el.tag == W + "t":
+                parts.append(el.text or "")
+            elif el.tag == W + "tab":
+                parts.append(" ")
+            elif el.tag == W + "footnoteReference":
+                fid = el.get(W + "id")
+                if fid and int(fid) > 0:
+                    parts.append(f" [fn {fid}]")
+        return "".join(parts).strip()
+
     out_paragraphs = []
-    for para in tree.iter(f'{{{NS["w"]}}}p'):
-        # Concatenate every text run inside this paragraph
-        runs = [t.text or "" for t in para.iter(f'{{{NS["w"]}}}t')]
-        text = "".join(runs).strip()
+    for para in tree.iter(W + "p"):
+        text = para_text(para)
         if text:
             out_paragraphs.append(text)
+
+    notes = []
+    if footnotes_xml:
+        froot = ET.fromstring(footnotes_xml)
+        for fn in froot.iter(W + "footnote"):
+            fid = fn.get(W + "id")
+            if not fid or int(fid) <= 0:
+                continue  # separator / continuation pseudo-notes
+            body = " ".join(t for t in (para_text(p) for p in fn.iter(W + "p")) if t)
+            if body:
+                notes.append(f"[fn {fid}] {body}")
+    if notes:
+        out_paragraphs.append("FOOTNOTES")
+        out_paragraphs.extend(notes)
     return "\n\n".join(out_paragraphs) + "\n"
 
 
 def pdf_to_text(pdf_path: Path) -> str:
     """
-    Extract plain text from a PDF without external deps.
-    Attempts to decompress and extract text from PDF content streams.
-    Less accurate than DOCX but works as a fallback. May not preserve
-    paragraph structure.
+    Extract plain text from a PDF. Used only when the DOCX rendition is not
+    available. Tries pypdf (pip install pypdf), then the poppler `pdftotext`
+    binary. Page structure is kept but paragraph numbering is less reliable
+    than in the DOCX extraction.
     """
-    import zlib
-    raw = pdf_path.read_bytes()
-    text_parts = []
-
-    # Try to decompress every stream (FlateDecode), then scan for text ops.
-    # Unconditionally attempt zlib.decompress — valid headers include \x78\x01,
-    # \x78\x5e, \x78\x9c, \x78\xda; checking one prefix misses the rest.
-    for match in re.finditer(rb'stream\s*\n(.*?)\nendstream', raw, re.DOTALL):
-        stream_data = match.group(1)
+    try:
+        from pypdf import PdfReader  # type: ignore
+    except ModuleNotFoundError:
+        PdfReader = None  # type: ignore
+    if PdfReader is not None:
         try:
-            decompressed = zlib.decompress(stream_data)
-        except zlib.error:
-            continue
-        # PDF literal strings: (text)Tj / (text)TJ. Handle \) escapes.
-        for text_match in re.finditer(rb'\(((?:[^()\\]|\\.)*)\)\s*[Tj]', decompressed):
-            try:
-                text = text_match.group(1).decode('utf-8', errors='ignore')
-                text = text.replace('\\n', ' ').replace('\\t', ' ')
-                if text.strip():
-                    text_parts.append(text.strip())
-            except Exception:
-                pass
-
-    if not text_parts:
-        raise RuntimeError(
-            f"No extractable text found in PDF {pdf_path.name}. "
-            "Download the PDF directly from HUDOC for full content."
-        )
-
-    # Join with newlines, de-duplicate consecutive duplicates
-    lines = []
-    for part in text_parts:
-        if not lines or part != lines[-1]:
-            lines.append(part)
-
-    return '\n'.join(lines) + '\n'
+            reader = PdfReader(str(pdf_path))
+            text = "\n\n".join((page.extract_text() or "") for page in reader.pages)
+            if text.strip():
+                return text + "\n"
+        except Exception as e:  # corrupt / encrypted
+            print(f"pypdf failed on {pdf_path.name}: {e}", file=sys.stderr)
+    if shutil.which("pdftotext"):
+        out = pdf_path.with_name(pdf_path.stem + ".pdftotext.txt")
+        proc = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", str(pdf_path), str(out)],
+                              check=False, capture_output=True, text=True)
+        if proc.returncode == 0 and _has_content(out):
+            text = out.read_text(encoding="utf-8", errors="replace")
+            out.unlink()
+            return text
+    raise RuntimeError(
+        f"Cannot extract text from {pdf_path.name}: install pypdf "
+        "(`pip install pypdf`) or poppler-utils (`pdftotext`). The PDF itself is cached."
+    )
 
 
 def fetch_text(itemid: str) -> Path:
@@ -470,14 +548,14 @@ def fetch_text(itemid: str) -> Path:
     falls back to PDF if DOCX fails.
     """
     txt_path = _item_dir(itemid) / "judgment.txt"
-    if txt_path.exists() and txt_path.stat().st_size > 0:
+    if _has_content(txt_path):
         return txt_path
 
     # Try DOCX first (preserves paragraph structure)
     try:
         docx_path = fetch_docx(itemid)
         text = docx_to_text(docx_path)
-        txt_path.write_text(text, encoding="utf-8")
+        _write_text(txt_path, text)
         return txt_path
     except Exception as e:
         print(f"DOCX extraction failed: {e}; trying PDF fallback...", file=sys.stderr)
@@ -486,7 +564,7 @@ def fetch_text(itemid: str) -> Path:
     try:
         pdf_path = fetch_pdf(itemid)
         text = pdf_to_text(pdf_path)
-        txt_path.write_text(text, encoding="utf-8")
+        _write_text(txt_path, text)
         return txt_path
     except Exception as e:
         raise RuntimeError(f"Both DOCX and PDF extraction failed for {itemid}: {e}") from None
@@ -594,8 +672,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
     if args.output:
         out = Path(args.output)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_bytes(p.read_bytes())
+        _write_bytes(out, p.read_bytes())
         target = out
     else:
         target = p
@@ -635,7 +712,7 @@ def cmd_show(args: argparse.Namespace) -> int:
     if not looks_like_itemid(args.itemid):
         raise SystemExit("show requires an itemid like 001-57619")
     p = ITEMS_DIR / args.itemid / "judgment.txt"
-    if not p.exists():
+    if not _has_content(p):
         raise SystemExit(f"no cached text for {args.itemid}; run `fetch --format text` first")
     print(p.read_text(encoding="utf-8"))
     return 0
@@ -706,6 +783,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     sp = sub.add_parser("show", help="Print previously fetched plain text from cache.")
     sp.add_argument("itemid")
     sp.set_defaults(func=cmd_show)
+
+    # Judgment text and metadata contain characters outside cp1252; never let
+    # the console encoding turn a successful fetch into a crash.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
     args = p.parse_args(argv)
     try:

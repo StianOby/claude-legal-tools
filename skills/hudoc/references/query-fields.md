@@ -56,6 +56,8 @@ to limit results to the public Court collection. Pass a raw clause to
 | `CHAMBER` | Chamber judgment (7 judges) |
 | `COMMITTEE` | Committee judgment / decision (3 judges) |
 | `ADMISSIBILITY` | Court admissibility decision |
+| `DECGRANDCHAMBER` | Grand Chamber decision (as opposed to judgment) |
+| `DECCOMMISSION` | Old Commission decision |
 | `ADMISSIBILITYCOM` | Old Commission admissibility decision (pre-1998) |
 | `MERITS` | Old Commission merits report (pre-1998) |
 | `COMMUNICATEDCASES` | Case communicated to the respondent state |
@@ -123,7 +125,14 @@ Sort: `kpdate Descending`.
 
 ```
 (extractedappno:"14038/88") AND NOT (itemid:"001-57619")
+AND (doctype:HEJUD OR doctype:HEDEC)
 ```
+
+Without the `doctype` clause the hits include third-party translations,
+legal summaries and press releases, which sort first by date. Use
+`HFJUD`/`HFDEC` for French originals. Note that `extractedappno` is only
+populated for part of the collection, so the count is a floor, not the
+full citation graph.
 
 ### "French-language version of a known case"
 
