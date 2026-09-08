@@ -11,6 +11,11 @@ documents:
 
 See `SKILL.md` for the full description, triggers, and CLI table.
 
+Downloads are cached outside the skill folder, in `$ETS_CACHE_DIR` if
+set and otherwise `~/.cache/ets`. The bundled `data/index.json` seeds
+that cache so the first lookup needs no network call; a treaty number
+missing from it triggers an automatic refresh from the live API.
+
 ## Layout
 
 ```
@@ -18,8 +23,8 @@ ets/
   SKILL.md                 # Skill description and usage policy
   README.md                # This file
   requirements.txt         # Optional Python dependency (pypdf)
-  cache/
-    index.json             # Pre-fetched master treaty index (~230 records)
+  data/
+    index.json             # Bundled snapshot of the master treaty index (~230 records)
   evals/
     trigger_evals.json     # Trigger evaluation test cases
   scripts/
@@ -81,8 +86,11 @@ python3 scripts/coe.py lookup "data protection"
 
 `conventions-ws.coe.int` still serves a 1024-bit DH key. Modern
 OpenSSL 3 refuses it by default. The CLI sets
-`SSL_CONTEXT.set_ciphers("DEFAULT@SECLEVEL=0")` on this one host —
-no global config change required.
+`SSL_CONTEXT.set_ciphers("DEFAULT@SECLEVEL=0")` for its own requests —
+no global config change required. The same context is also used for
+`rm.coe.int` (the document host): it sits behind Cloudflare, which
+returns 403 to Python's default TLS client hello but accepts this one.
+Certificate verification is not disabled in either case.
 
 ## Notes on scope
 

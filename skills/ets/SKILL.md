@@ -83,8 +83,9 @@ once `index.json` is cached every download is one HTTP hop on
 ## How to use
 
 The skill is a single self-contained CLI: `scripts/coe.py`. Run it
-via `python3` from this skill directory (the cache path is computed
-relative to the script).
+via `python3` from this skill directory. Every command prints the
+absolute paths of the files it wrote — read those rather than
+guessing the cache location.
 
 Concrete invocations:
 
@@ -92,7 +93,7 @@ Concrete invocations:
 |---|---|
 | "get me the ECHR" / "fetch the European Convention on Human Rights" | `python3 scripts/coe.py fetch ECHR` |
 | "pull CETS 210" / "Istanbul Convention text" | `python3 scripts/coe.py fetch 210` |
-| "what reservations did Türkiye make to the ECHR?" | `python3 scripts/coe.py declarations 005`, then read `cache/treaties/005/declarations.en.txt` and grep for the state |
+| "what reservations did Türkiye make to the ECHR?" | `python3 scripts/coe.py declarations 005`, then read the `txt` path it prints (`<cache>/treaties/005/declarations.en.txt`) and grep for the state |
 | "ratification status of the Cybercrime Convention" | `python3 scripts/coe.py signatures 185` |
 | "Explanatory Report to the Lanzarote Convention" | `python3 scripts/coe.py report 201` |
 | "I just want the text of CETS 108" | `python3 scripts/coe.py text 108` |
@@ -101,12 +102,17 @@ Concrete invocations:
 
 Available subcommands (`python3 scripts/coe.py --help` shows all):
 
-- `index [--refresh]` — fetch the full index of all CoE treaties (one
-  POST call, ~230 records). The first run takes a few seconds.
-  Subsequent runs are instant.
+- `index [--refresh]` — the full index of all CoE treaties (~230
+  records). A snapshot ships with the skill in `data/index.json` and
+  is copied into the cache on first use, so no network call is needed
+  to start. `--refresh` re-downloads it (one POST). Any command that
+  is asked for a number missing from the cached index refreshes
+  automatically once before giving up, so new CETS numbers work
+  without manual intervention.
 - `lookup <query>` — fuzzy-search the cached index by name or number.
-- `text <ref>` — download + extract the treaty text PDF.
-- `report <ref>` — download + extract the Explanatory Report PDF.
+- `text <ref>` — download + extract the treaty text (PDF, or HTML
+  for the few translations that rm.coe.int publishes as web pages).
+- `report <ref>` — download + extract the Explanatory Report.
 - `signatures <ref>` — fetch + flatten the signature/ratification
   table to plain text.
 - `declarations <ref>` — fetch + flatten the declarations and
@@ -124,20 +130,25 @@ free-text title (fuzzy-matched against the cached index).
 
 ## Cache layout
 
-Everything is cached under `cache/` in this skill folder, so you
-never re-download a PDF you already have:
+The skill folder is usually read-only (installed as a plugin), so
+nothing is written there. The cache lives in a user directory:
+`$ETS_CACHE_DIR` if set, otherwise `~/.cache/ets`. Every command
+prints the absolute paths of the files it wrote; `show` prints a
+cached text file to stdout so you never need the path at all. Files
+are UTF-8 and written atomically, so an interrupted download never
+leaves a truncated file behind that later looks cached.
 
 ```
-cache/index.json                              # entire treaty list
-cache/treaties/<NNN>/meta.json                # promoted-fields meta
-cache/treaties/<NNN>/text.en.pdf
-cache/treaties/<NNN>/text.en.txt              # extracted plain text
-cache/treaties/<NNN>/report.en.pdf
-cache/treaties/<NNN>/report.en.txt
-cache/treaties/<NNN>/signatures.en.json       # raw API response
-cache/treaties/<NNN>/signatures.en.txt        # flattened, grep-friendly
-cache/treaties/<NNN>/declarations.en.json
-cache/treaties/<NNN>/declarations.en.txt
+<cache>/index.json                              # entire treaty list (seeded from data/index.json)
+<cache>/treaties/<NNN>/meta.json                # promoted-fields meta
+<cache>/treaties/<NNN>/text.en.pdf              # or text.<lang>.html when only a web page exists
+<cache>/treaties/<NNN>/text.en.txt              # extracted plain text
+<cache>/treaties/<NNN>/report.en.pdf
+<cache>/treaties/<NNN>/report.en.txt
+<cache>/treaties/<NNN>/signatures.en.json       # raw API response
+<cache>/treaties/<NNN>/signatures.en.txt        # flattened, grep-friendly
+<cache>/treaties/<NNN>/declarations.en.json
+<cache>/treaties/<NNN>/declarations.en.txt
 ```
 
 `signatures.en.txt` is a plain table. Each row carries the dates
@@ -183,14 +194,21 @@ quick factual questions to avoid re-parsing the index.
    under each state heading is one declaration with the article it
    relates to and its effective dates.
 4. **For "is $STATE a party to $TREATY"** open `signatures.en.txt`
-   and look for the state's row. The presence of a `rat=` date means
-   yes; only `sig=` means signed-but-not-ratified.
+   and look for the state's row. The presence of a `rat/acc=` date
+   means yes; only `sig=` means signed-but-not-ratified. A
+   `denounced=` date means the state has left the treaty.
 5. **Some treaties have no Explanatory Report** (mostly the older
    ETS conventions). `report` will print a warning and exit
    gracefully — don't treat that as a failure.
 6. **Languages.** The `--lang` flag accepts `en|fr|de|it|ru`. Most
-   CoE PDFs are published EN+FR; some core conventions also have
-   official DE/IT/RU versions. The skill defaults to English.
+   CoE PDFs are published EN+FR; some conventions also have DE/IT/RU
+   versions, which are usually *non-official* translations and are
+   sometimes served as HTML pages rather than PDFs (the CLI handles
+   both and reports `"format": "pdf"` or `"html"`). If the requested
+   language does not exist the CLI says so on stderr, falls back to
+   English and names the files `*.en.*` — so a `text.de.txt` never
+   silently contains English. Only EN and FR are authentic texts;
+   quote those for anything that turns on wording.
 
 ## Citation
 

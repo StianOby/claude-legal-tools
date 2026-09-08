@@ -14,8 +14,8 @@ with a static API token harvested from the public page.
 Subcommands:
   index        Build/refresh the master index of all treaties.
   lookup       Fuzzy-search the cached index by name or CETS number.
-  text         Download the treaty text PDF for a given CETS number.
-  report       Download the Explanatory Report PDF.
+  text         Download the treaty text for a given CETS number.
+  report       Download the Explanatory Report.
   signatures   Download the chart of signatures and ratifications.
   declarations Download the declarations and reservations.
   fetch        Combo: resolve, then download all four (text + report
@@ -32,11 +32,16 @@ Examples:
   coe.py signatures 210
   coe.py declarations 005
   coe.py show 005 --kind text
+
+All cache files are written and read as UTF-8 regardless of platform
+locale, and writes are atomic (temp file + rename), so an interrupted
+run never leaves a truncated file that later looks like a cache hit.
 """
 
 from __future__ import annotations
 
 import argparse
+import html as _html
 import json
 import os
 import re
@@ -44,7 +49,6 @@ import shutil
 import ssl
 import subprocess
 import sys
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -66,13 +70,16 @@ API_BASE = "https://conventions-ws.coe.int/WS_LFRConventions/"
 API_TOKEN = "hfghhgp2q5vgwg1hbn532kw71zgtww7e"
 
 USER_AGENT = (
-    "ets-skill/0.1 "
+    "ets-skill/0.2 "
     "(treaty research tool, Python-urllib)"
 )
 
 # The conventions-ws.coe.int server still serves a small DH key. We
 # need to drop OpenSSL to SECLEVEL=0 and allow unsafe legacy
-# renegotiation to talk to it. Only this one host needs it.
+# renegotiation to talk to it. The same context is deliberately used
+# for rm.coe.int (the document host): it sits behind Cloudflare, which
+# answers 403 to Python's default TLS client hello but accepts this
+# one (verified Sept 2026). Certificate verification stays on.
 SSL_CONTEXT = ssl.create_default_context()
 SSL_CONTEXT.set_ciphers("DEFAULT@SECLEVEL=0")
 SSL_CONTEXT.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
@@ -173,12 +180,53 @@ META_FIELDS = [
     "Numero_traite_parent",
     "Lien_pdf_traite_ENG",
     "Lien_pdf_traite_FRE",
+    "Lien_pdf_traite_GER",
+    "Lien_pdf_traite_ITA",
+    "Lien_pdf_traite_RUS",
     "Lien_pdf_rapex_ENG",
     "Lien_pdf_rapex_FRE",
     "Lien_html_traite_ENG",
     "Lien_html_rapex_ENG",
     "Mention",
 ]
+
+
+# ---------------------------------------------------------------------------
+# UTF-8, atomic file helpers
+# ---------------------------------------------------------------------------
+
+def _read(p: Path) -> str:
+    return p.read_text(encoding="utf-8", errors="replace")
+
+
+def _write(p: Path, text: str) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, p)
+
+
+def _write_bytes(p: Path, data: bytes) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, p)
+
+
+def _has_content(p: Path) -> bool:
+    """A cache file counts as present only if it is non-empty."""
+    try:
+        return p.stat().st_size > 0
+    except OSError:
+        return False
+
+
+def _load_json(p: Path):
+    return json.loads(_read(p))
+
+
+def _dump_json(p: Path, obj) -> None:
+    _write(p, json.dumps(obj, indent=2, ensure_ascii=False))
 
 
 # ---------------------------------------------------------------------------
@@ -221,52 +269,98 @@ def api_post(endpoint, body, lang=DEFAULT_LANG):
         return json.load(r)
 
 
-def download_pdf(url, dest):
-    """Download a PDF from rm.coe.int (or anywhere) into `dest`."""
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if dest.exists() and dest.stat().st_size > 0:
-        return dest  # idempotent cache
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/pdf,*/*"}
+def download_document(url, stem: Path):
+    """Download a treaty document into the cache.
+
+    rm.coe.int serves most documents as PDF, but some (notably
+    non-official translations) are HTML pages. The real type is
+    detected from the Content-Type header and the file's magic bytes,
+    and the file is saved as `<stem>.pdf` or `<stem>.html`. Returns
+    (path, kind) where kind is 'pdf' or 'html'. If a file of either
+    kind is already cached it is returned without a request.
+    """
+    # Not with_suffix(): the stem already ends in ".<lang>" and must be kept.
+    pdf_p = stem.with_name(stem.name + ".pdf")
+    html_p = stem.with_name(stem.name + ".html")
+    if _has_content(pdf_p):
+        return pdf_p, "pdf"
+    if _has_content(html_p):
+        return html_p, "html"
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/pdf,text/html,*/*"}
     req = urllib.request.Request(url, headers=headers)
-    # rm.coe.int doesn't need the SECLEVEL=0 dance, but using the same
-    # context is harmless.
-    with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=120) as r, dest.open("wb") as f:
-        shutil.copyfileobj(r, f)
-    return dest
+    with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=120) as r:
+        data = r.read()
+        ctype = (r.headers.get("Content-Type") or "").lower()
+    if data.startswith(b"%PDF"):
+        _write_bytes(pdf_p, data)
+        return pdf_p, "pdf"
+    if "html" in ctype or data.lstrip()[:15].lower().startswith((b"<!doctype", b"<html")):
+        _write_bytes(html_p, data)
+        return html_p, "html"
+    raise SystemExit(
+        f"{url} returned neither a PDF nor an HTML page (Content-Type: {ctype or '?'}); "
+        "nothing cached."
+    )
 
 
 # ---------------------------------------------------------------------------
-# PDF text extraction
+# Text extraction
 # ---------------------------------------------------------------------------
 
-def extract_pdf_text(pdf_path, txt_path=None):
-    """Extract text from a PDF, preferring the system `pdftotext`
-    (poppler) which produces nicer column-aware output than pypdf."""
-    if txt_path is None:
-        txt_path = pdf_path.with_suffix(".txt")
-    if txt_path.exists() and txt_path.stat().st_size > 0:
+def _html_to_text(raw: str) -> str:
+    raw = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", raw)
+    raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
+    raw = re.sub(r"(?i)</(p|div|h\d|li|tr)>", "\n", raw)
+    raw = re.sub(r"<[^>]+>", " ", raw)
+    raw = _html.unescape(raw)
+    lines = [re.sub(r"[ \t ]+", " ", ln).strip() for ln in raw.splitlines()]
+    text = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
+
+
+def extract_text(doc_path: Path, kind: str):
+    """Extract plain text from a cached document. For PDFs prefer the
+    system `pdftotext` (poppler), which produces nicer column-aware
+    output than pypdf; fall back to pypdf. HTML pages are stripped
+    directly. Returns the .txt path, or None if no extractor worked."""
+    txt_path = doc_path.with_suffix(".txt")
+    if _has_content(txt_path):
+        return txt_path
+    if kind == "html":
+        _write(txt_path, _html_to_text(_read(doc_path)))
         return txt_path
     pdftotext = shutil.which("pdftotext")
     if pdftotext:
-        subprocess.run(
-            [pdftotext, "-layout", "-enc", "UTF-8", str(pdf_path), str(txt_path)],
-            check=True,
+        tmp = txt_path.with_name(txt_path.name + ".tmp")
+        proc = subprocess.run(
+            [pdftotext, "-layout", "-enc", "UTF-8", str(doc_path), str(tmp)],
+            check=False, capture_output=True, text=True,
         )
-        return txt_path
+        if proc.returncode == 0 and _has_content(tmp):
+            os.replace(tmp, txt_path)
+            return txt_path
+        tmp.unlink(missing_ok=True)
+        sys.stderr.write(f"WARN: pdftotext failed on {doc_path.name} "
+                         f"({proc.stderr.strip() or 'exit ' + str(proc.returncode)}); trying pypdf\n")
     # Fallback: pypdf (slower, less accurate on multi-column layouts)
     try:
         from pypdf import PdfReader
     except ImportError:
         sys.stderr.write(
-            "WARN: neither pdftotext nor pypdf is available; cannot "
-            "extract text. Install poppler-utils or `pip install pypdf`.\n"
+            "WARN: neither pdftotext nor pypdf could extract text. "
+            "Install poppler-utils or `pip install pypdf`.\n"
         )
         return None
-    reader = PdfReader(str(pdf_path))
-    with txt_path.open("w", encoding="utf-8") as f:
-        for page in reader.pages:
-            f.write(page.extract_text() or "")
-            f.write("\n\n")
+    try:
+        reader = PdfReader(str(doc_path))
+        text = "\n\n".join((page.extract_text() or "") for page in reader.pages)
+    except Exception as e:  # corrupt / encrypted PDF
+        sys.stderr.write(f"WARN: pypdf failed on {doc_path.name}: {e}\n")
+        return None
+    if not text.strip():
+        sys.stderr.write(f"WARN: no extractable text in {doc_path.name} (scanned?)\n")
+        return None
+    _write(txt_path, text)
     return txt_path
 
 
@@ -289,6 +383,25 @@ def normalize_num(s):
     return None
 
 
+def _haystack(t) -> str:
+    """The searchable text for one index record — shared by `lookup`
+    and by the resolver used by fetch/text/... so they agree."""
+    return " ".join(filter(None, [
+        (t.get("Nom_commun_ENG") or ""),
+        (t.get("Libelle_titre_ENG") or ""),
+        (t.get("Mention") or ""),
+    ])).lower()
+
+
+def _alias_for(query: str):
+    q = query.strip().lower()
+    if q in ALIASES:
+        return ALIASES[q]
+    qs = re.sub(r"[^\w\s+]", " ", q)
+    qs = re.sub(r"\s+", " ", qs).strip()
+    return ALIASES.get(qs)
+
+
 def lookup_ref(query):
     """Resolve a free-form query to a CETS number ('005').
 
@@ -296,7 +409,7 @@ def lookup_ref(query):
       1. Direct numeric (5 / 005 / "ETS 005")
       2. Aliases dict (ECHR, Istanbul, ...)
       3. Fuzzy match against the cached index (Libelle_titre_ENG +
-         Nom_commun_ENG)
+         Nom_commun_ENG + Mention)
 
     Returns (ref, score, source). Raises SystemExit if nothing matches.
     """
@@ -305,30 +418,15 @@ def lookup_ref(query):
     n = normalize_num(query)
     if n:
         return (n, 100, "numeric")
+    alias = _alias_for(query)
+    if alias:
+        return (alias, 100, "alias")
     q = query.strip().lower()
-    if q in ALIASES:
-        return (ALIASES[q], 100, "alias")
-    # Stripped alias (no punctuation)
-    qs = re.sub(r"[^\w\s]", " ", q)
-    qs = re.sub(r"\s+", " ", qs).strip()
-    if qs in ALIASES:
-        return (ALIASES[qs], 100, "alias")
-    # Fuzzy: build a list of (score, ref, title) over the cached index
-    _seed_index_if_needed()
-    if not INDEX_PATH.exists():
-        raise SystemExit(
-            "Index not built yet. Run: coe.py index\n"
-            f"(missing {INDEX_PATH})"
-        )
-    idx = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    idx = load_index_or_die()
     best = []
     for t in idx:
         ref = t.get("Numero_traite")
-        haystack = " ".join(filter(None, [
-            (t.get("Nom_commun_ENG") or ""),
-            (t.get("Libelle_titre_ENG") or ""),
-            (t.get("Mention") or ""),
-        ])).lower()
+        haystack = _haystack(t)
         # Cheap word-set Jaccard score, biased by substring containment
         qw = set(q.split())
         hw = set(haystack.split())
@@ -352,20 +450,15 @@ def lookup_ref(query):
 
 def _seed_index_if_needed() -> None:
     """Copy the bundled snapshot to the cache dir if no live index exists yet."""
-    if INDEX_PATH.exists() or not SEED_INDEX.exists():
+    if _has_content(INDEX_PATH) or not SEED_INDEX.exists():
         return
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(SEED_INDEX, INDEX_PATH)
+    _write(INDEX_PATH, _read(SEED_INDEX))
 
 
-def cmd_index(args):
-    """Build/refresh the master treaty index."""
+def refresh_index(lang=DEFAULT_LANG):
+    """Fetch the full treaty list from the API and write index.json."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    if INDEX_PATH.exists() and not args.refresh:
-        idx = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
-        print(f"index already cached: {len(idx)} treaties at {INDEX_PATH}")
-        print("(use --refresh to rebuild)")
-        return
     body = {
         "CodePays": None,
         "NumsSte": [],
@@ -375,20 +468,32 @@ def cmd_index(args):
         "CodeMatieres": [],
         "TitleKeywords": [],
     }
-    print("fetching api/traites/search …")
-    data = api_post("api/traites/search", body, lang=args.lang)
-    print(f"received {len(data)} treaties")
-    INDEX_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False))
-    print(f"wrote {INDEX_PATH}")
+    print("fetching api/traites/search …", file=sys.stderr)
+    data = api_post("api/traites/search", body, lang=lang)
+    print(f"received {len(data)} treaties", file=sys.stderr)
+    _dump_json(INDEX_PATH, data)
+    print(f"wrote {INDEX_PATH}", file=sys.stderr)
+    return data
+
+
+def cmd_index(args):
+    """Build/refresh the master treaty index."""
+    _seed_index_if_needed()
+    if _has_content(INDEX_PATH) and not args.refresh:
+        idx = _load_json(INDEX_PATH)
+        print(f"index already cached: {len(idx)} treaties at {INDEX_PATH}")
+        print("(use --refresh to rebuild from the live API)")
+        return
+    refresh_index(lang=args.lang)
 
 
 def load_index_or_die():
     _seed_index_if_needed()
-    if not INDEX_PATH.exists():
+    if not _has_content(INDEX_PATH):
         raise SystemExit(
             "No cached index. Run: coe.py index"
         )
-    return json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    return _load_json(INDEX_PATH)
 
 
 def find_treaty_in_index(idx, ref):
@@ -396,6 +501,27 @@ def find_treaty_in_index(idx, ref):
         if t.get("Numero_traite") == ref:
             return t
     return None
+
+
+def resolve_treaty(ref_query, lang=DEFAULT_LANG):
+    """Resolve a query to (ref, record). If the number is not in the
+    cached index (bundled seed or stale cache), refresh once from the
+    live API before giving up — new CETS numbers appear a few times a
+    year."""
+    idx = load_index_or_die()
+    ref, _, _ = lookup_ref(ref_query)
+    t = find_treaty_in_index(idx, ref)
+    if t is None:
+        print(f"ref {ref} not in cached index — refreshing from the live API …", file=sys.stderr)
+        try:
+            idx = refresh_index(lang=lang)
+        except (urllib.error.URLError, OSError) as e:
+            raise SystemExit(f"ref {ref} not in index and refresh failed: {e}")
+        t = find_treaty_in_index(idx, ref)
+    if t is None:
+        raise SystemExit(f"ref {ref} not in index (live index has {len(idx)} treaties, "
+                         f"highest number {max(x.get('Numero_traite') or '000' for x in idx)})")
+    return ref, t
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +542,7 @@ def write_meta(ref, treaty):
         f"?module=treaty-detail&treatynum={ref}"
     )
     p = treaty_dir(ref) / "meta.json"
-    p.write_text(json.dumps(meta, indent=2, ensure_ascii=False))
+    _dump_json(p, meta)
     return p
 
 
@@ -425,26 +551,30 @@ def cmd_lookup(args):
     idx = load_index_or_die()
     q = args.query.strip().lower()
     n = normalize_num(args.query)
-    hits = []
+    alias = _alias_for(args.query)
+    scored = {}  # ref -> (score, label)
+
+    def label(t):
+        common = t.get("Nom_commun_ENG") or ""
+        title = t.get("Libelle_titre_ENG") or ""
+        return f"{common} — {title}" if common and common != title else title
+
     for t in idx:
         ref = t.get("Numero_traite")
-        title = t.get("Libelle_titre_ENG") or ""
-        common = t.get("Nom_commun_ENG") or ""
-        haystack = (title + " " + common).lower()
+        haystack = _haystack(t)
         score = 0
         if n and ref == n:
             score = 1000
+        if alias and ref == alias:
+            score = max(score, 1000)
         if q in haystack:
             score += 100
         for w in q.split():
             if w in haystack:
                 score += 5
         if score:
-            hits.append((score, ref, common or title))
-    # Boost any direct alias hit
-    if q in ALIASES:
-        hits.append((1000, ALIASES[q], "(alias hit)"))
-    hits.sort(reverse=True)
+            scored[ref] = (score, label(t))
+    hits = sorted(((s, ref, lbl) for ref, (s, lbl) in scored.items()), reverse=True)
     if not hits:
         print(f"no match for '{args.query}'")
         return
@@ -452,54 +582,66 @@ def cmd_lookup(args):
         print(f"  {ref}  {title}")
 
 
+def _pick_url(t, field: str, lang: str):
+    """Return (url, lang_used) for a document field ('traite' or
+    'rapex'), falling back to English — and saying so — when the
+    requested language is not published."""
+    code = LANG_CODE.get(lang, "ENG")
+    url = t.get(f"Lien_pdf_{field}_{code}")
+    if url:
+        return url, lang
+    url = t.get(f"Lien_pdf_{field}_ENG")
+    if url and lang != "en":
+        print(f"note: no {lang} version of the {'treaty text' if field == 'traite' else 'Explanatory Report'} "
+              f"for {t.get('Numero_traite')}; using the English one (saved as *.en.*)", file=sys.stderr)
+        return url, "en"
+    return url, lang
+
+
 def cmd_text(args):
-    """Download the treaty text PDF for one ref + extract."""
-    idx = load_index_or_die()
-    ref, _, _ = lookup_ref(args.ref)
-    t = find_treaty_in_index(idx, ref)
-    if t is None:
-        raise SystemExit(f"ref {ref} not in index")
+    """Download the treaty text for one ref + extract."""
+    ref, t = resolve_treaty(args.ref, lang=args.lang)
     write_meta(ref, t)
-    url = t.get(f"Lien_pdf_traite_{LANG_CODE.get(args.lang, 'ENG')}") or t.get("Lien_pdf_traite_ENG")
+    url, lang_used = _pick_url(t, "traite", args.lang)
     if not url:
-        raise SystemExit(f"treaty {ref}: no PDF URL in index ({t.get('Libelle_titre_ENG')})")
-    pdf = treaty_dir(ref) / f"text.{args.lang}.pdf"
-    print(f"downloading {url} -> {pdf}")
-    download_pdf(url, pdf)
-    txt = extract_pdf_text(pdf)
+        raise SystemExit(f"treaty {ref}: no document URL in index ({t.get('Libelle_titre_ENG')})")
+    stem = treaty_dir(ref) / f"text.{lang_used}"
+    print(f"downloading {url} -> {stem}.*", file=sys.stderr)
+    doc, kind = download_document(url, stem)
+    txt = extract_text(doc, kind)
     print(json.dumps({
         "ref": ref,
         "title": t.get("Libelle_titre_ENG"),
-        "pdf": str(pdf),
+        "lang": lang_used,
+        "format": kind,
+        "document": str(doc),
         "txt": str(txt) if txt else None,
         "source_url": url,
-    }, indent=2))
+    }, indent=2, ensure_ascii=False))
 
 
 def cmd_report(args):
-    """Download the Explanatory Report PDF for one ref + extract."""
-    idx = load_index_or_die()
-    ref, _, _ = lookup_ref(args.ref)
-    t = find_treaty_in_index(idx, ref)
-    if t is None:
-        raise SystemExit(f"ref {ref} not in index")
+    """Download the Explanatory Report for one ref + extract."""
+    ref, t = resolve_treaty(args.ref, lang=args.lang)
     write_meta(ref, t)
-    url = t.get(f"Lien_pdf_rapex_{LANG_CODE.get(args.lang, 'ENG')}") or t.get("Lien_pdf_rapex_ENG")
+    url, lang_used = _pick_url(t, "rapex", args.lang)
     if not url:
         print(f"treaty {ref}: no Explanatory Report published "
               f"({t.get('Libelle_titre_ENG')})", file=sys.stderr)
         return
-    pdf = treaty_dir(ref) / f"report.{args.lang}.pdf"
-    print(f"downloading {url} -> {pdf}")
-    download_pdf(url, pdf)
-    txt = extract_pdf_text(pdf)
+    stem = treaty_dir(ref) / f"report.{lang_used}"
+    print(f"downloading {url} -> {stem}.*", file=sys.stderr)
+    doc, kind = download_document(url, stem)
+    txt = extract_text(doc, kind)
     print(json.dumps({
         "ref": ref,
         "kind": "explanatory_report",
-        "pdf": str(pdf),
+        "lang": lang_used,
+        "format": kind,
+        "document": str(doc),
         "txt": str(txt) if txt else None,
         "source_url": url,
-    }, indent=2))
+    }, indent=2, ensure_ascii=False))
 
 
 def _format_signatures(sigs):
@@ -538,23 +680,19 @@ def _format_signatures(sigs):
             if row.get("Communications"): flags.append("C")
             tag = f"[{''.join(flags)}]" if flags else "   "
             lines.append(f"  {country:<40} {tag} " + " ".join(note))
-    return "\n".join(lines).lstrip()
+    return "\n".join(lines).lstrip() + "\n"
 
 
 def cmd_signatures(args):
     """Download the chart of signatures and ratifications for one ref."""
-    idx = load_index_or_die()
-    ref, _, _ = lookup_ref(args.ref)
-    t = find_treaty_in_index(idx, ref)
-    if t is None:
-        raise SystemExit(f"ref {ref} not in index")
+    ref, t = resolve_treaty(args.ref, lang=args.lang)
     write_meta(ref, t)
-    print(f"fetching signatures for {ref} …")
+    print(f"fetching signatures for {ref} …", file=sys.stderr)
     sigs = api_get("api/signatures", {"NumSte": ref}, lang=args.lang)
     p_json = treaty_dir(ref) / f"signatures.{args.lang}.json"
-    p_json.write_text(json.dumps(sigs, indent=2, ensure_ascii=False))
+    _dump_json(p_json, sigs)
     p_txt = treaty_dir(ref) / f"signatures.{args.lang}.txt"
-    p_txt.write_text(_format_signatures(sigs))
+    _write(p_txt, _format_signatures(sigs))
     counts = [len(b) if isinstance(b, list) else 0 for b in (sigs or [])]
     print(json.dumps({
         "ref": ref,
@@ -566,7 +704,7 @@ def cmd_signatures(args):
             f"https://www.coe.int/en/web/conventions/full-list"
             f"?module=signatures-by-treaty&treatynum={ref}"
         ),
-    }, indent=2))
+    }, indent=2, ensure_ascii=False))
 
 
 def _strip_html(s):
@@ -575,9 +713,16 @@ def _strip_html(s):
     s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
     s = re.sub(r"</p>", "\n\n", s, flags=re.I)
     s = re.sub(r"<[^>]+>", "", s)
-    s = s.replace("&nbsp;", " ").replace("&amp;", "&")
+    s = _html.unescape(s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     return s.strip()
+
+
+def _article_key(art: str):
+    """Sort articles numerically ('2' before '10'), keeping non-numeric
+    labels such as 'Ex-25' after the numbered ones."""
+    m = re.match(r"^\s*(\d+)", art or "")
+    return (0, int(m.group(1)), art) if m else (1, 0, art or "")
 
 
 def _format_declarations(decls):
@@ -590,16 +735,17 @@ def _format_declarations(decls):
         cp = d.get("code_Pays") or {}
         state = cp.get("Value") if isinstance(cp, dict) else None
         org = (d.get("code_Organisation") or {}).get("Libelle")
+        if isinstance(org, str) and org.strip().lower() in ("", "null"):
+            org = None  # the API sends the literal string "Null" for "no organisation"
         key = state or org or "(no state)"
         by_state.setdefault(key, []).append(d)
     out = []
     for state in sorted(by_state):
         out.append(f"\n=== {state} ===")
         items = by_state[state]
-        # Sort: by article number then date
+
         def sortkey(it):
-            art = it.get("numero_Article") or ""
-            return (art, it.get("date_Effet") or "")
+            return (_article_key(it.get("numero_Article") or ""), it.get("date_Effet") or "")
         for d in sorted(items, key=sortkey):
             nature = d.get("nature_Dec") or ""
             article = d.get("numero_Article") or ""
@@ -614,7 +760,7 @@ def _format_declarations(decls):
                 if line.strip():
                     out.append(f"      {line.strip()}")
             out.append("")
-    return "\n".join(out).lstrip()
+    return "\n".join(out).lstrip() + "\n"
 
 
 def cmd_declarations(args):
@@ -623,22 +769,18 @@ def cmd_declarations(args):
     The API requires `codeNature`. Passing 0 returns every kind
     (declaration, reservation, derogation, denunciation, withdrawal,
     territorial application, ...)."""
-    idx = load_index_or_die()
-    ref, _, _ = lookup_ref(args.ref)
-    t = find_treaty_in_index(idx, ref)
-    if t is None:
-        raise SystemExit(f"ref {ref} not in index")
+    ref, t = resolve_treaty(args.ref, lang=args.lang)
     write_meta(ref, t)
-    print(f"fetching declarations for {ref} …")
+    print(f"fetching declarations for {ref} …", file=sys.stderr)
     decls = api_get(
         "api/conventions/getDeclarations",
         {"numSte": ref, "codeNature": 0},
         lang=args.lang,
     )
     p_json = treaty_dir(ref) / f"declarations.{args.lang}.json"
-    p_json.write_text(json.dumps(decls, indent=2, ensure_ascii=False))
+    _dump_json(p_json, decls)
     p_txt = treaty_dir(ref) / f"declarations.{args.lang}.txt"
-    p_txt.write_text(_format_declarations(decls))
+    _write(p_txt, _format_declarations(decls))
     # Tally by nature for the summary line
     natures = {}
     for d in decls or []:
@@ -654,18 +796,13 @@ def cmd_declarations(args):
             f"https://www.coe.int/en/web/conventions/full-list"
             f"?module=declarations-by-treaty&numSte={ref}"
         ),
-    }, indent=2))
+    }, indent=2, ensure_ascii=False))
 
 
 def cmd_fetch(args):
     """Combo: resolve a name/number, then pull all four artefacts."""
-    if not INDEX_PATH.exists():
-        # Auto-build the index on first run
-        print("(no cached index — building one first)")
-        ns = argparse.Namespace(refresh=False, lang=args.lang)
-        cmd_index(ns)
     ref, score, source = lookup_ref(args.ref)
-    print(f"resolved '{args.ref}' -> {ref} (via {source}, score {score})")
+    print(f"resolved '{args.ref}' -> {ref} (via {source}, score {score})", file=sys.stderr)
     sub = argparse.Namespace(ref=ref, lang=args.lang)
     cmd_text(sub)
     cmd_report(sub)
@@ -686,9 +823,9 @@ def cmd_show(args):
     if suffix is None:
         raise SystemExit(f"unknown kind: {args.kind}")
     p = treaty_dir(ref) / suffix
-    if not p.exists():
+    if not _has_content(p):
         raise SystemExit(f"not cached: {p}\n(run `coe.py fetch {ref}` first)")
-    sys.stdout.write(p.read_text(encoding="utf-8"))
+    sys.stdout.write(_read(p))
 
 
 # ---------------------------------------------------------------------------
@@ -696,6 +833,13 @@ def cmd_show(args):
 # ---------------------------------------------------------------------------
 
 def main():
+    # Treaty titles and declaration texts contain characters outside
+    # cp1252; never let the console encoding turn a successful fetch
+    # into a crash.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     ap = argparse.ArgumentParser(
         prog="coe.py",
         description=__doc__,
@@ -715,8 +859,8 @@ def main():
     p.set_defaults(func=cmd_lookup)
 
     for name, func, helptext in [
-        ("text",         cmd_text,         "download treaty text PDF"),
-        ("report",       cmd_report,       "download Explanatory Report PDF"),
+        ("text",         cmd_text,         "download treaty text (PDF, or HTML for some translations)"),
+        ("report",       cmd_report,       "download Explanatory Report"),
         ("signatures",   cmd_signatures,   "download chart of signatures and ratifications"),
         ("declarations", cmd_declarations, "download declarations and reservations"),
     ]:
@@ -738,7 +882,12 @@ def main():
     p.set_defaults(func=cmd_show)
 
     args = ap.parse_args()
-    return args.func(args)
+    try:
+        return args.func(args)
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"HTTP {e.code} from {e.url}: {e.reason}")
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise SystemExit(f"Network error: {e}")
 
 
 if __name__ == "__main__":
