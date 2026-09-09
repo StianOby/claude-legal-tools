@@ -40,7 +40,7 @@ return the full document either way (Holship returns 248 KB at both URLs).
 
 ## Collection prefixes
 
-Observed during exploration:
+Observed during exploration. **Rettspraksis** (`avgjorelse`) first:
 
 | Citation form              | Collection | Type slug   | Notes |
 | -------------------------- | ---------- | ----------- | ----- |
@@ -48,7 +48,7 @@ Observed during exploration:
 | `Rt. YYYY s. N`            | `HRSIV` / `HRSTR` | `avgjorelse` | Pre-2008 Supreme Court. Slug pattern: `rt-YYYY-PAGENUMBER-SUFFIX` where SUFFIX is a Lovdata-assigned sequential number (e.g. `rt-2000-1811-hrsiv`). **The suffix cannot be guessed deterministically — use Pro UI search.** Some page numbers have two separate documents (e.g. `rt-1938-584-166` is a short tvistemål stub; `rt-1938-584-176` is the substantive case). When a short result appears for an old case, try the next sequential suffix before treating it as a dead end. |
 | `LG-YYYY-N`                | `LGSIV` (Gulating sivil) | `avgjorelse` | Lagmannsrett: prefix encodes court (LB Borgarting, LA Agder, LF Frostating, LH Hålogaland, LE Eidsivating) and division (SIV / STR) |
 | `LB-YYYY-N`                | `LBSIV` / `LBSTR` | `avgjorelse` | Borgarting lagmannsrett |
-| `RG YYYY s. N`             | varies — older RG cases sit under whichever lagmannsrett actually decided them. Pro renders them via Tingrett (`TRSIV`) when search is the only path | `avgjorelse` | Slugs are irregular; runtime search needed |
+| `RG YYYY s. N`             | varies — older RG cases sit under whichever lagmannsrett actually decided them. Pro renders them via Tingrett (`TRSIV`) when search is the only path | `avgjorelse` | Slugs are irregular; runtime search needed. Search for Lovdata's own reference form (`RG-2010-100`), not the prose citation — `lovdata_ref.py` returns that as `search_hint` |
 
 **Complete lagmannsrett collection table:**
 
@@ -60,13 +60,39 @@ Observed during exploration:
 | LF         | Frostating         | `LFSIV` | `LFSTR`  |
 | LG         | Gulating           | `LGSIV` | `LGSTR`  |
 | LH         | Hålogaland         | `LHSIV` | `LHSTR`  |
-| `Ot.prp. nr. N (YYYY-YY)`  | **`PROP`** for ≥1968-ish, older may be `OTPRP` (not yet confirmed in Pro) | `forarbeid` | Slug: `otprp-N-YYYYYY` (year encoded as 6 digits, no separators). **Watch out:** the `resolve` command sometimes emits `FORARBEID/forarbeid/otprp-...`, which 404s. Always use `PROP`. If a direct get returns 404 or near-empty content for an Ot.prp./Prop. L, retry with `PROP` in place of `FORARBEID`. |
+
+**Tingrett references carry a court prefix, not a bare `TR-`.** Lovdata
+cites district courts as `TOSLO-2019-12345` (Oslo tingrett, pre-2021
+court reform), `TOSL-2022-123456` (post-reform), `TBERG-`, `TSTAV-`,
+`THOD-`, and so on — the letters after `T` abbreviate the court. The
+collection is `TRSIV`/`TRSTR` for all of them. `lovdata_ref.py` accepts
+any `T<letters>-YYYY-N` form (and the older bare `TR-YYYY-N`) and lower-cases
+the reference into the slug; **the slug half of this rule has not been
+confirmed against a live Pro session** — if `load()` returns `not_found`
+for a district-court reference, fall back to search.
+
+**Forarbeider** (`forarbeid`):
+
+| Citation form              | Collection | Type slug   | Notes |
+| -------------------------- | ---------- | ----------- | ----- |
+| `Ot.prp. nr. N (YYYY-YY)`  | **`PROP`** for ≥1968-ish, older may be `OTPRP` (not yet confirmed in Pro) | `forarbeid` | Slug: `otprp-N-YYYYYY` (year encoded as 6 digits, no separators) |
 | `Prop. N L/S/Stortingsm.`  | `PROP` | `forarbeid` | Slug: `prop-N-l-YYYYYY` (lowercase L, year as 6 digits) |
 | `NOU YYYY: N`              | `NOU` | `forarbeid` | Slug: `nou-YYYY-N` (a/b suffix when split into parts: `nou-2001-32a`, `-32b`) |
 | `Innst. N L (YYYY-YY)`     | **`INNST`** | `forarbeid` | Slug uses `inns-` (not `innst-`): `inns-521-l-202425` — note the collection/slug mismatch |
-| `Meld. St. N`              | likely `MELD` | `forarbeid` | Not directly verified |
+| `Innst. O./S. nr. N (YYYY-YY)` | `INNST` *(inferred)* | `forarbeid` | Pre-2009 committee recommendations. `lovdata_ref.py` emits `inns-o-45-200405` by analogy with the post-2009 rule and marks it `unverified` — **not yet confirmed against Pro** |
+| `Meld. St. N (YYYY-YY)`    | `MELD` *(inferred)* | `forarbeid` | `lovdata_ref.py` emits `meldst-N-YYYYYY` (and `stmeld-N-YYYYYY` for the pre-2009 `St.meld. nr. N`), both marked `unverified` — **not yet confirmed against Pro** |
+| `St.prp. nr. N (YYYY-YY)`  | `PROP` *(inferred)* | `forarbeid` | Non-law propositions are header + PDF link only, never full-text indexed. Emitted as `stprp-N-YYYYYY`, `unverified` |
 | `Dok. 8:N`                 | `REPFOR` | `forarbeid` | e.g. `dok8-12-199900` |
 | `NOU YYYY:N` (pre-~1975)   | `PUBG` | `pubg-YYYYYY-nou-N` | Historical publications. E.g. NOU 1972:16 → `PUBG/pubg-197273-nou-16`. **Returns metadata only (~468 chars), not full text.** Year range encoded as 6 digits same as forarbeider. |
+
+### Unverified slug rules
+
+`lovdata_ref.py` marks the rows above tagged *(inferred)* with
+`"unverified": true` in its JSON output. Treat those candidates as a cheap
+first attempt: pass them to `__lp.load()`, and if the result is `not_found`,
+go straight to search (Steg 3) rather than trying variants. When a live
+session confirms or refutes one of them, update this table and remove the
+`unverified` flag from the corresponding branch in `lovdata_ref.py`.
 
 ### Year encoding rule (forarbeider)
 
@@ -248,7 +274,7 @@ break `sectionRange()`'s heading-to-heading walk) and:
   merging invisibly into the surrounding paragraph. Confirmed by a live
   check against `HRSIV/avgjorelse/hr-2016-2554-p` that Høyesterett's
   "(77)"-style avsnitt numbers are real DOM text, not CSS-generated
-  content — see `CLAUDE.md` for that check and how to re-run it.
+  content — see `NOTES.md` for that check and how to re-run it.
 - Footnote/reference anchors (`<a class="namedAnchor">`) are left as-is;
   `inlineText()`/`toText()` just read text content so empty anchors
   contribute nothing.

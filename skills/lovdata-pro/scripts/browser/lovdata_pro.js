@@ -27,11 +27,28 @@ if (!window.__lp) {
     // changing the hash) — confirmed empirically, spikes/README.md #2. Only
     // document.title distinguishes them: "Min side - Lovdata Pro" vs bare
     // "Lovdata".
-    function isLoggedIn() {
+    //
+    // The title check is only meaningful while the tab shows #myPage. On a
+    // reused tab that is parked on a document view, document.title is the
+    // document's title, so we fall back to a probe: fetch a small known
+    // document and classify the response (real document = logged in, login
+    // redirect = logged out). One 42 KB request; result is not cached
+    // because the session can expire between turns.
+    const PROBE_PATH = 'LGSIV/avgjorelse/lg-2008-135938';
+
+    async function isLoggedIn({ probe = true } = {}) {
       const hash = location.hash;
       const title = document.title;
-      const loggedIn = /Min side/i.test(title);
-      return { loggedIn, hash, title };
+      if (/Min side/i.test(title)) return { loggedIn: true, source: 'title', hash, title };
+      if (/^\s*Lovdata\s*$/i.test(title) && /#myPage/.test(hash)) {
+        return { loggedIn: false, source: 'title', hash, title };
+      }
+      if (!probe) return { loggedIn: false, source: 'title', hash, title, detail: 'not on #myPage; pass {probe:true} or navigate to https://lovdata.no/pro/#myPage' };
+      const { status, html, fetchError } = await fetchHtml(docUrl(PROBE_PATH));
+      if (fetchError) return { loggedIn: false, source: 'probe', hash, title, error: 'cors', detail: fetchError };
+      if (status === 200 && looksLikeRealDoc(html)) return { loggedIn: true, source: 'probe', hash, title };
+      if (status === 200 && isLoginPage(html)) return { loggedIn: false, source: 'probe', hash, title };
+      return { loggedIn: false, source: 'probe', hash, title, detail: `probe returned status ${status}, ${html.length} bytes` };
     }
 
     // --- fetch + path helpers ----------------------------------------------
@@ -60,6 +77,11 @@ if (!window.__lp) {
       const title = (m ? m[1] : '').trim();
       if (NOT_FOUND_TITLE.test(title)) return false;
       if (REDIRECT_STUB_TITLE.test(title)) return false;
+      // Every rendered Pro document carries one of these containers (see
+      // references/lovdata-pro-mapping.md). A small page without either is
+      // some shell/landing page, not a document.
+      const hasDocContainer = /id="(documentBody|lovdataDocument)"/.test(html);
+      if (!hasDocContainer && html.length < 20000) return false;
       return true;
     }
 
@@ -122,21 +144,30 @@ if (!window.__lp) {
     // emphasis (**bold**, *italic*, ^superscript^) instead of flattening it
     // like plain textContent would — matters for e.g. bold §-titles in
     // statute text quoted inside forarbeider. Nested tags compose (bold
-    // italic renders as ***text***).
-    function inlineText(node) {
+    // italic renders as ***text***). <br> becomes a line break (party
+    // lists in judgments: "A (advokat X)<br>mot<br>B"); nested lists are
+    // skipped when skipLists is set so toText() can render them as their
+    // own "- " lines.
+    function inlineText(node, { skipLists = false } = {}) {
       const parts = [];
       const visit = (n) => {
         if (n.nodeType === 3) { parts.push(n.textContent); return; }
         if (n.nodeType !== 1) return;
         const tag = n.tagName.toLowerCase();
         if (tag === 'script' || tag === 'style') return;
-        if (tag === 'strong' || tag === 'b') { parts.push('**' + inlineText(n) + '**'); return; }
-        if (tag === 'em' || tag === 'i') { parts.push('*' + inlineText(n) + '*'); return; }
-        if (tag === 'sup') { parts.push('^' + inlineText(n) + '^'); return; }
+        if (tag === 'br') { parts.push('\n'); return; }
+        if (skipLists && (tag === 'ul' || tag === 'ol')) return;
+        if (tag === 'strong' || tag === 'b') { parts.push('**' + inlineText(n, { skipLists }) + '**'); return; }
+        if (tag === 'em' || tag === 'i') { parts.push('*' + inlineText(n, { skipLists }) + '*'); return; }
+        if (tag === 'sup') { parts.push('^' + inlineText(n, { skipLists }) + '^'); return; }
         for (const child of n.childNodes) visit(child);
       };
       for (const child of node.childNodes) visit(child);
-      return parts.join('').replace(/\s+/g, ' ').trim();
+      return parts.join('')
+        .split('\n')
+        .map(s => s.replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .join('\n');
     }
 
     function toText(el) {
@@ -164,7 +195,15 @@ if (!window.__lp) {
           return;
         }
         if (tag === 'li') {
-          lines.push('- ' + inlineText(node));
+          const own = inlineText(node, { skipLists: true });
+          if (own) lines.push('- ' + own);
+          // Nested lists become their own indented "- " lines.
+          for (const sub of node.querySelectorAll(':scope > ul, :scope > ol')) {
+            for (const li of sub.querySelectorAll(':scope > li')) {
+              const sublines = toText(li);
+              if (sublines) lines.push(sublines.split('\n').map(l => '  ' + (l.startsWith('- ') ? l : '- ' + l)).join('\n'));
+            }
+          }
           return;
         }
         if (tag === 'p') {
@@ -198,54 +237,20 @@ if (!window.__lp) {
       return meta;
     }
 
-    function buildToc(body) {
-      const headings = Array.from(body.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-      const toc = [];
-      headings.forEach((h, i) => {
-        const level = Number(h.tagName[1]);
-        toc.push({
-          i,
-          id: h.closest('[id]') ? h.closest('[id]').id : (h.id || null),
-          level,
-          title: h.textContent.replace(/\s+/g, ' ').trim(),
-          _el: h,
-        });
-      });
-      // Compute chars per section: from this heading up to the next
-      // heading of same-or-higher level (lower or equal `level` number).
-      const allNodes = Array.from(body.querySelectorAll('*'));
-      toc.forEach((entry, idx) => {
-        const startIdx = allNodes.indexOf(entry._el);
-        let endIdx = allNodes.length;
-        for (let j = idx + 1; j < toc.length; j++) {
-          if (toc[j].level <= entry.level) {
-            endIdx = allNodes.indexOf(toc[j]._el);
-            break;
-          }
-        }
-        let chars = 0;
-        for (let k = startIdx; k < endIdx && k < allNodes.length; k++) {
-          chars += (allNodes[k].textContent || '').length;
-        }
-        entry.chars = chars;
-      });
-      return toc.map(({ i, id, level, title, chars }) => ({ i, id, level, title, chars }));
-    }
-
-    function sectionRange(body, toc, index) {
-      // A heading's section runs from itself to the next heading of
-      // same-or-higher level, wherever that falls in the DOM — headings
-      // are not reliably direct children of `body` (a subsection's <h3>
-      // often sits inside the same wrapper div as its parent <h2>, not as
-      // a sibling top-level div). Range boundary points can straddle any
-      // depth, so use the native Range API instead of walking siblings.
-      const headings = Array.from(body.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+    // A heading's section runs from itself to the next heading of
+    // same-or-higher level, wherever that falls in the DOM — headings are
+    // not reliably direct children of `body` (a subsection's <h3> often
+    // sits inside the same wrapper div as its parent <h2>, not as a
+    // sibling top-level div). Range boundary points can straddle any
+    // depth, so use the native Range API instead of walking siblings.
+    function headingRange(body, headings, toc, index) {
       const heading = headings[index];
       if (!heading) return null;
       const entry = toc[index];
-      const nextEntry = toc.slice(index + 1).find(e => e.level <= entry.level);
-      const nextHeading = nextEntry ? headings[nextEntry.i] : null;
-
+      let nextHeading = null;
+      for (let j = index + 1; j < toc.length; j++) {
+        if (toc[j].level <= entry.level) { nextHeading = headings[j]; break; }
+      }
       const range = body.ownerDocument.createRange();
       range.setStartBefore(heading);
       if (nextHeading) {
@@ -253,6 +258,32 @@ if (!window.__lp) {
       } else {
         range.setEnd(body, body.childNodes.length);
       }
+      return range;
+    }
+
+    function buildToc(body) {
+      const headings = Array.from(body.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      const toc = headings.map((h, i) => ({
+        i,
+        id: h.closest('[id]') ? h.closest('[id]').id : (h.id || null),
+        level: Number(h.tagName[1]),
+        title: h.textContent.replace(/\s+/g, ' ').trim(),
+      }));
+      // Chars per section via Range.toString(): one linear pass per
+      // section. (The earlier version summed textContent over every node
+      // in the section, which is quadratic and took tens of seconds on a
+      // multi-MB NOU.)
+      toc.forEach((entry, idx) => {
+        const range = headingRange(body, headings, toc, idx);
+        entry.chars = range ? range.toString().length : 0;
+      });
+      return toc;
+    }
+
+    function sectionRange(body, toc, index) {
+      const headings = Array.from(body.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      const range = headingRange(body, headings, toc, index);
+      if (!range) return null;
       const container = document.createElement('div');
       container.appendChild(range.cloneContents());
       return container;
@@ -327,12 +358,16 @@ if (!window.__lp) {
       return offsets;
     }
 
-    async function grep(path, term, ctx = 600, max = 20) {
+    // `term` is matched literally (case-insensitive) unless regex=true —
+    // legal search terms are full of regex metacharacters ("§ 4-6 (2)",
+    // "art. 8(1)").
+    async function grep(path, term, ctx = 600, max = 20, regex = false) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
       let re;
       try {
-        re = new RegExp(term, 'gi');
+        const source = regex ? term : String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+        re = new RegExp(source, 'gi');
       } catch (e) {
         return { error: 'not_found', detail: `invalid regex: ${term}` };
       }
@@ -361,9 +396,12 @@ if (!window.__lp) {
       return hits;
     }
 
-    async function page(path, offset, size = PAGE_SIZE) {
+    async function page(path, offset = 0, size = PAGE_SIZE) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
+      // Never exceed PAGE_SIZE: javascript_tool fails hard above ~49K chars.
+      size = Math.min(Math.max(1, size | 0), PAGE_SIZE);
+      offset = Math.max(0, offset | 0);
       const text = entry.fullText;
       const slice = text.slice(offset, offset + size);
       const next = offset + size < text.length ? offset + size : null;
@@ -407,7 +445,8 @@ if (!window.__lp) {
       readSearchResults,
       docUrl,
       // exposed for unit testing / debugging only:
-      _internal: { toText, inlineText, extractMetadata, buildToc, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
+      PAGE_SIZE,
+      _internal: { toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
     };
   })();
 }

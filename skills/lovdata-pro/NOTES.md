@@ -4,6 +4,10 @@ Implementation background for whoever (human or Claude) next touches this
 skill. Not part of the skill itself — see `SKILL.md` for that, `README.md`
 for the human-facing overview.
 
+(This file is deliberately *not* named `CLAUDE.md`: a `CLAUDE.md` here would
+be loaded as project instructions by every Claude Code session working in
+this directory, which is not what maintainer notes are for.)
+
 ## Spike findings (2026-09-05)
 
 Before the Playwright → Claude Desktop built-in browser (Cowork) migration

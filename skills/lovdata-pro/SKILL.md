@@ -2,17 +2,17 @@
 name: lovdata-pro
 description: >
   Use this skill any time the user needs Norwegian case law (rettspraksis) or
-  preparatory works (forarbeider) — the Pro-only material the free `lovdata`
+  preparatory works (forarbeider) — the Pro-only material the free `lovdata-api`
   skill cannot reach. Requires the Claude Desktop built-in browser (Cowork).
   Triggers include any reference like HR-YYYY-N (Holship, Finanger), Rt.
   YYYY s. N, RG YYYY s. N, LB-/LA-/LE-/LF-/LG-/LH-YYYY-N (lagmannsrett),
-  TR-YYYY-N (tingrett), Ot.prp. nr. N (YYYY-YY), Prop. N L (YYYY-YY), NOU
+  TOSLO-/TOSL-YYYY-N (tingrett), Ot.prp. nr. N (YYYY-YY), Prop. N L (YYYY-YY), NOU
   YYYY:N, Innst. N L (YYYY-YY), Meld. St. N (YYYY-YY); also natural-language
   asks like "find the Holship judgment", "hva sa Høyesterett i Finanger I",
   "hent forarbeidene til mineralloven". Use this skill even when the user
   doesn't name Lovdata: if the answer requires the text of a Norwegian court
   decision or preparatory work, this is the right tool. Do NOT use for:
-  looking up gjeldende lov/forskrift text (that's the free `lovdata` skill);
+  looking up gjeldende lov/forskrift text (that's the free `lovdata-api` skill);
   finding a lawyer; general questions about Norwegian legal theory that
   don't need the actual document text.
 ---
@@ -20,7 +20,7 @@ description: >
 # Lovdata Pro — rettspraksis og forarbeider
 
 Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
-tilpasses brukerens eget språk** (samme regel som i `lovdata`-skill-en):
+tilpasses brukerens eget språk** (samme regel som i `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
 Sitater fra dommer og forarbeider beholdes alltid på originalt norsk.
 
@@ -65,7 +65,9 @@ Claude Desktop med Cowork aktivert.
 3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/lovdata_pro.js` via
    `javascript_tool` (`action: "javascript_exec"`). Idempotent — trygt å lime
    inn flere ganger i samme fane.
-4. Kjør `await __lp.isLoggedIn()`.
+4. Kjør `await __lp.isLoggedIn()`. På `#myPage` avgjøres svaret av
+   `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
+   lite prøveoppslag mot Pro (`source: "probe"`).
    - **Ikke innlogget** → si til brukeren: *"Logg inn på Lovdata Pro i
      browser-panelet (SSO/FEIDE går fint). Si fra når du er inne."* Vent på
      bekreftelse, kjør `isLoggedIn()` på nytt. **Skriv aldri inn
@@ -93,8 +95,23 @@ python {SKILL_DIR}/scripts/lovdata_ref.py resolve "Ot.prp. nr. 3 (1998-99)"
 python {SKILL_DIR}/scripts/lovdata_ref.py resolve "NOU 2022:8"
 ```
 
-Returnerer `{input, parsed, candidates}`. Bruk `--json-array` for å få bare
-kandidatlisten (nyttig til å lime rett inn i `__lp.load([...])`):
+Returnerer `{input, parsed, candidates}` pluss disse feltene når de er
+aktuelle:
+
+- **`pinpoint`** — presisering som ble skilt ut av referansen («avsnitt 77»,
+  «s. 1827», «punkt 3.4»). Bruk den som søkeord i `grep`/`section` etter at
+  dokumentet er lastet, og ta den med i sitatet.
+- **`unverified: true`** + `note` — slug-regelen er utledet fra beslektede
+  dokumenttyper, men ikke bekreftet mot Pro (gjelder Meld. St., St.meld.,
+  Innst. O./S., St.prp. og tingrettsreferanser). Prøv kandidaten med
+  `load()` én gang; svarer den `not_found`, gå rett til **Steg 3 — søk**
+  i stedet for å gjette varianter.
+- **`search_hint`** — når `parsed:false`: søkestrengen som fungerer best i
+  Pro, i Lovdatas egen referanseform (`Rt-2000-1811`, `RG-2010-100`), ikke
+  prosasiteringen.
+
+Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
+i `__lp.load([...])`):
 
 ```bash
 python {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
@@ -102,7 +119,7 @@ python {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
 ```
 
 Hvis `parsed:false` (typisk pre-2008 Rt.-dommer, RG-dommer, uvanlige
-referanseformer): hopp til **Steg 3 — søk**.
+referanseformer): hopp til **Steg 3 — søk**, og søk på `search_hint`.
 
 ---
 
@@ -144,6 +161,11 @@ await __lp.section("HRSIV/avgjorelse/hr-2016-2554-p", 3)
 await __lp.grep("NOU/forarbeid/nou-2022-8", "urfolk", 600, 20)
 await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
 ```
+
+`grep(path, term, ctx, max, regex)` tolker `term` **bokstavelig** (og lar
+mellomrom matche linjeskift), så «§ 4-6 (2)» og «art. 8(1)» virker som de
+står. Send `regex: true` som femte argument for et ekte regulært uttrykk.
+`page()` klipper alltid til `PAGE_SIZE` — du kan ikke be om en større bit.
 
 ---
 

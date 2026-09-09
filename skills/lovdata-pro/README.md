@@ -13,7 +13,9 @@ Claude Code CLI — there is no built-in browser tool surface there.
 
 - Fetch Supreme Court decisions (HR-YYYY-NNNN-X, Rt. YYYY s. N)
 - Fetch court of appeal decisions (LB/LA/LE/LF/LG/LH-YYYY-N)
-- Fetch district court decisions (TR-YYYY-N)
+- Fetch district court decisions (TOSLO-2019-12345, TOSL-2022-123456 —
+  Lovdata prefixes the court, and the abbreviations changed with the 2021
+  court reform)
 - Fetch preparatory works: NOU, Prop. L, Ot.prp., Innst.
 - Navigate large documents by table of contents, section, or full-text grep
   instead of dumping the whole thing
@@ -21,7 +23,7 @@ Claude Code CLI — there is no built-in browser tool surface there.
 - Write a full local copy to file on request (dump mode)
 
 For current statute and regulation text (gjeldende lov/forskrift), use the
-free `lovdata` skill instead.
+free `lovdata-api` skill instead.
 
 ## Layout
 
@@ -73,6 +75,10 @@ await __lp.grep("NOU/forarbeid/nou-2022-8", "urfolk")
 await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
 ```
 
+`grep` matches its term literally by default (so `§ 4-6 (2)` works); pass a
+fifth argument `true` for a real regular expression. `page` never returns
+more than `PAGE_SIZE` characters.
+
 ```javascript
 // Search: type the query and click the search button via the computer
 // tool (JS-dispatched events and Enter don't submit Lovdata's GWT search),
@@ -89,7 +95,7 @@ See `SKILL.md` for the full workflow, error handling, and citation format.
 | Modern Supreme Court | `HR-2016-2554-P` |
 | Norsk Retstidende (pre-2008) | `Rt. 2000 s. 1811` (needs search — see below) |
 | Court of appeal | `LB-2021-12345`, `LA-2019-67890` |
-| District court | `TR-2020-11111` |
+| District court | `TOSLO-2019-12345` (pre-2021), `TOSL-2022-123456` (post-reform) |
 | NOU | `NOU 2022:8` |
 | Government bill (post-2009) | `Prop. 107 L (2024-2025)` |
 | Government bill (pre-2009) | `Ot.prp. nr. 3 (1998-99)` |
@@ -97,7 +103,11 @@ See `SKILL.md` for the full workflow, error handling, and citation format.
 | Raw Pro path | `HRSIV/avgjorelse/hr-2016-2554-p` |
 
 Court codes for lagmannsrett: LB (Borgarting), LA (Agder), LE (Eidsivating),
-LF (Frostating), LG (Gulating), LH (Hålogaland).
+LF (Frostating), LG (Gulating), LH (Hålogaland). District-court references
+carry an abbreviation of the court itself (`TOSLO` Oslo, `TBERG` Bergen,
+`TSTAV` Stavanger …), shortened again after the 2021 court reform (`TOSL`);
+the resolver accepts any `T<letters>-YYYY-N` form and maps it to the
+`TRSIV`/`TRSTR` collections.
 
 Pre-2008 Rt. decisions, RG decisions, and other irregular citations don't
 have a deterministic slug — `lovdata_ref.py resolve` returns `parsed: false`
