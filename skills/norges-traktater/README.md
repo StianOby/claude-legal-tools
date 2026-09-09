@@ -1,10 +1,11 @@
 # norges-traktater
 
 Pure-Python skill that lets Claude search and retrieve Norwegian treaties from
-Lovdata's public treaty register (*Norges traktater*) — roughly 5 000+ agreements
-Norway is party to, from 1814 to the present. Covers metadata (signing date,
-ratification, entry into force for Norway, parties, reservations) and, for most
-older multilateral conventions, the full Norwegian treaty text.
+Lovdata's public treaty register (*Norges traktater*) — 3 457 agreements Norway
+is party to as of September 2026, with year ranges going back to 1661. Covers
+metadata (signing date, ratification, entry into force for Norway, parties,
+reservations) and, for many conventions, the full Norwegian treaty text.
+`status` prints the current counts, read live from the register.
 
 See `SKILL.md` for the full workflow guide. Quick test:
 
@@ -65,16 +66,19 @@ and the description in `SKILL.md` will trigger it automatically.
 ## Quickstart
 
 ```sh
-# Search by title keyword
+# Search by title keyword (prints "showing N of M hits")
 python3 scripts/traktater.py search "menneskerett"
 
 # All treaties from a given year
 python3 scripts/traktater.py search "" --year 1969
 
-# Bilateral treaties with a specific country (Norwegian name)
+# Bilateral treaties with a specific country (Norwegian name; validated
+# against the register's own list, since Lovdata silently ignores an
+# unknown country and returns everything)
 python3 scripts/traktater.py search "" --country Sverige --max 50
+python3 scripts/traktater.py countries stor      # valid --country values
 
-# Full-text search (slower — fetches document pages)
+# Full-text search — many more hits, ordered newest-first, not by relevance
 python3 scripts/traktater.py search "non-refoulement" --context tekst
 
 # Metadata for one treaty (signing/ratification dates, parties, reservations)
@@ -102,5 +106,14 @@ python3 scripts/traktater.py status
 - For **EU law / EEA acts** use the `eurlex` skill.
 - For **ECtHR case law** (ECHR applications) use the `hudoc` skill.
 - For **Norwegian statutes and case law** use `lovdata-api` or `lovdata-pro`.
-- If the Norwegian text of a treaty is behind Lovdata Pro, the script will say
-  so — fall back to `lovdata-pro` or the depositary source.
+- If a treaty has no free text on its register page, the script says so and
+  prints any lovdata.no link Lovdata itself gives for the document.
+- **The core human rights conventions are the common case here**: the European
+  Convention, the two 1966 Covenants, CEDAW and the Convention on the Rights of
+  the Child have metadata only in the treaty register, but their full Norwegian
+  *and* English texts are free elsewhere on lovdata.no, as appendices to
+  menneskerettsloven (`NL/lov/1999-05-21-30`). Fetch them with the
+  `lovdata-api` skill, e.g.
+  `lovdata.py get "NL/lov/1999-05-21-30" "emkn"` (`emke` for English; `spn`,
+  `oskn`, `bkn`, `kdkn`, `crpdn` for the others). Lovdata Pro is the last
+  resort, not the first.
