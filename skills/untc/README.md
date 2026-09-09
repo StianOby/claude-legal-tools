@@ -8,74 +8,96 @@ ASP.NET search frontend.
 
 ## What it can do
 
-- Resolve a treaty name (e.g. "ICCPR", "Vienna Convention") to its
-  MTDSG reference (e.g. `IV-4`, `XXIII-1`).
-- Download the **MTDSG status document** for a multilateral treaty —
-  the consolidated PDF with the participant table (signatures,
-  ratifications, accessions), state-by-state reservations,
-  declarations and objections, and the cross-reference into the UN
-  Treaty Series.
-- Download the **UNTS treaty text** for any UN-registered treaty,
-  given the chapter-section ref (it auto-derives volume + registration
-  number from the status doc) or directly via `--vol`/`--reg`.
-- Extract searchable text from every PDF (via `pdftotext` or pypdf).
-- Cache everything under `cache/` so repeat queries are instant.
+- Resolve a treaty name or acronym (e.g. "ICCPR", "Vienna Convention",
+  "OPCAT") to its MTDSG reference (e.g. `IV-4`, `XXIII-1`, `IV-9-b`).
+- Download the **MTDSG status document** for a multilateral treaty
+  deposited with the Secretary-General — the consolidated PDF with the
+  participant table (signatures, ratifications, accessions),
+  state-by-state reservations, declarations and objections, and the
+  cross-reference into the UN Treaty Series.
+- Download the **UNTS treaty text** for any UN-registered treaty: by
+  MTDSG ref (volume and registration number are read from the status
+  doc), by `--vol`/`--reg`, or by `--vol`/`--page` from an ordinary
+  citation such as *729 UNTS 161*. When UNTC has no per-treaty file
+  (common for recent volumes) the text is sliced out of the full volume
+  PDF instead.
+- List the **table of contents of any UNTS volume** — the route to the
+  thousands of bilateral and multilateral treaties that are registered
+  with the UN but not deposited with the Secretary-General (and so have
+  no MTDSG entry).
+- Extract searchable text from every PDF (pypdf, with `pdftotext` as
+  fallback) and cache everything so repeat queries are instant.
 
 ## Layout
 
 ```
-untc-skill/
+untc/
 ├── SKILL.md             # the skill manifest Claude reads
 ├── README.md            # you are here
-├── requirements.txt     # optional pypdf fallback only
-├── scripts/
-│   └── untc.py          # the CLI
-└── cache/
-    ├── index.json
-    └── treaties/<chapter>/<ref>/{status,text}.{lang}.{pdf,txt}
+├── requirements.txt     # pypdf
+├── cache/
+│   └── index.json       # bundled snapshot of the MTDSG chapter index (670 treaties)
+├── evals/
+└── scripts/
+    └── untc.py          # the CLI
+```
+
+Nothing is written inside the skill folder. All downloads and extracted
+text go to `~/.cache/untc/` (override with `$UNTC_CACHE_DIR`):
+
+```
+~/.cache/untc/index.json                          # title -> ref index (seeded from cache/index.json)
+~/.cache/untc/treaties/<chapter>/<ref>/meta.json  # parsed metadata (English)
+~/.cache/untc/treaties/<chapter>/<ref>/status.{en,fr}.{pdf,txt}
+~/.cache/untc/treaties/<chapter>/<ref>/text.{en,fr,other}.{pdf,txt}
+~/.cache/untc/unts/v<vol>-I-<reg>/text.*.{pdf,txt} # texts fetched by --vol/--reg
+~/.cache/untc/unts/volumes/v<vol>.pdf             # full volume PDFs (+ .pages.json text)
 ```
 
 ## Requirements
 
-- **Python 3.10+** (uses `dict | None` style type hints)
-- **`pdftotext`** (from `poppler-utils`) is strongly preferred — it
-  preserves the columnar participant table that the MTDSG PDFs use.
-  On Debian/Ubuntu: `sudo apt install poppler-utils`. On macOS:
-  `brew install poppler`. On Windows: install Xpdf or Poppler for
-  Windows and add it to PATH.
-- If `pdftotext` is unavailable, `pip install pypdf` provides a
-  fallback (with worse table extraction).
+- **Python 3.8+**, standard library only for HTTP.
+- **`pypdf`** (`pip install pypdf`) is the preferred text extractor: on
+  the MTDSG status documents it produces one clean row per participant
+  and readable reservation text. `pdftotext` (poppler-utils) is used
+  only as a fallback; in its layout mode the dot leaders of the
+  participant table interleave with the dates, so prefer pypdf.
 
 ## Quickstart
 
 ```bash
-# one-time index build (~1–2 min, hits each MTDSG chapter page)
-python3 scripts/untc.py index --refresh
-
-# resolve a treaty by name
+# resolve a treaty by name (uses the bundled index; no crawl)
 python3 scripts/untc.py lookup "vienna convention on the law of treaties"
 
 # get everything for a treaty (status doc + text), in one go
 python3 scripts/untc.py fetch ICCPR
 
-# or directly by MTDSG reference
+# or directly by MTDSG reference (optional protocols: IV-11-b; chapter XI: XI-B-16)
 python3 scripts/untc.py fetch XXIII-1
+python3 scripts/untc.py status IV-9-b
 
 # only the status doc (parties + reservations), in French
 python3 scripts/untc.py status IV-4 --lang fr
 
-# treaty text by UNTS volume + registration number
-python3 scripts/untc.py text --vol 999 --reg 14668 --lang en
+# treaty text by UNTS volume + registration number, or by citation page
+python3 scripts/untc.py text --vol 999 --reg 14668
+python3 scripts/untc.py text --vol 729 --page 161        # "729 UNTS 161" -> NPT
+
+# what is in a UNTS volume?
+python3 scripts/untc.py volume 729 --search non-proliferation
+
+# refresh the MTDSG index (about 35 page fetches, 1-2 minutes)
+python3 scripts/untc.py index --refresh
 ```
 
 After `fetch ICCPR` you'll have:
 
 ```
-cache/treaties/IV/IV-4/meta.json          # title, vol, regnum, parties...
-cache/treaties/IV/IV-4/status.en.pdf      # 138-page MTDSG status doc
-cache/treaties/IV/IV-4/status.en.txt      # extracted text (grep-able)
-cache/treaties/IV/IV-4/text.en.pdf        # UNTS treaty text PDF
-cache/treaties/IV/IV-4/text.en.txt        # extracted text
+~/.cache/untc/treaties/IV/IV-4/meta.json          # title, place/date, vol, regnum, parties...
+~/.cache/untc/treaties/IV/IV-4/status.en.pdf      # 140-page MTDSG status doc
+~/.cache/untc/treaties/IV/IV-4/status.en.txt      # extracted text (grep-able)
+~/.cache/untc/treaties/IV/IV-4/text.en.pdf        # UNTS treaty text PDF
+~/.cache/untc/treaties/IV/IV-4/text.en.txt        # extracted text
 ```
 
 ## Installing as a Claude skill
@@ -104,26 +126,41 @@ and the description in `SKILL.md` will trigger it.
 
 | Document | URL pattern |
 |---|---|
-| MTDSG status | `https://treaties.un.org/doc/Publication/MTDSG/Volume {I,II}/Chapter {ROMAN}/{REF}.{lang}.pdf` |
-| UNTS treaty text | `https://treaties.un.org/doc/Publication/UNTS/Volume {N}/volume-{N}-{I,II}-{regNum}-{Lang}.pdf` |
-| Chapter index (used to build name→ref index) | `https://treaties.un.org/Pages/Treaties.aspx?id={N}&subid=A&clang=_{lang}` |
+| MTDSG status | `https://treaties.un.org/doc/Publication/MTDSG/Volume {I,II}/Chapter {ROMAN}/{REF}.{en,fr}.pdf` |
+| UNTS treaty text | `https://treaties.un.org/doc/Publication/UNTS/Volume {N}/volume-{N}-{I,II}-{regNum}-{English,French,Other}.pdf` |
+| UNTS full volume | `https://treaties.un.org/doc/Publication/UNTS/Volume {N}/v{N}.pdf` |
+| Treaty details page | `https://treaties.un.org/Pages/ViewDetails.aspx?src=TREATY&mtdsg_no={REF}&chapter={n}&clang=_en` |
+| Chapter index (used to build name→ref index) | `https://treaties.un.org/Pages/Treaties.aspx?id={n}&subid={A..E}&clang=_en` |
 
-`{I,II}` for MTDSG volume: chapters I–XII live in Vol I, XIII–XXIX
-in Vol II. `{I,II}` in the UNTS URL is the registration *series*: I
-for treaties registered ex officio under article 102, II for treaties
-filed and recorded.
+`{I,II}` for MTDSG volume: chapters I–XII live in Vol I, XIII–XXIX in
+Vol II (chapter XI, including its sub-chapters, is in Vol I). `{I,II}`
+in the UNTS URL is the registration *series*: I for treaties registered
+under Article 102, II for treaties filed and recorded.
 
-## Known limits (MVP)
+`{REF}` is written exactly as UNTC writes it: `IV-4`, `IV-11-b`
+(optional protocol / amendment), `XI-B-16` (chapter XI sub-chapter),
+`XI-B-16-1` (UN vehicle Regulations annexed to the 1958 Agreement).
 
-- Only English-language chapter index is harvested; if you query in
-  another language, name lookup still works because it goes against the
-  English titles in the index, but you can pass `--lang fr` etc. when
-  downloading the actual PDFs.
-- Bilateral treaties (UNTS series II only, no MTDSG entry) require
-  passing `--vol` and `--reg` manually for now.
-- "Depositary notifications" (CN-feed) and the structured parties /
-  reservations breakdown are not yet implemented; the raw text inside
-  the MTDSG status doc has them and is greppable.
+A missing document is served as an HTML page with HTTP 200; the CLI
+checks for a real PDF and reports "no MTDSG status document at …".
+
+## Known limits
+
+- MTDSG status documents exist in English and French only. Per-treaty
+  UNTS files exist as English, French and "Other" (the remaining
+  authentic texts in one file); many recent volumes have no per-treaty
+  files at all, and the newest volumes (e.g. vol. 3370 for the TPNW)
+  are not yet published as PDFs — the CLI then points to the treaty's
+  details page, where the certified true copy is linked.
+- The volume table of contents is parsed from the volume PDF's own
+  contents pages (OCR for older volumes); a page number may occasionally
+  be missing, in which case `text --vol N --reg M` still works.
+- Only the English chapter index is harvested for name lookup; the
+  `lookup` fuzzy match is title-based, so use `index --refresh` if a
+  treaty adopted after the snapshot date is missing.
+- Structured extraction of the parties table and reservations into JSON
+  is not implemented; the extracted status text is one row per state and
+  greppable.
 
 ## Acknowledgements
 

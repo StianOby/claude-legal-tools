@@ -1,5 +1,5 @@
 {
-  "fetched_utc": "2026-05-08T11:07:54Z",
+  "fetched_utc": "2026-09-08T22:10:37Z",
   "source": "https://treaties.un.org/Pages/Treaties.aspx",
   "chapters": [
     1,
@@ -12,6 +12,7 @@
     8,
     9,
     10,
+    11,
     12,
     13,
     14,
@@ -35,1464 +36,4690 @@
     {
       "ref": "I-1",
       "chapter_int": 1,
+      "subchapter": "",
       "title": "Charter of the United Nations (deposited in the archives of the Government of the United States of America)",
       "place_date": "San Francisco, 26 June 1945"
     },
     {
       "ref": "I-2",
       "chapter_int": 1,
+      "subchapter": "",
       "title": "Declarations of Acceptance of the Obligations contained in the Charter of the United Nations - Admission of States to Membership in the United Nations in accordance with Article 4 of the Charter",
       "place_date": "San Francisco, 24 October 1945"
     },
     {
       "ref": "I-3",
       "chapter_int": 1,
+      "subchapter": "",
       "title": "Statute of the International Court of Justice (deposited in the archives of the Government of the United States of America)",
       "place_date": "San Francisco, 24 October 1945"
     },
     {
       "ref": "I-4",
       "chapter_int": 1,
+      "subchapter": "",
       "title": "Declarations recognizing as compulsory the jurisdiction of the International Court of Justice under Article 36, paragraph 2, of the Statute of the Court",
       "place_date": "15 October 1946"
     },
     {
-      "ref": "I-5",
+      "ref": "I-5-a",
       "chapter_int": 1,
+      "subchapter": "",
       "title": "Amendments to Articles 23,27 and 61 of the Charter of the United Nations, adopted by the General Assembly of the United Nations in resolutions 1991 A and B (XVIII) of 17 December 1963",
       "place_date": "New York, 17 December 1963"
     },
     {
+      "ref": "I-5-b",
+      "chapter_int": 1,
+      "subchapter": "",
+      "title": "Amendment to Article 109 of the Charter of the United Nations, adopted by the General Assembly of the United Nations in resolution 2101 (XX) of 20 December 1965",
+      "place_date": "New York, 20 December 1965"
+    },
+    {
+      "ref": "I-5-c",
+      "chapter_int": 1,
+      "subchapter": "",
+      "title": "Amendment to Article 61 of the Charter of the United Nations, adopted by the General Assembly of the United Nations in resolution 2847 (XXVI) of 20 December 1971",
+      "place_date": "New York, 20 December 1971"
+    },
+    {
       "ref": "II-1",
       "chapter_int": 2,
+      "subchapter": "",
       "title": "Revised General Act for the Pacific Settlement of International Disputes",
       "place_date": "New York, 28 April 1949"
     },
     {
       "ref": "III-1",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Convention on the Privileges and Immunities of the United Nations",
       "place_date": "New York, 13 February 1946"
     },
     {
       "ref": "III-2",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Convention on the Privileges and Immunities of the Specialized Agencies",
       "place_date": "New York, 21 November 1947"
     },
     {
+      "ref": "III-2-1",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex I - International Labour Organisation (ILO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "San Francisco, 10 July 1948"
+    },
+    {
+      "ref": "III-2-2",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex II - Food and Agriculture Organization of the United Nations (FAO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Washington, 29 November 1948"
+    },
+    {
+      "ref": "III-2-2A",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Revised text of Annex II - Food and Agriculture Organization of the United Nations (FAO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Rome, 20 November 1959"
+    },
+    {
+      "ref": "III-2-2B",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Second revised text of Annex II - Food and Agriculture Organization of the United Nations (FAO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Rome, 8 December 1965"
+    },
+    {
+      "ref": "III-2-3",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex III - International Civil Aviation Organization (ICAO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 21 June 1948"
+    },
+    {
+      "ref": "III-2-4",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex IV - United Nations Educational, Scientific and Cultural Organization (UNESCO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Paris, 7 February 1949"
+    },
+    {
+      "ref": "III-2-5",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex V - International Monetary Fund (IMF) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Washington, 11 April 1949"
+    },
+    {
+      "ref": "III-2-6",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex VI - International Bank for Reconstruction and Development (IBRD) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Washington, 19 April 1949"
+    },
+    {
+      "ref": "III-2-7",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex VII - World Health Organization (WHO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 17 July 1948"
+    },
+    {
+      "ref": "III-2-7A",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Revised text of Annex VII - World Health Organization (WHO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 26 May 1950"
+    },
+    {
+      "ref": "III-2-7B",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Second revised text of Annex VII - World Health Organization (WHO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 27 May 1957"
+    },
+    {
+      "ref": "III-2-7C",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Third revised text of Annex VII - World Health Organization (WHO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Minneapolis, 17 July 1958"
+    },
+    {
+      "ref": "III-2-8",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex VIII - Universal Postal Union (UPU) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 25 May 1949"
+    },
+    {
+      "ref": "III-2-9",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex IX - International Telecommunication Union (ITU) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 6 October 1950"
+    },
+    {
+      "ref": "III-2-10",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex X - International Refugee Organization (IRO) - to the Convention on the Privileges and Immunities of the Specialized Agencies*",
+      "place_date": "Geneva, 29 March 1949"
+    },
+    {
+      "ref": "III-2-11",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XI - World Meteorological Organization (WMO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Paris, 17 April 1951"
+    },
+    {
+      "ref": "III-2-12",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XII - International Maritime Organization (IMO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "London, 16 January 1959"
+    },
+    {
+      "ref": "III-2-12A",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Revised text of Annex XII - International Maritime Organization (IMO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "London, 16 May 1968"
+    },
+    {
+      "ref": "III-2-12B",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Second Revised text of Annex XII - International Maritime Organization (IMO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "London, 22 November 2001"
+    },
+    {
+      "ref": "III-2-13",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XIII – International Finance Corporation (IFC) – to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Washington, 2 April 1959"
+    },
+    {
+      "ref": "III-2-14",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XIV – International Development Association (IDA) – to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Washington, 13 February 1962"
+    },
+    {
+      "ref": "III-2-15",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XV - World Intellectual Property Organization (WIPO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Geneva, 4 October 1977"
+    },
+    {
+      "ref": "III-2-16",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XVI - International Fund for Agricultural Development (IFAD) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Rome, 16 December 1977"
+    },
+    {
+      "ref": "III-2-17",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XVII - United Nations Industrial Development Organization (UNIDO) - to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Vienna, 3 July 1987"
+    },
+    {
+      "ref": "III-2-18",
+      "chapter_int": 3,
+      "subchapter": "",
+      "title": "Annex XVIII – World Tourism Organization (WTO) – to the Convention on the Privileges and Immunities of the Specialized Agencies",
+      "place_date": "Jeju, 30 July 2008"
+    },
+    {
       "ref": "III-3",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Vienna Convention on Diplomatic Relations",
       "place_date": "Vienna, 18 April 1961"
     },
     {
       "ref": "III-4",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Optional Protocol to the Vienna Convention on Diplomatic Relations, concerning Acquisition of Nationality",
       "place_date": "Vienna, 18 April 1961"
     },
     {
       "ref": "III-5",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Optional Protocol to the Vienna Convention on Diplomatic Relations, concerning the Compulsory Settlement of Disputes",
       "place_date": "Vienna, 18 April 1961"
     },
     {
       "ref": "III-6",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Vienna Convention on Consular Relations",
       "place_date": "Vienna, 24 April 1963"
     },
     {
       "ref": "III-7",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Optional Protocol to the Vienna Convention on Consular Relations concerning Acquisition of Nationality",
       "place_date": "Vienna, 24 April 1963"
     },
     {
       "ref": "III-8",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Optional Protocol to the Vienna Convention on Consular Relations concerning the Compulsory Settlement of Disputes",
       "place_date": "Vienna, 24 April 1963"
     },
     {
       "ref": "III-9",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Convention on special missions",
       "place_date": "New York, 8 December 1969"
     },
     {
       "ref": "III-10",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Optional Protocol to the Convention on Special Missions concerning the compulsory settlement of disputes",
       "place_date": "New York, 8 December 1969"
     },
     {
       "ref": "III-11",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Vienna Convention on the Representation of States in their Relations with International Organizations of a Universal Character",
       "place_date": "Vienna, 14 March 1975"
     },
     {
       "ref": "III-12",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "Vienna Convention on Succession of States in Respect of State Property, Archives and Debts",
       "place_date": "Vienna, 8 April 1983"
     },
     {
       "ref": "III-13",
       "chapter_int": 3,
+      "subchapter": "",
       "title": "United Nations Convention on Jurisdictional Immunities of States and Their Property",
       "place_date": "New York, 2 December 2004"
     },
     {
       "ref": "IV-1",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention on the Prevention and Punishment of the Crime of Genocide",
       "place_date": "Paris, 9 December 1948"
     },
     {
       "ref": "IV-2",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Convention on the Elimination of All Forms of Racial Discrimination",
       "place_date": "New York, 7 March 1966"
     },
     {
+      "ref": "IV-2-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Amendment to article 8 of the International Convention on the Elimination of All Forms of Racial Discrimination",
+      "place_date": "New York, 15 January 1992"
+    },
+    {
       "ref": "IV-3",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Covenant on Economic, Social and Cultural Rights",
       "place_date": "New York, 16 December 1966"
     },
     {
+      "ref": "IV-3-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the International Covenant on Economic, Social and Cultural Rights",
+      "place_date": "New York, 10 December 2008"
+    },
+    {
       "ref": "IV-4",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Covenant on Civil and Political Rights",
       "place_date": "New York, 16 December 1966"
     },
     {
       "ref": "IV-5",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Optional Protocol to the International Covenant on Civil and Political Rights",
       "place_date": "New York, 16 December 1966"
     },
     {
       "ref": "IV-6",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention on the non-applicability of statutory limitations to war crimes and crimes against humanity",
       "place_date": "New York, 26 November 1968"
     },
     {
       "ref": "IV-7",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Convention on the Suppression and Punishment of the Crime of Apartheid",
       "place_date": "New York, 30 November 1973"
     },
     {
       "ref": "IV-8",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention on the Elimination of All Forms of Discrimination against Women",
       "place_date": "New York, 18 December 1979"
     },
     {
+      "ref": "IV-8-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Amendment to article 20, paragraph 1 of the Convention on the Elimination of All Forms of Discrimination against Women",
+      "place_date": "New York, 22 December 1995"
+    },
+    {
+      "ref": "IV-8-b",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Elimination of All Forms of Discrimination against Women",
+      "place_date": "New York, 6 October 1999"
+    },
+    {
       "ref": "IV-9",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention against Torture and Other Cruel, Inhuman or Degrading Treatment or Punishment",
       "place_date": "New York, 10 December 1984"
     },
     {
+      "ref": "IV-9-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Amendments to articles 17 (7) and 18 (5) of the Convention against Torture and Other Cruel, Inhuman or Degrading Treatment or Punishment ",
+      "place_date": "New York, 8 September 1992"
+    },
+    {
+      "ref": "IV-9-b",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention against Torture and Other Cruel, Inhuman or Degrading Treatment or Punishment",
+      "place_date": "New York, 18 December 2002"
+    },
+    {
       "ref": "IV-10",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Convention against Apartheid in Sports",
       "place_date": "New York, 10 December 1985"
     },
     {
       "ref": "IV-11",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention on the Rights of the Child",
       "place_date": "New York, 20 November 1989"
     },
     {
+      "ref": "IV-11-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Amendment to article 43 (2) of the Convention on the Rights of the Child",
+      "place_date": "New York, 12 December 1995"
+    },
+    {
+      "ref": "IV-11-b",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Rights of the Child on the involvement of children in armed conflict",
+      "place_date": "New York, 25 May 2000"
+    },
+    {
+      "ref": "IV-11-c",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Rights of the Child on the sale of children, child prostitution and child pornography",
+      "place_date": "New York, 25 May 2000"
+    },
+    {
+      "ref": "IV-11-d",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Rights of the Child on a communications procedure",
+      "place_date": "New York, 19 December 2011"
+    },
+    {
       "ref": "IV-12",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Second Optional Protocol to the International Covenant on Civil and Political Rights, aiming at the abolition of the death penalty",
       "place_date": "New York, 15 December 1989"
     },
     {
       "ref": "IV-13",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Convention on the Protection of the Rights of All Migrant Workers and Members of their Families",
       "place_date": "New York, 18 December 1990"
     },
     {
       "ref": "IV-14",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Agreement establishing the Fund for the Development of the Indigenous Peoples of Latin America and the Caribbean",
       "place_date": "Madrid, 24 July 1992"
     },
     {
       "ref": "IV-15",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "Convention on the Rights of Persons with Disabilities",
+      "place_date": "New York, 13 December 2006"
+    },
+    {
+      "ref": "IV-15-a",
+      "chapter_int": 4,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Rights of Persons with Disabilities",
       "place_date": "New York, 13 December 2006"
     },
     {
       "ref": "IV-16",
       "chapter_int": 4,
+      "subchapter": "",
       "title": "International Convention for the Protection of All Persons from Enforced Disappearance",
       "place_date": "New York, 20 December 2006"
     },
     {
       "ref": "V-1",
       "chapter_int": 5,
+      "subchapter": "",
       "title": "Constitution of the International Refugee Organization",
       "place_date": "New York, 15 December 1946"
     },
     {
       "ref": "V-2",
       "chapter_int": 5,
+      "subchapter": "",
       "title": "Convention relating to the Status of Refugees",
       "place_date": "Geneva, 28 July 1951"
     },
     {
       "ref": "V-3",
       "chapter_int": 5,
+      "subchapter": "",
       "title": "Convention relating to the Status of Stateless Persons",
       "place_date": "New York, 28 September 1954"
     },
     {
       "ref": "V-4",
       "chapter_int": 5,
+      "subchapter": "",
       "title": "Convention on the Reduction of Statelessness",
       "place_date": "New York, 30 August 1961"
     },
     {
       "ref": "V-5",
       "chapter_int": 5,
+      "subchapter": "",
       "title": "Protocol relating to the Status of Refugees",
       "place_date": "New York, 31 January 1967"
     },
     {
       "ref": "VI-1",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Protocol amending the Agreements, Conventions and Protocols on Narcotic Drugs, concluded at The Hague on 23 January 1912, at Geneva on 11 February 1925 and 19 February 1925, and 13 July 1931, at Bangkok on 27 November 1931 and at Geneva on 26 June 1936",
       "place_date": "Lake Success, New York, 11 December 1946"
     },
     {
       "ref": "VI-2",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "International Opium Convention",
       "place_date": "The Hague, 23 January 1912"
     },
     {
       "ref": "VI-3",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Agreement concerning the Suppression of the Manufacture of, Internal Trade in, and Use of, Prepared Opium",
       "place_date": "Geneva, 11 February 1925, and Lake Success, New York, 11 December 1946"
     },
     {
       "ref": "VI-4",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Agreement concerning the Suppression of the Manufacture of, Internal Trade in, and Use of, Prepared Opium",
       "place_date": "Geneva, 11 February 1925"
     },
     {
       "ref": "VI-5",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "International Opium Convention",
       "place_date": "Geneva, 19 February 1925, and Lake Success, New York, 11 December 1946"
     },
     {
-      "ref": "VI-6",
+      "ref": "VI-6-a",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "International Opium Convention",
+      "place_date": "Geneva, 19 February 1925"
+    },
+    {
+      "ref": "VI-6-b",
+      "chapter_int": 6,
+      "subchapter": "",
+      "title": "Protocol to the International Opium Convention",
       "place_date": "Geneva, 19 February 1925"
     },
     {
       "ref": "VI-7",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Convention for Limiting the Manufacture and Regulating the Distribution of Narcotic Drugs",
       "place_date": "Geneva, 13 July 1931, and Lake Success, New York, 11 December 1946"
     },
     {
-      "ref": "VI-8",
+      "ref": "VI-8-a",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Convention for limiting the Manufacture and regulating the Distribution of Narcotic Drugs",
+      "place_date": "Geneva, 13 July 1931"
+    },
+    {
+      "ref": "VI-8-b",
+      "chapter_int": 6,
+      "subchapter": "",
+      "title": "Protocol of Signature",
       "place_date": "Geneva, 13 July 1931"
     },
     {
       "ref": "VI-9",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Agreement concerning the Suppression of Opium Smoking",
       "place_date": "Bangkok, 27 November 1931, and Lake Success, New York, 11 December 1946"
     },
     {
       "ref": "VI-10",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Agreement concerning the Suppression of Opium Smoking",
       "place_date": "Bangkok, 27 November 1931"
     },
     {
       "ref": "VI-11",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Convention for the Suppression of the Illicit Traffic in Dangerous Drugs",
       "place_date": "Geneva, 26 June 1936, and Lake Success, New York, 11 December 1946"
     },
     {
-      "ref": "VI-12",
+      "ref": "VI-12-a",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Convention of 1936 for the Suppression of the Illicit Traffic in Dangerous Drugs",
+      "place_date": "Geneva, 26 June 1936"
+    },
+    {
+      "ref": "VI-12-b",
+      "chapter_int": 6,
+      "subchapter": "",
+      "title": "Protocol of Signature",
       "place_date": "Geneva, 26 June 1936"
     },
     {
       "ref": "VI-13",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Protocol Bringing under International Control Drugs Outside the Scope of the Convention of 13 July 1931 for Limiting the Manufacture and Regulating the Distribution of Narcotic Drugs, as amended by the Protocol signed at Lake Success, New York, on 11 December 1946",
       "place_date": "Paris, 19 November 1948"
     },
     {
       "ref": "VI-14",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Protocol for Limiting and Regulating the Cultivation of the Poppy Plant, the Production of, International and Wholesale Trade in, and use of Opium",
       "place_date": "New York, 23 June 1953"
     },
     {
       "ref": "VI-15",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Single Convention on Narcotic Drugs, 1961",
       "place_date": "New York, 30 March 1961"
     },
     {
       "ref": "VI-16",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Convention on psychotropic substances",
       "place_date": "Vienna, 21 February 1971"
     },
     {
       "ref": "VI-17",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Protocol amending the Single Convention on Narcotic Drugs, 1961",
       "place_date": "Geneva, 25 March 1972"
     },
     {
       "ref": "VI-18",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "Single Convention on Narcotic Drugs, 1961, as amended by the Protocol amending the Single Convention on Narcotic Drugs, 1961",
       "place_date": "New York, 8 August 1975"
     },
     {
       "ref": "VI-19",
       "chapter_int": 6,
+      "subchapter": "",
       "title": "United Nations Convention against Illicit Traffic in Narcotic Drugs and Psychotropic Substances",
       "place_date": "Vienna, 20 December 1988"
     },
     {
       "ref": "VII-1",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "Protocol signed at Lake Success, New York, on 12 November 1947, to amend the Convention for the Suppression of the Traffic in Women and Children, concluded at Geneva on 30 September 1921, and the Convention for the Suppression of the Traffic in Women of Full Age, concluded at Geneva on 11 October 1933",
       "place_date": "Lake Success, New York, 12 November 1947"
     },
     {
       "ref": "VII-2",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Traffic in Women and Children, concluded at Geneva on 30 September 1921, as amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
       "place_date": "Lake Success, 12 November 1947"
     },
     {
       "ref": "VII-3",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Traffic in Women and Children",
       "place_date": "Geneva, 30 September 1921"
     },
     {
       "ref": "VII-4",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Traffic in Women of Full Age, concluded at Geneva on 11 October 1933, as amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
       "place_date": "Lake Success, 12 November 1947"
     },
     {
       "ref": "VII-5",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Traffic in Women of Full Age",
       "place_date": "Geneva, 11 October 1933"
     },
     {
       "ref": "VII-6",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "Protocol amending the International Agreement for the Suppression of the White Slave Traffic, signed at Paris on 18 May 1904, and the International Convention for the Suppression of the White Slave Traffic, signed at Paris on 4 May 1910",
       "place_date": "Lake Success, New York, 4 May 1949"
     },
     {
       "ref": "VII-7",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Agreement for the Suppression of the White Slave Traffic, signed at Paris on 18 May 1904, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
       "place_date": "Lake Success, New York, 4 May 1949"
     },
     {
       "ref": "VII-8",
       "chapter_int": 7,
-      "title": "International Agreement for the suppression of the &quot;White Slave Traffic&quot;",
+      "subchapter": "",
+      "title": "International Agreement for the suppression of the \"White Slave Traffic\"",
       "place_date": "Paris, 18 May 1904"
     },
     {
       "ref": "VII-9",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the White Slave Traffic, signed at Paris on 4 May 1910, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
       "place_date": "Lake Success, New York, 4 May 1949"
     },
     {
       "ref": "VII-10",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the White Slave Traffic",
       "place_date": "Paris, 4 May 1910"
     },
     {
-      "ref": "VII-11",
+      "ref": "VII-11-a",
       "chapter_int": 7,
+      "subchapter": "",
       "title": "Convention for the Suppression of the Traffic in Persons and of the Exploitation of the Prostitution of Others",
+      "place_date": "Lake Success, New York, 21 March 1950"
+    },
+    {
+      "ref": "VII-11-b",
+      "chapter_int": 7,
+      "subchapter": "",
+      "title": "Final Protocol to the Convention for the Suppression of the Traffic in Persons and of the Exploitation of the Prostitution of Others",
       "place_date": "Lake Success, New York, 21 March 1950"
     },
     {
       "ref": "VIII-1",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "Protocol to amend the Convention for the suppression of the circulation of, and traffic in, obscene publications, concluded at Geneva on 12 September 1923",
       "place_date": "Lake Success, New York, 12 November 1947"
     },
     {
       "ref": "VIII-2",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "Convention for the Suppression of the Circulation of, and Traffic in, Obscene Publications, concluded at Geneva on 12 September 1923 and amended by the Protocol signed at Lake Success, New York, on 12 November 1947",
       "place_date": "New York, 12 November 1947"
     },
     {
       "ref": "VIII-3",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Circulation of and Traffic in Obscene Publications",
       "place_date": "Geneva, 12 September 1923"
     },
     {
       "ref": "VIII-4",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "Protocol amending the Agreement for the Suppression of the Circulation of Obscene Publications, signed at Paris, on 4 May 1910",
       "place_date": "Lake Success, New York, 4 May 1949"
     },
     {
       "ref": "VIII-5",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "Agreement for the Suppression of the Circulation of Obscene Publications, signed at Paris on 4 May 1910, amended by the Protocol signed at Lake Success, New York, 4 May 1949",
       "place_date": "New York, 4 May 1949"
     },
     {
       "ref": "VIII-6",
       "chapter_int": 8,
+      "subchapter": "",
       "title": "Agreement for the Repression of Obscene Publications",
       "place_date": "Paris, 4 May 1910"
     },
     {
       "ref": "IX-1",
       "chapter_int": 9,
+      "subchapter": "",
       "title": "Constitution of the World Health Organization",
       "place_date": "New York, 22 July 1946"
     },
     {
+      "ref": "IX-1-a",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 24 and 25 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 28 May 1959"
+    },
+    {
+      "ref": "IX-1-b",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendment to article 7 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 20 May 1965"
+    },
+    {
+      "ref": "IX-1-c",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 24 and 25 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 23 May 1967"
+    },
+    {
+      "ref": "IX-1-d",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 34 and 55 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 22 May 1973"
+    },
+    {
+      "ref": "IX-1-e",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 24 and 25 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 17 May 1976"
+    },
+    {
+      "ref": "IX-1-f",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendment to article 74 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 18 May 1978"
+    },
+    {
+      "ref": "IX-1-g",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 24 and 25 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 12 May 1986"
+    },
+    {
+      "ref": "IX-1-h",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Amendments to articles 24 and 25 of the Constitution of the World Health Organization",
+      "place_date": "Geneva, 16 May 1998"
+    },
+    {
       "ref": "IX-2",
       "chapter_int": 9,
-      "title": "Protocol concerning the Office international d'hygi&#232;ne publique",
+      "subchapter": "",
+      "title": "Protocol concerning the Office international d'hygiène publique",
       "place_date": "New York, 22 July 1946"
     },
     {
       "ref": "IX-3",
       "chapter_int": 9,
+      "subchapter": "",
       "title": "Agreement on the establishment of the International Vaccine Institute",
       "place_date": "New York, 28 October 1996"
     },
     {
       "ref": "IX-4",
       "chapter_int": 9,
+      "subchapter": "",
       "title": "WHO Framework Convention on Tobacco Control",
       "place_date": "Geneva, 21 May 2003"
     },
     {
-      "ref": "X-1",
+      "ref": "IX-4-a",
+      "chapter_int": 9,
+      "subchapter": "",
+      "title": "Protocol to Eliminate Illicit Trade in Tobacco Products",
+      "place_date": "Seoul, 12 November 2012"
+    },
+    {
+      "ref": "X-1-a",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "General Agreement on Tariffs and Trade",
       "place_date": "Geneva, 30 October 1947"
     },
     {
+      "ref": "X-1-b",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Havana Charter for an International Trade Organization",
+      "place_date": "Havana, 24 March 1948"
+    },
+    {
+      "ref": "X-1-c",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Agreement on most-favoured-nation treatment for areas of Western Germany under military occupation",
+      "place_date": "Geneva, 14 September 1948"
+    },
+    {
+      "ref": "X-1-d",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Memorandum of understanding relative to application to the Western Sectors of Berlin of the Agreement on most-favoured-nation treatment for areas of Western Germany under military occupation",
+      "place_date": "Annecy, 13 August 1949"
+    },
+    {
       "ref": "X-2",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement establishing the African Development Bank",
       "place_date": "Khartoum, 4 August 1963"
     },
     {
+      "ref": "X-2-a",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Amendments to the Agreement establishing the African Development Bank",
+      "place_date": "Abidjan, 17 May 1979"
+    },
+    {
+      "ref": "X-2-b",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Agreement establishing the African Development Bank done at Khartoum on 4 August 1963, as amended by resolution 05-79 adopted by the Board of Governors on 17 May 1979",
+      "place_date": "Lusaka, 7 May 1982"
+    },
+    {
       "ref": "X-3",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Convention on Transit Trade of Land-locked States",
       "place_date": "New York, 8 July 1965"
     },
     {
       "ref": "X-4",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement establishing the Asian Development Bank",
       "place_date": "Manila, 4 December 1965"
     },
     {
       "ref": "X-5",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Articles of Association for the establishment of an Economic Community of West Africa",
       "place_date": "Accra, 4 May 1967"
     },
     {
       "ref": "X-6",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement establishing the Caribbean Development Bank",
       "place_date": "Kingston, 18 October 1969"
     },
     {
       "ref": "X-7",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Convention on the Limitation Period in the International Sale of Goods",
+      "place_date": "New York, 14 June 1974"
+    },
+    {
+      "ref": "X-7-a",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Protocol amending the Convention on the Limitation Period in the International Sale of Goods",
+      "place_date": "Vienna, 11 April 1980"
+    },
+    {
+      "ref": "X-7-b",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Convention on the Limitation Period in the International Sale of Goods, as amended by the Protocol of 11 April 1980",
       "place_date": "New York, 14 June 1974"
     },
     {
       "ref": "X-8",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement establishing the International Fund for Agricultural Development",
       "place_date": "Rome, 13 June 1976"
     },
     {
+      "ref": "X-8-a",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Amendments effected by Resolution 86/XVIII adopted on 26 January 1995 by the Governing Council to articles 3.3, 3.4, 4.2, 4.5, 5.1, 6.2, 6.3, 6.5, 6.6, 12(a) and 13.3 and Scedules I, II and III of the Agreement establishing the International Fund for Agricultural Development",
+      "place_date": "Rome, 26 January 1995"
+    },
+    {
+      "ref": "X-8-b",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Amendment effected by Resolution 100/XX adopted on 21 February 1997 by the Governing Council to article 4.1 of the Agreement establishing the International Fund for Agricultural Development",
+      "place_date": "Rome, 21 February 1997"
+    },
+    {
       "ref": "X-9",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Constitution of the United Nations Industrial Development Organization",
       "place_date": "Vienna, 8 April 1979"
     },
     {
       "ref": "X-10",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on Contracts for the International Sale of Goods",
       "place_date": "Vienna, 11 April 1980"
     },
     {
       "ref": "X-11",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Charter of the Asian and Pacific Development Centre",
       "place_date": "Bangkok, 1 April 1982"
     },
     {
+      "ref": "X-11-a",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Amendments to the Charter of the Asian and Pacific Development Centre",
+      "place_date": "Kuala Lumpur, 16 July 1998"
+    },
+    {
       "ref": "X-12",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on International Bills of Exchange and International Promissory Notes",
       "place_date": "New York, 9 December 1988"
     },
     {
       "ref": "X-13",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on the Liability of Operators of Transport Terminals in International Trade",
       "place_date": "Vienna, 19 April 1991"
     },
     {
       "ref": "X-14",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement to establish the South Centre",
       "place_date": "Geneva, 1 September 1994"
     },
     {
       "ref": "X-15",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on Independent Guarantees and Stand-by Letters of Credit",
       "place_date": "New York, 11 December 1995"
     },
     {
       "ref": "X-16",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Agreement Establishing the Bank for Economic Cooperation and Development in the Middle East and North Africa",
       "place_date": "Cairo, 28 August 1996"
     },
     {
       "ref": "X-17",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on the Assignment of Receivables in International Trade",
       "place_date": "New York, 12 December 2001"
     },
     {
       "ref": "X-18",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on the Use of Electronic Communications in International Contracts",
       "place_date": "New York, 23 November 2005"
     },
     {
       "ref": "X-19",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Multilateral Agreement for the Establishment of an International Think Tank for Landlocked Developing Countries",
       "place_date": "New York, 24 September 2010"
     },
     {
       "ref": "X-20",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "Framework Agreement on Facilitation of Cross-border Paperless Trade in Asia and the Pacific",
       "place_date": "Bangkok, 19 May 2016"
     },
     {
+      "ref": "X-20-a",
+      "chapter_int": 10,
+      "subchapter": "",
+      "title": "Amendments to the Framework Agreement on Facilitation of Cross-border Paperless Trade in Asia and the Pacific",
+      "place_date": "Bangkok, 29 April 2022"
+    },
+    {
       "ref": "X-21",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on the International Effects of Judicial Sales of Ships",
       "place_date": "New York, 7 December 2022"
     },
     {
       "ref": "X-22",
       "chapter_int": 10,
+      "subchapter": "",
       "title": "United Nations Convention on Negotiable Cargo Documents",
       "place_date": "New York, 15 December 2025"
     },
     {
+      "ref": "XI-A-1",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Agreement providing for the provisional application of the Draft International Customs Conventions on Touring, on Commercial Road Vehicles and on the International Transport of Goods by Road*",
+      "place_date": "Geneva, 16 June 1949"
+    },
+    {
+      "ref": "XI-A-2",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Additional Protocol to the Agreement providing for the provisional application of the Draft International Customs Conventions on Touring, on Commercial Road Vehicles and on the International Transport of Goods by Road*",
+      "place_date": "Geneva, 16 June 1949"
+    },
+    {
+      "ref": "XI-A-3",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Additional Protocol to the Agreement providing for the provisional application of the Draft International Customs Conventions on Touring, on Commercial Road Vehicles and on the International Transport of Goods by Road, relating to the International Transport of goods by container under the T.I.R. Carnet Regime*",
+      "place_date": "Geneva, 11 March 1950"
+    },
+    {
+      "ref": "XI-A-4",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Additional Protocol amending certain provisions of the Agreement providing for the provisional application of the Draft International Customs Conventions on Touring, on Commercial Road Vehicles and on the International Transport of Goods by Road*",
+      "place_date": "Geneva, 28 November 1952"
+    },
+    {
+      "ref": "XI-A-5",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "International Convention to Facilitate the Importation of Commercial Samples and Advertising Material",
+      "place_date": "Geneva, 7 November 1952"
+    },
+    {
+      "ref": "XI-A-6",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Convention concerning Customs Facilities for Touring",
+      "place_date": "New York, 4 June 1954"
+    },
+    {
+      "ref": "XI-A-7",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Additional Protocol to the Convention concerning Customs Facilities for Touring, relating to the Importation of Tourist Publicity Documents and Material",
+      "place_date": "New York, 4 June 1954"
+    },
+    {
+      "ref": "XI-A-8",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on the Temporary Importation of Private Road Vehicles",
+      "place_date": "New York, 4 June 1954"
+    },
+    {
+      "ref": "XI-A-9",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on Containers",
+      "place_date": "Geneva, 18 May 1956"
+    },
+    {
+      "ref": "XI-A-10",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on the Temporary Importation of Commercial Road Vehicles",
+      "place_date": "Geneva, 18 May 1956"
+    },
+    {
+      "ref": "XI-A-11",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on the Temporary Importation for Private Use of Aircraft and Pleasure Boats",
+      "place_date": "Geneva, 18 May 1956"
+    },
+    {
+      "ref": "XI-A-12",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention concerning spare parts used for repairing EUROP wagons",
+      "place_date": "Geneva, 15 January 1958"
+    },
+    {
+      "ref": "XI-A-13",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on the International Transport of Goods under Cover of TIR Carnets (TIR Convention)",
+      "place_date": "Geneva, 15 January 1959"
+    },
+    {
+      "ref": "XI-A-14",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "European Convention on Customs Treatment of Pallets used in International Transport",
+      "place_date": "Geneva, 9 December 1960"
+    },
+    {
+      "ref": "XI-A-15",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on Containers, 1972",
+      "place_date": "Geneva, 2 December 1972"
+    },
+    {
+      "ref": "XI-A-16",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Customs Convention on the International Transport of Goods under Cover of TIR Carnets (TIR Convention)",
+      "place_date": "Geneva, 14 November 1975"
+    },
+    {
+      "ref": "XI-A-17",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "International Convention on the Harmonization of Frontier Controls of Goods",
+      "place_date": "Geneva, 21 October 1982"
+    },
+    {
+      "ref": "XI-A-18",
+      "chapter_int": 11,
+      "subchapter": "A",
+      "title": "Convention on Customs Treatment of Pool Containers used in International Transport",
+      "place_date": "Geneva, 21 January 1994"
+    },
+    {
+      "ref": "XI-B-1",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on Road Traffic",
+      "place_date": "Geneva, 19 September 1949"
+    },
+    {
+      "ref": "XI-B-2",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol concerning countries or territories at present occupied",
+      "place_date": "Geneva, 19 September 1949"
+    },
+    {
+      "ref": "XI-B-3",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol on Road Signs and Signals",
+      "place_date": "Geneva, 19 September 1949"
+    },
+    {
+      "ref": "XI-B-4",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement supplementing the 1949 Convention on road traffic and the 1949 Protocol on road signs and signals",
+      "place_date": "Geneva, 16 September 1950"
+    },
+    {
+      "ref": "XI-B-5",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement on the application of article 3 of annex 7 of the 1949 Convention on Road Traffic Concerning the Dimensions and Weights of Vehicles Permitted to Travel on Certain Roads of the Contracting Parties",
+      "place_date": "Geneva, 16 September 1950"
+    },
+    {
+      "ref": "XI-B-6",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement on the application of article 23 of the 1949 Convention on road traffic, concerning the dimensions and weights of vehicles permitted to travel on certain roads of the Contracting Parties",
+      "place_date": "Geneva, 16 September 1950"
+    },
+    {
+      "ref": "XI-B-7",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Declaration on the construction of main international traffic arteries",
+      "place_date": "Geneva, 16 September 1950"
+    },
+    {
+      "ref": "XI-B-8",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "General Agreement on Economic Regulations for International Road transport (a) Additional Protocol (b) Protocol of Signature",
+      "place_date": "Geneva, 17 March 1954"
+    },
+    {
+      "ref": "XI-B-8-c",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol relating to the adoption of Annex C.1 to the Set of Rules annexed to the General Agreement on Economic Regulations for International Road transport",
+      "place_date": "Geneva, 1 July 1954"
+    },
+    {
+      "ref": "XI-B-9",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement on Signs for Road Works, amending the European Agreement of 16 September 1950 supplementing the 1949 Convention on Road Traffic and the 1949 Protocol on Road Signs and Signals",
+      "place_date": "Geneva, 16 December 1955"
+    },
+    {
+      "ref": "XI-B-10",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on the Taxation of Road Vehicles for Private Use in International Traffic",
+      "place_date": "Geneva, 18 May 1956"
+    },
+    {
+      "ref": "XI-B-11",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on the Contract for the International Carriage of Goods by Road (CMR)",
+      "place_date": "Geneva, 19 May 1956"
+    },
+    {
+      "ref": "XI-B-11-a",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol to the Convention on the Contract for the International Carriage of Goods by Road (CMR)",
+      "place_date": "Geneva, 5 July 1978"
+    },
+    {
+      "ref": "XI-B-11-b",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Additional Protocol to the Convention on the Contract for the International Carriage of Goods by Road (CMR) concerning the Electronic Consignment Note",
+      "place_date": "Geneva, 20 February 2008"
+    },
+    {
+      "ref": "XI-B-12",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on the Taxation of Road Vehicles engaged in International Goods Transport",
+      "place_date": "Geneva, 14 December 1956"
+    },
+    {
+      "ref": "XI-B-13",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on the Taxation of Road Vehicles Engaged in International Passenger Transport",
+      "place_date": "Geneva, 14 December 1956"
+    },
+    {
+      "ref": "XI-B-14",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement concerning the International Carriage of Dangerous Goods by Road (ADR)",
+      "place_date": "Geneva, 30 September 1957"
+    },
+    {
+      "ref": "XI-B-14-a",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol amending article 14 (3) of the Agreement of 30 September 1957 concerning the International Carriage of Dangerous Goods by Road (ADR)",
+      "place_date": "New York, 21 August 1975"
+    },
+    {
+      "ref": "XI-B-14-b",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol amending article 1 (a), article 14 (1) and article 14 (3) (b) of the Agreement of 30 September 1957 concerning the International Carriage of Dangerous Goods by Road (ADR)",
+      "place_date": "Geneva, 28 October 1993"
+    },
+    {
+      "ref": "XI-B-15",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement on Road Markings",
+      "place_date": "Geneva, 13 December 1957"
+    },
+    {
+      "ref": "XI-B-16",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement concerning the adoption of harmonized technical United Nations Regulations for wheeled vehicles, equipment and parts which can be fitted and/or be used on wheeled vehicles and the conditions for reciprocal recognition of approvals granted on the basis of these United Nations Regulations",
+      "place_date": "Geneva, 20 March 1958"
+    },
+    {
+      "ref": "XI-B-16-0",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 0. Uniform provisions concerning the International Whole Vehicle Type Approval (IWVTA)",
+      "place_date": "Geneva, 15 November 2017"
+    },
+    {
+      "ref": "XI-B-16-1",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 1. Uniform provisions concerning the approval of motor vehicle headlamps emitting an asymmetrical passing beam and/or a driving beam and equipped with filament lamps of categories R2 and/or HS1",
+      "place_date": "8 August 1960"
+    },
+    {
+      "ref": "XI-B-16-2",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 2. Uniform provisions concerning the approval of incandescent electric lamps for headlamps emitting an asymmetrical passing beam or a driving beam or both",
+      "place_date": "8 August 1960"
+    },
+    {
+      "ref": "XI-B-16-3",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 3. Uniform provisions concerning the approval of retro-reflecting devices for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 1 November 1963"
+    },
+    {
+      "ref": "XI-B-16-4",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 4. Uniform provisions concerning the approval of devices for the illumination of rear registration plates of power-driven vehicles and their trailers",
+      "place_date": "Geneva, 15 April 1964"
+    },
+    {
+      "ref": "XI-B-16-5",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 5. Uniform provisions concerning the approval of power-driven vehicle's \"sealed beam\" headlamps (SB) emitting a European asymmetrical passing beam or a driving beam or both",
+      "place_date": "30 September 1967"
+    },
+    {
+      "ref": "XI-B-16-6",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 6. Uniform provisions concerning the approval of direction indicators for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 15 October 1967"
+    },
+    {
+      "ref": "XI-B-16-7",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 7. Uniform provisions concerning the approval of front and rear position lamps, stop-lamps and end-outline marker lamps for motor vehicles and their trailers",
+      "place_date": "Geneva, 15 October 1967"
+    },
+    {
+      "ref": "XI-B-16-8",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 8. Uniform provisions concerning the approval of motor vehicle headlamps emitting an asymmetrical passing beam or a driving beam or both and equipped with halogen filament lamps (H1, H2, H3, HB3, HB4, H7, H8, H9, HIR1, HIR2 and/or H11)",
+      "place_date": "15 November 1967"
+    },
+    {
+      "ref": "XI-B-16-9",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 9. Uniform provisions concerning the approval of category L2, L4 and L5 vehicles with regard to sound emission",
+      "place_date": "1 March 1969"
+    },
+    {
+      "ref": "XI-B-16-10",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 10. Uniform provisions concerning the approval of vehicles with regard to electromagnetic compatibility",
+      "place_date": "Geneva, 1 April 1969"
+    },
+    {
+      "ref": "XI-B-16-11",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 11. Uniform provisions concerning the approval of vehicles with regard to door latches and door retention components",
+      "place_date": "1 June 1969"
+    },
+    {
+      "ref": "XI-B-16-12",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 12. Uniform provisions concerning the approval of vehicles with regard to the protection of the driver against the steering mechanism in the event of impact",
+      "place_date": "Geneva, 1 July 1969"
+    },
+    {
+      "ref": "XI-B-16-13",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 13. Uniform provisions concerning the approval of vehicles of categories M, N and O with regard to braking",
+      "place_date": "Geneva, 1 June 1970"
+    },
+    {
+      "ref": "XI-B-16-13H",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 13-H. Uniform provisions concerning the approval of passenger cars with regard to braking",
+      "place_date": "11 May 1998"
+    },
+    {
+      "ref": "XI-B-16-14",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 14. Uniform provisions concerning the approval of vehicles with regard to safety-belt anchorages",
+      "place_date": "Geneva, 1 April 1970"
+    },
+    {
+      "ref": "XI-B-16-15",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 15. Uniform provisions concerning the approval of vehicles equipped with a positive-ignition engine or with a compression-ignition engine with regard to the emission of gaseous pollutants by the engine - method of measuring the power of positive-ignition engines - method of measuring the fuel consumption of vehicles",
+      "place_date": "1 August 1970"
+    },
+    {
+      "ref": "XI-B-16-16",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 16. Uniform provisions concerning the approval of: Safety-Belts and Restraint Systems, for Occupants of PowerDriven Vehicles",
+      "place_date": "Geneva, 1 December 1970"
+    },
+    {
+      "ref": "XI-B-16-17",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 17. Uniform provisions concerning the approval of vehicles with regard to the seats, their anchorages and any head restraints",
+      "place_date": "1 December 1970"
+    },
+    {
+      "ref": "XI-B-16-18",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 18. Uniform provisions concerning the approval of motor vehicles with regard to their protection against unauthorized use",
+      "place_date": "1 March 1971"
+    },
+    {
+      "ref": "XI-B-16-19",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 19. Uniform provisions concerning the approval of power-driven vehicle front fog lamps",
+      "place_date": "Geneva, 1 March 1971"
+    },
+    {
+      "ref": "XI-B-16-20",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 20. Uniform provisions concerning the approval of motor vehicle headlamps emitting an asymmetrical passing beam or a driving beam or both and equipped with halogen filament lamps (H4 lamps)",
+      "place_date": "1 May 1971"
+    },
+    {
+      "ref": "XI-B-16-21",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 21. Uniform provisions concerning the approval of vehicles with regard to their interior fittings",
+      "place_date": "Geneva, 1 December 1971"
+    },
+    {
+      "ref": "XI-B-16-22",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 22. Uniform provisions concerning the approval of protective helmets, of their visors and of their accessories for drivers and passengers of motorcycles and mopeds",
+      "place_date": "1 June 1972"
+    },
+    {
+      "ref": "XI-B-16-23",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 23. Uniform provisions concerning the approval of reversing and manoeuvring lamps for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 1 December 1971"
+    },
+    {
+      "ref": "XI-B-16-24",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 24. Uniform provisions concerning: I.The approval of compression ignition (C.I.) engines with regard to the emission of visible pollutants; II. The approval of motor vehicles with regard to the installation of C.I. engines of an approved type; III.The approval of motor vehicles equipped with C.I. engines with regard to the emission of visible pollutants by t",
+      "place_date": "15 September 1972"
+    },
+    {
+      "ref": "XI-B-16-25",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 25. Uniform provisions concerning the approval of head restraints (headrests), whether or not incorporated in vehicle seats",
+      "place_date": "1 March 1972"
+    },
+    {
+      "ref": "XI-B-16-26",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 26. Uniform provisions concerning the approval of vehicles with regard to their external projections",
+      "place_date": "Geneva, 1 July 1972"
+    },
+    {
+      "ref": "XI-B-16-27",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 27. Uniform provisions concerning the approval of advance-warning triangles",
+      "place_date": "15 September 1972"
+    },
+    {
+      "ref": "XI-B-16-28",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 28. Uniform provisions concerning the approval of audible warning devices and of motor vehicles with regard to their audible warning signals",
+      "place_date": "15 January 1973"
+    },
+    {
+      "ref": "XI-B-16-29",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 29. Uniform provisions concerning the approval of vehicles with regard to the protection of the occupants of the cab of a commercial vehicle",
+      "place_date": "15 June 1974"
+    },
+    {
+      "ref": "XI-B-16-30",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 30. Uniform provisions concerning the approval of pneumatic tyres for motor vehicles and their trailers",
+      "place_date": "1 April 1975"
+    },
+    {
+      "ref": "XI-B-16-31",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 31. Uniform provisions concerning the approval of power-driven vehicle's halogen sealed-beam headlamps (HSB) emitting a European asymmetrical passing beam or a driving beam or both",
+      "place_date": "Geneva, 1 May 1975"
+    },
+    {
+      "ref": "XI-B-16-32",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 32. Uniform provisions concerning the approval of vehicles with regard to the behaviour of the structure of the impacted vehicle in a rear-end collision",
+      "place_date": "1 July 1975"
+    },
+    {
+      "ref": "XI-B-16-33",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 33. Uniform provisions concerning the approval of vehicles with regard to the behaviour of the structure of the impacted vehicle in a head-on collision",
+      "place_date": "1 July 1975"
+    },
+    {
+      "ref": "XI-B-16-34",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 34. Uniform provisions concerning the approval of vehicles with regard to the prevention of fire risks",
+      "place_date": "1 July 1975"
+    },
+    {
+      "ref": "XI-B-16-35",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 35. Uniform provisions concerning the approval of vehicles with regard to the arrangement of foot controls",
+      "place_date": "10 November 1975"
+    },
+    {
+      "ref": "XI-B-16-36",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 36. Uniform provisions concerning the approval of large passenger vehicles with regard to their general construction",
+      "place_date": "1 March 1976"
+    },
+    {
+      "ref": "XI-B-16-37",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 37. Uniform provisions concerning the approval of filament light sources for use in approved lamps of power-driven vehicles and of their trailers",
+      "place_date": "Geneva, 1 February 1978"
+    },
+    {
+      "ref": "XI-B-16-38",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 38. Uniform provisions concerning the approval of rear fog lamps for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 1 August 1978"
+    },
+    {
+      "ref": "XI-B-16-39",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 39. Uniform provisions concerning the approval of vehicles with regard to the speedometer and odometer equipment including its installation",
+      "place_date": "20 November 1978"
+    },
+    {
+      "ref": "XI-B-16-40",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 40. Uniform provisions concerning the approval of motorcycles equipped with a positive-ignition engine with regard to the emission of gaseous pollutants by the engine",
+      "place_date": "1 September 1979"
+    },
+    {
+      "ref": "XI-B-16-41",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 41. Uniform provisions concerning the approval of motor cycles with regard to noise",
+      "place_date": "1 June 1980"
+    },
+    {
+      "ref": "XI-B-16-42",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 42. Uniform provisions concerning the approval of vehicles with regard to their front and rear protective devices (bumpers, etc)",
+      "place_date": "1 June 1980"
+    },
+    {
+      "ref": "XI-B-16-43",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 43. Uniform provisions concerning the approval of safety glazing materials and their installation on vehicles",
+      "place_date": "15 February 1981"
+    },
+    {
+      "ref": "XI-B-16-44",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 44. Uniform provisions concerning the approval of restraining devices for child occupants of power-driven vehicles (“Child Restraint Systems”)",
+      "place_date": "Geneva, 1 February 1981"
+    },
+    {
+      "ref": "XI-B-16-45",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 45. Uniform provisions concerning the approval of headlamp cleaners, and of power-driven vehicles with regard to headlamp cleaners",
+      "place_date": "Geneva, 1 July 1981"
+    },
+    {
+      "ref": "XI-B-16-46",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 46. Uniform provisions concerning the approval of devices for indirect vision and of motor vehicles with regard to the installation of these devices",
+      "place_date": "Geneva, 1 September 1981"
+    },
+    {
+      "ref": "XI-B-16-47",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 47. Uniform provisions concerning the approval of mopeds equipped with a positive-ignition engine with regard to the emission of gaseous pollutants by the engine",
+      "place_date": "Geneva, 1 November 1981"
+    },
+    {
+      "ref": "XI-B-16-48",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 48. Uniform provisions concerning the approval of vehicles with regard to the installation of lighting and light-signalling devices",
+      "place_date": "Geneva, 1 January 1982"
+    },
+    {
+      "ref": "XI-B-16-49",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 49. Uniform provisions concerning the measures to be taken against the emission of gaseous and particulate pollutants from compression-ignition engines and positive ignition engines for use in vehicles",
+      "place_date": "Geneva, 15 April 1982"
+    },
+    {
+      "ref": "XI-B-16-50",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 50. Uniform provisions concerning the approval of front position lamps, rear position lamps, stop lamps, direction indicators and rear-registration-plate illuminating devices for vehicles of category L",
+      "place_date": "Geneva, 1 June 1982"
+    },
+    {
+      "ref": "XI-B-16-51",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 51. Uniform provisions concerning the approval of motor vehicles having at least four wheels with regard to their sound emissions",
+      "place_date": "15 July 1982"
+    },
+    {
+      "ref": "XI-B-16-52",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 52. Uniform provisions concerning the approval of M2 and M3 small capacity vehicles with regard to their general construction",
+      "place_date": "1 November 1982"
+    },
+    {
+      "ref": "XI-B-16-53",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 53. Uniform provisions concerning the approval of category L3 vehicles with regard to the installation of lighting and light-signalling devices",
+      "place_date": "Geneva, 1 February 1983"
+    },
+    {
+      "ref": "XI-B-16-54",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 54. Uniform provisions concerning the approval of pneumatic tyres for commercial vehicles and their trailers",
+      "place_date": "1 March 1983"
+    },
+    {
+      "ref": "XI-B-16-55",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 55. Uniform provisions concerning the approval of mechanical coupling components of combinations of vehicles",
+      "place_date": "1 March 1983"
+    },
+    {
+      "ref": "XI-B-16-56",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 56. Uniform provisions concerning the approval of headlamps for mopeds and vehicles treated as such",
+      "place_date": "15 June 1983"
+    },
+    {
+      "ref": "XI-B-16-57",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 57. Uniform provisions concerning the approval of headlamps for motor cycles and vehicles treated as such",
+      "place_date": "15 June 1983"
+    },
+    {
+      "ref": "XI-B-16-58",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 58. Uniform provisions concerning the approval of: I. Rear underrun protective devices (RUPDs); II. Vehicles with regard to the installation of an RUPD of an approved type; III. Vehicles with regard to their rear underrun protection (RUP)",
+      "place_date": "Geneva, 1 July 1983"
+    },
+    {
+      "ref": "XI-B-16-59",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 59. Uniform provisions concerning the approval of replacement silencing systems",
+      "place_date": "1 October 1983"
+    },
+    {
+      "ref": "XI-B-16-60",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 60. Uniform provisions concerning the approval of two-wheeled motor cycles and mopeds with regard to driver-operated controls including the identification of controls, tell-tales and indicators",
+      "place_date": "1 July 1984"
+    },
+    {
+      "ref": "XI-B-16-61",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 61. Uniform provisions concerning the approval of commercial vehicles with regard to their external projections forward of the cab's rear panel",
+      "place_date": "Geneva, 15 July 1984"
+    },
+    {
+      "ref": "XI-B-16-62",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 62. Uniform provisions concerning the approval of power-driven vehicles with handlebars with regard to their protection against unauthorized use",
+      "place_date": "1 September 1984"
+    },
+    {
+      "ref": "XI-B-16-63",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 63. Uniform provisions concerning the approval of L1 category vehicles with regard to sound emission",
+      "place_date": "15 August 1985"
+    },
+    {
+      "ref": "XI-B-16-64",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 64. Uniform provisions concerning the approval of vehicles with regard to their equipment which may include: a temporary use spare unit, run flat tyres and/or a run flat system and/or extended mobility tyres",
+      "place_date": "Geneva, 1 October 1985"
+    },
+    {
+      "ref": "XI-B-16-65",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 65. Uniform provisions concerning the approval of special warning lamps for power-driven vehicles and their trailers",
+      "place_date": "15 June 1986"
+    },
+    {
+      "ref": "XI-B-16-66",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 66. Uniform provisions concerning the approval of large passenger vehicles with regard to the strength of their superstructure",
+      "place_date": "Geneva, 2 December 1986"
+    },
+    {
+      "ref": "XI-B-16-67",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 67. Uniform provisions concerning the approval of: I. Specific equipment of motor vehicles using liquefied petroleum gases in their propulsion system; II. A vehicle fitted with specific equipment for the use of liquefied petroleum gases in its propulsion system with regard to the installation of such equipment",
+      "place_date": "Geneva, 1 June 1987"
+    },
+    {
+      "ref": "XI-B-16-68",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 68. Uniform provisions concerning the approval of power-driven vehicles including pure electric vehicles with regard to the measurement of the maximum speed",
+      "place_date": "1 May 1987"
+    },
+    {
+      "ref": "XI-B-16-69",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 69. Uniform provisions concerning the approval of rear marking plates for slow-moving vehicles (by construction) and their trailers",
+      "place_date": "15 May 1987"
+    },
+    {
+      "ref": "XI-B-16-70",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 70. Uniform provisions concerning the approval of rear marking plates for heavy and long vehicles",
+      "place_date": "15 May 1987"
+    },
+    {
+      "ref": "XI-B-16-71",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 71. Uniform provisions concerning the approval of agricultural tractors with regard to the driver's field of vision",
+      "place_date": "1 August 1987"
+    },
+    {
+      "ref": "XI-B-16-72",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 72. Uniform provisions concerning the approval of motor cycle headlamps emitting an asymmetrical passing beam and a driving beam and equipped with halogen lamps (HS1 lamps)",
+      "place_date": "Geneva, 15 February 1988"
+    },
+    {
+      "ref": "XI-B-16-73",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 73. Uniform provisions concerning the approval of: I. Vehicles with regard to their lateral protection devices (LPD); II. Lateral protection devices (LPD); III. Vehicles with regard to the installation of LPD of an approved type according to Part II of this Regulation",
+      "place_date": "1 January 1988"
+    },
+    {
+      "ref": "XI-B-16-74",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 74. Uniform provisions concerning the approval of category L1 vehicles with regard to the installation of lighting and light-signalling devices",
+      "place_date": "15 June 1988"
+    },
+    {
+      "ref": "XI-B-16-75",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 75. Uniform provisions concerning the approval of pneumatic tyres for L-category vehicles",
+      "place_date": "Geneva, 1 April 1988"
+    },
+    {
+      "ref": "XI-B-16-76",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 76. Uniform provisions concerning the approval of headlamps for mopeds emitting a driving beam and a passing beam",
+      "place_date": "Geneva, 1 July 1988"
+    },
+    {
+      "ref": "XI-B-16-77",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 77. Uniform provisions concerning the approval of parking lamps for power-driven vehicles",
+      "place_date": "30 September 1988"
+    },
+    {
+      "ref": "XI-B-16-78",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 78. Uniform provisions concerning the approval of vehicles of categories L1, L2, L3, L4 and L5 with regard to braking",
+      "place_date": "15 October 1988"
+    },
+    {
+      "ref": "XI-B-16-79",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 79. Uniform provisions concerning the approval of vehicles with regard to steering equipment",
+      "place_date": "1 December 1988"
+    },
+    {
+      "ref": "XI-B-16-80",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 80. Uniform provisions concerning the approval of seats of large passenger vehicles and of these vehicles with regard to the strength of the seats and their anchorages",
+      "place_date": "23 February 1989"
+    },
+    {
+      "ref": "XI-B-16-81",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 81. Uniform provisions concerning the approval of rear-view mirrors of two-wheeled power-driven vehicles with or without side car, with regard to the mounting of rear-view mirrors on handlebars",
+      "place_date": "1 March 1989"
+    },
+    {
+      "ref": "XI-B-16-82",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 82. Uniform provisions concerning the approval of moped headlamps equipped with filament halogen lamps (HS2)",
+      "place_date": "17 March 1989"
+    },
+    {
+      "ref": "XI-B-16-83",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 83. Uniform provisions concerning the approval of vehicles with regard to the emission of pollutants according to engine fuel requirements",
+      "place_date": "Geneva, 5 November 1989"
+    },
+    {
+      "ref": "XI-B-16-84",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 84. Uniform provisions concerning the approval of power-driven vehicles equipped with internal combustion engines with regard to the measurement of fuel consumption",
+      "place_date": "15 July 1990"
+    },
+    {
+      "ref": "XI-B-16-85",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 85. Uniform provisions concerning the approval of internal combustion engines or electric drive trains intended for the propulsion of motor vehicles of categories M and N with regard to the measurement of the net power and the maximum 30 minutes power of electric drive trains",
+      "place_date": "15 September 1990"
+    },
+    {
+      "ref": "XI-B-16-86",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 86. Uniform provisions concerning the approval of agricultural or forestry vehicles with regard to the installation of lighting and light-signalling devices",
+      "place_date": "1 August 1990"
+    },
+    {
+      "ref": "XI-B-16-87",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 87. Uniform provisions concerning the approval of daytime running lamps for power-driven vehicles",
+      "place_date": "Geneva, 1 November 1990"
+    },
+    {
+      "ref": "XI-B-16-88",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 88. Uniform provisions concerning the approval of retroreflective tyres for two-wheeled vehicles",
+      "place_date": "Geneva, 10 April 1991"
+    },
+    {
+      "ref": "XI-B-16-89",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 89. Uniform provisions concerning the approval of: I. Vehicles with regard to limitation of their maximum speed or their adjustable speed limitation unction; II. Vehicles with regard to the installation of a speed limiting device (SLD) or adjustable speed limitation device (ASLD) of an approved type; III. Speed limitation devices (SLD) and adjustable speed l",
+      "place_date": "1 October 1992"
+    },
+    {
+      "ref": "XI-B-16-90",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 90. Uniform provisions concerning the approval of replacement brake lining assemblies, drum-brake linings and discs and drums for power-driven vehicles and their trailers",
+      "place_date": "1 November 1992"
+    },
+    {
+      "ref": "XI-B-16-91",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 91. Uniform provisions concerning the approval of side-marker lamps for motor vehicles and their trailers",
+      "place_date": "15 October 1993"
+    },
+    {
+      "ref": "XI-B-16-92",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 92. Uniform provisions concerning the approval of non-original replacement exhaust silencing systems (NORESS) for vehicles of categories L1, L2, L3 L4 and L5 with regard to sound emission",
+      "place_date": "1 November 1993"
+    },
+    {
+      "ref": "XI-B-16-93",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 93. Uniform provisions concerning the approval of:I.Front underrun protective devices (FUPDs); II.Vehicles with regard to the installation of an FUPD of an approved type;III.Vehicles with regard to their front underrun protection (FUP)",
+      "place_date": "27 February 1994"
+    },
+    {
+      "ref": "XI-B-16-94",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 94. Uniform provisions concerning the approval of vehicles with regard to the protection of the occupants in the event of a frontal collision",
+      "place_date": "Geneva, 1 October 1995"
+    },
+    {
+      "ref": "XI-B-16-95",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 95. Uniform provisions concerning the approval of vehicles with regard to the protection of the occupants in the event of a lateral collision",
+      "place_date": "Geneva, 6 July 1995"
+    },
+    {
+      "ref": "XI-B-16-96",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 96. Uniform provisions concerning the approval of engines to be installed in agricultural and forestry tractors and in non-road mobile machinery with regard to the emissions of pollutants by the engine",
+      "place_date": "15 December 1995"
+    },
+    {
+      "ref": "XI-B-16-97",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 97. Uniform provisions concerning the approval of vehicle alarm systems (VAS) and of motor vehicles with regard to their alarm systems (AS)",
+      "place_date": "1 January 1996"
+    },
+    {
+      "ref": "XI-B-16-98",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 98. Uniform provisions concerning the approval of motor vehicle headlamps equipped with gas-discharge light sources",
+      "place_date": "Geneva, 15 April 1996"
+    },
+    {
+      "ref": "XI-B-16-99",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 99. Uniform provisions concerning the approval of gas-discharge light sources for use in approved lamps of power-driven vehicles",
+      "place_date": "Geneva, 15 April 1996"
+    },
+    {
+      "ref": "XI-B-16-100",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 100. Uniform provisions concerning the approval of vehicles with regard to specific requirements for the electric power train",
+      "place_date": "23 August 1996"
+    },
+    {
+      "ref": "XI-B-16-101",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 101. Uniform provisions concerning the approval of passenger cars powered by an internal combustion engine only, or powered by a hybrid electric power train with regard to the measurement of the emission of carbon dioxide and fuel consumption and/or the measurement of electric energy consumption and electric range, and of categories M1 and N1 vehicles powere",
+      "place_date": "1 January 1997"
+    },
+    {
+      "ref": "XI-B-16-102",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 102. Uniform provisions concerning the approval of:I.A close-coupling device (CCD);II.Vehicles with regard to the fitting of an approved type of CCD",
+      "place_date": "13 December 1996"
+    },
+    {
+      "ref": "XI-B-16-103",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 103. Uniform provisions concerning the approval of replacement pollution control devices for power-driven vehicles contents",
+      "place_date": "23 February 1997"
+    },
+    {
+      "ref": "XI-B-16-104",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 104. Uniform provisions concerning the approval of retro-reflective markings for vehicles of category M, N and O",
+      "place_date": "15 January 1998"
+    },
+    {
+      "ref": "XI-B-16-105",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 105. Uniform provisions concerning the approval of vehicles intended for the carriage of dangerous goods with regard to their specific constructional features",
+      "place_date": "7 May 1998"
+    },
+    {
+      "ref": "XI-B-16-106",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 106. Uniform provisions concerning the approval of pneumatic tyres for agricultural vehicles and their trailers",
+      "place_date": "Geneva, 7 May 1998"
+    },
+    {
+      "ref": "XI-B-16-107",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 107. Uniform provisions concerning the approval of category M2 or M3 vehicles with regard to their general construction",
+      "place_date": "Geneva, 18 June 1998"
+    },
+    {
+      "ref": "XI-B-16-108",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 108. Uniform provisions concerning the approval for the production of retreaded pneumatic tyres for motor vehicles and their trailers",
+      "place_date": "Geneva, 23 June 1998"
+    },
+    {
+      "ref": "XI-B-16-109",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 109. Uniform provisions concerning the approval for the production of retreaded pneumatic tyres for commercial vehicles and their trailers",
+      "place_date": "Geneva, 23 June 1998"
+    },
+    {
+      "ref": "XI-B-16-110",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 110. Uniform provisions concerning the approval of: I. Specific components of motor vehicles using compressed natural gas (CNG) and/or liquefied natural gas (LNG) in their propulsion system; II. Vehicles with regard to the installation of specific components of an approved type for the use of compressed natural gas (CNG) and/or liquefied natural gas (LNG) in",
+      "place_date": "Geneva, 28 December 2000"
+    },
+    {
+      "ref": "XI-B-16-111",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 111. Uniform provisions concerning the approval of tank vehicles of categories N and O with regard to rollover stability",
+      "place_date": "Geneva, 28 December 2000"
+    },
+    {
+      "ref": "XI-B-16-112",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 112. Uniform provisions concerning the approval of motor vehicle headlamps emitting an asymmetrical passing beam or a driving beam or both and equipped with filament lamps and/or LED modules",
+      "place_date": "Geneva, 21 September 2001"
+    },
+    {
+      "ref": "XI-B-16-113",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 113. Uniform provisions concerning the approval of motor vehicle headlamps emitting a symmetrical passing beam or a driving beam or both and equipped with filament lamps, gas-discharge light sources or LED modules",
+      "place_date": "Geneva, 21 September 2001"
+    },
+    {
+      "ref": "XI-B-16-114",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 114. Uniform provisions concerning the approval of: I. An airbag module for a replacement airbag system; II. A replacement steering wheel equipped with an airbag module of an approved type; III. A replacement airbag system other than that installed in a steering wheel",
+      "place_date": "Geneva, 1 February 2003"
+    },
+    {
+      "ref": "XI-B-16-115",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Regulation No. 115. Uniform provisions concerning the approval of: I. Specific LPG (Liquefied Petroleum Gases) retrofit systems to be installed in motor vehicles for the use of LPG in their propulsion systems; II. Specific CNG (Compressed Natural Gas) retrofit systems to be installed in motor vehicles for the use of CNG in their propulsion systems",
+      "place_date": "30 October 2003"
+    },
+    {
+      "ref": "XI-B-16-116",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 116. Uniform provisions concerning the protection of motor vehicles against unauthorized use",
+      "place_date": "Geneva, 6 April 2005"
+    },
+    {
+      "ref": "XI-B-16-117",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 117. Uniform provisions concerning the approval of tyres with regard to rolling sound emissions and/or to adhesion on wet surfaces and/or to rolling resistance",
+      "place_date": "Geneva, 6 April 2005"
+    },
+    {
+      "ref": "XI-B-16-118",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 118. Uniform technical prescriptions concerning the burning behaviour and/or the capability to repel fuel or lubricant of materials used in the construction of certain categories of motor vehicles",
+      "place_date": "Geneva, 6 April 2005"
+    },
+    {
+      "ref": "XI-B-16-119",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 119. Uniform provisions concerning the approval of cornering lamps for power-driven vehicles",
+      "place_date": "Geneva, 6 April 2005"
+    },
+    {
+      "ref": "XI-B-16-120",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 120. Uniform provisions concerning the approval of internal combustion engines to be installed in agricultural and forestry tractors and in non-road mobile machinery, with regard to the measurement of the net power, net torque and specific fuel consumption",
+      "place_date": "Geneva, 6 April 2005"
+    },
+    {
+      "ref": "XI-B-16-121",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 121. Uniform provisions concerning the approval of vehicles with regard to the location and identification of hand controls, tell-tales and indicators",
+      "place_date": "Geneva, 18 January 2006"
+    },
+    {
+      "ref": "XI-B-16-122",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 122. Uniform provisions concerning the approval of vehicles of categories M, N and O with regard to their heating systems",
+      "place_date": "Geneva, 18 January 2006"
+    },
+    {
+      "ref": "XI-B-16-123",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 123. Uniform provisions concerning the approval of adaptive front-lighting systems (AFS) for motor vehicles",
+      "place_date": "Geneva, 2 February 2007"
+    },
+    {
+      "ref": "XI-B-16-124",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 124. Uniform provisions concerning the approval of wheels for passenger cars and their trailers",
+      "place_date": "Geneva, 2 February 2007"
+    },
+    {
+      "ref": "XI-B-16-125",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 125. Uniform provisions concerning the approval of motor vehicles with regard to the forward field of vision of the driver",
+      "place_date": "Geneva, 9 November 2007"
+    },
+    {
+      "ref": "XI-B-16-126",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 126. Uniform provisions concerning the approval of partitioning systems to protect passengers against displaced luggage, supplied as non-original vehicle equipment",
+      "place_date": "Geneva, 9 November 2007"
+    },
+    {
+      "ref": "XI-B-16-127",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 127. Uniform provisions concerning the approval of motor vehicles with regard to their pedestrian safety performance",
+      "place_date": "Geneva, 17 November 2012"
+    },
+    {
+      "ref": "XI-B-16-128",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 128. Uniform provisions concerning the approval of Light Emitting Diode (LED) light sources for use in approved lamps on power-driven vehicles and their trailers",
+      "place_date": "Geneva, 17 November 2012"
+    },
+    {
+      "ref": "XI-B-16-129",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 129. Uniform provisions concerning the approval of enhanced Child Restraint Systems used on board of motor vehicles",
+      "place_date": "Geneva, 13 December 2012"
+    },
+    {
+      "ref": "XI-B-16-130",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 130. Uniform provisions concerning the approval of motor vehicles with regard to the Lane Departure Warning System",
+      "place_date": "Geneva, 13 December 2012"
+    },
+    {
+      "ref": "XI-B-16-131",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 131. Uniform provisions concerning the approval of motor vehicles with regard to the Advanced Emergency Braking Systems (AEBS) for M2, M3, N2 and N3 vehicles",
+      "place_date": "Geneva, 13 December 2012"
+    },
+    {
+      "ref": "XI-B-16-132",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 132. Uniform provisions concerning the approval of retrofit emission control devices (rec) for heavy duty vehicles, agricultural and forestry tractors and non-road mobile machinery equipped with compression ignition engines",
+      "place_date": "Geneva, 2 December 2013"
+    },
+    {
+      "ref": "XI-B-16-133",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 133. Uniform provisions concerning the approval of motor vehicles with regard to their reusability, recyclability and recoverability",
+      "place_date": "Geneva, 2 December 2013"
+    },
+    {
+      "ref": "XI-B-16-134",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 134. Uniform provisions concerning the approval of motor vehicles and their components with regard to the safety-related performance of hydrogen-fuelled vehicles",
+      "place_date": "Geneva, 5 December 2014"
+    },
+    {
+      "ref": "XI-B-16-135",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 135. Uniform provisions concerning the approval of vehicles with regard to their Pole Side Impact performance",
+      "place_date": "Geneva, 5 December 2014"
+    },
+    {
+      "ref": "XI-B-16-136",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 136. Uniform provisions concerning the approval of vehicles of category L with regard to specific requirements for the electric power train",
+      "place_date": "Geneva, 7 July 2015"
+    },
+    {
+      "ref": "XI-B-16-137",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 137. Uniform provisions concerning the approval of passenger cars in the event of a frontal collision with focus on the restraint system",
+      "place_date": "Geneva, 30 November 2015"
+    },
+    {
+      "ref": "XI-B-16-138",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 138. Uniform provisions concerning the approval of Quiet Road Transport Vehicles with regard to their reduced audibility",
+      "place_date": "Geneva, 29 March 2016"
+    },
+    {
+      "ref": "XI-B-16-139",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 139. Uniform provisions concerning the approval of passenger cars with regard to Brake Assist Systems (BAS)",
+      "place_date": "Geneva, 14 July 2016"
+    },
+    {
+      "ref": "XI-B-16-140",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 140. Uniform provisions concerning the approval of passenger cars with regard to Electronic Stability Control (ESC) systems",
+      "place_date": "Geneva, 14 July 2016"
+    },
+    {
+      "ref": "XI-B-16-141",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 141. Uniform provisions concerning the approval of vehicles with regard to their Tyre Pressure Monitoring Systems (TPMS)",
+      "place_date": "Geneva, 14 July 2016"
+    },
+    {
+      "ref": "XI-B-16-142",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 142. Uniform provisions concerning the approval of motor vehicles with regard to the installation of their tyres",
+      "place_date": "Geneva, 14 July 2016"
+    },
+    {
+      "ref": "XI-B-16-143",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 143. Uniform provisions concerning the approval of Heavy Duty Dual-Fuel Engine Retrofit Systems (HDDF-ERS) to be installed on heavy duty diesel engines and vehicles",
+      "place_date": "Geneva, 13 December 2016"
+    },
+    {
+      "ref": "XI-B-16-144",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 144. Uniform provisions concerning: Ia. Accident Emergency Call Components (AECC); Ib. Accident Emergency Call Devices(AECD) which are intended to be fitted to vehicles of categories M1 and N1; II. Vehicles with regard to their Accident Emergency Call Systems (AECS) when equipped with an AECD of an approved type; III. Vehicles with regard to their Accident E",
+      "place_date": "Geneva, 15 November 2017"
+    },
+    {
+      "ref": "XI-B-16-145",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 145. Uniform provisions concerning the approval of vehicles with regard to ISOFIX anchorage systems, ISOFIX top tether anchorages and i-Size seating positions",
+      "place_date": "Geneva, 15 November 2017"
+    },
+    {
+      "ref": "XI-B-16-146",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 146. Uniform provisions concerning the approval of motor vehicles and their components with regard to the safety-related performance of hydrogen-fuelled vehicles of categories L1, L2, L3, L4 and L5",
+      "place_date": "Geneva, 22 June 2018"
+    },
+    {
+      "ref": "XI-B-16-147",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 147. Uniform provisions concerning the approval of mechanical coupling components of combinations of agricultural vehicles",
+      "place_date": "Geneva, 22 June 2018"
+    },
+    {
+      "ref": "XI-B-16-148",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 148. Uniform provisions concerning the approval of light-signalling devices (lamps) for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 24 April 2019"
+    },
+    {
+      "ref": "XI-B-16-149",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 149. Uniform provisions concerning the approval of road illumination devices (lamps) and systems for power-driven vehicles",
+      "place_date": "Geneva, 24 April 2019"
+    },
+    {
+      "ref": "XI-B-16-150",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 150. Uniform provisions concerning the approval of retro-reflective devices and markings for power-driven vehicles and their trailers",
+      "place_date": "Geneva, 24 April 2019"
+    },
+    {
+      "ref": "XI-B-16-151",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 151. Uniform provisions concerning the approval of motor vehicles with regard to the Blind Spot Information System for the Detection of Bicycles",
+      "place_date": "Geneva, 24 April 2019"
+    },
+    {
+      "ref": "XI-B-16-152",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 152. Uniform provisions concerning the approval of motor vehicles with regard to the Advanced Emergency Braking System (AEBS) for M1 and N1 vehicles",
+      "place_date": "Geneva, 26 June 2019"
+    },
+    {
+      "ref": "XI-B-16-153",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 153. UN Regulation concerning the approval of vehicles with regard to fuel system integrity and safety of electric power train in the event of a rear-end collision",
+      "place_date": "Geneva, 24 June 2020"
+    },
+    {
+      "ref": "XI-B-16-154",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 154. Uniform provisions concerning the approval of light duty passenger and commercial vehicles with regards to criteria emissions, emissions of carbon dioxide and fuel consumption and/or the measurement of electric energy consumption and electric range (WLTP)",
+      "place_date": "Geneva, 24 June 2020"
+    },
+    {
+      "ref": "XI-B-16-155",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 155. UN Regulation on uniform provisions concerning the approval of vehicles with regard to cyber security and of their cybersecurity management systems",
+      "place_date": "Geneva, 24 June 2020"
+    },
+    {
+      "ref": "XI-B-16-156",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 156. UN Regulation on uniform provisions concerning the approval of vehicles with regards to software update and software updates management system",
+      "place_date": "Geneva, 24 June 2020"
+    },
+    {
+      "ref": "XI-B-16-157",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 157. Uniform provisions concerning the approval of vehicles with regard to Automated Lane Keeping Systems",
+      "place_date": "Geneva, 24 June 2020"
+    },
+    {
+      "ref": "XI-B-16-158",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 158. Uniform provisions concerning the approval of devices for reversing motion and motor vehicles with regard to the driver’s awareness of vulnerable road users behind vehicles",
+      "place_date": "Geneva, 12 November 2020"
+    },
+    {
+      "ref": "XI-B-16-159",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 159. Uniform provisions concerning the approval of motor vehicles with regard to the Moving Off Information System for the Detection of Pedestrians and Cyclists",
+      "place_date": "Geneva, 12 November 2020"
+    },
+    {
+      "ref": "XI-B-16-160",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 160. Uniform provisions concerning the approval of motor vehicles with regard to the Event Data Recorder",
+      "place_date": "Geneva, 10 March 2021"
+    },
+    {
+      "ref": "XI-B-16-161",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 161. Uniform provisions concerning the protection of motor vehicles against unauthorized use and the approval of the device against unauthorized use (by mean of a locking system)",
+      "place_date": "Geneva, 10 March 2021"
+    },
+    {
+      "ref": "XI-B-16-162",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 162. Uniform technical prescriptions concerning approval of immobilizers and approval of a vehicle with regard to its immobilizer",
+      "place_date": "Geneva, 10 March 2021"
+    },
+    {
+      "ref": "XI-B-16-163",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 163. Uniform provisions concerning the approval of vehicle alarm system and approval of a vehicle with regard to its vehicle alarm system",
+      "place_date": "Geneva, 10 March 2021"
+    },
+    {
+      "ref": "XI-B-16-164",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 164. Uniform provisions concerning the approval of studded tyres with regard to their snow performance",
+      "place_date": "Geneva, 11 March 2022"
+    },
+    {
+      "ref": "XI-B-16-165",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 165. Uniform provisions concerning the approval of audible reverse warning devices and of motor vehicles with regard to their audible reverse warning signals",
+      "place_date": "Geneva, 22 June 2022"
+    },
+    {
+      "ref": "XI-B-16-166",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 166. Uniform Provisions Concerning the Approval of Devices and Motor Vehicles with Regard to the Driver’s Awareness of Vulnerable Road Users in Close Proximity to the Front and Lateral Sides of Vehicles",
+      "place_date": "Geneva, 15 November 2022"
+    },
+    {
+      "ref": "XI-B-16-167",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 167. Uniform Provisions Concerning the Approval of Motor Vehicles with Regard to Their Direct Vision",
+      "place_date": "Geneva, 15 November 2022"
+    },
+    {
+      "ref": "XI-B-16-168",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 168. Uniform provisions concerning the approval of light duty passenger and commercial vehicles with regards to real driving emissions (RDE)",
+      "place_date": "Geneva, 21 June 2023"
+    },
+    {
+      "ref": "XI-B-16-169",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 169. Uniform Provisions Concerning the Approval of Event Data Recorders (EDR) for Heavy-Duty Vehicles",
+      "place_date": "Geneva, 15 November 2023"
+    },
+    {
+      "ref": "XI-B-16-170",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 170. Uniform Provisions Concerning the Approval of Child Restraint Systems for Safer Transport of Children in Buses and Coaches",
+      "place_date": "Geneva, 15 November 2023"
+    },
+    {
+      "ref": "XI-B-16-171",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 171. Uniform provisions concerning the approval of vehicles with regard to Driver Control Assistance Systems (DCAS)",
+      "place_date": "Geneva, 6 March 2024"
+    },
+    {
+      "ref": "XI-B-16-172",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 172. Uniform provisions concerning the approval of retreaded tyres with regard to their snow performance and/or classification as traction tyre",
+      "place_date": "Geneva, 28 June 2024"
+    },
+    {
+      "ref": "XI-B-16-173",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 173. Uniform provisions concerning the approval of: the Installation of safety-belts, restraint systems, child restraint systems, ISOFIX child restraint systems and i-Size child restraint systems",
+      "place_date": "Geneva, 13 November 2024"
+    },
+    {
+      "ref": "XI-B-16-174",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 174. Uniform Provisions Concerning the Approval of a Vehicle with regard to Safety-Belt Reminders",
+      "place_date": "Geneva, 13 November 2024"
+    },
+    {
+      "ref": "XI-B-16-175",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 175. Uniform provisions concerning the approval of motor vehicles with regard to the Acceleration Control for Pedal Error (ACPE)",
+      "place_date": "Geneva, 13 November 2024"
+    },
+    {
+      "ref": "XI-B-16-176",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 176. Uniform Prescriptions Concerning Approval of a Vehicle Type with regard to its Field of Vision Assistant Systems",
+      "place_date": "Geneva, 13 November 2024"
+    },
+    {
+      "ref": "XI-B-16-177",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulations No. 177. The determination of system power of hybrid electric vehicles and of pure electric vehicles having more than one electric machine for propulsion",
+      "place_date": "Geneva, 5 March 2025"
+    },
+    {
+      "ref": "XI-B-16-178",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 178. Uniform provisions concerning the approval of motor vehicles with regard to the Emergency Lane Keeping Systems (ELKS) for M1 and N1 vehicles",
+      "place_date": "Geneva, 27 June 2025"
+    },
+    {
+      "ref": "XI-B-17",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement on Special Equipment for the Transport of Perishable Foodstuffs and on the Use of such Equipment for the International Transport of some of those Foodstuffs",
+      "place_date": "Geneva, 15 January 1962"
+    },
+    {
+      "ref": "XI-B-18",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement concerning the Work of Crews of Vehicles Engaged in International Road Transport (AETR)",
+      "place_date": "Geneva, 19 January 1962"
+    },
+    {
+      "ref": "XI-B-19",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on Road Traffic",
+      "place_date": "Vienna, 8 November 1968"
+    },
+    {
+      "ref": "XI-B-20",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on Road Signs and Signals",
+      "place_date": "Vienna, 8 November 1968"
+    },
+    {
+      "ref": "XI-B-21",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement concerning the Work of Crews of Vehicles Engaged in International Road Transport (AETR)",
+      "place_date": "Geneva, 1 July 1970"
+    },
+    {
+      "ref": "XI-B-22",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement on the International Carriage of Perishable Foodstuffs and on the Special Equipment to be used for such Carriage (ATP)",
+      "place_date": "Geneva, 1 September 1970"
+    },
+    {
+      "ref": "XI-B-23",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement supplementing the Convention on road traffic opened for signature at Vienna on 8 November 1968",
+      "place_date": "Geneva, 1 May 1971"
+    },
+    {
+      "ref": "XI-B-24",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement supplementing the Convention on Road Signs and Signals",
+      "place_date": "Geneva, 1 May 1971"
+    },
+    {
+      "ref": "XI-B-25",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol on Road Markings, additional to the European Agreement supplementing the Convention on Road Signs and Signals",
+      "place_date": "Geneva, 1 March 1973"
+    },
+    {
+      "ref": "XI-B-26",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on the contract for the international carriage of passengers and luggage by road (CVR)",
+      "place_date": "Geneva, 1 March 1973"
+    },
+    {
+      "ref": "XI-B-26-a",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Protocol to the Convention on the contract for the international carriage of passengers and luggage by road (CVR)",
+      "place_date": "Geneva, 5 July 1978"
+    },
+    {
+      "ref": "XI-B-27",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement on minimum requirements for the issue and validity of driving permits (APC)",
+      "place_date": "Geneva, 1 April 1975"
+    },
+    {
+      "ref": "XI-B-28",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "European Agreement on main international traffic arteries (AGR)",
+      "place_date": "Geneva, 15 November 1975"
+    },
+    {
+      "ref": "XI-B-28-a",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Amendments to Article 9 of the European Agreement on main international traffic arteries (AGR)",
+      "place_date": "Geneva, 29 March 2007"
+    },
+    {
+      "ref": "XI-B-29",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Intergovernmental Agreement on the Establishment of an Inter-African Motor Vehicle Third Party Liability Insurance Card",
+      "place_date": "New York, 1 October 1978"
+    },
+    {
+      "ref": "XI-B-30",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Convention on Civil Liability for Damage caused during Carriage of Dangerous Goods by Road, Rail and Inland Navigation Vessels (CRTD)",
+      "place_date": "Geneva, 10 October 1989"
+    },
+    {
+      "ref": "XI-B-31",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement concerning the Adoption of Uniform Conditions for Periodical Technical Inspections of Wheeled Vehicles and the Reciprocal Recognition of such Inspections",
+      "place_date": "Vienna, 13 November 1997"
+    },
+    {
+      "ref": "XI-B-31-1",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Rule No. 1. Uniform Provisions for Periodical Technical Inspections of Wheeled Vehicles with regard to the Protection of the Environment",
+      "place_date": "Geneva, 14 December 2001"
+    },
+    {
+      "ref": "XI-B-31-2",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Rule No. 2. Uniform provisions for periodical technical inspections of wheeled vehicles with regard to their roadworthiness",
+      "place_date": "Geneva, 13 November 2009"
+    },
+    {
+      "ref": "XI-B-31-3",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Rule No. 3. Periodical Technical Inspections of motor vehicles using Compressed Natural Gas (CNG), Liquefied Petroleum Gas (LPG) and/or Liquefied Natural Gas (LNG) in their propulsion system",
+      "place_date": "Geneva, 14 November 2018"
+    },
+    {
+      "ref": "XI-B-31-4",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Rule No. 4. Uniform provisions for periodical technical inspections of motor vehicles equipped with electric or hybrid propulsion system(s) with regard their roadworthiness",
+      "place_date": "Geneva, 14 November 2018"
+    },
+    {
+      "ref": "XI-B-32",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement concerning the Establishing of Global Technical Regulations for Wheeled Vehicles, Equipment and Parts which can be fitted and/or be used on Wheeled Vehicles",
+      "place_date": "Geneva, 25 June 1998"
+    },
+    {
+      "ref": "XI-B-33",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Agreement on International Roads between Arab Countries",
+      "place_date": "Beirut, 10 May 2001"
+    },
+    {
+      "ref": "XI-B-34",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Intergovernmental Agreement on the Asian Highway Network",
+      "place_date": "Bangkok, 18 November 2003"
+    },
+    {
+      "ref": "XI-B-34-a",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "Amendments to the main text of the International Agreement on the Asian Highway Network",
+      "place_date": "Bangkok, 15 December 2017"
+    },
+    {
+      "ref": "XI-C-1",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "International Convention to facilitate the crossing of frontiers for passengers and baggage carried by rail",
+      "place_date": "Geneva, 10 January 1952"
+    },
+    {
+      "ref": "XI-C-2",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "International Convention to facilitate the crossing of frontiers for goods carried by rail",
+      "place_date": "Geneva, 10 January 1952"
+    },
+    {
+      "ref": "XI-C-3",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "European Agreement on Main International Railway Lines (AGC)",
+      "place_date": "Geneva, 31 May 1985"
+    },
+    {
+      "ref": "XI-C-3-a",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Amendments to the main text of the European Agreement on Main International Railway Lines (AGC)",
+      "place_date": "Geneva, 17 November 2023"
+    },
+    {
+      "ref": "XI-C-4",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Agreement on International Railways between Arab Countries",
+      "place_date": "Beirut, 14 April 2003"
+    },
+    {
+      "ref": "XI-C-5",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Intergovernmental Agreement on the Trans-Asian Railway Network (with annexes)",
+      "place_date": "Jakarta, 12 April 2006"
+    },
+    {
+      "ref": "XI-C-5-a",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Amendments to the main text of the Intergovernmental Agreement on the Trans-Asian Railway Network ",
+      "place_date": "Bangkok, 15 September 2023"
+    },
+    {
+      "ref": "XI-C-5-b",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Amendment to the Main Text of the Intergovernmental Agreement on the Trans-Asian Railway Network",
+      "place_date": "Bangkok, 12 September 2025"
+    },
+    {
+      "ref": "XI-C-6",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Convention on International Customs Transit Procedures for the Carriage of Goods by Rail under Cover of SMGS Consignment Notes",
+      "place_date": "Geneva, 9 February 2006"
+    },
+    {
+      "ref": "XI-C-7",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Convention on the Facilitation of Border Crossing Procedures for Passengers, Luggage and Load-luggage Carried in International Traffic by Rail",
+      "place_date": "Geneva, 22 February 2019"
+    },
+    {
+      "ref": "XI-C-8",
+      "chapter_int": 11,
+      "subchapter": "C",
+      "title": "Convention on the Contract for International Carriage of Goods by Rail",
+      "place_date": "Geneva, 17 November 2023"
+    },
+    {
+      "ref": "XI-D-1",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "Convention relating to the limitation of the liability of owners of inland navigation vessels (CLN)",
+      "place_date": "Geneva, 1 March 1973"
+    },
+    {
+      "ref": "XI-D-1-a",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "Protocol to the Convention relating to the Limitation of the Liability of Owners of Inland Navigation Vessels (CLN)",
+      "place_date": "Geneva, 5 July 1978"
+    },
+    {
+      "ref": "XI-D-2",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "Convention on the contract for the international carriage of passengers and luggage by inland waterway (CVN)",
+      "place_date": "Geneva, 6 February 1976"
+    },
+    {
+      "ref": "XI-D-2-a",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "Protocol to the Convention on the Contract for the International Carriage of Passengers and Luggage by Inland Waterway (CVN)",
+      "place_date": "Geneva, 5 July 1978"
+    },
+    {
+      "ref": "XI-D-3",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "United Nations Convention on the Carriage of Goods by Sea, 1978",
+      "place_date": "Hamburg, 31 March 1978"
+    },
+    {
+      "ref": "XI-D-4",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "International Convention on Maritime Liens and Mortgages, 1993",
+      "place_date": "Geneva, 6 May 1993"
+    },
+    {
+      "ref": "XI-D-5",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "European Agreement on Main Inland Waterways of International Importance (AGN)",
+      "place_date": "Geneva, 19 January 1996"
+    },
+    {
+      "ref": "XI-D-6",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "European Agreement concerning the International Carriage of Dangerous Goods by Inland Waterways (ADN)",
+      "place_date": "Geneva, 26 May 2000"
+    },
+    {
+      "ref": "XI-D-7",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "Memorandum of Understanding on Maritime Transport Cooperation between Arab Countries",
+      "place_date": "Damascus, 9 May 2005"
+    },
+    {
+      "ref": "XI-D-8",
+      "chapter_int": 11,
+      "subchapter": "D",
+      "title": "United Nations Convention on Contracts for the International Carriage of Goods Wholly or Partly by Sea",
+      "place_date": "New York, 11 December 2008"
+    },
+    {
+      "ref": "XI-E-1",
+      "chapter_int": 11,
+      "subchapter": "E",
+      "title": "United Nations Convention on International Multimodal Transport of Goods",
+      "place_date": "Geneva, 24 May 1980"
+    },
+    {
+      "ref": "XI-E-2",
+      "chapter_int": 11,
+      "subchapter": "E",
+      "title": "European Agreement on Important International Combined Transport Lines and Related Installations (AGTC)",
+      "place_date": "Geneva, 1 February 1991"
+    },
+    {
+      "ref": "XI-E-2-a",
+      "chapter_int": 11,
+      "subchapter": "E",
+      "title": "Protocol on Combined Transport on Inland Waterways to the European Agreement on Important International Combined Transport Lines and Related Installations (AGTC) of 1991",
+      "place_date": "Geneva, 17 January 1997"
+    },
+    {
+      "ref": "XI-E-3",
+      "chapter_int": 11,
+      "subchapter": "E",
+      "title": "Intergovernmental Agreement on Dry Ports",
+      "place_date": "Bangkok, 1 May 2013"
+    },
+    {
       "ref": "XII-1",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention on the International Maritime Organization",
       "place_date": "Geneva, 6 March 1948"
     },
     {
+      "ref": "XII-1-a",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to articles 17 and 18 of the Convention on the International Maritime Organization",
+      "place_date": "London, 15 September 1964"
+    },
+    {
+      "ref": "XII-1-b",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendment to article 28 of the Convention on the International Maritime Organization",
+      "place_date": "London, 28 September 1965"
+    },
+    {
+      "ref": "XII-1-c",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to articles 10, 16, 17, 18, 20, 28, 31 and 32 of the Convention on the International Maritime Organization",
+      "place_date": "London, 17 October 1974"
+    },
+    {
+      "ref": "XII-1-d",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to the title and substantive provisions of the Convention on the International Maritime Organization",
+      "place_date": "London, 14 November 1975 and 9 November 1977"
+    },
+    {
+      "ref": "XII-1-e",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to the Convention on the International Maritime Organization relating to the institutionalization of the Committee on Technical Co-operation in the Convention ",
+      "place_date": "London, 17 November 1977"
+    },
+    {
+      "ref": "XII-1-f",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to articles 17, 18, 20 and 51 of the Convention on the International Maritime Organization",
+      "place_date": "London, 15 November 1979"
+    },
+    {
+      "ref": "XII-1-g",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to the Convention on the International Maritime Organization (institutionalization of the Facilitation Committee)",
+      "place_date": "London, 7 November 1991"
+    },
+    {
+      "ref": "XII-1-h",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to the Convention on the International Maritime Organization",
+      "place_date": "London, 4 November 1993"
+    },
+    {
+      "ref": "XII-1-i",
+      "chapter_int": 12,
+      "subchapter": "",
+      "title": "Amendments to the Convention on the International Maritime Organization",
+      "place_date": "London, 8 December 2021"
+    },
+    {
       "ref": "XII-2",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention regarding the Measurement and Registration of Vessels Employed in Inland Navigation",
       "place_date": "Bangkok, 22 June 1956"
     },
     {
       "ref": "XII-3",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention relating to the unification of certain rules concerning collisions in inland navigation",
       "place_date": "Geneva, 15 March 1960"
     },
     {
       "ref": "XII-4",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention on the registration of inland navigation vessels",
       "place_date": "Geneva, 25 January 1965"
     },
     {
       "ref": "XII-5",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention on the measurement of inland navigation vessels",
       "place_date": "Geneva, 15 February 1966"
     },
     {
       "ref": "XII-6",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "Convention on a Code of Conduct for Liner Conferences",
       "place_date": "Geneva, 6 April 1974"
     },
     {
       "ref": "XII-7",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "United Nations Convention on Conditions for Registration of Ships",
       "place_date": "Geneva, 7 February 1986"
     },
     {
       "ref": "XII-8",
       "chapter_int": 12,
+      "subchapter": "",
       "title": "International Convention on Arrest of Ships, 1999",
       "place_date": "Geneva, 12 March 1999"
     },
     {
       "ref": "XIII-1",
       "chapter_int": 13,
+      "subchapter": "",
       "title": "Protocol amending the International Convention relating to Economic Statistics, signed at Geneva on 14 December 1928",
       "place_date": "Paris, 9 December 1948"
     },
     {
       "ref": "XIII-2",
       "chapter_int": 13,
+      "subchapter": "",
       "title": "International Convention relating to economic statistics, signed at Geneva on 14 December 1928, amended by the Protocol signed at Paris on 9 December 1948",
       "place_date": "Paris, 9 December 1948"
     },
     {
-      "ref": "XIII-3",
+      "ref": "XIII-3-a",
       "chapter_int": 13,
+      "subchapter": "",
       "title": "International Convention relating to Economic Statistics",
+      "place_date": "Geneva, 14 December 1928"
+    },
+    {
+      "ref": "XIII-3-b",
+      "chapter_int": 13,
+      "subchapter": "",
+      "title": "Protocol",
       "place_date": "Geneva, 14 December 1928"
     },
     {
       "ref": "XIV-1",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "Agreement for Facilitating the International Circulation of Visual and Auditory Materials of an Educational, Scientific and Cultural Character",
       "place_date": "Lake Success, New York, 15 July 1949"
     },
     {
       "ref": "XIV-2",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "Agreement on the Importation of Educational, Scientific and Cultural Materials",
       "place_date": "Lake Success, New York, 22 November 1950"
     },
     {
       "ref": "XIV-3",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "International Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations",
       "place_date": "Rome, 26 October 1961"
     },
     {
       "ref": "XIV-4",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "Convention for the Protection of Producers of Phonograms against Unauthorized Duplication of their Phonograms",
       "place_date": "Geneva, 29 October 1971"
     },
     {
       "ref": "XIV-5",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "Protocol to the Agreement on the Importation of Educational, Scientific and Cultural Materials of 22 November 1950",
       "place_date": "Nairobi, 26 November 1976"
     },
     {
       "ref": "XIV-6",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "International Agreement for the Establishment of the University for Peace",
       "place_date": "New York, 5 December 1980"
     },
     {
       "ref": "XIV-7",
       "chapter_int": 14,
+      "subchapter": "",
       "title": "Statutes of the International Centre for Genetic Engineering and Biotechnology",
       "place_date": "Madrid, 13 September 1983"
     },
     {
+      "ref": "XIV-7-a",
+      "chapter_int": 14,
+      "subchapter": "",
+      "title": "Protocol of the Reconvened Plenipotentiary Meeting on the Establishment of the International Centre for Genetic Engineering and Biotechnology",
+      "place_date": "Vienna, 4 April 1984"
+    },
+    {
+      "ref": "XIV-7-b",
+      "chapter_int": 14,
+      "subchapter": "",
+      "title": "Amendments to Articles 6 (6) and 7(1) of the Statutes of the International Centre for Genetic Engineering and Biotechnology",
+      "place_date": "Trieste, Italy, 3 December 1996"
+    },
+    {
+      "ref": "XIV-7-c",
+      "chapter_int": 14,
+      "subchapter": "",
+      "title": "Protocol to the Statutes of the International Centre for Genetic Engineering and Biotechnology on the Seat of the Centre",
+      "place_date": "Trieste, Italy, 24 October 2007"
+    },
+    {
       "ref": "XV-1",
       "chapter_int": 15,
+      "subchapter": "",
       "title": "Convention on the declaration of death of missing persons*",
       "place_date": "Lake Success, New York, 6 April 1950"
     },
     {
       "ref": "XV-2",
       "chapter_int": 15,
+      "subchapter": "",
       "title": "Protocol for extending the period of validity of the Convention on the Declaration of Death of Missing Persons",
       "place_date": "New York, 16 January 1957"
     },
     {
       "ref": "XV-3",
       "chapter_int": 15,
+      "subchapter": "",
       "title": "Protocol for the further extension of the period of validity of the Convention on the Declaration of Death of Missing Persons",
       "place_date": "New York, 15 January 1967"
     },
     {
       "ref": "XVI-1",
       "chapter_int": 16,
+      "subchapter": "",
       "title": "Convention on the Political Rights of Women",
       "place_date": "New York, 31 March 1953"
     },
     {
       "ref": "XVI-2",
       "chapter_int": 16,
+      "subchapter": "",
       "title": "Convention on the Nationality of Married Women",
       "place_date": "New York, 20 February 1957"
     },
     {
       "ref": "XVI-3",
       "chapter_int": 16,
+      "subchapter": "",
       "title": "Convention on Consent to Marriage, Minimum Age for Marriage and Registration of Marriages",
       "place_date": "New York, 10 December 1962"
     },
     {
       "ref": "XVII-1",
       "chapter_int": 17,
+      "subchapter": "",
       "title": "Convention on the International Right of Correction",
       "place_date": "New York, 31 March 1953"
     },
     {
       "ref": "XVIII-1",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Protocol amending the Slavery Convention signed at Geneva on 25 September 1926",
       "place_date": "New York, 7 December 1953"
     },
     {
       "ref": "XVIII-2",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Slavery Convention, signed at Geneva on 25 September 1926 and amended by the Protocol",
       "place_date": "New York, 7 December 1953"
     },
     {
       "ref": "XVIII-3",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Slavery Convention",
       "place_date": "Geneva, 25 September 1926"
     },
     {
       "ref": "XVIII-4",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Supplementary Convention on the Abolition of Slavery, the Slave Trade, and Institutions and Practices Similar to Slavery",
       "place_date": "Geneva, 7 September 1956"
     },
     {
       "ref": "XVIII-5",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "International Convention Against the Taking of Hostages",
       "place_date": "New York, 17 December 1979"
     },
     {
       "ref": "XVIII-6",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "International Convention Against the Recruitment, Use, Financing and Training of Mercenaries",
       "place_date": "New York, 4 December 1989"
     },
     {
       "ref": "XVIII-7",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Convention on the Prevention and Punishment of Crimes against Internationally Protected Persons, including Diplomatic Agents",
       "place_date": "New York, 14 December 1973"
     },
     {
       "ref": "XVIII-8",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Convention on the Safety of United Nations and Associated Personnel",
       "place_date": "New York, 9 December 1994"
     },
     {
+      "ref": "XVIII-8-a",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Optional Protocol to the Convention on the Safety of United Nations and Associated Personnel",
+      "place_date": "New York, 8 December 2005"
+    },
+    {
       "ref": "XVIII-9",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "International Convention for the Suppression of Terrorist Bombings",
       "place_date": "New York, 15 December 1997"
     },
     {
       "ref": "XVIII-10",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Rome Statute of the International Criminal Court",
       "place_date": "Rome, 17 July 1998"
     },
     {
+      "ref": "XVIII-10-a",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 8 of the Rome Statute of the International Criminal Court",
+      "place_date": "Kampala, 10 June 2010"
+    },
+    {
+      "ref": "XVIII-10-b",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendments on the crime of aggression to the Rome Statute of the International Criminal Court",
+      "place_date": "Kampala, 11 June 2010"
+    },
+    {
+      "ref": "XVIII-10-c",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 124 of the Rome Statute of the International Criminal Court",
+      "place_date": "The Hague, 26 November 2015"
+    },
+    {
+      "ref": "XVIII-10-d",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 8 of the Rome Statute of the International Criminal Court (Weapons which use microbial or other biological agents, or toxins)",
+      "place_date": "New York, 14 December 2017"
+    },
+    {
+      "ref": "XVIII-10-e",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 8 of the Rome Statute of the International Criminal Court (Weapons the primary effect of which is to injure by fragments undetectable by x-rays in the human body) ",
+      "place_date": "New York, 14 December 2017"
+    },
+    {
+      "ref": "XVIII-10-f",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 8 of the Rome Statute of the International Criminal Court (Blinding laser weapons)",
+      "place_date": "New York, 14 December 2017"
+    },
+    {
+      "ref": "XVIII-10-g",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Amendment to article 8, paragraph 2 (e), of the Rome Statute of the International Criminal Court (Intentionally using starvation of civilians)",
+      "place_date": "The Hague, 6 December 2019"
+    },
+    {
       "ref": "XVIII-11",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "International Convention for the Suppression of the Financing of Terrorism",
       "place_date": "New York, 9 December 1999"
     },
     {
       "ref": "XVIII-12",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "United Nations Convention against Transnational Organized Crime",
       "place_date": "New York, 15 November 2000"
     },
     {
+      "ref": "XVIII-12-a",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Protocol to Prevent, Suppress and Punish Trafficking in Persons, Especially Women and Children, supplementing the United Nations Convention against Transnational Organized Crime",
+      "place_date": "New York, 15 November 2000"
+    },
+    {
+      "ref": "XVIII-12-b",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Protocol against the Smuggling of Migrants by Land, Sea and Air, supplementing the United Nations Convention against Transnational Organized Crime",
+      "place_date": "New York, 15 November 2000"
+    },
+    {
+      "ref": "XVIII-12-c",
+      "chapter_int": 18,
+      "subchapter": "",
+      "title": "Protocol against the Illicit Manufacturing of and Trafficking in Firearms, Their Parts and Components and Ammunition, supplementing the United Nations Convention against Transnational Organized Crime",
+      "place_date": "New York, 31 May 2001"
+    },
+    {
       "ref": "XVIII-13",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "Agreement on the Privileges and Immunities of the International Criminal Court",
       "place_date": "New York, 9 September 2002"
     },
     {
       "ref": "XVIII-14",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "United Nations Convention against Corruption",
       "place_date": "New York, 31 October 2003"
     },
     {
       "ref": "XVIII-15",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "International Convention for the Suppression of Acts of Nuclear Terrorism",
       "place_date": "New York, 13 April 2005"
     },
     {
       "ref": "XVIII-16",
       "chapter_int": 18,
+      "subchapter": "",
       "title": "United Nations Convention against Cybercrime; Strengthening International Cooperation for Combating Certain Crimes Committed by Means of Information and Communications Technology Systems and for the Sharing of Evidence in Electro",
-      "place_date": "... New York, 24 December 2024"
+      "place_date": "New York, 24 December 2024"
     },
     {
       "ref": "XIX-1",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on Olive Oil, 1956*",
       "place_date": "Geneva, 17 October 1955, and New York, 15 November 1955"
     },
     {
       "ref": "XIX-2",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Protocol amending the International Agreement on Olive Oil, 1956*",
       "place_date": "Geneva, 31 March 1958 and 3 April 1958"
     },
     {
       "ref": "XIX-3",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on Olive Oil, 1956, as amended by the Protocol of 3 April 1958*",
       "place_date": "Geneva, 3 April 1958"
     },
     {
       "ref": "XIX-4",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement, 1962*",
       "place_date": "New York, 28 September 1962"
     },
     {
       "ref": "XIX-5",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement, 1968*",
       "place_date": "New York, 18 March 1968 and 31 March 1968"
     },
     {
+      "ref": "XIX-5-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Extension with modifications of the International Coffee Agreement, 1968, approved by the International Coffee Council in resolution No. 264 of 14 April 1973*",
+      "place_date": "14 April 1973"
+    },
+    {
+      "ref": "XIX-5-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1968, as extended with modifications by the International Coffee Council in Resolution No. 264 of 14 April 1973*",
+      "place_date": "14 April 1973"
+    },
+    {
+      "ref": "XIX-5-c",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Protocol for the continuation in force of the International Coffee Agreement, 1968, as extended*",
+      "place_date": "London, 26 September 1974"
+    },
+    {
+      "ref": "XIX-5-d",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1968, as extended by the Protocol of 26 September 1974*",
+      "place_date": "26 September 1975"
+    },
+    {
       "ref": "XIX-6",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1968*",
       "place_date": "New York, 3 December 1968 and 24 December 1968"
     },
     {
       "ref": "XIX-7",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the Asian Coconut Community",
       "place_date": "Bangkok, 12 December 1968"
     },
     {
       "ref": "XIX-8",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the International Pepper Community",
       "place_date": "Bangkok, 16 April 1971"
     },
     {
       "ref": "XIX-9",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 1972*",
       "place_date": "Geneva, 21 October 1972"
     },
     {
       "ref": "XIX-10",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1973*",
       "place_date": "Geneva, 13 October 1973"
     },
     {
+      "ref": "XIX-10-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Extension of the International Sugar Agreement, 1973*",
+      "place_date": "Geneva, 30 September 1975"
+    },
+    {
+      "ref": "XIX-10-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Sugar Agreement, 1973*",
+      "place_date": "Geneva, 30 September 1975"
+    },
+    {
+      "ref": "XIX-10-c",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Second extension of the International Sugar Agreement, 1973, as extended*",
+      "place_date": "Geneva, 18 June 1976"
+    },
+    {
+      "ref": "XIX-10-d",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Sugar Agreement, 1973*",
+      "place_date": "Geneva, 18 June 1976"
+    },
+    {
+      "ref": "XIX-10-e",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Third extension of the International Sugar Agreement, 1973, as further extended*",
+      "place_date": "Geneva, 31 August 1977"
+    },
+    {
       "ref": "XIX-11",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the Asian Rice Trade Fund",
       "place_date": "Bangkok, 16 March 1973"
     },
     {
       "ref": "XIX-13",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Fifth International Tin Agreement, 1975*",
       "place_date": "Geneva, 21 June 1975"
     },
     {
       "ref": "XIX-14",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 1975*",
       "place_date": "Geneva, 20 October 1975"
     },
     {
       "ref": "XIX-15",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement, 1976*",
       "place_date": "London, 3 December 1975"
     },
     {
+      "ref": "XIX-15-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Extension of the International Coffee Agreement, 1976*",
+      "place_date": "London, 25 September 1981"
+    },
+    {
+      "ref": "XIX-15-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1976, as extended*",
+      "place_date": "London, 25 September 1981"
+    },
+    {
       "ref": "XIX-16",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the International Tea Promotion Association",
       "place_date": "Geneva, 31 March 1977"
     },
     {
       "ref": "XIX-17",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the Southeast Asia Tin Research and Development Centre",
       "place_date": "Bangkok, 28 April 1977"
     },
     {
       "ref": "XIX-18",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1977*",
       "place_date": "Geneva, 7 October 1977"
     },
     {
+      "ref": "XIX-18-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Extension of the International Sugar Agreement, 1977*",
+      "place_date": "Washington, 20 November 1981, and Geneva, 21 May 1982"
+    },
+    {
       "ref": "XIX-19",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the International Tropical Timber Bureau*",
       "place_date": "Geneva, 9 November 1977"
     },
     {
       "ref": "XIX-20",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Natural Rubber Agreement, 1979*",
       "place_date": "Geneva, 6 October 1979"
     },
     {
       "ref": "XIX-21",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement Establishing The Common Fund For Commodities",
       "place_date": "Geneva, 27 June 1980"
     },
     {
       "ref": "XIX-22",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 1980*",
       "place_date": "Geneva, 19 November 1980"
     },
     {
       "ref": "XIX-23",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Sixth International Tin Agreement*",
       "place_date": "Geneva, 26 June 1981"
     },
     {
       "ref": "XIX-24",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on jute and jute products, 1982*",
       "place_date": "Geneva, 1 October 1982"
     },
     {
       "ref": "XIX-25",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement, 1983*",
       "place_date": "New York, 16 September 1982"
     },
     {
+      "ref": "XIX-25-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Extension of the International Coffee Agreement, 1983*",
+      "place_date": "London, 3 July 1989"
+    },
+    {
+      "ref": "XIX-25-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1983*",
+      "place_date": "London, 16 September 1982"
+    },
+    {
+      "ref": "XIX-25-c",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Second Extension of the International Coffee Agreement, 1983, as modified*",
+      "place_date": "London, 28 September 1990"
+    },
+    {
+      "ref": "XIX-25-d",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1983*",
+      "place_date": "London, 16 September 1982"
+    },
+    {
+      "ref": "XIX-25-e",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Third Extension of the International Coffee Agreement, 1983, as modified*",
+      "place_date": "London, 27 September 1991"
+    },
+    {
+      "ref": "XIX-25-f",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1983*",
+      "place_date": "London, 1 October 1992"
+    },
+    {
+      "ref": "XIX-25-g",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Fourth Extension of the International Coffee Agreement, 1983, as modified*",
+      "place_date": "London, 1 October 1993"
+    },
+    {
+      "ref": "XIX-25-h",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1983*",
+      "place_date": "London, 1 October 1993"
+    },
+    {
       "ref": "XIX-26",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Tropical Timber Agreement, 1983*",
       "place_date": "Geneva, 18 November 1983"
     },
     {
       "ref": "XIX-27",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1984*",
       "place_date": "Geneva, 5 July 1984"
     },
     {
-      "ref": "XIX-28",
+      "ref": "XIX-28-a",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Wheat Agreement, 1986: (a) Wheat Trade Convention, 1986*",
       "place_date": "London, 14 March 1986"
     },
     {
+      "ref": "XIX-28-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Wheat Agreement, 1986: (b) Food Aid Convention, 1986*",
+      "place_date": "London, 13 March 1986"
+    },
+    {
       "ref": "XIX-29",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Terms of Reference of the International Nickel Study Group*",
       "place_date": "Geneva, 2 May 1986"
     },
     {
       "ref": "XIX-30",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on olive oil and table olives, 1986*",
+      "place_date": "Geneva, 1 July 1986"
+    },
+    {
+      "ref": "XIX-30-a",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Protocol of 1993 extending the International Agreement on Olive Oil and Table Olives, 1986*",
+      "place_date": "Geneva, 10 March 1993"
+    },
+    {
+      "ref": "XIX-30-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Agreement on Olive Oil and Table Olives, 1986, as amended and extended, 1993*",
       "place_date": "Geneva, 1 July 1986"
     },
     {
       "ref": "XIX-31",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 1986*",
       "place_date": "Geneva, 25 July 1986"
     },
     {
       "ref": "XIX-32",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Natural Rubber Agreement, 1987*",
       "place_date": "Geneva, 20 March 1987"
     },
     {
       "ref": "XIX-33",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1987*",
       "place_date": "London, 11 September 1987"
     },
     {
       "ref": "XIX-34",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Terms of Reference of the International Tin Study Group",
       "place_date": "New York, 7 April 1989"
     },
     {
       "ref": "XIX-35",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Terms of Reference of the International Copper Study Group",
       "place_date": "Geneva, 24 February 1989"
     },
     {
       "ref": "XIX-36",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on Jute and Jute Products, 1989*",
       "place_date": "Geneva, 3 November 1989"
     },
     {
       "ref": "XIX-37",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Sugar Agreement, 1992",
       "place_date": "Geneva, 20 March 1992"
     },
     {
       "ref": "XIX-38",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 1993*",
       "place_date": "Geneva, 16 July 1993"
     },
     {
       "ref": "XIX-39",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Tropical Timber Agreement, 1994*",
       "place_date": "Geneva, 26 January 1994"
     },
     {
       "ref": "XIX-40",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement, 1994*",
       "place_date": "London, 30 March 1994"
     },
     {
-      "ref": "XIX-41",
+      "ref": "XIX-40-a",
       "chapter_int": 19,
+      "subchapter": "",
+      "title": "International Coffee Agreement, 1994, as extended until 30 September 2001, with modifications, by Resolution No. 384 adopted by the International Coffee Council in London on 21 July 1999*",
+      "place_date": "London, 30 March 1994"
+    },
+    {
+      "ref": "XIX-41-a",
+      "chapter_int": 19,
+      "subchapter": "",
       "title": "Grains Trade Convention, 1995",
       "place_date": "London, 7 December 1994"
     },
     {
+      "ref": "XIX-41-b",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Food Aid Convention, 1995*",
+      "place_date": "London, 5 December 1994"
+    },
+    {
+      "ref": "XIX-41-c",
+      "chapter_int": 19,
+      "subchapter": "",
+      "title": "Food Aid Convention, 1999",
+      "place_date": "London, 13 April 1999"
+    },
+    {
       "ref": "XIX-42",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Natural Rubber Agreement, 1994*",
       "place_date": "Geneva, 17 February 1995"
     },
     {
       "ref": "XIX-43",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Coffee Agreement 2001*",
       "place_date": "London, 28 September 2000"
     },
     {
       "ref": "XIX-44",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 2001",
       "place_date": "Geneva, 2 March 2001"
     },
     {
       "ref": "XIX-45",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Agreement establishing the Terms of Reference of the International Jute Study Group, 2001",
       "place_date": "Geneva, 13 March 2001"
     },
     {
       "ref": "XIX-46",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Tropical Timber Agreement, 2006",
       "place_date": "Geneva, 27 January 2006"
     },
     {
       "ref": "XIX-47",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Cocoa Agreement, 2010",
       "place_date": "Geneva, 25 June 2010"
     },
     {
       "ref": "XIX-48",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "Food Assistance Convention",
       "place_date": "London, 25 April 2012"
     },
     {
       "ref": "XIX-49",
       "chapter_int": 19,
+      "subchapter": "",
       "title": "International Agreement on Olive Oil and Table Olives, 2015",
       "place_date": "Geneva, 9 October 2015"
     },
     {
       "ref": "XX-1",
       "chapter_int": 20,
+      "subchapter": "",
       "title": "Convention on the Recovery Abroad of Maintenance",
       "place_date": "New York, 20 June 1956"
     },
     {
       "ref": "XXI-1",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Convention on the Territorial Sea and the Contiguous Zone",
       "place_date": "Geneva, 29 April 1958"
     },
     {
       "ref": "XXI-2",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Convention on the High Seas",
       "place_date": "Geneva, 29 April 1958"
     },
     {
       "ref": "XXI-3",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Convention on Fishing and Conservation of the Living Resources of the High Seas",
       "place_date": "Geneva, 29 April 1958"
     },
     {
       "ref": "XXI-4",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Convention on the Continental Shelf",
       "place_date": "Geneva, 29 April 1958"
     },
     {
       "ref": "XXI-5",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Optional Protocol of Signature concerning the Compulsory Settlement of Disputes",
       "place_date": "Geneva, 29 April 1958"
     },
     {
       "ref": "XXI-6",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "United Nations Convention on the Law of the Sea",
       "place_date": "Montego Bay, 10 December 1982"
     },
     {
+      "ref": "XXI-6-a",
+      "chapter_int": 21,
+      "subchapter": "",
+      "title": "Agreement relating to the implementation of Part XI of the United Nations Convention on the Law of the Sea of 10 December 1982",
+      "place_date": "New York, 28 July 1994"
+    },
+    {
       "ref": "XXI-7",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Agreement for the Implementation of the Provisions of the United Nations Convention on the Law of the Sea of 10 December 1982 relating to the Conservation and Management of Straddling Fish Stocks and Highly Migratory Fish Stocks",
       "place_date": "New York, 4 August 1995"
     },
     {
       "ref": "XXI-8",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Agreement on the Privileges and Immunities of the International Tribunal for the Law of the Sea",
       "place_date": "New York, 23 May 1997"
     },
     {
       "ref": "XXI-9",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Protocol on the Privileges and Immunities of the International Seabed Authority",
       "place_date": "Kingston, 27 March 1998"
     },
     {
       "ref": "XXI-10",
       "chapter_int": 21,
+      "subchapter": "",
       "title": "Agreement under the United Nations Convention on the Law of the Sea on the Conservation and Sustainable Use of Marine Biological Diversity of Areas beyond National Jurisdiction",
       "place_date": "New York, 19 June 2023"
     },
     {
       "ref": "XXII-1",
       "chapter_int": 22,
+      "subchapter": "",
       "title": "Convention on the Recognition and Enforcement of Foreign Arbitral Awards",
       "place_date": "New York, 10 June 1958"
     },
     {
       "ref": "XXII-2",
       "chapter_int": 22,
+      "subchapter": "",
       "title": "European Convention on International Commercial Arbitration",
       "place_date": "Geneva, 21 April 1961"
     },
     {
       "ref": "XXII-3",
       "chapter_int": 22,
+      "subchapter": "",
       "title": "United Nations Convention on Transparency in Treaty-based Investor-State Arbitration",
       "place_date": "New York, 10 December 2014"
     },
     {
       "ref": "XXII-4",
       "chapter_int": 22,
+      "subchapter": "",
       "title": "United Nations Convention on International Settlement Agreements Resulting from Mediation",
       "place_date": "New York, 20 December 2018"
     },
     {
       "ref": "XXIII-1",
       "chapter_int": 23,
+      "subchapter": "",
       "title": "Vienna Convention on the Law of Treaties",
       "place_date": "Vienna, 23 May 1969"
     },
     {
       "ref": "XXIII-2",
       "chapter_int": 23,
+      "subchapter": "",
       "title": "Vienna Convention on succession of States in respect of treaties",
       "place_date": "Vienna, 23 August 1978"
     },
     {
       "ref": "XXIII-3",
       "chapter_int": 23,
+      "subchapter": "",
       "title": "Vienna Convention on the Law of Treaties between States and International Organizations or between International Organizations",
       "place_date": "Vienna, 21 March 1986"
     },
     {
       "ref": "XXIV-1",
       "chapter_int": 24,
+      "subchapter": "",
       "title": "Convention on registration of objects launched into outer space",
       "place_date": "New York, 12 November 1974"
     },
     {
       "ref": "XXIV-2",
       "chapter_int": 24,
+      "subchapter": "",
       "title": "Agreement governing the Activities of States on the Moon and Other Celestial Bodies",
       "place_date": "New York, 5 December 1979"
     },
     {
       "ref": "XXV-1",
       "chapter_int": 25,
+      "subchapter": "",
       "title": "Convention relating to the distribution of programme-carrying signals transmitted by satellite",
       "place_date": "Brussels, 21 May 1974"
     },
     {
       "ref": "XXV-2",
       "chapter_int": 25,
+      "subchapter": "",
       "title": "Constitution of the Asia-Pacific Telecommunity",
       "place_date": "Bangkok, 27 March 1976"
     },
     {
+      "ref": "XXV-2-a",
+      "chapter_int": 25,
+      "subchapter": "",
+      "title": "Amendment to article 11, paragraph 2 (a), of the Constitution of the Asia-Pacific Telecommunity",
+      "place_date": "Bangkok, 13 November 1981"
+    },
+    {
+      "ref": "XXV-2-b",
+      "chapter_int": 25,
+      "subchapter": "",
+      "title": "Amendments to articles 3 (5) and 9 (8) of the Constitution of the Asia-Pacific Telecommunity",
+      "place_date": "Colombo, 29 November 1991"
+    },
+    {
+      "ref": "XXV-2-c",
+      "chapter_int": 25,
+      "subchapter": "",
+      "title": "Amendments to the Constitution of the Asia-Pacific Telecommunity",
+      "place_date": "New Delhi, 23 October 2002"
+    },
+    {
       "ref": "XXV-3",
       "chapter_int": 25,
+      "subchapter": "",
       "title": "Agreement establishing the Asia-Pacific Institute for Broadcasting Development",
       "place_date": "Kuala Lumpur, 12 August 1977"
     },
     {
+      "ref": "XXV-3-a",
+      "chapter_int": 25,
+      "subchapter": "",
+      "title": "Amendments to the Agreement establishing the Asia-Pacific Institute for Broadcasting Development",
+      "place_date": "Islamabad, 21 July 1999"
+    },
+    {
       "ref": "XXV-4",
       "chapter_int": 25,
+      "subchapter": "",
       "title": "Tampere Convention on the Provision of Telecommunication Resources for Disaster Mitigation and Relief Operations",
       "place_date": "Tampere, 18 June 1998"
     },
     {
       "ref": "XXVI-1",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Convention on the prohibition of military or any other hostile use of environmental modification techniques",
       "place_date": "New York, 10 December 1976"
     },
     {
       "ref": "XXVI-2",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects (with Protocols I, II and III)",
       "place_date": "Geneva, 10 October 1980"
     },
     {
+      "ref": "XXVI-2-a",
+      "chapter_int": 26,
+      "subchapter": "",
+      "title": "Additional Protocol to the Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects (Protocol IV, entitled Protocol on Blinding Laser Weapons)",
+      "place_date": "Vienna, 13 October 1995"
+    },
+    {
+      "ref": "XXVI-2-b",
+      "chapter_int": 26,
+      "subchapter": "",
+      "title": "Protocol on Prohibitions or Restrictions on the Use of Mines, Booby-Traps and Other Devices as amended on 3 May 1996 (Protocol II, as amended on 3 May 1996) annexed to the Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects",
+      "place_date": "Geneva, 3 May 1996"
+    },
+    {
+      "ref": "XXVI-2-c",
+      "chapter_int": 26,
+      "subchapter": "",
+      "title": "Amendment to Article I of the Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects",
+      "place_date": "Geneva, 21 December 2001"
+    },
+    {
+      "ref": "XXVI-2-d",
+      "chapter_int": 26,
+      "subchapter": "",
+      "title": "Protocol on Explosive Remnants of War to the Convention on Prohibitions or Restrictions on the Use of Certain Conventional Weapons which may be deemed to be Excessively Injurious or to have Indiscriminate Effects (Protocol V)",
+      "place_date": "Geneva, 28 November 2003"
+    },
+    {
       "ref": "XXVI-3",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Convention on the Prohibition of the Development, Production, Stockpiling and Use of Chemical Weapons and on their Destruction",
       "place_date": "Geneva, 3 September 1992"
     },
     {
       "ref": "XXVI-4",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Comprehensive Nuclear-Test-Ban Treaty",
       "place_date": "New York, 10 September 1996"
     },
     {
       "ref": "XXVI-5",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Convention on the Prohibition of the Use, Stockpiling, Production and Transfer of Anti-Personnel Mines and on their Destruction",
       "place_date": "Oslo, 18 September 1997"
     },
     {
       "ref": "XXVI-6",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Convention on Cluster Munitions",
       "place_date": "Dublin, 30 May 2008"
     },
     {
       "ref": "XXVI-7",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Central African Convention for the Control of Small Arms and Light Weapons, their Ammunition and all Parts and Components that can be used for their Manufacture, Repair and Assembly",
       "place_date": "Kinshasa, 30 April 2010"
     },
     {
       "ref": "XXVI-8",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Arms Trade Treaty",
       "place_date": "New York, 2 April 2013"
     },
     {
       "ref": "XXVI-9",
       "chapter_int": 26,
+      "subchapter": "",
       "title": "Treaty on the Prohibition of Nuclear Weapons",
       "place_date": "New York, 7 July 2017"
     },
     {
       "ref": "XXVII-1",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on long-range transboundary air pollution",
       "place_date": "Geneva, 13 November 1979"
     },
     {
+      "ref": "XXVII-1-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-range Transboundary Air Pollution on Long-term Financing of the Co-operative Programme for Monitoring and Evaluation of the Long-range Transmission of Air Pollutants in Europe (EMEP)",
+      "place_date": "Geneva, 28 September 1984"
+    },
+    {
+      "ref": "XXVII-1-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-Range Transboundary Air Pollution on the Reduction of Sulphur Emissions or their Transboundary Fluxes by at least 30 per cent",
+      "place_date": "Helsinki, 8 July 1985"
+    },
+    {
+      "ref": "XXVII-1-c",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on long-range transboundary air pollution concerning the control of emissions of nitrogen oxides or their transboundary fluxes",
+      "place_date": "Sofia, 31 October 1988"
+    },
+    {
+      "ref": "XXVII-1-d",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-Range Transboundary Air Pollution concerning the Control of Emissions of Volatile Organic Compounds or their Transboundary Fluxes",
+      "place_date": "Geneva, 18 November 1991"
+    },
+    {
+      "ref": "XXVII-1-e",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-Range Transboundary Air Pollution on Further Reduction of Sulphur Emissions",
+      "place_date": "Oslo, 14 June 1994"
+    },
+    {
+      "ref": "XXVII-1-f",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-Range Transboundary Air Pollution on Heavy Metals",
+      "place_date": "Aarhus, 24 June 1998"
+    },
+    {
+      "ref": "XXVII-1-g",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-Range Transboundary Air Pollution on Persistent Organic Pollutants",
+      "place_date": "Aarhus, 24 June 1998"
+    },
+    {
+      "ref": "XXVII-1-h",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol to the 1979 Convention on Long-range Transboundary Air Pollution to Abate Acidification, Eutrophication and Ground-level Ozone",
+      "place_date": "Gothenburg (Sweden), 30 November 1999"
+    },
+    {
+      "ref": "XXVII-1-i",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendments to the Text and to Annexes I, II, III, IV, VI and VIII to the 1998 Protocol on Persistent Organic Pollutants",
+      "place_date": "Geneva, 18 December 2009"
+    },
+    {
+      "ref": "XXVII-1-j",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendments to Annexes I and II to the 1998 Protocol on Persistent Organic Pollutants",
+      "place_date": "Geneva, 18 December 2009"
+    },
+    {
+      "ref": "XXVII-1-k",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment of the text and annexes II to IX to the Protocol to the 1979 Convention on Long-range Transboundary Air Pollution to Abate Acidification, Eutrophication and Ground-level Ozone and the addition of new annexes X and XI",
+      "place_date": "Geneva, 4 May 2012"
+    },
+    {
+      "ref": "XXVII-1-l",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendments to the Text of and Annexes Other than III and VII to the 1998 Protocol on Heavy Metals",
+      "place_date": "Geneva, 13 December 2012"
+    },
+    {
       "ref": "XXVII-2",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Vienna Convention for the Protection of the Ozone Layer",
       "place_date": "Vienna, 22 March 1985"
     },
     {
+      "ref": "XXVII-2-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Montreal Protocol on Substances that Deplete the Ozone Layer",
+      "place_date": "Montreal, 16 September 1987"
+    },
+    {
+      "ref": "XXVII-2-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Montreal Protocol on Substances that Deplete the Ozone Layer",
+      "place_date": "London, 29 June 1990"
+    },
+    {
+      "ref": "XXVII-2-c",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Montreal Protocol on Substances that Deplete the Ozone Layer",
+      "place_date": "Copenhagen, 25 November 1992"
+    },
+    {
+      "ref": "XXVII-2-d",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Montreal Protocol on Substances that Deplete the Ozone Layer adopted by the Ninth Meeting of the Parties",
+      "place_date": "Montreal, 17 September 1997"
+    },
+    {
+      "ref": "XXVII-2-e",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Montreal Protocol on Substances that Deplete the Ozone Layer",
+      "place_date": "Beijing, 3 December 1999"
+    },
+    {
+      "ref": "XXVII-2-f",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Montreal Protocol on Substances that Deplete the Ozone Layer",
+      "place_date": "Kigali, 15 October 2016"
+    },
+    {
       "ref": "XXVII-3",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Basel Convention on the Control of Transboundary Movements of Hazardous Wastes and their Disposal",
       "place_date": "Basel, 22 March 1989"
     },
     {
+      "ref": "XXVII-3-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Basel Convention on the Control of Transboundary Movements of Hazardous Wastes and their Disposal",
+      "place_date": "Geneva, 22 September 1995"
+    },
+    {
+      "ref": "XXVII-3-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Basel Protocol on Liability and Compensation for Damage Resulting from Transboundary Movements of Hazardous Wastes and their Disposal",
+      "place_date": "Basel, 10 December 1999"
+    },
+    {
       "ref": "XXVII-4",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on Environmental Impact Assessment in a Transboundary Context",
       "place_date": "Espoo, Finland, 25 February 1991"
     },
     {
+      "ref": "XXVII-4-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Convention on Environmental Impact Assessment in a Transboundary Context",
+      "place_date": "Sofia, 27 February 2001"
+    },
+    {
+      "ref": "XXVII-4-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol on Strategic Environmental Assessment to the Convention on Environmental Impact Assessment in a Transboundary Context",
+      "place_date": "Kiev, 21 May 2003"
+    },
+    {
+      "ref": "XXVII-4-c",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Convention on Environmental Impact Assessment in a Transboundary Context",
+      "place_date": "Cavtat, 4 June 2004"
+    },
+    {
       "ref": "XXVII-5",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on the Protection and Use of Transboundary Watercourses and International Lakes",
       "place_date": "Helsinki, 17 March 1992"
     },
     {
+      "ref": "XXVII-5-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol on Water and Health to the 1992 Convention on the Protection and Use of Transboundary Watercourses and International Lakes",
+      "place_date": "London, 17 June 1999"
+    },
+    {
+      "ref": "XXVII-5-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendments to Articles 25 and 26 of the Convention on the Protection and Use of Transboundary Watercourses and International Lakes",
+      "place_date": "Madrid, 28 November 2003"
+    },
+    {
       "ref": "XXVII-6",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on the Transboundary Effects of Industrial Accidents",
       "place_date": "Helsinki, 17 March 1992"
     },
     {
       "ref": "XXVII-7",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "United Nations Framework Convention on Climate Change",
       "place_date": "New York, 9 May 1992"
     },
     {
+      "ref": "XXVII-7-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Kyoto Protocol to the United Nations Framework Convention on Climate Change",
+      "place_date": "Kyoto, 11 December 1997"
+    },
+    {
+      "ref": "XXVII-7-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to Annex B of the Kyoto Protocol to the United Nations Framework Convention on Climate Change",
+      "place_date": "Nairobi, 17 November 2006"
+    },
+    {
+      "ref": "XXVII-7-c",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Doha Amendment to the Kyoto Protocol",
+      "place_date": "Doha, 8 December 2012"
+    },
+    {
+      "ref": "XXVII-7-d",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Paris Agreement",
+      "place_date": "Paris, 12 December 2015"
+    },
+    {
       "ref": "XXVII-8",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on Biological Diversity",
       "place_date": "Rio de Janeiro, 5 June 1992"
     },
     {
+      "ref": "XXVII-8-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Cartagena Protocol on Biosafety to the Convention on Biological Diversity",
+      "place_date": "Montreal, 29 January 2000"
+    },
+    {
+      "ref": "XXVII-8-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Nagoya Protocol on Access to Genetic Resources and the Fair and Equitable Sharing of Benefits Arising from their Utilization to the Convention on Biological Diversity",
+      "place_date": "Nagoya, 29 October 2010"
+    },
+    {
+      "ref": "XXVII-8-c",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Nagoya - Kuala Lumpur Supplementary Protocol on Liability and Redress to the Cartagena Protocol on Biosafety",
+      "place_date": "Nagoya, 15 October 2010"
+    },
+    {
       "ref": "XXVII-9",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Agreement on the Conservation of Small Cetaceans of the Baltic, North East Atlantic, Irish and North Seas",
       "place_date": "New York, 17 March 1992"
     },
     {
+      "ref": "XXVII-9-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Agreement on the Conservation of Small Cetaceans of the Baltic and North Seas",
+      "place_date": "Esbjerg, 22 August 2003"
+    },
+    {
       "ref": "XXVII-10",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "United Nations Convention to Combat Desertification in those Countries Experiencing Serious Drought and/or Desertification, Particularly in Africa",
       "place_date": "Paris, 14 October 1994"
     },
     {
       "ref": "XXVII-11",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Lusaka Agreement on Co-operative Enforcement Operations Directed at Illegal Trade in Wild Fauna and Flora",
       "place_date": "Lusaka, 8 September 1994"
     },
     {
       "ref": "XXVII-12",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on the Law of the Non-Navigational Uses of International Watercourses",
       "place_date": "New York, 21 May 1997"
     },
     {
       "ref": "XXVII-13",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Convention on Access to Information, Public Participation in Decision-Making and Access to Justice in Environmental Matters",
       "place_date": "Aarhus, Denmark, 25 June 1998"
     },
     {
+      "ref": "XXVII-13-a",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Protocol on Pollutant Release and Transfer Registers to the Convention on Access to Information, Public Participation in Decision-Making and Access to Justice in Environmental Matters",
+      "place_date": "Kiev, 21 May 2003"
+    },
+    {
+      "ref": "XXVII-13-b",
+      "chapter_int": 27,
+      "subchapter": "",
+      "title": "Amendment to the Convention on Access to Information, Public Participation in Decision-Making and Access to Justice in Environmental Matters",
+      "place_date": "Almaty, 27 May 2005"
+    },
+    {
       "ref": "XXVII-14",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Rotterdam Convention on the Prior Informed Consent Procedure for Certain Hazardous Chemicals and Pesticides in International Trade",
       "place_date": "Rotterdam, 10 September 1998"
     },
     {
       "ref": "XXVII-15",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Stockholm Convention on Persistent Organic Pollutants",
       "place_date": "Stockholm, 22 May 2001"
     },
     {
       "ref": "XXVII-16",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Protocol on Civil Liability and Compensation for Damage Caused by the Transboundary Effects of Industrial Accidents on Transboundary Waters to the 1992 Convention on the Protection and Use of Transboundary Watercourses and International Lakes and to the 1992 Convention on the Transboundary Effects of Industrial Accidents",
       "place_date": "Kiev, 21 May 2003"
     },
     {
       "ref": "XXVII-17",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Minamata Convention on Mercury",
       "place_date": "Kumamoto, 10 October 2013"
     },
     {
       "ref": "XXVII-18",
       "chapter_int": 27,
+      "subchapter": "",
       "title": "Regional Agreement on Access to Information, Public Participation and Justice in Environmental Matters in Latin America and the Caribbean",
       "place_date": "Escazú, 4 March 2018"
     },
     {
       "ref": "XXVIII-1",
       "chapter_int": 28,
+      "subchapter": "",
       "title": "Multilateral Convention for the Avoidance of Double Taxation of Copyright Royalties",
+      "place_date": "Madrid, 13 December 1979"
+    },
+    {
+      "ref": "XXVIII-1-a",
+      "chapter_int": 28,
+      "subchapter": "",
+      "title": "Additional Protocol to the Multilateral Convention for the Avoidance of Double Taxation of Copyright Royalties",
       "place_date": "Madrid, 13 December 1979"
     },
     {
       "ref": "XXIX-1",
       "chapter_int": 29,
+      "subchapter": "",
       "title": "Agreement on Succession Issues",
       "place_date": "Vienna, 29 June 2001"
     }
