@@ -76,8 +76,10 @@ Claude Desktop med Cowork aktivert.
    - **Innlogget** → gå videre. Fane-id-en er "sesjonshåndtaket" for resten
      av samtalen; gjenbruk samme fane til alt under.
 
-Du kan slå sammen navigering + paste + `isLoggedIn()`-sjekk i én
-`browser_batch`-kall for å spare tur-reprisetid.
+Du kan slå sammen navigering + paste + `isLoggedIn()`-sjekk i ett
+`browser_batch`-kall for å spare turer — men bare med `navigate`;
+`preview_start` kan ikke batches (en batch som starter med `navigate` åpner
+panelet selv).
 
 ---
 
@@ -101,14 +103,17 @@ aktuelle:
 - **`pinpoint`** — presisering som ble skilt ut av referansen («avsnitt 77»,
   «s. 1827», «punkt 3.4»). Bruk den som søkeord i `grep`/`section` etter at
   dokumentet er lastet, og ta den med i sitatet.
-- **`unverified: true`** + `note` — slug-regelen er utledet fra beslektede
-  dokumenttyper, men ikke bekreftet mot Pro (gjelder Meld. St., St.meld.,
-  Innst. O./S., St.prp. og tingrettsreferanser). Prøv kandidaten med
-  `load()` én gang; svarer den `not_found`, gå rett til **Steg 3 — søk**
-  i stedet for å gjette varianter.
 - **`search_hint`** — når `parsed:false`: søkestrengen som fungerer best i
   Pro, i Lovdatas egen referanseform (`Rt-2000-1811`, `RG-2010-100`), ikke
   prosasiteringen.
+- **`note`** — hvorfor referansen ikke kunne løses, og hvor dokumentet
+  faktisk ligger. Tre tilfeller er verdt å kjenne:
+  - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Søk på `search_hint`.
+  - **Meld. St. / St.meld.** — ligger i `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
+    (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-352`). Løpenummeret
+    kan ikke utledes av referansen; søk og verifiser tittelen på treffet.
+  - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro.
+    Si det til brukeren i stedet for å sitere fra andre kilder.
 
 Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
@@ -134,17 +139,32 @@ Returnerer `{path, title, metadata, totalChars, toc}` (eller en
 `path`, så alle videre kall (`section`, `grep`, `page`) på samme `path` er
 gratis (ingen ny nettforespørsel).
 
+To flagg i svaret styrer hva du kan gjøre videre:
+
+- **`metadataOnly: true`** (og `totalChars: 0`) — dokumentet finnes som
+  metadatapost, men uten brødtekst i Pro. Typisk St.prp., eldre NOU under
+  `PUBG`, og enkelte meldinger. **Ikke siter noe fra en slik post** — si til
+  brukeren at fulltekst ikke finnes i Lovdata Pro.
+- **`noHeadings: true`** (`toc` er tom) — dokumentet har ingen `h1`–`h6`.
+  Dette er vanlig for dommer: både HR-2016-2554-P og LG-2008-135938 har null
+  overskrifter. Da er `section()` ubrukelig; bruk `grep()` og `page()`.
+
 Velg videre strategi ut fra dokumenttype og størrelse:
 
-- **Dommer** (vanligvis ≤ noen hundre KB): bruk `section(path, i)` for det
-  aktuelle avsnittet/kapittelet, eller `page(path, 0)` én gang hvis hele
-  dokumentet er lite nok (`totalChars` under ~45 000 tegn — `PAGE_SIZE`,
-  satt fra spike 1s målte grense for hvor mye ett `javascript_tool`-svar
-  tåler).
-- **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): vis `toc` til
-  brukeren eller velg selv relevante kapitler ut fra tittel/spørsmål.
-  `grep(path, "søkeord")` finner riktig kapittel raskt; `section(path, i)`
-  henter det ut.
+- **Dommer** (vanligvis ≤ noen hundre KB): som regel ingen overskrifter, så
+  bruk `grep(path, "<stikkord eller avsnittsnummer>")` for å finne stedet og
+  `page(path, offset)` for å lese rundt det. Er hele dommen liten nok
+  (`totalChars` under ~45 000 tegn — `PAGE_SIZE`, satt fra den målte grensen
+  for hvor mye ett `javascript_tool`-svar tåler), hent den med `page(path, 0)`.
+  Partene og prosessfullmektigene står ikke i brødteksten — de ligger i
+  `metadata.Parter` (én linje per part).
+- **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
+  (NOU 2022:8 har 708 seksjoner). Vis `toc` til brukeren eller velg selv
+  relevante kapitler ut fra tittel/spørsmål. `grep(path, "søkeord")` finner
+  riktig kapittel raskt; `section(path, i)` henter det ut.
+  Lovdata bruker ikke `<ul>/<li>`: litra- og nummerpunkter kommer som
+  én-rads tabeller, og `toText()` gjengir dem som innrykkede linjer
+  («a. konsultere vedkommende folk …»), ikke som rørtabellrader.
 - **Dump-modus** — kun når brukeren ber om en full lokal kopi eller
   uttømmende gjennomgang: løkke over `page(path, offset)` til `next` er
   `null`, og skriv hver `text` til `outputs/<slug>.md` (bash `>>` mellom
@@ -174,31 +194,38 @@ står. Send `regex: true` som femte argument for et ekte regulært uttrykk.
 Brukes når `resolve` ga `parsed:false`, eller når et direkte slug-forsøk
 feiler med `not_found`.
 
-**Søket kan ikke gjøres med ett JS-kall.** Lovdata Pro-søket er en GWT-app;
-verken å sette `input.value` + dispatche syntetiske hendelser, eller å sende
-Enter (syntetisk eller ekte via `key`-verktøyet), trigger søkehandleren — kun
-et ekte museklikk på søkeknappen fungerer (bekreftet empirisk). Gjør derfor:
+**Vanlig vei — ett JS-kall:**
 
-1. Sørg for at fanen viser søkefeltet (`#quickSearchField-input`) — bruk en
-   **egen** fane hvis den parkerte hoved-fanens `window.__lp.cache` må
-   overleve.
-2. Skriv inn søketeksten med `computer {action:"type"}` (ikke ved å sette
-   `.value` fra JS).
-3. Finn søkeknappen (🔍-ikonet ved siden av feltet, via `find` eller
-   `read_page`) og klikk den med `computer {action:"left_click"}`. **Ikke**
-   trykk Enter — det gjør ingenting.
-4. Vent ~2 sekunder til resultatene rendres (hash endrer seg til noe sånt
-   som `#result&id=<n>&q=<query>`).
-5. Lim inn `lovdata_pro.js` i denne fanen hvis den ikke allerede er der, og
-   les ut treffene:
+```javascript
+await __lp.search("Rt-2000-1811", 10)
+```
+
+`search()` skriver spørringen inn i `#quickSearchField-input` og sender en
+syntetisk `keyup` med Enter, som er hendelsen GWT-søket faktisk lytter på
+(målt: `input` alene, syntetisk `keydown`, syntetisk `keypress` og et *ekte*
+Enter-tastetrykk gjør ingenting — `keyup` submitter). Deretter venter den på
+at hash-en blir `#result…` og returnerer `{query, hash, submitted, results}`.
+Hash-navigering laster ikke siden på nytt, så `window.__lp.cache` overlever
+et søk i samme fane.
+
+Merk at Pro skriver om spørringen: den settes til små bokstaver og får et
+trunkeringsjokertegn (`TOSL-2022` → `q=TOSL-2022*`). `submitted` viser hva
+feltet endte opp med. Ikke sammenlign `hash` med spørringen din.
+
+**Fallback — hvis `search()` svarer `search_timeout`:**
+
+1. Sørg for at fanen viser søkefeltet (`#quickSearchField-input`).
+2. Skriv inn søketeksten med `computer {action:"type"}`.
+3. Finn søkeknappen (🔍-ikonet ved siden av feltet) med `read_page` — den
+   dukker opp som `button "🔍"`. `computer {action:"screenshot"}` kan feile,
+   så ikke regn med skjermbilder her.
+4. Klikk knappen med `computer {action:"left_click"}`. Enter-tasten gjør
+   fortsatt ingenting.
+5. Vent ~2 sekunder og les ut treffene:
 
    ```javascript
    await __lp.readSearchResults(10)
    ```
-
-`readSearchResults()` tar ingen query — den leser bare
-`a[href^="#document/"]`-ankere som allerede er rendret i DOM-en, fra
-søket du nettopp utførte med klikket over.
 
 Samme advarsler som før:
 
@@ -260,9 +287,11 @@ mindre brukeren eksplisitt ber om en full lokal kopi.
 
 ### Brukeren oppgir en uvanlig referanse (Rt., RG, eldre Ot.prp.)
 
-For pre-2008 Rt.-dommer, RG-dommer og Ot.prp. fra før ~1968 finnes ingen
-deterministisk slug-regel. `lovdata_ref.py resolve` gir `parsed:false` for
-disse — gå til Steg 3 (søk) og **verifiser** treffet før du siterer.
+For pre-2008 Rt.-dommer, RG-dommer, stortingsmeldinger (Meld. St./St.meld.)
+og Ot.prp. fra før ~1968 finnes ingen deterministisk slug-regel.
+`lovdata_ref.py resolve` gir `parsed:false` for disse, med `search_hint` og en
+`note` om hvor dokumenttypen ligger — gå til Steg 3 (søk) og **verifiser**
+treffet før du siterer.
 
 **Pro-søk returnerer innholdstreff, ikke dokumenttreff** — se advarslene i
 Steg 3.
@@ -292,6 +321,11 @@ kaste. Kodene:
   (1985–1993 varierer), Innstillinger fra sesjon 1991/92. Eldre NOU-er kan
   dukke opp under `PUBG`-samlingen, men har ofte bare metadata.
   Ikke-lovrelaterte proposisjoner (St.prp. etc.) er aldri fulltekst-indeksert.
+- **`no_headings`** (fra `section()`) → dokumentet har ingen overskrifter.
+  Bruk `grep()` og `page()`.
+- **`no_search_field`** / **`search_timeout`** (fra `search()`) → fanen viser
+  ikke Hurtigsøk-feltet, eller søket kom ikke gjennom. Bruk fallback-flyten i
+  Steg 3.
 - **`cors`** → du kjørte JS i en fane som ikke er på `lovdata.no`. Sjekk at
   fanen faktisk viser en `lovdata.no/pro`-side (Steg 0).
 - **Siden er ikke godkjent / brukeren avslo tilgangsforespørselen** → fortell

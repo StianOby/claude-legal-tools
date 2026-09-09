@@ -68,11 +68,11 @@ workflow, driving the built-in browser) handles those.
 >>> r.candidates[0], r.pinpoint
 ('HRSIV/avgjorelse/hr-2016-2554-p', 'avsnitt 77')
 
->>> # Forms whose slug rule is inferred but not yet confirmed in Pro are
->>> # returned with unverified=True so the caller falls back to search.
->>> r = parse_reference("Meld. St. 17 (2020-2021)")
->>> r.candidates, r.unverified
-(['MELD/forarbeid/meldst-17-202021'], True)
+>>> parse_reference("Innst. O. nr. 45 (2004-2005)").candidates
+['INNST/forarbeid/inns-o-45-200405']
+
+>>> parse_reference("Dok. 8:12 (1999-2000)").candidates
+['REPFOR/forarbeid/dok8-12-199900']
 
 >>> # Forms needing runtime search come back as None ...
 >>> parse_reference("Rt. 2000 s. 1811") is None
@@ -81,6 +81,14 @@ True
 >>> # ... with a search hint in Lovdata's own reference form.
 >>> search_hint("Rt. 2000 s. 1811 (Finanger I) på s. 1827")
 'Rt-2000-1811'
+
+>>> # Stortingsmeldinger have a Lovdata-assigned sequence number in the
+>>> # slug (STS/forarbeid/stsg-202021-352), so they cannot be resolved
+>>> # offline either — explain() says where to look.
+>>> parse_reference("Meld. St. 17 (2020-2021)") is None
+True
+>>> explain("Meld. St. 17 (2020-2021)")["note"].startswith("stortingsmeldinger")
+True
 """
 
 from __future__ import annotations
@@ -126,8 +134,6 @@ class Reference:
     alt_collections: tuple = ()
     raw: str = ""
     pinpoint: str = ""
-    unverified: bool = False
-    note: str = ""
 
     @property
     def path(self):
@@ -224,16 +230,6 @@ def parse_reference(ref):
             return ref_("PROP", "forarbeid", f"otprp-{m.group(1)}-{sess}",
                         alt_collections=("OTPRP",))
 
-    # St.prp. nr. N (YYYY-YY) — never full-text indexed in Pro (header + PDF
-    # link only); the slug follows the Ot.prp. pattern but is unconfirmed.
-    m = re.match(r"St\.?\s*prp\.?\s*nr\.?\s*(\d+)\s*\(([^)]+)\)", s, re.I)
-    if m:
-        sess = _encode_session(m.group(2))
-        if sess:
-            return ref_("PROP", "forarbeid", f"stprp-{m.group(1)}-{sess}",
-                        unverified=True,
-                        note="St.prp. are not full-text indexed in Lovdata Pro (header + PDF only)")
-
     # Prop. N L|S|... (YYYY-YY)
     m = re.match(r"Prop\.?\s*(\d+)\s*([LSa-zA-Z]*)\s*\(([^)]+)\)", s, re.I)
     if m:
@@ -244,15 +240,14 @@ def parse_reference(ref):
             return ref_("PROP", "forarbeid", slug)
 
     # Innst. O. nr. N / Innst. S. nr. N (YYYY-YY) — pre-2009 committee
-    # recommendations. Slug inferred from the post-2009 "inns-N-l-YYYYYY"
-    # rule; not yet confirmed against Pro.
+    # recommendations. Same "inns-" rule as the post-2009 form, with the
+    # chamber letter in place of the document kind. Confirmed against Pro.
     m = re.match(r"Innst\.?\s*([OS])\.?\s*nr\.?\s*(\d+)\s*\(([^)]+)\)", s, re.I)
     if m:
         sess = _encode_session(m.group(3))
         if sess:
             return ref_("INNST", "forarbeid",
-                        f"inns-{m.group(1).lower()}-{m.group(2)}-{sess}",
-                        unverified=True)
+                        f"inns-{m.group(1).lower()}-{m.group(2)}-{sess}")
 
     # Innst. N L|S|... (YYYY-YY) - collection INNST, slug uses 'inns-'
     m = re.match(r"Innst\.?\s*(\d+)\s*([LSa-zA-Z]*)\s*\(([^)]+)\)", s, re.I)
@@ -263,20 +258,12 @@ def parse_reference(ref):
             slug = f"inns-{n}-{kind}-{sess}" if kind else f"inns-{n}-{sess}"
             return ref_("INNST", "forarbeid", slug)
 
-    # Meld. St. N (YYYY-YY) (from 2009) / St.meld. nr. N (YYYY-YY) (before).
-    # Collection and slug are inferred (mapping: "likely MELD"), unconfirmed.
-    m = re.match(r"Meld\.?\s*St\.?\s*(\d+)\s*\(([^)]+)\)", s, re.I)
-    if m:
-        sess = _encode_session(m.group(2))
-        if sess:
-            return ref_("MELD", "forarbeid", f"meldst-{m.group(1)}-{sess}", unverified=True)
-    m = re.match(r"St\.?\s*meld\.?\s*nr\.?\s*(\d+)\s*\(([^)]+)\)", s, re.I)
-    if m:
-        sess = _encode_session(m.group(2))
-        if sess:
-            return ref_("MELD", "forarbeid", f"stmeld-{m.group(1)}-{sess}", unverified=True)
+    # Meld. St. N / St.meld. nr. N and St.prp. nr. N are handled by
+    # search_hint(), not here: their slugs contain a Lovdata-assigned
+    # sequence number that cannot be derived from the citation (see below).
 
     # Dok. 8:N (YYYY-YY) — private members' bills; REPFOR/forarbeid/dok8-N-YYYYYY
+    # Confirmed against Pro.
     m = re.match(r"Dok(?:ument)?\.?\s*(?:nr\.?\s*)?8\s*:\s*(\d+)\s*([LS]?)\s*\(([^)]+)\)", s, re.I)
     if m:
         sess = _encode_session(m.group(3))
@@ -306,21 +293,25 @@ def explain(ref):
     if parsed:
         if parsed.pinpoint:
             out["pinpoint"] = parsed.pinpoint
-        if parsed.unverified:
-            out["unverified"] = True
-            out["note"] = parsed.note or (
-                "slug inferred from the pattern of related document types but "
-                "not confirmed in Lovdata Pro — if load() reports not_found, "
-                "fall back to search")
-        elif parsed.note:
-            out["note"] = parsed.note
     else:
-        _, pin = split_pinpoint(ref.strip())
+        s, pin = split_pinpoint(ref.strip())
         if pin:
             out["pinpoint"] = pin
         out["search_hint"] = search_hint(ref)
-        out["note"] = ("no deterministic slug for this citation form (Rt./RG/other); "
-                       "search Lovdata Pro for the search_hint and verify the hit")
+        if re.match(r"(Meld\.?\s*St\.?|St\.?\s*meld\.?)", s, re.I):
+            out["note"] = (
+                "stortingsmeldinger live in STS/forarbeid/stsg-<sesjon>-<løpenummer> "
+                "(e.g. Meld. St. 17 (2020-2021) is STS/forarbeid/stsg-202021-352). "
+                "The løpenummer is assigned by Lovdata and cannot be derived from the "
+                "citation — search for the search_hint and verify the hit's title")
+        elif re.match(r"St\.?\s*prp\.?", s, re.I):
+            out["note"] = (
+                "non-law propositions (St.prp.) are not full-text indexed in Lovdata Pro "
+                "— at most a header record with a PDF link, and a search may return "
+                "nothing at all. Say so rather than quoting from elsewhere")
+        else:
+            out["note"] = ("no deterministic slug for this citation form (Rt./RG/other); "
+                           "search Lovdata Pro for the search_hint and verify the hit")
     return out
 
 

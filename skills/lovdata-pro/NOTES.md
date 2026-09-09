@@ -43,18 +43,17 @@ Lovdata's site changes and they need re-checking.
    Playwright-era mapping notes predicted.
 
 4. **Submitting a search query.** Because of (3), the query has to be
-   submitted through the rendered SPA. Tried, in order: (a) setting
+   submitted through the rendered SPA. The original spike tried (a) setting
    `input.value` + dispatching synthetic `input`/`keydown` events, (b) a
-   synthetic `KeyboardEvent` Enter, (c) a **real** `computer` keyboard
-   Enter after typing. **None submit the search** — GWT doesn't wire its
-   handler to raw DOM events or Enter. Only a real `computer.left_click`
-   on the search button (the 🔍 icon next to the input) works; the hash
-   then updates (e.g. `#result&id=2780&q=Finanger*%20dissen*`) and results
-   render within ~2s. → `lovdata_pro.js` cannot own the search flow
-   end-to-end: it exposes `readSearchResults(n)`, which only parses
-   `a[href^="#document/"]` anchors already in the DOM and takes no query.
-   `SKILL.md`'s Steg 3 has the calling skill do the actual `computer.type`
-   + `computer.left_click` before calling it.
+   synthetic `KeyboardEvent` Enter, (c) a **real** `computer` keyboard Enter,
+   and concluded that only a real click on the 🔍 button submits.
+   **That conclusion was too broad — corrected 2026-09-09.** Isolating the
+   event types in a live session showed the GWT handler listens on `keyup`:
+   `input` alone no, synthetic `keydown` no, synthetic `keypress` no,
+   synthetic **`keyup` yes** (hash went to `#result&id=2378&q=TOSL-2023*`).
+   A real Enter keypress still does nothing; a real click still works.
+   → `lovdata_pro.js` now owns the flow with `search(query, n)`, and keeps
+   `readSearchResults(n)` for the type-and-click fallback.
 
 Full detail (including the discarded first pass at spike 1, which
 mistakenly measured `.length` of a string rather than the string itself)
@@ -116,9 +115,35 @@ how it was extracted — two separate questions, two different answers:
   })()
   ```
 
+## Verification round, 2026-09-09
+
+The whole skill was re-checked in a live Cowork session after a round of
+fixes. What that changed, beyond the search finding in (4) above:
+
+- **Tingrett references** carry a court prefix (`TOSLO-2019-108726-2`,
+  `TOSL-2022-105703`); the slug is the lower-cased reference and the
+  collection is `TRSIV`/`TRSTR`. The old `TR-YYYY-N` form in the docs was
+  never a real Lovdata reference.
+- **Stortingsmeldinger** are `STS/forarbeid/stsg-<sesjon>-<løpenummer>`, not
+  a `MELD` collection, and the løpenummer is not derivable — so the resolver
+  now sends them to search instead of guessing.
+- **`Innst. O./S.` and `Dok. 8:`** slugs were guesses that turned out right;
+  they are now confirmed.
+- **Judgments have no headings** (`toc.length === 0` for HR-2016-2554-P and
+  LG-2008-135938) and **no party lines in the body** — the parties live in
+  `metadata.Parter`, separated by `<br>`.
+- **Lovdata emits no list markup**: litra points are one-row
+  `table.listeItem` elements with `leftMargin_N` depth classes.
+- **Header-only records** (St.prp., older NOUs) load successfully with zero
+  body text, which is now flagged as `metadataOnly`.
+- The `javascript_tool` ceiling was re-measured: 49 000 characters passes,
+  50 000 fails. `PAGE_SIZE = 45000` stands.
+- `preview_start` cannot be used inside `browser_batch`; `navigate` can.
+  `computer.screenshot` failed with `UnknownVizError`, so `read_page` is the
+  way to locate the search button.
+
 ## Naming note
 
-The public JS function is `readSearchResults(n)`, not `search(query, n)` as
-an earlier draft had it — the rename reflects finding 4 above: the module
-never performs the search itself, so a `query` parameter would be
-misleading.
+`readSearchResults(n)` reads anchors already rendered in the DOM and takes no
+query; `search(query, n)` submits a query and then calls it. Both are public
+because the fallback flow submits the query with the computer tool.

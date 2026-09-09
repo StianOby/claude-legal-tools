@@ -188,6 +188,23 @@ if (!window.__lp) {
           return;
         }
         if (tag === 'table') {
+          // Lovdata does not use <ul>/<li> for legal sub-lists. Litra and
+          // numbered points are one-row tables, class "listeItem", with a
+          // leftMargin_N class carrying the depth (confirmed live 2026-09).
+          // Render those as indented "a. text" lines rather than pipe rows,
+          // so "annet ledd bokstav b" stays quotable and locatable.
+          const cls = String(node.className || '');
+          const isListItem = /\blisteItem\b/.test(cls) || !!node.querySelector('tr.listeItem, td.listeItem');
+          if (isListItem) {
+            const depthEl = /leftMargin_\d/.test(cls) ? node : node.querySelector('[class*="leftMargin_"]');
+            const dm = String((depthEl && depthEl.className) || '').match(/leftMargin_(\d+)/);
+            const indent = '  '.repeat(Math.max(0, (dm ? Number(dm[1]) : 1) - 1));
+            for (const tr of node.querySelectorAll('tr')) {
+              const cells = Array.from(tr.querySelectorAll('th, td')).map(inlineText).filter(Boolean);
+              if (cells.length) lines.push(indent + cells.join(' '));
+            }
+            return;
+          }
           for (const tr of node.querySelectorAll('tr')) {
             const cells = Array.from(tr.querySelectorAll('th, td')).map(inlineText);
             if (cells.some(c => c)) lines.push('| ' + cells.join(' | ') + ' |');
@@ -225,8 +242,11 @@ if (!window.__lp) {
         for (const tr of table.querySelectorAll('tr')) {
           const cells = Array.from(tr.querySelectorAll('th, td'));
           if (cells.length < 2) continue;
-          const key = cells[0].textContent.replace(/\s+/g, ' ').trim();
-          const val = cells[1].textContent.replace(/\s+/g, ' ').trim();
+          // inlineText, not textContent: the Parter row separates each party
+          // and its counsel with <br>, which textContent would run together
+          // ("(partshjelper).Møter etter tvl. § 30-13").
+          const key = inlineText(cells[0]).replace(/\s+/g, ' ').trim();
+          const val = inlineText(cells[1]);
           if (key && val) rows.push([key, val]);
         }
         if (rows.length >= 3 && rows.every(([k]) => k.length <= 40)) {
@@ -310,10 +330,7 @@ if (!window.__lp) {
     async function load(pathOrCandidates) {
       const candidates = Array.isArray(pathOrCandidates) ? pathOrCandidates : [pathOrCandidates];
       for (const c of candidates) {
-        if (cache[c]) {
-          const entry = cache[c];
-          return { path: c, title: entry.title, metadata: entry.metadata, totalChars: entry.fullText.length, toc: entry.toc };
-        }
+        if (cache[c]) return describe(c, cache[c]);
       }
       const result = await tryPaths(candidates);
       if (result.error) return result;
@@ -327,7 +344,35 @@ if (!window.__lp) {
       const fullText = toText(body);
 
       cache[path] = { doc, body, title, metadata, toc, fullText };
-      return { path, title, metadata, totalChars: fullText.length, toc };
+      return describe(path, cache[path]);
+    }
+
+    function describe(path, entry) {
+      const out = {
+        path,
+        title: entry.title,
+        metadata: entry.metadata,
+        totalChars: entry.fullText.length,
+        toc: entry.toc,
+      };
+      // Some Pro records are header-only (St.prp. and other non-law
+      // propositions, pre-1985 NOUs under PUBG, Meld. St. shells): the page
+      // loads, the title and metadata are real, but there is no body text.
+      // Without this flag the caller sees a successful load and has nothing
+      // to quote.
+      if (out.totalChars < 200) {
+        out.metadataOnly = true;
+        out.warning = 'no body text in Pro — this is a header/metadata-only record '
+          + '(typically a non-law proposition or an older document available as PDF only). '
+          + 'Do not quote from it; tell the user the full text is not in Lovdata Pro.';
+      }
+      // Judgments frequently have no <h1>-<h6> at all (HR-2016-2554-P and
+      // LG-2008-135938 have zero), so section() cannot be used on them.
+      if (!entry.toc.length && out.totalChars >= 200) {
+        out.noHeadings = true;
+        out.hint = 'this document has no headings — section() will not work; use grep() and page().';
+      }
+      return out;
     }
 
     function requireCached(path) {
@@ -339,6 +384,9 @@ if (!window.__lp) {
     async function section(path, iOrId) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
+      if (!entry.toc.length) {
+        return { error: 'no_headings', detail: `${path} has no h1-h6 headings (common for judgments) — use grep() and page() instead` };
+      }
       const idx = typeof iOrId === 'number'
         ? iOrId
         : entry.toc.findIndex(t => t.id === iOrId);
@@ -408,15 +456,59 @@ if (!window.__lp) {
       return { offset, next, total: text.length, text: slice };
     }
 
-    // There is no JSON/REST search endpoint (spike 3): Pro search is
-    // GWT-RPC with positional/binary-ish serialization, impractical to call
-    // directly. Submitting the query itself also can't be done from inside
-    // this module (spike 4): neither JS-dispatched input/keydown events nor
-    // a real Enter keypress reach Lovdata's GWT search handler — only an
-    // actual click on the search button works. So the SKILL.md workflow
-    // drives the search at the tool-call level (computer.type into the
-    // field, computer.left_click the button) and calls this function only
-    // afterwards, to read the rendered result anchors back out of the DOM.
+    // There is no JSON/REST search endpoint: Pro search is GWT-RPC with
+    // positional/obfuscated serialization, impractical to call directly.
+    // The query must therefore go through the rendered SPA — but it CAN be
+    // submitted from here: Lovdata's GWT handler listens for `keyup`.
+    // Measured live (2026-09): an `input` event alone does not submit, nor
+    // does a synthetic `keydown` or `keypress`, nor a real Enter keypress
+    // from the computer tool; a synthetic `keyup` with key Enter does.
+    // A real click on the 🔍 button also works and remains the fallback.
+    const SEARCH_INPUT = '#quickSearchField-input';
+
+    function setInputValue(input, value) {
+      // Assign through the native setter so frameworks that shadow `value`
+      // still see the change.
+      const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      if (desc && desc.set) desc.set.call(input, value); else input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    async function search(query, n = 10, { timeoutMs = 8000 } = {}) {
+      const input = document.querySelector(SEARCH_INPUT);
+      if (!input) {
+        return { error: 'no_search_field',
+                 detail: `no ${SEARCH_INPUT} in this tab — the Hurtigsøk field is on https://lovdata.no/pro/ (hash routing keeps window.__lp alive, a full navigation does not)` };
+      }
+      const before = location.hash;
+      input.focus();
+      setInputValue(input, query);
+      for (const type of ['keydown', 'keypress', 'keyup']) {
+        input.dispatchEvent(new KeyboardEvent(type, {
+          key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true,
+        }));
+      }
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 250));
+        if (location.hash !== before && /^#result/.test(location.hash)) {
+          await new Promise(r => setTimeout(r, 400)); // let the list render
+          const results = await readSearchResults(n);
+          if (results.length) {
+            // Pro rewrites what you typed: it lower-cases and appends a
+            // truncation wildcard, so hash `q=` never equals `query`.
+            return { query, hash: location.hash, submitted: input.value, results };
+          }
+        }
+      }
+      return {
+        error: 'search_timeout', query, hash: location.hash,
+        detail: `no results within ${timeoutMs} ms — fall back to the computer.type + click flow in SKILL.md Steg 3`,
+      };
+    }
+
+    // Reads the result anchors already rendered in the DOM. search() calls
+    // it; call it directly after submitting a query by hand (type + click).
     async function readSearchResults(n = 10) {
       const anchors = Array.from(document.querySelectorAll("a[href^='#document/']"));
       const seen = new Set();
@@ -442,10 +534,11 @@ if (!window.__lp) {
       section,
       grep,
       page,
+      search,
       readSearchResults,
       docUrl,
-      // exposed for unit testing / debugging only:
       PAGE_SIZE,
+      // exposed for unit testing / debugging only:
       _internal: { toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
     };
   })();

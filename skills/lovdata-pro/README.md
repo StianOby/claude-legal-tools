@@ -18,8 +18,9 @@ Claude Code CLI — there is no built-in browser tool surface there.
   court reform)
 - Fetch preparatory works: NOU, Prop. L, Ot.prp., Innst.
 - Navigate large documents by table of contents, section, or full-text grep
-  instead of dumping the whole thing
-- Run full-text Pro searches
+  instead of dumping the whole thing (judgments usually have no headings, so
+  grep and paging are the tools there)
+- Run full-text Pro searches from a single JS call
 - Write a full local copy to file on request (dump mode)
 
 For current statute and regulation text (gjeldende lov/forskrift), use the
@@ -80,9 +81,11 @@ fifth argument `true` for a real regular expression. `page` never returns
 more than `PAGE_SIZE` characters.
 
 ```javascript
-// Search: type the query and click the search button via the computer
-// tool (JS-dispatched events and Enter don't submit Lovdata's GWT search),
-// then read the rendered results back:
+// Search: one call. Lovdata's GWT search submits on a synthetic `keyup`,
+// which is what search() dispatches; if it times out, the fallback is to
+// type the query with the computer tool, click the 🔍 button, and read the
+// rendered results back with readSearchResults().
+await __lp.search("Rt-2000-1811", 10)
 await __lp.readSearchResults(10)
 ```
 
@@ -109,10 +112,12 @@ carry an abbreviation of the court itself (`TOSLO` Oslo, `TBERG` Bergen,
 the resolver accepts any `T<letters>-YYYY-N` form and maps it to the
 `TRSIV`/`TRSTR` collections.
 
-Pre-2008 Rt. decisions, RG decisions, and other irregular citations don't
-have a deterministic slug — `lovdata_ref.py resolve` returns `parsed: false`
-for these, and the skill falls back to search (typing the query and clicking
-the search button, then `__lp.readSearchResults()`).
+Pre-2008 Rt. decisions, RG decisions, stortingsmeldinger (whose slugs carry
+a Lovdata-assigned sequence number) and other irregular citations don't have
+a deterministic slug — `lovdata_ref.py resolve` returns `parsed: false` for
+these, together with a `search_hint` in Lovdata's own reference form and a
+note on where that document type lives, and the skill falls back to
+`__lp.search()`.
 
 ## Login and sessions
 

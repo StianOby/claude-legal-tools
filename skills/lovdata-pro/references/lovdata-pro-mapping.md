@@ -66,10 +66,12 @@ cites district courts as `TOSLO-2019-12345` (Oslo tingrett, pre-2021
 court reform), `TOSL-2022-123456` (post-reform), `TBERG-`, `TSTAV-`,
 `THOD-`, and so on — the letters after `T` abbreviate the court. The
 collection is `TRSIV`/`TRSTR` for all of them. `lovdata_ref.py` accepts
-any `T<letters>-YYYY-N` form (and the older bare `TR-YYYY-N`) and lower-cases
-the reference into the slug; **the slug half of this rule has not been
-confirmed against a live Pro session** — if `load()` returns `not_found`
-for a district-court reference, fall back to search.
+any `T<letters>-YYYY-N` form and lower-cases the reference into the slug,
+trailing `-1`/`-2` included.
+**Confirmed live (September 2026):** `TOSLO-2019-108726-2` →
+`TRSIV/avgjorelse/toslo-2019-108726-2`, `TOSL-2022-105703` →
+`TRSTR/avgjorelse/tosl-2022-105703`. As with the other court collections the
+SIV/STR split is by subject matter, and `tryPaths()` swaps automatically.
 
 **Forarbeider** (`forarbeid`):
 
@@ -79,20 +81,11 @@ for a district-court reference, fall back to search.
 | `Prop. N L/S/Stortingsm.`  | `PROP` | `forarbeid` | Slug: `prop-N-l-YYYYYY` (lowercase L, year as 6 digits) |
 | `NOU YYYY: N`              | `NOU` | `forarbeid` | Slug: `nou-YYYY-N` (a/b suffix when split into parts: `nou-2001-32a`, `-32b`) |
 | `Innst. N L (YYYY-YY)`     | **`INNST`** | `forarbeid` | Slug uses `inns-` (not `innst-`): `inns-521-l-202425` — note the collection/slug mismatch |
-| `Innst. O./S. nr. N (YYYY-YY)` | `INNST` *(inferred)* | `forarbeid` | Pre-2009 committee recommendations. `lovdata_ref.py` emits `inns-o-45-200405` by analogy with the post-2009 rule and marks it `unverified` — **not yet confirmed against Pro** |
-| `Meld. St. N (YYYY-YY)`    | `MELD` *(inferred)* | `forarbeid` | `lovdata_ref.py` emits `meldst-N-YYYYYY` (and `stmeld-N-YYYYYY` for the pre-2009 `St.meld. nr. N`), both marked `unverified` — **not yet confirmed against Pro** |
-| `St.prp. nr. N (YYYY-YY)`  | `PROP` *(inferred)* | `forarbeid` | Non-law propositions are header + PDF link only, never full-text indexed. Emitted as `stprp-N-YYYYYY`, `unverified` |
-| `Dok. 8:N`                 | `REPFOR` | `forarbeid` | e.g. `dok8-12-199900` |
+| `Innst. O./S. nr. N (YYYY-YY)` | `INNST` | `forarbeid` | Pre-2009 committee recommendations. Same `inns-` rule with the chamber letter: `inns-o-45-200405`, `inns-s-12-200405`. Confirmed live |
+| `Meld. St. N (YYYY-YY)` / `St.meld. nr. N` | **`STS`** | `forarbeid` | Slug `stsg-<sesjon>-<løpenummer>`: Meld. St. 17 (2020-2021) → `STS/forarbeid/stsg-202021-352`, St.meld. nr. 12 (2006-2007) → `STS/forarbeid/stsg-200607-255`. **The løpenummer is Lovdata-assigned and not derivable from the citation** — same class of problem as pre-2008 Rt. suffixes, so `lovdata_ref.py` returns `parsed:false` and a search hint. There is no `MELD` collection |
+| `St.prp. nr. N (YYYY-YY)`  | — | — | Non-law propositions are not full-text indexed. Four Hurtigsøk queries for St.prp. nr. 100 (1991-92) surfaced only EEA-annex directives, never the proposition. Treat as "not in Pro" |
+| `Dok. 8:N`                 | `REPFOR` | `forarbeid` | `dok8-12-199900`. Confirmed live |
 | `NOU YYYY:N` (pre-~1975)   | `PUBG` | `pubg-YYYYYY-nou-N` | Historical publications. E.g. NOU 1972:16 → `PUBG/pubg-197273-nou-16`. **Returns metadata only (~468 chars), not full text.** Year range encoded as 6 digits same as forarbeider. |
-
-### Unverified slug rules
-
-`lovdata_ref.py` marks the rows above tagged *(inferred)* with
-`"unverified": true` in its JSON output. Treat those candidates as a cheap
-first attempt: pass them to `__lp.load()`, and if the result is `not_found`,
-go straight to search (Steg 3) rather than trying variants. When a live
-session confirms or refutes one of them, update this table and remove the
-`unverified` flag from the corresponding branch in `lovdata_ref.py`.
 
 ### Year encoding rule (forarbeider)
 
@@ -196,25 +189,28 @@ Two layers:
    positional serialization with an obfuscated string table, not JSON. No
    separate JSON/REST search endpoint exists to call directly; hand-parsing
    or replicating this format is impractical.
-   - **Submitting the query requires a real click (spike 4, 2026-09-05).**
-     Tested three ways to submit a query typed into
-     `#quickSearchField-input`: (a) setting `input.value` + dispatching
-     synthetic `input`/`keydown` events, (b) a synthetic `KeyboardEvent`
-     Enter, (c) a *real* `computer` keyboard Enter after typing. **None of
-     these trigger Lovdata's GWT search handler** — `location.hash` and the
-     result anchors stay unchanged in all three cases. Only an actual
-     `computer.left_click` on the search button (the 🔍 icon next to the
-     input, found via `find`/`read_page`) submits the query. After that
-     click, the hash updates (e.g. `#result&id=2780&q=Finanger*%20dissen*`)
-     and results render within ~2 s.
-   - Because of this, `lovdata_pro.js` cannot own the whole search flow —
-     the SKILL.md workflow types the query (`computer.type`) and clicks the
-     search button (`computer.left_click`) at the tool-call level, in
-     whichever tab currently has the search UI open (a second tab if the
-     main parked tab's `window.__lp.cache` needs to survive). Only *after*
-     that click does it call `__lp.readSearchResults(n)`, which just reads
-     `a[href^="#document/"]` anchors already rendered in the DOM — it takes
-     no query parameter and performs no action of its own.
+   - **The query is submitted by a `keyup` event (re-measured 2026-09-09).**
+     Event-by-event isolation in a live session: an `input` event alone does
+     **not** submit; a synthetic `keydown` does **not**; a synthetic
+     `keypress` does **not**; a synthetic **`keyup`** with key Enter **does**
+     (the hash went to `#result&id=2378&q=TOSL-2023*`). A *real* Enter
+     keypress from the `computer` tool, with focus verified in the field,
+     does **not** submit. A real click on the 🔍 button does.
+     This corrects the earlier spike-4 conclusion ("only a real click
+     works"), which had tested `input`/`keydown` but not `keyup`.
+   - `__lp.search(query, n)` therefore does the whole thing in one JS call:
+     set the value through the native setter, dispatch
+     `keydown`/`keypress`/`keyup`, wait for the hash to become `#result…`,
+     then read the anchors. Hash routing does not reload the page, so
+     `window.__lp.cache` survives a search in the same tab.
+   - `__lp.readSearchResults(n)` remains available for the fallback flow
+     (`computer.type` + `computer.left_click` on the 🔍 button, located with
+     `read_page` — `computer.screenshot` has been seen to fail with
+     `UnknownVizError`). It reads `a[href^="#document/"]` anchors already in
+     the DOM and takes no query.
+   - **Pro rewrites the query**: it lower-cases the input and appends a
+     truncation wildcard, so `TOSL-2022` is submitted as `tosl-2022*` and the
+     hash reads `q=TOSL-2022*`. Never assert that the hash matches the query.
    - Each href has the form `#document/<COLLECTION>/<TYPE>/<SLUG>?searchResultContext=...&rowNumber=...&totalHits=...`
    - The first match is usually correct for direct-citation queries; for
      ambiguous queries `__lp.readSearchResults()` returns the top N and lets
@@ -264,7 +260,13 @@ break `sectionRange()`'s heading-to-heading walk) and:
 - Strips `.documentButtonsBar` toolbars (per-chapter share/note icons) before
   extraction, via `stripNoise()`.
 - Maps `<h1>`–`<h6>` to markdown-style `#`/`##`/… heading lines.
-- Maps `<p>`/`<li>` to plain lines.
+- Maps `<p>` to plain lines. **Lovdata emits no `<ul>`/`<ol>`/`<li>` at all**
+  (NOU 2022:8 contains zero): litra and numbered points are one-row
+  `<table class="listeItem">` elements whose depth is carried by a
+  `leftMargin_N` class. `toText()` detects those and renders them as
+  indented `a. text` lines rather than pipe rows, so a litra can be quoted
+  and located. The `<li>` branch is kept for other markup but is currently
+  dead on Pro documents.
 - Preserves `<table>` as pipe rows (Pro uses real HTML tables for metadata
   blocks, and occasionally in body text).
 - Within headings/`<p>`/`<li>`/table cells, `inlineText()` (not raw
@@ -284,7 +286,10 @@ under `#documentMeta` (falling back to `#documentBody` if that ID isn't
 present for a given document type). `extractMetadata()` in `lovdata_pro.js`
 picks the one table among possibly several whose rows look like genuine
 key/value pairs (≥3 rows, keys ≤40 chars) and extracts it into a JSON payload
-kept separate from the body text.
+kept separate from the body text. It reads the cells with `inlineText()`, not
+`textContent`, because the `Parter` row separates each party and its counsel
+with `<br>` — the parties are **not** in the body text of a judgment, so this
+table is the only place they appear.
 
 ---
 
@@ -306,3 +311,12 @@ kept separate from the body text.
   `/*` appended.
 - **Status 404 + `Lovdata - feilmelding`** — straightforward: the slug is
   wrong. Fall back to Pro search.
+- **A real page with a title and metadata but no body text** — header-only
+  records (St.prp. and other non-law propositions, pre-1985 NOUs under
+  `PUBG`, some meldinger). `load()` succeeds; the giveaway is
+  `totalChars: 0`, which it now reports as `metadataOnly: true` with a
+  warning. Nothing can be quoted from these.
+- **A judgment with no headings at all** — HR-2016-2554-P and LG-2008-135938
+  have zero `h1`–`h6`, so `toc` is empty and `section()` returns
+  `no_headings`. Use `grep()`/`page()`. Some tingrett decisions do have
+  headings, so this varies by document.
