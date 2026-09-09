@@ -392,17 +392,28 @@ def get_law_text(xml_path: str | Path, paragraph: str | None = None) -> str:
     """
     Hent tekst fra en dokumentfil (XHTML, til tross for .xml-endelsen).
     Hvis paragraph er oppgitt (f.eks. '4-6' eller '§4-6'), hentes bare den paragrafen;
-    'kap4' / 'kapittel 4' henter hele kapittelet.
+    'kap4' / 'kapittel 4' henter hele kapittelet. Et vedleggs- eller
+    seksjonsnavn virker også ('emkn' = EMK på norsk i menneskerettsloven).
     """
     with open(xml_path, encoding="utf-8") as f:
         content = f.read()
 
-    chap = _CHAPTER_RE.match(paragraph.strip()) if paragraph else None
+    para = paragraph.strip() if paragraph else None
+    chap = _CHAPTER_RE.match(para) if para else None
+    # Navngitt seksjon: kapitler heter kap4, men vedlegg og konvensjoner har
+    # egne navn (menneskerettsloven: emkn, spn, bkn, kdkn, crpdn, oskn ...).
+    sec_name = None
     if chap:
-        name = "kap" + chap.group(1)
-        m = re.search(rf'<section[^>]*data-name="{re.escape(name)}"', content, flags=re.I)
+        sec_name = "kap" + chap.group(1)
+    elif para and re.fullmatch(r"[A-Za-zæøåÆØÅ][\w./-]*", para):
+        sec_name = para
+    if sec_name:
+        m = re.search(rf'<section[^>]*data-name="{re.escape(sec_name)}"', content, flags=re.I)
         if not m:
-            return f"Kapittel {chap.group(1)} ble ikke funnet i dette dokumentet."
+            names = sorted(set(re.findall(r'<section[^>]*data-name="([^"/]+)"', content)))
+            what = f"Kapittel {chap.group(1)}" if chap else f"Seksjonen {para!r}"
+            listing = (" Tilgjengelige seksjoner: " + ", ".join(names)) if names else ""
+            return f"{what} ble ikke funnet i dette dokumentet.{listing}"
         chunk = content[m.start():_element_end(content, m.start(), "section")]
     elif paragraph:
         # Normalize: ensure it starts with §

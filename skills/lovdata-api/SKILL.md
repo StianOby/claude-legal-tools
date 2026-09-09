@@ -104,7 +104,7 @@ Returnerer ren tekst av paragrafen med alle ledd, inkl. endringshistorikk.
 Listepunkter beholder markøren (`a.`, `b.`, `1.`), slik at «annet ledd
 bokstav b» kan siteres presist.
 
-### Hent et kapittel
+### Hent et kapittel eller et vedlegg
 
 ```bash
 python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
@@ -112,6 +112,26 @@ python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
 
 Foretrekk kapittel fremfor hele loven når spørsmålet gjelder et tema
 (f.eks. arbeidstid = aml. kapittel 10).
+
+Navngitte seksjoner virker på samme måte. Det er nyttig for
+**menneskerettsloven** (`NL/lov/1999-05-21-30`), som har seks konvensjoner
+som vedlegg i fulltekst — de samme konvensjonene traktatregisteret
+(`norges-traktater`) ikke har tekst for:
+
+| Konvensjon | Norsk | Engelsk |
+|------------|-------|---------|
+| EMK med protokoller | `emkn` | `emke` |
+| SP | `spn` | `spe` |
+| ØSK | `oskn` | `oske` |
+| Barnekonvensjonen | `bkn` | `bke` |
+| Kvinnekonvensjonen | `kdkn` | `kdke` |
+| CRPD | `crpdn` | `crpde` |
+
+```bash
+python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn"
+```
+
+Oppgir du et ukjent seksjonsnavn, lister scriptet de gyldige.
 
 ### Hent full lovtekst
 
