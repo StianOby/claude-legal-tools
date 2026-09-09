@@ -225,8 +225,11 @@ if [[ $NBNO_STATUS -ne 0 ]]; then
 fi
 
 # --- 4. Locate the PDF and move it into --out ------------------------------
+# With globstar, **/ matches zero or more directories, so this pattern
+# already covers PDFs directly in $WORKDIR. Adding "$WORKDIR"/*.pdf as well
+# listed those twice, and the second mv failed with "No such file".
 shopt -s nullglob globstar
-PDFS=( "$WORKDIR"/**/*.pdf "$WORKDIR"/*.pdf )
+PDFS=( "$WORKDIR"/**/*.pdf )
 if [[ ${#PDFS[@]} -eq 0 ]]; then
   echo "ERROR: nbno produced no PDF. Check auth/geo restrictions." >&2
   exit 3
@@ -242,6 +245,9 @@ done
 if [[ "$KEEP_IMAGES" -ne 1 ]]; then
   find "$WORKDIR" -mindepth 1 -maxdepth 2 -type d -exec rm -rf {} + 2>/dev/null || true
   rm -rf "$WORKDIR"
+else
+  # The images stay in the scratch dir; say where, or they are unfindable.
+  echo "Per-page images kept in: $WORKDIR"
 fi
 
 echo "Done."

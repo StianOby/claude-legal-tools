@@ -74,9 +74,13 @@ import build_zotero_rdf as rdfmod   # noqa: E402  (after sys.path mutation)
 # ---------------------------------------------------------------------------
 
 _URN_PREFIXES = ("URN:NBN:no-nb_", "urn:nbn:no-nb_", "urn:nbn:no-nb:")
+# Underscores are part of many real ids, not just a separator after the
+# type: newspapers are digavis_aftenposten_morgen_1_20150107_156_7_2 and
+# journals digitidsskrift_2021052683055_001. Keep this in step with the
+# identical patterns in nbno_run.sh and scripts/browser/nbno_auth.js.
 _TYPE_RE = re.compile(
     r"^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|"
-    r"digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z]+$"
+    r"digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z_]+$"
 )
 
 
@@ -94,8 +98,10 @@ def normalise_id(raw: str) -> str:
         )
     if not _TYPE_RE.match(s):
         raise SystemExit(
-            f"ERROR: '{s}' is not a canonical nb.no media ID. "
-            "Expected something like 'digibok_2008051600041'."
+            f"ERROR: '{s}' is not a canonical nb.no media ID. Expected a type "
+            "prefix followed by the item key, e.g. 'digibok_2008051600041', "
+            "'digavis_aftenposten_morgen_1_20150107_156_7_2' or "
+            "'digitidsskrift_2021052683055_001'."
         )
     return s
 
@@ -232,6 +238,12 @@ def fetch_nb_metadata(canonical_id: str, timeout: float = 30.0,
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _squash(value: Optional[str]) -> str:
+    """Trim and collapse internal whitespace (nb.no emits double spaces where
+    a non-sorting article was marked up)."""
+    return " ".join((value or "").split())
+
+
 def _split_name(name: str) -> Tuple[str, str]:
     """nb.no usually gives "Surname, Given" — split on the first comma."""
     if "," in name:
@@ -244,12 +256,21 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
     """Translate the nb.no JSON response into our NormalizedBook."""
     md = api_blob.get("metadata", {}) or {}
     title_infos = md.get("titleInfos") or []
-    if title_infos:
-        title = (title_infos[0].get("title") or md.get("title", "")).strip()
-        subtitle = (title_infos[0].get("subTitle") or "").strip()
+    # `titleInfos[0].title` is the *sort* form: MODS strips a leading
+    # non-sorting article into it, so "En bryggesjauers bekjennelser"
+    # (digibok_2014050705024) arrives as "bryggesjauers bekjennelser" while
+    # `metadata.title` keeps the article. The two agree for the vast
+    # majority of items, so prefer the full form whenever it merely adds a
+    # prefix, and keep the titleInfos form otherwise (it is the one that
+    # excludes the subtitle).
+    ti_title = _squash(title_infos[0].get("title") if title_infos else "")
+    full_title = _squash(md.get("title"))
+    subtitle = _squash(title_infos[0].get("subTitle")) if title_infos else ""
+    if ti_title and full_title and ti_title != full_title \
+            and full_title.endswith(ti_title):
+        title = full_title
     else:
-        title = (md.get("title") or "").strip()
-        subtitle = ""
+        title = ti_title or full_title
 
     creators: List[rdfmod.Creator] = []
     for p in md.get("people") or []:
@@ -287,10 +308,23 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
             lang_code = _LANG_TO_ZOTERO.get(code, code)
             break
 
+    # nb.no reports modern books under `isbn13` and older ones under `isbn`;
+    # either may be a bare string rather than a list (iterating a string
+    # would otherwise yield its first character).
     isbn = ""
-    for ident in (md.get("identifiers") or {}).get("isbn") or []:
-        isbn = ident if isinstance(ident, str) else str(ident)
-        break
+    identifiers = md.get("identifiers") or {}
+    for key in ("isbn13", "isbn"):
+        raw_isbn = identifiers.get(key)
+        if not raw_isbn:
+            continue
+        if isinstance(raw_isbn, str):
+            isbn = raw_isbn.strip()
+        else:
+            for ident in raw_isbn:
+                isbn = ident.strip() if isinstance(ident, str) else str(ident)
+                break
+        if isbn:
+            break
 
     num_pages = ""
     pc = md.get("pageCount")
@@ -672,11 +706,9 @@ def download_via_iiif(
                   f"{sorted({int(s['width']) for s in info_probe.get('sizes') or []})} "
                   f"→ using {chosen_width}px to avoid silent downsample.")
 
-    downsample_count = 0
-    tile_count = 0
-
+    # Every page reports how it was fetched and the caller tallies the modes;
+    # counting inside the workers would race (12 threads, non-atomic +=).
     def fetch_page(idx_entry: Tuple[int, Dict[str, str]]) -> Tuple[int, Optional[str], str]:
-        nonlocal downsample_count, tile_count
         idx, entry = idx_entry
         if entry["canvas"].endswith("_C2"):
             return idx, None, "skipped_c2"
@@ -692,8 +724,6 @@ def download_via_iiif(
                 return idx, None, "no_info"
             data = _fetch_page_tiled(entry["base_url"], info, hdr_img)
             mode = "tiled"
-            if data is not None:
-                tile_count += 1
         else:
             data, actual = _fetch_page_singleshot(
                 entry["base_url"], chosen_width, hdr_img,
@@ -701,7 +731,7 @@ def download_via_iiif(
             if data is not None and actual is not None:
                 aw = actual[0]
                 if aw < chosen_width - 4:  # tolerate 1–2px rounding
-                    downsample_count += 1
+                    mode = "single_downsampled"
                     if tiles == "auto":
                         # Silent downsample → fall back to tiles for clean res.
                         try:
@@ -714,8 +744,7 @@ def download_via_iiif(
                             )
                             if tiled is not None:
                                 data = tiled
-                                mode = "tiled"
-                                tile_count += 1
+                                mode = "tiled_after_downsample"
             elif tiles == "auto":
                 # 403/404 on single-shot → try tiles.
                 try:
@@ -725,8 +754,7 @@ def download_via_iiif(
                 if info is not None:
                     data = _fetch_page_tiled(entry["base_url"], info, hdr_img)
                     if data is not None:
-                        mode = "tiled"
-                        tile_count += 1
+                        mode = "tiled_after_403"
 
         if data is None:
             return idx, None, mode + "_failed"
@@ -736,16 +764,23 @@ def download_via_iiif(
 
     t0 = time.time()
     results: Dict[int, Optional[str]] = {}
+    modes: List[str] = []
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for idx, path, _mode in pool.map(
+        for idx, path, mode in pool.map(
             fetch_page, list(enumerate(entries, start=1))
         ):
             results[idx] = path
+            modes.append(mode)
     elapsed = time.time() - t0
     ok = sum(1 for v in results.values() if v)
+    tile_count = sum(1 for m in modes if m.startswith("tiled"))
+    downsample_count = sum(1 for m in modes if "downsampled" in m or "downsample" in m)
+    failed = [m for m in modes if m.endswith("_failed")]
     print(f"[iiif] {ok}/{len(entries)} pages in {elapsed:.1f}s "
           f"(tiled: {tile_count}, single-shot downsamples observed: "
-          f"{downsample_count}); assembling PDF...")
+          f"{downsample_count}"
+          + (f", failed: {len(failed)}" if failed else "")
+          + "); assembling PDF...")
 
     page_paths = [results[i] for i in sorted(results) if results[i]]
     if not page_paths:
@@ -1068,9 +1103,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     rdf_path = out_dir / rdf_name
     print(f"[meta] basename: {base}")
     print(f"[meta] title:    {book.title}")
-    print(f"[meta] authors:  "
-          + ", ".join(f"{c.surname}, {c.given}".strip(", ")
-                      for c in book.creators) or "(none)")
+    author_list = ", ".join(f"{c.surname}, {c.given}".strip(", ")
+                            for c in book.creators)
+    print(f"[meta] authors:  {author_list or '(none)'}")
     print(f"[meta] year:     {book.year or '?'}    "
           f"publisher: {book.publisher or '?'}    "
           f"place: {book.place or '?'}")

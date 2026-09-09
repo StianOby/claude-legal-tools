@@ -41,7 +41,7 @@ import shutil
 import subprocess
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import (FIRST_COMPLETED, ThreadPoolExecutor, wait)
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -341,34 +341,60 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     t0 = time.time()
     ocred_now = 0
-    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+    # Keep at most `jobs` pages in flight and top up as they finish, so the
+    # time budget actually bounds the call. Submitting the whole backlog up
+    # front (as an earlier version did) queues every page in milliseconds:
+    # the budget check then never fires and the call runs until the entire
+    # book is OCRed — or, in a sandbox, until it is killed.
+    pending_iter = iter(pending)
+    with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         in_flight = {}
-        for src in pending:
+
+        def submit_next() -> bool:
             if time.time() - t0 >= args.time_budget:
-                break
+                return False
+            try:
+                src = next(pending_iter)
+            except StopIteration:
+                return False
             dst = ocred_dir / src.name
-            fut = pool.submit(_ocr_page, ocrmypdf_bin, src, dst, langs)
-            in_flight[fut] = dst
-        for fut in as_completed(in_flight):
-            dst, rc = fut.result()
-            if rc == 0 and dst.exists() and _is_valid_pdf(pikepdf, dst):
-                ocred_now += 1
-            else:
-                # Remove partial / structurally-broken output so the next
-                # call retries. Without the _is_valid_pdf gate, sandbox
-                # timeouts that kill us mid-write would leave files that
-                # only fail at merge time.
+            in_flight[pool.submit(_ocr_page, ocrmypdf_bin, src, dst, langs)] = dst
+            return True
+
+        for _ in range(max(1, args.jobs)):
+            if not submit_next():
+                break
+
+        while in_flight:
+            done, _pending = wait(list(in_flight), return_when=FIRST_COMPLETED)
+            for fut in done:
+                dst = in_flight.pop(fut)
                 try:
-                    dst.unlink()
-                except OSError:
-                    pass
+                    dst, rc = fut.result()
+                except Exception as exc:      # noqa: BLE001 - report and retry later
+                    print(f"[ocr] {dst.name}: {type(exc).__name__}: {exc}",
+                          file=sys.stderr)
+                    rc = 1
+                if rc == 0 and dst.exists() and _is_valid_pdf(pikepdf, dst):
+                    ocred_now += 1
+                else:
+                    # Remove partial / structurally-broken output so the next
+                    # call retries. Without the _is_valid_pdf gate, sandbox
+                    # timeouts that kill us mid-write would leave files that
+                    # only fail at merge time.
+                    try:
+                        dst.unlink()
+                    except OSError:
+                        pass
+                submit_next()
 
     elapsed = time.time() - t0
     done_now = sum(
         1 for i in range(1, total + 1)
         if (ocred_dir / f"page-{i:04d}.pdf").exists()
     )
-    print(f"[ocr] this call: {ocred_now} pages in {elapsed:.1f}s. "
+    print(f"[ocr] this call: {ocred_now} pages in {elapsed:.1f}s "
+          f"(budget {args.time_budget:.0f}s). "
           f"Total cached: {done_now}/{total}.", file=sys.stderr)
 
     if done_now < total:

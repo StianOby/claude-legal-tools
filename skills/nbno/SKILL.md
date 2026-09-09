@@ -167,9 +167,11 @@ manifests itself without auth.
 
 ## Step 1 — Identify the media ID
 
-`nbno --id <ID>` requires an ID of the form `<type>_<digits>`, e.g.
-`digibok_2008051600041`. There are three common ways the user may give you
-the item:
+`nbno --id <ID>` requires an ID of the form `<type>_<key>`, e.g.
+`digibok_2008051600041`. The key is not always digits: newspaper issues look
+like `digavis_aftenposten_morgen_1_20150107_156_7_2` and journal issues like
+`digitidsskrift_2021052683055_001`, so underscores inside the key are normal.
+There are three common ways the user may give you the item:
 
 1. **Citation / URN** — `URN:NBN:no-nb_digibok_2008051600041` → strip
    `URN:NBN:no-nb_` → `digibok_2008051600041`. The wrapper does this for

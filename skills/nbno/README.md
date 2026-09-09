@@ -171,7 +171,10 @@ empty one before the `nbno` CLI sees it. Pass the file with
 
 ## Identifying items
 
-`nbno` expects IDs of the form `<type>_<digits>`, e.g. `digibok_2008051600041`.
+`nbno` expects IDs of the form `<type>_<key>`, e.g. `digibok_2008051600041`.
+The key may itself contain underscores — newspaper issues are
+`digavis_aftenposten_morgen_1_20150107_156_7_2`, journals
+`digitidsskrift_2021052683055_001`.
 
 - **URN** — `URN:NBN:no-nb_digibok_2008051600041` → strip `URN:NBN:no-nb_` → `digibok_2008051600041`. The wrapper does this automatically.
 - **Items URL** — `https://www.nb.no/items/<opaque-hash>` — the hash is not the ID. Click "Referere/Sitere" on nb.no to get the URN.

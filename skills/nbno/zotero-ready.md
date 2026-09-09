@@ -108,17 +108,17 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --out "$OUT_DIR" \
   --no-ocr
 
-# Big book: download with --no-ocr in one call, then run the chunked OCR
-# driver in a loop. Each call makes progress; cache survives between calls.
+# Big book: download with --no-ocr in one call, then OCR in chunks.
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
   --nbsso "nbsso=$NBSSO" \
   --no-ocr
 
-until python {SKILL_DIR}/scripts/ocr_chunked.py \
-    --pdf "$OUT_DIR"/AUTHOR_TITLE_*.pdf \
-    --langs nor+nno --time-budget 35 --jobs 4; do :; done
+# Then ONE of these per bash tool call, re-running while it exits 2:
+python {SKILL_DIR}/scripts/ocr_chunked.py \
+    --pdf "$OUT_DIR/Author_Title_(Year).pdf" \
+    --langs nor+nno --time-budget 35 --jobs 4
 
 # In-copyright content where the resolver downsamples single-shot requests.
 # --tiles always forces native-res tiles for every page (slower but correct).

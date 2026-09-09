@@ -35,7 +35,8 @@ if (!window.__nb) {
 
     // Accepts a canonical id, a URN in any casing, an https://urn.nb.no/...
     // link, or an https://www.nb.no/items/URN:NBN:no-nb_... URL. Returns the
-    // canonical `<type>_<digits>` form, or null.
+    // canonical `<type>_<key>` form (the key may contain underscores:
+    // digavis_aftenposten_morgen_1_20150107_156_7_2), or null.
     function normId(raw) {
       if (!raw) return null;
       const m = String(raw).match(ID_RE);

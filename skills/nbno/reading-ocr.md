@@ -85,8 +85,10 @@ for the 45-second Cowork bash limit:
    `<pdf_dir>/.ocr_cache/<stem>/<hash>/pages/`).
 2. OCR each page with `ocrmypdf --skip-text` (full quality — same preprocess,
    deskew, optimise as a one-shot run), cached under `…/ocred/`.
-3. Stop launching new pages when the time budget is about to expire; exit
-   with code 2 (partial).
+3. Stop launching new pages when the time budget expires; exit with code 2
+   (partial). At most `--jobs` pages are in flight at a time, so one call
+   lasts about `--time-budget` plus the slowest page still running — not
+   until the whole book is done.
 4. On the call that finishes the last page, merge with pikepdf and exit 0.
 
 Run **one invocation per bash tool call** — exit code 0 means done, exit
