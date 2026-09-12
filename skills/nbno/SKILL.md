@@ -180,20 +180,29 @@ There are three common ways the user may give you the item:
    hash is **not** the ID nbno expects. Resolve it, in this order:
    - **Preferred, when the browser tools are available:** navigate the pane
      to the pasted URL, **re-paste `nbno_auth.js`** (navigation wiped it),
-     then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It reads the
-     URN from the URL, a `urn.nb.no` link, the rendered page, or the catalog
-     — whichever answers first, and `via` says which.
+     then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It tries,
+     in order: the URL itself (`via: "url"`), the catalog record for the
+     opaque hash (`"catalog"`), a `urn.nb.no` link on the page
+     (`"urn-link"`), and finally ids embedded in the rendered HTML
+     (`"page"`) — that last one only when the page holds exactly one id.
      > nb.no is client-rendered, so the page is usually still empty the
      > instant a navigate returns. **You do not need to sleep first** —
-     > `resolveUrn()` polls for up to 5 s on its own and returns as soon as
-     > the URN appears (`waitedMs` tells you how long it actually took). In
-     > practice the rendered page is what answers, `via: "page"`.
+     > `resolveUrn()` polls the page branches for up to 5 s on its own
+     > (`waitedMs` tells you how long it actually took).
+     > **Item pages embed ids of other editions.** A page for one copy of
+     > *Sult* carried another `digibok_` of the same novel earlier in its
+     > HTML, and the two share title and year, so a title check cannot
+     > tell them apart. That is why the catalog is asked first and why the
+     > page scan answers `{error: "ambiguous", candidates: [...]}` instead
+     > of picking the first hit. On `ambiguous`, ask the user for the URN
+     > — do not choose a candidate yourself.
    - Otherwise: ask the user to click "Referere/Sitere" on nb.no and paste
      the URN. **Do not guess a canonical ID from the hash** — there is no
      derivation.
    - Sanity-check the result before downloading a whole book on it: the
      `title` from `__nb.access(id)` should match the item page you were
-     looking at.
+     looking at. This catches the wrong *work*, not the wrong *edition* —
+     for that, trust only `via: "url"`, `"catalog"` or `"urn-link"`.
 3. **Already canonical** — the user pastes `digibok_2008051600041` directly
    → use as-is.
 
@@ -417,13 +426,14 @@ Useful nbno flags the wrapper passes through:
 | `--stop N`       | last canvas to download (inclusive)                   |
 | `--resize N`     | percentage of original size — use 50–75 for big books |
 | `--cover`        | also download the cover separately                    |
-| `--keep-images`  | skip deletion of the per-page image folder            |
+| `--keep-images`  | keep the per-page images, moved to `<out>/<ID>_images/` |
 | `--cookie auto`  | use saved auth at `~/.nbno/cookie.txt` (Bokhylla)     |
 | `--cookie PATH`  | use saved auth at an explicit path                    |
 
 After the wrapper completes you'll have a single `.pdf` in `/tmp/nbno_out`.
 The wrapper has already removed the per-page image folder unless the user
-passed `--keep-images`.
+passed `--keep-images`, in which case it moved the images to
+`<out>/<ID>_images/` and printed `Per-page images kept in: …`.
 
 ---
 

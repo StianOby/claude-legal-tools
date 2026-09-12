@@ -11,7 +11,7 @@
 // channel is not viable for a book. The sandbox does all downloading.
 //
 // Error convention: functions never throw to the caller. They return
-// {error: 'http_<n>' | 'cors' | 'bad_id' | 'not_found', detail}.
+// {error: 'http_<n>' | 'cors' | 'bad_id' | 'not_found' | 'ambiguous', detail}.
 
 if (!window.__nb) {
   window.__nb = (() => {
@@ -45,6 +45,17 @@ if (!window.__nb) {
 
     function urnForm(id) {
       return 'URN:NBN:no-nb_' + id;
+    }
+
+    // Every distinct item id in a blob of text, in order of first
+    // appearance. Cover-page ids (`<id>_C1`, `_C2`, `_C3`) are folded into
+    // their item: they sit next to the base id in the catalog JSON and in
+    // page markup and are not a second item.
+    const ID_RE_G = new RegExp(ID_RE.source, 'g');
+    function distinctIds(text) {
+      const all = (String(text || '').match(ID_RE_G) || [])
+        .map((id) => id.replace(/_C\d+$/, ''));
+      return Array.from(new Set(all));
     }
 
     // --- fetch -------------------------------------------------------------
@@ -120,11 +131,18 @@ if (!window.__nb) {
     // Turn the opaque https://www.nb.no/items/<hash> URL the user pasted into
     // a canonical id. Run this with the tab parked on that page.
     //
+    // Order matters. The catalog is asked about the opaque hash BEFORE the
+    // rendered page is scanned: an item page routinely embeds ids of other
+    // editions (an opaque-hash page for Hamsun's Sult carried another
+    // digibok_ of the same novel first in its HTML, 2026-09-12), and the
+    // title check downstream cannot tell two copies of the same book apart.
+    // The page scan is kept as a fallback but refuses to guess when it sees
+    // more than one distinct id.
+    //
     // nb.no is client-rendered, so calling this straight after a navigate
-    // races the render: the DOM branches miss and it falls through to the
-    // catalog branch or not_found. Rather than making every caller sleep
-    // first, the page branches are polled until the URN appears or waitMs
-    // (default 5000) runs out. Pass {waitMs: 0} to check once and return.
+    // races the render. Rather than making every caller sleep first, the DOM
+    // branches are polled until something answers or waitMs (default 5000)
+    // runs out. Pass {waitMs: 0} to check once and return.
     async function resolveUrn(opts) {
       const o = opts || {};
       const waitMs = o.waitMs === undefined ? 5000 : Math.max(0, Number(o.waitMs) || 0);
@@ -132,45 +150,58 @@ if (!window.__nb) {
       const deadline = started + waitMs;
       const waited = () => Date.now() - started;
 
-      for (;;) {
-        // 1. The URL itself may already carry the URN.
-        const fromUrl = normId(location.href);
-        if (fromUrl) {
-          return { id: fromUrl, urn: urnForm(fromUrl), via: 'url', waitedMs: waited() };
-        }
+      // 1. The URL itself may already carry the URN.
+      const fromUrl = normId(location.href);
+      if (fromUrl) {
+        return { id: fromUrl, urn: urnForm(fromUrl), via: 'url', waitedMs: waited() };
+      }
 
-        // 2. The "Referere/Sitere" block links to urn.nb.no.
-        //    Observed 2026-09-06 to match nothing on a fully rendered item
-        //    page — the cite link is not a plain urn.nb.no anchor. Kept
-        //    because it is free and exact when it does fire, but branch 3 is
-        //    what actually carries this in practice: don't weaken it on the
-        //    assumption that this one backs it up.
+      // 2. Ask the catalog about the opaque path segment. One request, and
+      //    the answer is the record for exactly this item.
+      const seg = location.pathname.split('/').filter(Boolean).pop();
+      if (seg && seg !== 'items') {
+        const r = await getJson(API + '/items/' + encodeURIComponent(seg));
+        if (!r.error) {
+          const j = r.json || {};
+          const ids = (j.metadata && j.metadata.identifiers) || {};
+          const id = normId(ids.urn) || normId(j.id);
+          if (id) return { id: id, urn: urnForm(id), via: 'catalog', waitedMs: waited() };
+        }
+      }
+
+      let ambiguous = null;
+      for (;;) {
+        // 3. A urn.nb.no anchor (the "Referere/Sitere" block). Page-dependent:
+        //    present on some fully rendered item pages, absent on others.
         const links = document.querySelectorAll('a[href*="urn.nb.no"]');
         for (let i = 0; i < links.length; i++) {
           const id = normId(links[i].getAttribute('href'));
           if (id) return { id: id, urn: urnForm(id), via: 'urn-link', waitedMs: waited() };
         }
 
-        // 3. The rendered page embeds the URN in metadata / JSON payloads.
-        const inPage = normId(document.documentElement.innerHTML);
-        if (inPage) {
-          return { id: inPage, urn: urnForm(inPage), via: 'page', waitedMs: waited() };
+        // 4. Ids embedded in the rendered HTML. Trusted only when the page
+        //    contains exactly one; several means related items are on the
+        //    page and the first hit is no better than a coin toss.
+        const seen = distinctIds(document.documentElement.innerHTML);
+        if (seen.length === 1) {
+          return { id: seen[0], urn: urnForm(seen[0]), via: 'page', waitedMs: waited() };
         }
+        if (seen.length > 1) ambiguous = seen;
 
         if (Date.now() >= deadline) break;
         await sleep(300);
       }
 
-      // 4. Last resort: ask the catalog about the opaque path segment.
-      const seg = location.pathname.split('/').filter(Boolean).pop();
-      if (seg) {
-        const r = await getJson(API + '/items/' + encodeURIComponent(seg));
-        if (!r.error) {
-          const id = normId(JSON.stringify(r.json || {}));
-          if (id) return { id: id, urn: urnForm(id), via: 'catalog', waitedMs: waited() };
-        }
+      if (ambiguous) {
+        return {
+          error: 'ambiguous',
+          candidates: ambiguous.slice(0, 10),
+          detail: 'page holds ' + ambiguous.length + ' distinct ids and the catalog ' +
+                  'did not answer for ' + location.href +
+                  '; ask the user for the URN (Referere/Sitere) or try __nb.access() on ' +
+                  'each candidate and compare the full record, not just the title',
+        };
       }
-
       return {
         error: 'not_found',
         detail: 'no URN on ' + location.href + ' after ' + waited() + 'ms',
@@ -265,7 +296,7 @@ if (!window.__nb) {
       cookies: cookies,
       manifest: manifest,
       // exposed for debugging only:
-      _internal: { normId: normId, urnForm: urnForm, MAX_CHARS: MAX_CHARS },
+      _internal: { normId: normId, urnForm: urnForm, distinctIds: distinctIds, MAX_CHARS: MAX_CHARS },
     };
   })();
 }

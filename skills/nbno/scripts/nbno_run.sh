@@ -246,8 +246,19 @@ if [[ "$KEEP_IMAGES" -ne 1 ]]; then
   find "$WORKDIR" -mindepth 1 -maxdepth 2 -type d -exec rm -rf {} + 2>/dev/null || true
   rm -rf "$WORKDIR"
 else
-  # The images stay in the scratch dir; say where, or they are unfindable.
-  echo "Per-page images kept in: $WORKDIR"
+  # $WORKDIR is a mktemp scratch dir that dies with the sandbox, so move
+  # whatever nbno left there (the per-page image folder, or loose images)
+  # next to the PDF, where the user can actually reach it.
+  IMG_DIR="$OUT/${ID}_images"
+  mkdir -p "$IMG_DIR"
+  shopt -s dotglob
+  LEFT=( "$WORKDIR"/* )
+  shopt -u dotglob
+  if [[ ${#LEFT[@]} -gt 0 ]]; then
+    mv "${LEFT[@]}" "$IMG_DIR"/
+  fi
+  rm -rf "$WORKDIR"
+  echo "Per-page images kept in: $IMG_DIR"
 fi
 
 echo "Done."

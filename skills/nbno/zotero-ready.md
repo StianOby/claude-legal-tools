@@ -40,9 +40,11 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    session sees. It cannot tell you whether your IP is Norwegian — for a
    geo-gated item (`accessAllowedFrom: NORWAY` / `NB`) run
    `scripts/geo_check.py` first.
-4. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded and
-   filesystem-safe. The first author's surname wins; falls back to the first
-   organisation/contributor; "Unknown" / "n.d." as last resort.
+4. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded
+   (æ ø å → ae oe aa) and filesystem-safe. The first author's surname wins;
+   falls back to the first organisation/contributor; with no creator at all
+   (newspaper issues, anonymous works) the author part is simply omitted —
+   `VG_(1868-1923)_1870.08.17_(1870)`. "n.d." stands in for a missing year.
 5. **Download the full PDF.** Two paths:
    - **Fast IIIF (preferred for big books):** with `--nbsso` (`--bearer` is
      optional and rarely available) the in-process
@@ -54,10 +56,12 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      `regionByPx` tiles (1024×1024) when the single-shot request is
      refused or silently downsampled. `--tiles always` forces tiled mode
      for every page; `--tiles never` disables fallback.
-   - **`nbno_run.sh` fallback:** any time neither `--nbsso` nor `--bearer`
-     is given. Honours `--cookie` if FEIDE auth is needed. To use the fast
-     path for an open item (no credentials at all), call
-     `download_via_iiif()` directly — it takes no required auth arguments.
+   - **Which path runs:** the IIIF downloader is the default and needs no
+     credential for public-domain or (from Norway) Bokhylla items. The
+     `nbno_run.sh` wrapper runs only when `--cookie` is given without
+     `--nbsso`/`--bearer`, or with `--downloader wrapper`; `--tiles` and
+     `--workers` have no effect on the wrapper, and the `[dl]` line says
+     which path was chosen.
 6. **OCR with `ocrmypdf`**, language pack `nor+nno` by default.
    - Auto-installs `ocrmypdf` to a persistent pip --target so the binary
      survives across Cowork bash invocations. By default the target is
@@ -65,7 +69,9 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      would be wiped between bash calls and is not used.
    - System packages required: `tesseract-ocr`, `tesseract-ocr-nor`, and
      ideally `tesseract-ocr-nno`. The `nno` pack is missing in some Cowork
-     sandboxes — `tesseract_preflight()` auto-degrades to `nor` and warns.
+     sandboxes — `tesseract_preflight()` drops it and warns; if none of the
+     requested packs is installed it falls back to `eng` (see
+     `reading-ocr.md`).
    - Uses `--skip-text` so already-OCRed pages aren't re-processed.
    - Pass `--no-ocr` to skip. For books too big for the 45 s sandbox, use
      `scripts/ocr_chunked.py` separately after the download — same quality,
@@ -73,6 +79,13 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
 7. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
    references the PDF by its bare filename, so the .rdf and .pdf must sit
    side by side at import time.
+   - Every item type is exported as a Zotero **Book**, newspapers and
+     journals included: Zotero has no "newspaper issue" type, and
+     `newspaperArticle` / `magazineArticle` describe a single article, not a
+     whole issue. A newspaper issue gets its full date (`1870-08-17`) in the
+     date field and the city (`Oslo`, not nb.no's `Norge;Oslo;;Oslo;;;;`)
+     as place. Tell the user to change the item type in Zotero if they
+     want something else; nothing else in the record depends on it.
 
 ## How to invoke it
 
@@ -83,6 +96,8 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --out "$OUT_DIR"
 
 # Bokhylla book from a Norwegian IP — no credential at all, but tiles-only.
+# (No --cookie, so this runs the IIIF path; expect a "[dl] using fast IIIF"
+# line. Before 2026-09 it silently ran the wrapper and ignored --tiles.)
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
@@ -96,7 +111,7 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --nbsso "nbsso=$NBSSO" \
   --tiles always --resize 1024
 
-# Same book, slower wrapper fallback (no in-process IIIF)
+# Same book, slower wrapper path (no in-process IIIF; --cookie selects it)
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \

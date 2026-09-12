@@ -71,10 +71,13 @@ machine-readable text rather than a visual check.
   model may not be available).
 - Process one page per bash call to stay within the sandbox timeout.
 - The `nno` (Norwegian Nynorsk) language pack is missing from many Cowork
-  sandboxes — only `nor` is preinstalled. The orchestrator's
-  `tesseract_preflight()` helper auto-degrades to whichever requested codes
-  are actually available; when running tesseract by hand, list languages
-  with `tesseract --list-langs` first.
+  sandboxes, and some ship only `eng`/`osd`. `tesseract_preflight()` (in
+  both `zotero_book.py` and `ocr_chunked.py`) drops the missing codes and
+  keeps the rest; if *none* of the requested codes is installed it falls
+  back to `eng` with a warning, and exits with an install hint when even
+  that is absent. Install the packs first when you can
+  (`apt-get install tesseract-ocr-nor tesseract-ocr-nno`); when running
+  tesseract by hand, list languages with `tesseract --list-langs` first.
 
 ### OCR for whole books — `ocr_chunked.py`
 

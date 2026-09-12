@@ -17,15 +17,17 @@ Usage:
     python shrink_pdf.py --pdf book.pdf --quality 80
     python shrink_pdf.py --pdf book.pdf --max-width 2200
 
-What it does, per page, per image XObject:
+What it does, per page, per image XObject (including images nested inside
+Form XObjects, which `page.images` does not see):
     1. Decode via pikepdf.PdfImage → PIL.
     2. Skip 1-bit monochrome images (re-encoding them as RGB JPEG would
        grow the file *and* visibly degrade them).
     3. Optionally resize down so max(width) ≤ --max-width.
     4. Re-encode as JPEG (DCTDecode) at the given quality.
-    5. Replace the in-PDF XObject stream, preserving the existing
-       /Resources/XObject reference so the page's content stream still
-       finds the image by name.
+    5. Replace the in-PDF XObject stream in whichever /XObject dictionary
+       referenced it (the page's, or a form's), so the content stream still
+       finds the image by name. An image shared by several pages is
+       re-encoded once and every reference is pointed at the new stream.
 
 The PDF page tree, text-extraction layer, and bookmarks are untouched.
 """
@@ -148,6 +150,38 @@ def estimate_output(in_pdf: Path, quality: int, max_width: int,
                 pass
 
 
+def _iter_images(resources, Name, depth: int = 0):
+    """Yield (xobject_dict, name, stream) for every image XObject reachable
+    from a /Resources dictionary, descending into Form XObjects.
+
+    Walks the dictionaries directly instead of using `page.images`, which
+    is deprecated in pikepdf 10.11 and only lists images placed straight on
+    the page: a scan wrapped in a Form XObject (some producers do this)
+    made the old loop report images_seen=0 and leave the file unshrunk.
+    """
+    if resources is None or depth > 16:
+        return
+    try:
+        xobjs = resources.get("/XObject")
+    except Exception:
+        return
+    if xobjs is None:
+        return
+    for name, obj in list(xobjs.items()):
+        try:
+            subtype = obj.get("/Subtype")
+        except Exception:
+            continue
+        if subtype == Name.Image:
+            yield xobjs, name, obj
+        elif subtype == Name.Form:
+            try:
+                inner = obj.get("/Resources")
+            except Exception:
+                continue
+            yield from _iter_images(inner, Name, depth + 1)
+
+
 def recompress(in_pdf: Path, out_pdf: Path, quality: int = 70,
                max_width: int = 900, jpeg_min_dim: int = 64) -> dict:
     """Recompress raster images in `in_pdf`, write to `out_pdf`.
@@ -172,13 +206,29 @@ def recompress(in_pdf: Path, out_pdf: Path, quality: int = 70,
         "bytes_after": 0,
     }
 
+    # objgen of an original image stream -> the JPEG stream that replaced
+    # it, so a bitmap referenced from several pages (or several forms) is
+    # decoded and re-encoded once, and no reference keeps the old bytes
+    # alive in the output.
+    replaced = {}
+
     for page in pdf.pages:
         try:
-            page_images = page.images
+            # pikepdf pushes inherited /Resources down onto the page, so a
+            # missing key here means the page really has none.
+            resources = page.obj.get("/Resources")
         except Exception:
             continue
-        for name, raw in list(page_images.items()):
+        for xobjs, name, raw in list(_iter_images(resources, Name)):
             stats["images_seen"] += 1
+            try:
+                key = tuple(raw.objgen)
+            except Exception:
+                key = None
+            if key and key != (0, 0) and key in replaced:
+                xobjs[name] = replaced[key]
+                stats["images_rewritten"] += 1
+                continue
             try:
                 pdfimg = PdfImage(raw)
                 pil = pdfimg.as_pil_image()
@@ -214,7 +264,9 @@ def recompress(in_pdf: Path, out_pdf: Path, quality: int = 70,
             d[Name.BitsPerComponent] = 8
             d[Name.Filter] = Name.DCTDecode
 
-            page.obj["/Resources"]["/XObject"][name] = new_stream
+            xobjs[name] = new_stream
+            if key and key != (0, 0):
+                replaced[key] = new_stream
             stats["images_rewritten"] += 1
 
     pdf.save(str(out_pdf))

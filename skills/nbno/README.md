@@ -93,7 +93,7 @@ folder after the PDF is assembled.
 | `--resize N` | Scale pages to N% of original size (50–75 for large books) |
 | `--title` | Fetch the item's real title and use it as folder name |
 | `--cover` | Download the cover separately |
-| `--keep-images` | Skip deletion of the per-page image folder |
+| `--keep-images` | Keep the per-page images, moved to `<out>/<ID>_images/` |
 
 Exit codes: `0` success, `1` bad arguments, `2` nbno install/run failure,
 `3` no PDF produced (auth/geo issue), `4` cookie file missing, unreadable, or

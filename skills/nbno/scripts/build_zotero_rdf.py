@@ -66,6 +66,8 @@ class NormalizedBook:
     publisher: str = ""
     place: str = ""
     year: str = ""                  # ISO year as string ("1890")
+    date: str = ""                  # full ISO date when known ("1870-08-17");
+                                    # newspaper issues have one, books do not
     language: str = ""              # ISO 639 code, two- or three-letter
     isbn: str = ""
     num_pages: str = ""             # string to allow "[358]" etc.
@@ -237,8 +239,8 @@ def build_rdf(
     if book.creators:
         parts.append("  " + _creators_block(book.creators))
 
-    if book.year:
-        parts.append(f"  <dc:date>{_esc(book.year)}</dc:date>")
+    if book.date or book.year:
+        parts.append(f"  <dc:date>{_esc(book.date or book.year)}</dc:date>")
 
     pub = _publisher_block(book.publisher, book.place)
     if pub:

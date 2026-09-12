@@ -35,9 +35,12 @@ Pipeline:
   2. Fetch metadata from https://api.nb.no/catalog/v1/items/<URN>.
   3. Compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
   4. Download the full book PDF.
-       - If --nbsso (and/or --bearer) is supplied, use the fast IIIF
-         downloader in-process (recommended for big books).
-       - Otherwise shell out to nbno_run.sh, with --cookie if provided.
+       - Default: the fast IIIF downloader in-process. It needs no
+         credential for public-domain items or Bokhylla from a Norwegian
+         IP, and takes --nbsso (and/or --bearer) for FEIDE-licensed ones.
+         --tiles and --workers only apply on this path.
+       - --cookie <file|auto> selects the nbno_run.sh wrapper instead (the
+         cookie-file workflow from auth.md). --downloader overrides both.
   5. Run ocrmypdf (-l nor+nno) unless --no-ocr.
   6. Render the Zotero RDF via build_zotero_rdf.build_rdf.
 
@@ -292,14 +295,17 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
 
     origin = md.get("originInfo") or {}
     year = (origin.get("issued") or "").strip()
+    # Newspaper issues carry `issued` as YYYYMMDD ("18700817"); books carry
+    # a plain year. Keep `year` a year (basename, sorting) and put the full
+    # ISO date in `date` for Zotero's date field. `issuedUntouched` is not
+    # used: for serials it is the run's *start* year, not this issue's.
+    date = ""
+    m8 = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", year)
+    if m8:
+        date = "-".join(m8.groups())
+        year = m8.group(1)
     publisher = (origin.get("publisher") or "").strip()
-    place = (
-        (md.get("geographic") or {}).get("placeString")
-        or (md.get("geographic") or {}).get("city")
-        or ""
-    ).strip()
-    if place in {"S.l.", "s.l.", "[S.l.]"}:
-        place = ""   # "sine loco" — no real value to keep
+    place = _pick_place(md.get("geographic") or {})
 
     lang_code = ""
     for entry in md.get("languages") or []:
@@ -342,6 +348,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
         publisher=publisher,
         place=place,
         year=year,
+        date=date,
         language=lang_code,
         isbn=isbn,
         num_pages=num_pages,
@@ -353,11 +360,38 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
 # Filename construction
 # ---------------------------------------------------------------------------
 
+_NO_PLACE = {"S.l.", "s.l.", "[S.l.]"}   # "sine loco" — no real value
+
+
+def _pick_place(geo: dict) -> str:
+    """One publication place from nb.no's `geographic` block.
+
+    Books give `placeString: "Oslo"`. Newspapers give the whole hierarchy,
+    `"Norge;Oslo;;Oslo;;;;"`, with `city` alongside. Prefer `city`, then
+    the most specific (last) non-empty segment of `placeString`.
+    """
+    city = (geo.get("city") or "").strip()
+    if city and city not in _NO_PLACE:
+        return city
+    segments = [seg.strip() for seg in (geo.get("placeString") or "").split(";")]
+    segments = [seg for seg in segments if seg and seg not in _NO_PLACE]
+    return segments[-1] if segments else ""
+
+
 _FS_SAFE = re.compile(r"[^A-Za-z0-9._\-()]+")
+_TRANSLIT = str.maketrans({
+    "æ": "ae", "Æ": "Ae", "ø": "oe", "Ø": "Oe", "å": "aa", "Å": "Aa",
+    "ß": "ss", "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th",
+})
 
 
 def _slug(s: str, maxlen: int = 60) -> str:
-    """ASCII-fold + collapse to underscore-separated tokens."""
+    """ASCII-fold + collapse to underscore-separated tokens.
+
+    Letters with no decomposition (æ ø å) are transliterated first —
+    NFKD alone turns "Jægertidende" into "Jgertidende".
+    """
+    s = s.translate(_TRANSLIT)
     s = unicodedata.normalize("NFKD", s)
     s = s.encode("ascii", "ignore").decode("ascii")
     s = _FS_SAFE.sub("_", s).strip("_")
@@ -370,7 +404,8 @@ def compute_basename(book: rdfmod.NormalizedBook) -> str:
     """Compose AUTHOR_TITLE_(YEAR), filesystem-safe.
 
     Picks the first author's surname; falls back to the first creator of any
-    kind, then "Unknown".
+    kind. With no creator at all (newspaper issues, anonymous works) the
+    author part is omitted rather than written as "Unknown".
     """
     surname = ""
     for c in book.creators:
@@ -385,11 +420,10 @@ def compute_basename(book: rdfmod.NormalizedBook) -> str:
             if c.organization:
                 surname = c.organization
                 break
-    if not surname:
-        surname = "Unknown"
     title_for_name = book.title.split(":")[0]  # drop subtitle
     year = (book.year or "n.d.").strip()
-    return f"{_slug(surname, 30)}_{_slug(title_for_name, 60)}_({_slug(year, 8)})"
+    head = f"{_slug(surname, 30)}_" if surname else ""
+    return f"{head}{_slug(title_for_name, 60)}_({_slug(year, 8)})"
 
 
 # ---------------------------------------------------------------------------
@@ -848,10 +882,11 @@ def download_via_wrapper(
 def tesseract_preflight(requested: str) -> str:
     """Check which of the requested tesseract languages are installed.
 
-    Returns a `+`-joined language string with only available codes. If
-    *none* are available, returns the original string (caller will surface
-    a clearer error from tesseract itself). Otherwise warns and degrades
-    gracefully — typical Cowork case is `nor` installed but `nno` missing.
+    Returns a `+`-joined language string with only available codes. Warns
+    and degrades gracefully — typical Cowork case is `nor` installed but
+    `nno` missing. If *none* are available, falls back to `eng` (with a
+    warning) when that is installed, and otherwise exits with the install
+    hint rather than letting ocrmypdf fail on every page.
     """
     if shutil.which("tesseract") is None:
         return requested
@@ -876,9 +911,18 @@ def tesseract_preflight(requested: str) -> str:
         if kept:
             print(f"[ocr] degrading to: {'+'.join(kept)}")
             return "+".join(kept)
-        print("[ocr] no requested languages available; "
-              "trying anyway — tesseract will likely fail.")
-        return requested
+        if "eng" in available:
+            print("[ocr] WARNING: no requested language available; falling "
+                  "back to eng. Expect worse recognition of Norwegian text "
+                  "— install with: apt-get install tesseract-ocr-nor "
+                  "tesseract-ocr-nno")
+            return "eng"
+        raise SystemExit(
+            f"ERROR: none of the requested tesseract pack(s) ({requested}) "
+            "is installed and eng is not available either. Install with: "
+            "apt-get install tesseract-ocr-nor tesseract-ocr-nno, or pass "
+            "--ocr-langs with an installed code."
+        )
     return requested
 
 
@@ -998,15 +1042,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Output directory for the .pdf + .rdf pair.")
     ap.add_argument("--cookie", default=None,
                     help="Cookie file path (or 'auto' for ~/.nbno/cookie.txt). "
-                         "Used by the nbno_run.sh fallback path.")
+                         "Selects the nbno_run.sh wrapper, which is the only "
+                         "path that reads it.")
+    ap.add_argument("--downloader", choices=("auto", "iiif", "wrapper"),
+                    default="auto",
+                    help="auto (default): in-process IIIF unless --cookie is "
+                         "given without --nbsso/--bearer. iiif / wrapper "
+                         "force one path.")
     ap.add_argument("--bearer", default=None,
                     help="OPTIONAL bearer token for api.nb.no. Not needed — "
                          "api.nb.no authenticates by cookie — but accepted "
                          "for older DevTools captures that include one.")
     ap.add_argument("--nbsso", default=None,
-                    help="nbsso=<value> cookie pair. Enables the fast IIIF "
-                         "in-process downloader and is the only credential "
-                         "FEIDE-licensed items actually need.")
+                    help="nbsso=<value> cookie pair for the IIIF downloader; "
+                         "the only credential FEIDE-licensed items actually "
+                         "need. Not required for public or Bokhylla items.")
     ap.add_argument("--resize", type=int, default=None,
                     help="Page width in pixels for IIIF (default 1024) or "
                          "percentage for nbno_run.sh (suggested 75).")
@@ -1106,18 +1156,30 @@ def main(argv: Optional[List[str]] = None) -> int:
     author_list = ", ".join(f"{c.surname}, {c.given}".strip(", ")
                             for c in book.creators)
     print(f"[meta] authors:  {author_list or '(none)'}")
-    print(f"[meta] year:     {book.year or '?'}    "
+    print(f"[meta] year:     {book.date or book.year or '?'}    "
           f"publisher: {book.publisher or '?'}    "
           f"place: {book.place or '?'}")
 
     # ---- Download -----------------------------------------------------------
-    # --nbsso alone is enough: api.nb.no authenticates by cookie, so the
-    # bearer is optional. --bearer alone still selects this path for callers
-    # who captured one and no cookie.
-    if args.nbsso or args.bearer:
+    # The IIIF path is the default: it works with no credential at all for
+    # public-domain and (from Norway) Bokhylla items, and --nbsso alone is
+    # enough for FEIDE items because api.nb.no authenticates by cookie. The
+    # wrapper is chosen only by an explicit --cookie file (or --downloader
+    # wrapper) — it used to be the silent default whenever no --nbsso/--bearer
+    # was given, which made `--tiles always` a no-op for exactly the Bokhylla
+    # case that needs tiles.
+    if args.downloader == "auto":
+        use_iiif = not args.cookie or bool(args.nbsso or args.bearer)
+    else:
+        use_iiif = args.downloader == "iiif"
+    if use_iiif:
         creds = "+".join(k for k, v in (("nbsso", args.nbsso),
                                         ("bearer", args.bearer)) if v)
-        print(f"[dl] using fast IIIF in-process downloader ({creds})")
+        print(f"[dl] using fast IIIF in-process downloader "
+              f"({creds or 'no credentials'}, tiles={args.tiles})")
+        if args.cookie:
+            print("[dl] note: --cookie is only read by the nbno_run.sh wrapper; "
+                  "pass --nbsso for the IIIF path, or --downloader wrapper")
         download_via_iiif(
             canonical_id=canonical,
             out_pdf=pdf_path,
@@ -1128,7 +1190,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             tiles=args.tiles,
         )
     else:
-        print("[dl] falling back to nbno_run.sh wrapper")
+        print("[dl] using nbno_run.sh wrapper"
+              + (" (--cookie given)" if args.cookie else "")
+              + ("; --tiles/--workers do not apply here"
+                 if args.tiles != "auto" or args.workers != 12 else ""))
         download_via_wrapper(
             canonical_id=canonical,
             out_pdf=pdf_path,

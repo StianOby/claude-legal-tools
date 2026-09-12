@@ -96,7 +96,14 @@ def _which(binary: str) -> Optional[str]:
 
 
 def tesseract_preflight(requested: str) -> str:
-    """Drop missing language packs from `requested`; warn if any are missing."""
+    """Drop missing language packs from `requested`; warn if any are missing.
+
+    When *none* of the requested packs is installed, fall back to `eng` if
+    that is, with a loud warning — a Norwegian book through the English
+    model is worse than `nor`, but it is a text layer, and the alternative
+    is ocrmypdf failing on every page. With no usable pack at all, exit with
+    the install hint instead of letting tesseract fail per page.
+    """
     if shutil.which("tesseract") is None:
         return requested
     try:
@@ -113,11 +120,26 @@ def tesseract_preflight(requested: str) -> str:
     codes = [c for c in requested.split("+") if c]
     kept = [c for c in codes if c in available]
     missing = [c for c in codes if c not in available]
-    if missing and kept:
+    if not missing:
+        return requested
+    if kept:
         print(f"[ocr] missing tesseract pack(s): {'+'.join(missing)}; "
               f"degrading to {'+'.join(kept)}", file=sys.stderr)
         return "+".join(kept)
-    return requested
+    installed = ", ".join(sorted(available)) or "(none)"
+    if "eng" in available:
+        print(f"[ocr] WARNING: none of the requested tesseract pack(s) "
+              f"({requested}) is installed (installed: {installed}); "
+              f"falling back to eng. Expect worse recognition of Norwegian "
+              f"text — install with: apt-get install tesseract-ocr-nor "
+              f"tesseract-ocr-nno", file=sys.stderr)
+        return "eng"
+    raise SystemExit(
+        f"ERROR: none of the requested tesseract pack(s) ({requested}) is "
+        f"installed and eng is not available either (installed: {installed}). "
+        f"Install with: apt-get install tesseract-ocr-nor tesseract-ocr-nno, "
+        f"or pass --langs with an installed code."
+    )
 
 
 def _ensure_ocrmypdf() -> str:
@@ -251,6 +273,13 @@ def _merge(pikepdf, ocred_dir: Path, out_path: Path, total: int) -> None:
                 raise SystemExit(
                     f"ERROR: page {i} missing from OCR cache ({p})"
                 )
+            # Each source is closed before merged.save() runs. That is safe
+            # because pikepdf's pages.extend() copies foreign pages into
+            # `merged` eagerly (verified on pikepdf 10.11 / libqpdf 12.3
+            # with OCRed pages carrying fonts and image XObjects: the merged
+            # file passes qpdf --check and keeps its text). Keeping hundreds
+            # of single-page sources open until save() would instead risk
+            # the file-descriptor limit on a long book.
             with pikepdf.Pdf.open(str(p)) as src:
                 merged.pages.extend(src.pages)
         out_path.parent.mkdir(parents=True, exist_ok=True)
