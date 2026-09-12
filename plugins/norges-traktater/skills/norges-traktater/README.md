@@ -42,7 +42,15 @@ Run `python3 scripts/traktater.py status` to see the actual path.
 
 ## Installing as a Claude skill
 
-**Recommended — Claude Desktop (for use with Cowork):**
+**Recommended — install as a plugin:**
+
+- *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
+  marketplace**, enter `StianOby/claude-legal-tools`, find `norges-traktater` and click
+  **Install**. Click **Update** on the marketplace later to get new versions.
+- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
+  `/plugin install norges-traktater@claude-legal-tools`.
+
+**Alternative — upload the skill zip (Claude Desktop):**
 
 1. Download the latest `norges-traktater.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
@@ -52,7 +60,7 @@ Run `python3 scripts/traktater.py status` to see the actual path.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code CLI):**
+**Alternative — symlink from a local clone (Claude Code, for development):**
 
 - macOS / Linux:
   `ln -s /path/to/norges-traktater ~/.claude/skills/norges-traktater`

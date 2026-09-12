@@ -1,0 +1,17 @@
+{
+  "name": "lovdata-pro",
+  "version": "1.0.0",
+  "description": "Norwegian case law and preparatory works from Lovdata Pro",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/lovdata-pro",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "law",
+    "research"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "kildesjekk",
+  "version": "1.0.0",
+  "description": "Source-check an academic legal text against all retrieval skills; produces an .xlsx worklist",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/kildesjekk",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "law",
+    "research"
+  ],
+  "dependencies": [
+    "efta-court",
+    "ets",
+    "eurlex",
+    "hudoc",
+    "icj",
+    "lovdata-api",
+    "lovdata-pro",
+    "nbno",
+    "norges-traktater",
+    "untc"
+  ]
+}

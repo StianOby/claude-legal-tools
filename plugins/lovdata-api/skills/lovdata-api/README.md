@@ -120,7 +120,15 @@ available; the free packages cover all current statute text.
 
 ## Installing as a Claude skill
 
-**Recommended — Claude Desktop (for use with Cowork):**
+**Recommended — install as a plugin:**
+
+- *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
+  marketplace**, enter `StianOby/claude-legal-tools`, find `lovdata-api` and click
+  **Install**. Click **Update** on the marketplace later to get new versions.
+- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
+  `/plugin install lovdata-api@claude-legal-tools`.
+
+**Alternative — upload the skill zip (Claude Desktop):**
 
 1. Download the latest `lovdata-api.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
@@ -130,7 +138,7 @@ available; the free packages cover all current statute text.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code CLI):**
+**Alternative — symlink from a local clone (Claude Code, for development):**
 
 - macOS / Linux:
   `ln -s /path/to/lovdata-api ~/.claude/skills/lovdata-api`

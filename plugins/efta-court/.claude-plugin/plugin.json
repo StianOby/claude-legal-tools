@@ -1,0 +1,17 @@
+{
+  "name": "efta-court",
+  "version": "1.0.0",
+  "description": "EFTA Court judgments",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/efta-court",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "law",
+    "research"
+  ]
+}

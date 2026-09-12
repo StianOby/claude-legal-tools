@@ -98,7 +98,18 @@ state.
 
 ## Installing as a Claude skill
 
-**Recommended — Claude Desktop (for use with Cowork):**
+**Recommended — install as a plugin:**
+
+- *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
+  marketplace**, enter `StianOby/claude-legal-tools`, find `kildesjekk` and click
+  **Install**. Also install each of the dependency plugins listed above —
+  Cowork does not install them automatically. Click **Update** on the
+  marketplace later to get new versions.
+- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
+  `/plugin install kildesjekk@claude-legal-tools`. The dependency plugins are
+  installed automatically.
+
+**Alternative — upload the skill zip (Claude Desktop):**
 
 1. Download the latest `kildesjekk.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
@@ -109,7 +120,7 @@ state.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code CLI):**
+**Alternative — symlink from a local clone (Claude Code, for development):**
 
 - macOS / Linux:
   `ln -s /path/to/kildesjekk ~/.claude/skills/kildesjekk`

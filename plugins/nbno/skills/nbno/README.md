@@ -198,7 +198,15 @@ directories cannot be overwritten from bash.
 
 ## Installing as a Claude skill
 
-**Recommended — Claude Desktop (for use with Cowork):**
+**Recommended — install as a plugin:**
+
+- *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
+  marketplace**, enter `StianOby/claude-legal-tools`, find `nbno` and click
+  **Install**. Click **Update** on the marketplace later to get new versions.
+- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
+  `/plugin install nbno@claude-legal-tools`.
+
+**Alternative — upload the skill zip (Claude Desktop):**
 
 1. Download the latest `nbno.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
@@ -208,7 +216,7 @@ directories cannot be overwritten from bash.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code CLI):**
+**Alternative — symlink from a local clone (Claude Code, for development):**
 
 - macOS / Linux:
   `ln -s /path/to/nbno ~/.claude/skills/nbno`

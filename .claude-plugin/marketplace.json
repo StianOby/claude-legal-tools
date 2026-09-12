@@ -1,0 +1,138 @@
+{
+  "name": "claude-legal-tools",
+  "owner": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
+  "plugins": [
+    {
+      "name": "efta-court",
+      "source": "./plugins/efta-court",
+      "description": "EFTA Court judgments",
+      "category": "legal-research",
+      "keywords": [
+        "efta",
+        "eea",
+        "case-law"
+      ]
+    },
+    {
+      "name": "ets",
+      "source": "./plugins/ets",
+      "description": "Council of Europe treaty series",
+      "category": "legal-research",
+      "keywords": [
+        "council-of-europe",
+        "treaties"
+      ]
+    },
+    {
+      "name": "eurlex",
+      "source": "./plugins/eurlex",
+      "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)",
+      "category": "legal-research",
+      "keywords": [
+        "eu",
+        "cjeu",
+        "eur-lex",
+        "case-law",
+        "legislation",
+        "mcp"
+      ]
+    },
+    {
+      "name": "hudoc",
+      "source": "./plugins/hudoc",
+      "description": "European Court of Human Rights judgments from HUDOC",
+      "category": "legal-research",
+      "keywords": [
+        "echr",
+        "ecthr",
+        "human-rights",
+        "case-law"
+      ]
+    },
+    {
+      "name": "icj",
+      "source": "./plugins/icj",
+      "description": "ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations",
+      "category": "legal-research",
+      "keywords": [
+        "icj",
+        "pcij",
+        "international-law",
+        "case-law"
+      ]
+    },
+    {
+      "name": "lovdata-api",
+      "source": "./plugins/lovdata-api",
+      "description": "Norwegian legislation from Lovdata (free content)",
+      "category": "legal-research",
+      "keywords": [
+        "norway",
+        "lovdata",
+        "legislation"
+      ]
+    },
+    {
+      "name": "lovdata-pro",
+      "source": "./plugins/lovdata-pro",
+      "description": "Norwegian case law and preparatory works from Lovdata Pro",
+      "category": "legal-research",
+      "keywords": [
+        "norway",
+        "lovdata",
+        "case-law",
+        "forarbeider"
+      ]
+    },
+    {
+      "name": "nbno",
+      "source": "./plugins/nbno",
+      "description": "Documents from the National Library of Norway (Nasjonalbiblioteket)",
+      "category": "legal-research",
+      "keywords": [
+        "norway",
+        "nasjonalbiblioteket",
+        "library",
+        "books",
+        "newspapers"
+      ]
+    },
+    {
+      "name": "norges-traktater",
+      "source": "./plugins/norges-traktater",
+      "description": "Norway's treaty register",
+      "category": "legal-research",
+      "keywords": [
+        "norway",
+        "treaties"
+      ]
+    },
+    {
+      "name": "untc",
+      "source": "./plugins/untc",
+      "description": "UN Treaty Collection — treaty texts and ratification status",
+      "category": "legal-research",
+      "keywords": [
+        "un",
+        "treaties",
+        "ratification"
+      ]
+    },
+    {
+      "name": "kildesjekk",
+      "source": "./plugins/kildesjekk",
+      "description": "Source-check an academic legal text against all retrieval skills; produces an .xlsx worklist",
+      "category": "legal-research",
+      "keywords": [
+        "source-check",
+        "citations",
+        "verification",
+        "workflow"
+      ]
+    }
+  ]
+}

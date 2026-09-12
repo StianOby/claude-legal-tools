@@ -1,0 +1,17 @@
+{
+  "name": "eurlex",
+  "version": "1.0.0",
+  "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/eurlex",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "law",
+    "research"
+  ]
+}

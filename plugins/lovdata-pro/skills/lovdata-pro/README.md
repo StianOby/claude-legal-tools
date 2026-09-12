@@ -131,6 +131,15 @@ it and the skill asks the user to log in again.
 
 ## Installing as a Claude skill
 
+**Recommended — install as a plugin (Claude Cowork):**
+
+1. In Claude Desktop, go to **Customize → Plugins → Add marketplace** and enter
+   `StianOby/claude-legal-tools`.
+2. Find `lovdata-pro` in the list and click **Install**. Click **Update** on the
+   marketplace later to get new versions.
+
+**Alternative — upload the skill zip (Claude Desktop):**
+
 1. Download the latest `lovdata-pro.zip` from the
    [releases page](https://github.com/StianOby/claude-legal-tools/releases).
 2. In Claude Desktop, go to **Customize → Skills**, click **+** →
