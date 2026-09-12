@@ -93,4 +93,4 @@ plugins/<name>/
   skills/<name>/                    # the skill itself: SKILL.md, README.md, scripts/ …
 ```
 
-Each plugin carries its own version number, bumped automatically on every commit that changes it (see [CLAUDE.md](CLAUDE.md)). Claude Code offers an update when the version changes; Cowork's **Update** button always pulls the current repository state.
+Each plugin carries its own version number, bumped automatically on every commit that changes it (see [CLAUDE.md](CLAUDE.md)). Claude Code offers an update when the version changes; in Cowork, click **Update** on the marketplace to pull the latest versions.

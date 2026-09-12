@@ -56,8 +56,9 @@ Rules:
   `SKILL.md` directory, which is why there are two levels.
 - **Every commit that touches a plugin's files must bump `version` in
   `plugins/<name>/.claude-plugin/plugin.json`.** Claude Code caches plugins by
-  version and users only receive updates when it changes. (Cowork ignores
-  versions and always pulls the current repo state.) This is automated:
+  version and users only receive updates when it changes. (Whether Cowork's
+  update check also keys on the version is undocumented — bumping covers both
+  cases.) This is automated:
   - `.githooks/pre-commit` bumps the patch version of every plugin with
     staged changes. Enable it once per clone with
     `git config core.hooksPath .githooks`. Bump minor/major by hand for

@@ -41,8 +41,11 @@ Caveats:
 2. Plugin `dependencies` (auto-install of required plugins) is documented for
    Claude Code only; Cowork docs never mention it. Assume kildesjekk's
    dependency list may be a no-op in Cowork — see §4 for the fallback.
-3. Cowork has no version pinning; updates replace the plugin with current repo
-   state. The version-bump CI guard in §5 only matters for Claude Code caching.
+3. The Cowork docs never mention plugin versions: "Update" on a marketplace
+   pulls the latest repo state, and Cowork "checks for plugin updates", but
+   whether that check compares `plugin.json` versions (as Claude Code does) or
+   just re-fetches is undocumented. The automatic version bump in §5 covers
+   both cases; verify which applies in 7.4.
 4. Private repos need org-managed marketplaces via the Claude GitHub App. This
    repo is public, so not relevant.
 
@@ -279,3 +282,7 @@ default branch):
   each dependency by hand" wording in README and kildesjekk README.
 - The eurlex MCP tool prefix in Cowork.
 - `python3 scripts/…` resolves from the plugin cache path.
+- Whether Cowork keys updates on `plugin.json` version: install a plugin, push
+  a trivial change committed with `--no-verify` (no bump), click Update, see
+  if it arrives. Then bump the version and check again. Record the answer in
+  §1 caveat 3 and CLAUDE.md.
