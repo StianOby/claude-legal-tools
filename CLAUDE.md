@@ -54,10 +54,16 @@ Rules:
 - A skill lives at `plugins/<name>/skills/<name>/` — the plugin name and the
   skill name are always the same. The `skills` path must be a *parent* of the
   `SKILL.md` directory, which is why there are two levels.
-- **Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` whenever
-  any file under that plugin changes.** Claude Code caches plugins by version
-  and users only receive updates when it changes. (Cowork ignores versions and
-  always pulls the current repo state.)
+- **Every commit that touches a plugin's files must bump `version` in
+  `plugins/<name>/.claude-plugin/plugin.json`.** Claude Code caches plugins by
+  version and users only receive updates when it changes. (Cowork ignores
+  versions and always pulls the current repo state.) This is automated:
+  - `.githooks/pre-commit` bumps the patch version of every plugin with
+    staged changes. Enable it once per clone with
+    `git config core.hooksPath .githooks`. Bump minor/major by hand for
+    notable changes; the hook leaves a manually changed version alone.
+  - CI (`validate.yml` → `.github/scripts/check-plugin-versions.sh`) fails a
+    PR or push where a plugin changed without a version change.
 - Never put `version` in the marketplace.json entries — it belongs in
   `plugin.json` only.
 - Add new plugins to `.claude-plugin/marketplace.json` with

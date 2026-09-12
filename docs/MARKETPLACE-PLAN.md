@@ -184,9 +184,12 @@ uses the same prefix is unverified — check during 7.4.
 - A consistency check: every `plugins/*` directory has a marketplace entry
   with `source: ./plugins/<name>`, matching `plugin.json` name, and no
   `version` in the marketplace entry.
-- Not done (optional, Claude Code only): fail if files under `plugins/<p>/`
-  changed since the last `skills-*` tag but the `plugin.json` version did not.
-  Claude Code caches plugins by version; for now the rule lives in CLAUDE.md.
+- Version guard: `.github/scripts/check-plugin-versions.sh` fails if files
+  under `plugins/<p>/` changed (vs. the PR base, or the last `skills-*` tag on
+  push) but the `plugin.json` version did not. The bump itself is automated
+  by the tracked `.githooks/pre-commit` hook (patch bump per changed plugin;
+  enable with `git config core.hooksPath .githooks`). Release notes list the
+  version of every plugin.
 
 ## 7. Migration order
 

@@ -10,6 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check that changed plugins have a bumped version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+          else
+            base=$(git tag --list 'skills-*' --sort=-creatordate | head -n1)
+            [ -n "$base" ] || base="${{ github.event.before }}"
+          fi
+          echo "comparing against $base"
+          .github/scripts/check-plugin-versions.sh "$base"
 
       - name: Check SKILL.md description length (≤ 1024 chars after YAML parsing)
         run: |

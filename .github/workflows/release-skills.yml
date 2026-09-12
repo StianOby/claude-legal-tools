@@ -43,6 +43,13 @@ jobs:
             echo ""
             git log --no-merges --pretty=format:'- %s (%h)' "$RANGE"
             echo ""
+            echo ""
+            echo "### Plugin versions"
+            echo ""
+            for m in plugins/*/.claude-plugin/plugin.json; do
+              python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); print("- " + m["name"] + " " + m["version"])' "$m"
+            done
+            echo ""
             echo "CHANGELOG_EOF"
           } >> $GITHUB_OUTPUT
 

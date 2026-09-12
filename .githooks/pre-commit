@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Bump the patch version of every plugin whose files are part of this commit,
+# so that Claude Code (which caches plugins by version) picks up the change.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# A plugin is skipped when its plugin.json version is already changed in the
+# index (i.e. you bumped it by hand, or a previous hook run in an amended
+# commit already did).
+set -euo pipefail
+
+changed_plugins=$(git diff --cached --name-only --diff-filter=ACMRD -- plugins/ \
+  | awk -F/ 'NF > 2 { print $2 }' | sort -u)
+
+[ -z "$changed_plugins" ] && exit 0
+
+for plugin in $changed_plugins; do
+  manifest="plugins/$plugin/.claude-plugin/plugin.json"
+  [ -f "$manifest" ] || continue
+
+  head_version=$(git show "HEAD:$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+  index_version=$(git show ":$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
+
+  # Only the manifest itself staged, or version already bumped: leave it alone.
+  if [ -n "$head_version" ] && [ "$head_version" != "$index_version" ]; then
+    continue
+  fi
+  other_files=$(git diff --cached --name-only -- "plugins/$plugin" | grep -v -x "$manifest" || true)
+  [ -z "$other_files" ] && continue
+
+  new_version=$(python3 - "$manifest" <<'PY'
+import json, re, sys
+path = sys.argv[1]
+m = json.load(open(path))
+major, minor, patch = (int(x) for x in re.match(r"^(\d+)\.(\d+)\.(\d+)$", m["version"]).groups())
+m["version"] = f"{major}.{minor}.{patch + 1}"
+open(path, "w").write(json.dumps(m, indent=2, ensure_ascii=False) + "\n")
+print(m["version"])
+PY
+)
+  git add "$manifest"
+  echo "pre-commit: $plugin → $new_version"
+done
