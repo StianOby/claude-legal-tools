@@ -86,3 +86,6 @@ curl -H "X-Requested-With: XMLHttpRequest" \
 ```
 
 A working response is a `{"resultcount":1,"results":[...]}` JSON blob.
+
+<!-- update-test marker A: committed without a version bump -->
+Update-test marker: **A** (no version bump).
