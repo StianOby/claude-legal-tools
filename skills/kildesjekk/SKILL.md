@@ -10,19 +10,20 @@ You will look up each and every reference in the text, check/assess it, and docu
 # Overview of the workflow
 1) Startup: verify tools, ask for the text, extract references.
 2) Worklist and output initialization: create .xlsx file with extracted references that will serve as both the output and your worklist, add columns and read the description of the purpose of each column.
-3) How to check the references (read these overarching instructions on how to check references), then check the internal cross-references.
-4) Check sources found in the Zotero library
-5) Check EU legal sources
-6) Check Norwegian statutes and regulations
-7) Check Norwegian preparatory works
-8) Check Norwegian case law
-9) Check treaties
-10) Check ICJ case law
-11) Check decisions from the EFTA Court
-12) Check ECtHR case law
-13) Check Norwegian books
-14) Sources not found with the tools
-15) Final verification
+3) How to check the references (read these overarching instructions on how to check references).
+4) Check internal cross-references
+5) Check sources found in the Zotero library
+6) Check EU legal sources
+7) Check Norwegian statutes and regulations
+8) Check Norwegian preparatory works
+9) Check Norwegian case law
+10) Check treaties
+11) Check ICJ case law
+12) Check decisions from the EFTA Court
+13) Check ECtHR case law
+14) Check Norwegian books
+15) Sources not found with the tools
+16) Final verification
 
 The work may be extensive and may run over several sessions. Use the .xlsx file as a worklist along the way, by using the "checked" column to keep track of status. Remember to update the "checked" column after each session, so that the next round can pick up the thread without starting over. Save the .xlsx file after every 10 newly-checked references and at the end of each step.
 
@@ -46,7 +47,7 @@ Verify that you have access to all the relevant tools:
 		- nbno
 		- untc
 	
-Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§7–8 and for nbno in §13, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
+Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9 and for nbno in §14, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Ask for the text document in PDF or DOCX format if not already provided.
 
@@ -185,13 +186,6 @@ For references without a pinpoint (page, section, or paragraph), you must:
 	- Check that the cited work exists, is correctly identified (author, title, year, edition), and is broadly relevant to the surrounding claim.
 	- If the surrounding claim is sharp enough that pinpoint support would normally be expected, set discrepancy = yes with type "Weak support" or "Wrong source" depending on the case, and explain in the description.
 
-For internal cross-references, you must:
-	- look up the relevant footnote/page/section
-	- assess whether the cross-reference seems useful or reasonable.
-	- mark checked = yes (or yes with a discrepancy and description as appropriate).
-
-Internal cross-references are checked at this point — by reading the manuscript itself. No per-tool step in §§4–13 handles them. Carry out the internal-cross-reference check at the start of the per-tool steps, before §4.
-
 ## Flagging
 Identify all errors or inaccuracies. Feel free to mark uncertain assessments explicitly, so that the user can see the difference between, for example, "this is an obvious discrepancy" and "I think the support is weak here, but you should read it yourself".
 
@@ -199,8 +193,8 @@ What is most important is that discrepancies (errors and inaccuracies) are flagg
 
 If a single reference contains more than one independent discrepancy, pick the most severe one for the type of discrepancy and severity columns and describe all of them in description.
 
-## How to run §§4–14
-When looking up sources, proceed in the order set out in §§4–14 of the workflow.
+## How to run §§4–15
+Proceed in the order set out in §§4–15 of the workflow: the internal cross-references first (§4, no tool needed), then the sources, tool by tool.
 
 Stop and ask the user whether to proceed to the next step when each of the steps below has been completed – unless explicit authorisation to continue without interruption has been given.
 
@@ -208,7 +202,15 @@ Use only the tools specified below, and only in the manner specified. If a step 
 
 At each of the following steps, look only at references whose checked value is still "no" and which fall within the source category that step covers. Skip references that belong to a different category — they will be handled in the step appropriate to their type.
 
-# 4) Check sources found in the Zotero library (with the zoteus MCP, the preferred tool)
+# 4) Check internal cross-references
+Cross-references to another part of the same manuscript ("see footnote 3 above", "see chapter 2", "see section 4.3") are checked against the manuscript itself; no tool is involved. Do them first, so that every later step only handles rows that point to an external source.
+
+For each internal cross-reference, you must:
+	- look up the relevant footnote/page/section in the manuscript
+	- assess whether the cross-reference seems useful or reasonable — that the target exists, says what the citing passage implies, and is the passage the author most plausibly meant
+	- mark checked = yes (or yes with a discrepancy and description as appropriate; a target that does not exist or does not say what is claimed is a "Wrong page/section/paragraph" or "Claim not supported" case).
+
+# 5) Check sources found in the Zotero library (with the zoteus MCP, the preferred tool)
 The Zotero library (zoteus MCP) may contain all types of sources, such as judgments of domestic and international courts, treaties, statutes, preparatory works, legislation, and literature. Use the Zotero library for all sources you find there, except:
 - Norwegian statutes and regulations
 - EU legislation (regulations and directives)
@@ -226,7 +228,7 @@ Searching inside PDF text is reliable only for distinctive strings. Short tokens
 
 For case law, the default quick search matches the "Case name" field. The case number (e.g. C-123/17, HR-2026-123-A) is in "Docket number" and is reached by the broadened search.
 
-Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (preferred) or `report` depending on how they were entered (see §7); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`. `statute` items keep their name in `nameOfAct`, so search results list them as "(untitled)" — recognise them by `shortTitle` (e.g. "UNCLOS", "ECHR") and confirm with `zotero_get_item`. Treaty numbers sit in `publicLawNumber` ("ETS No. 5") or `code`/`codeNumber` ("UNTS" 1833) and are reached by the broadened search.
+Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (preferred) or `report` depending on how they were entered (see §8); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`. `statute` items keep their name in `nameOfAct`, so search results list them as "(untitled)" — recognise them by `shortTitle` (e.g. "UNCLOS", "ECHR") and confirm with `zotero_get_item`. Treaty numbers sit in `publicLawNumber` ("ETS No. 5") or `code`/`codeNumber` ("UNTS" 1833) and are reached by the broadened search.
 
 Confirm every hit with `zotero_get_item` (`item_key`, `include_children: true`). This returns the full record (all bibliographic fields) plus the child attachments and notes. Check author, title, year and edition against the reference before reading, and note the attachment keys.
 
@@ -259,19 +261,19 @@ Certain Zotero items, notably some monographs, will only have a single PDF attac
 - Hits are often listed as "(untitled)" with only a key, snippet and score. Identify each hit with `zotero_get_item` before doing anything else with it.
 - A semantic hit is a lead, never a verification. Always open the record with `zotero_get_item` and read the passage with `zotero_get_fulltext` before filling in the worklist.
 
-# 5) Check EU legal sources
-Use the /eurlex skill — a guide to the eurlex MCP tools (case number/ECLI to CELEX, paging long judgments by paragraph offset, consolidated versions) — for all EU legislation (regulations, directives, decisions: never from Zotero, see §4) and for EU case law that was not found in Zotero. When the reference is to an act as it stood on a date, or to an article since amended, check the version the author cites (eurlex serves consolidated versions by date); a reference that is only right for the current text is a "Outdated/superseded source" or "Wrong page/section/paragraph" case, not a match.
+# 6) Check EU legal sources
+Use the /eurlex skill — a guide to the eurlex MCP tools (case number/ECLI to CELEX, paging long judgments by paragraph offset, consolidated versions) — for all EU legislation (regulations, directives, decisions: never from Zotero, see §5) and for EU case law that was not found in Zotero. When the reference is to an act as it stood on a date, or to an article since amended, check the version the author cites (eurlex serves consolidated versions by date); a reference that is only right for the current text is a "Outdated/superseded source" or "Wrong page/section/paragraph" case, not a match.
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 6) Check Norwegian statutes and regulations
+# 7) Check Norwegian statutes and regulations
 Use the /lovdata-api skill for Norwegian statutes and regulations in force: it is the only tool for current law, and it is free. It holds *only* current consolidated text, so two kinds of reference must go to the /lovdata-pro skill instead:
 - a repealed act (straffeloven 1902, the 1918 avtalelov before its amendments, an older forskrift), which lovdata-api does not have at all;
 - a provision cited as it read at a given time ("§ 5 slik den lød før lovendringen i 2015", a case decided under the old wording), which needs the historical version, not today's.
 
 Check the reference against the version the author cites. If the current text has changed since, the reference may still be correct for its date; flag it as "Outdated/superseded source" only if the manuscript presents the old text as current law. If there is something you cannot find with either tool, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 7) Check Norwegian preparatory works
+# 8) Check Norwegian preparatory works
 Norwegian preparatory works (Ot.prp., Prop. L/S, St.prp., St.meld., NOU, Innst.) are stored in Zotero without the citation number in the title field — the title is the document's own title (e.g. "Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)"). Two storage models occur, and a library may contain both:
 - **`bill` items** (the preferred model): series in `code` ("Ot.prp. nr.", "Prop.", "NOU", "Innst."; spelling varies), number in `billNumber` ("3", "71 L", "521 L"), session in `codeVolume` ("1998-99", "2024-2025"; empty for NOUs), the document date in `date`, and the ministry, committee or *utvalg* as sponsor.
 - **`report` items** (older entries): series in `seriesTitle` ("Ot.prp.", "Norges Offentlige Utredninger"), document number in `reportNumber` ("3", "18"), kind in `reportType` ("Proposisjon", "NOU"), session in `date` ("1998-99"), and the ministry, committee or *utvalg* as creator.
@@ -285,7 +287,7 @@ Worked examples for both models, covering Ot.prp./Prop./St.prp., NOU and Innst.,
 
 **For Norwegian preparatory works *not* found in Zotero**, use the /lovdata-pro skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 8) Check Norwegian case law
+# 9) Check Norwegian case law
 Norwegian court judgments are stored in Zotero as item type `case` with this pattern:
 - **`caseName`** (shown as the title) holds the identifier and, in parentheses, the popular name or the parties: "HR-2016-2554-P (Holship Norge mot Norges Transportarbeiderforbund)", "Rt. 2000 s. 1811 (Finanger I)", "RG 1966 s. 1", "LG-2008-135938 (Tomt i LNF-område)". Some items, especially unpublished lower-court decisions, carry only the party names.
 - **`docketNumber`** holds the case number: modern cases as `HR-YYYY-NNNN-X` or `LG-YYYY-NNNNNN`; older Supreme Court cases as the court's own number ("Sak nr. 55/1999"). May be empty.
@@ -298,8 +300,8 @@ Example calls for modern HR cases, older Rt. cases and RG cases, plus the non-br
 
 **For Norwegian case law *not* found in Zotero**, use the /lovdata-pro skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 9) Check treaties
-Treaties found in Zotero (`statute` items, see §4) were handled there. For the rest, pick the appropriate tool from the list below — do not run them in a fixed order:
+# 10) Check treaties
+Treaties found in Zotero (`statute` items, see §5) were handled there. For the rest, pick the appropriate tool from the list below — do not run them in a fixed order:
 	- /ets for Council of Europe treaties: anything cited with an ETS/CETS number or a CoE name (ECHR and its protocols, the Social Charter, the Istanbul, Lanzarote, Budapest and Oviedo conventions, Convention 108). Authentic English and French texts, explanatory reports, signatures, ratifications and reservations per state.
 	- /untc for treaties registered with the UN: the UN Charter, the 1966 Covenants, CEDAW, CRC, CAT, the Vienna Convention on the Law of Treaties, UNCLOS, the Rome Statute, the Geneva Conventions and, in principle, any treaty cited with a UNTS volume/page. Authentic texts and status (parties, reservations, entry into force).
 	- /norges-traktater for what is specific to Norway: the Norwegian text of a treaty, Norway's signature/ratification/entry-into-force dates and reservations, and bilateral or regional agreements (Nordic conventions, EEA-related and boundary agreements) that neither database indexes well. The Norwegian text is also what to check when the manuscript quotes a treaty in Norwegian.
@@ -307,16 +309,16 @@ Treaties found in Zotero (`statute` items, see §4) were handled there. For the 
 
 Check the text against the authentic language the manuscript quotes: a Norwegian quotation against the Norwegian text, an English one against the English. Note, however, that only very few treaties are *authentic* in Norwegian. Where a treaty appears in more than one database, one confirmed source is enough. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 10) Check ICJ case law
+# 11) Check ICJ case law
 For ICJ (International Court of Justice) or PCIJ (Permanent Court of International Justice) case law, use the /icj skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 11) Check decisions from the EFTA Court
+# 12) Check decisions from the EFTA Court
 For EFTA Court case law not found in Zotero, use the /efta-court skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 12) Check ECtHR case law
+# 13) Check ECtHR case law
 For ECtHR case law not found in Zotero, use the /hudoc skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 13) Check Norwegian books
+# 14) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. In short:
 1. Find the item from the reference with `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
 2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run `scripts/geo_check.py` if in doubt; `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
@@ -324,11 +326,11 @@ For Norwegian books not found in Zotero, use the /nbno skill to look for them at
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
-# 14) Sources not found with the tools
+# 15) Sources not found with the tools
 If you are unable to find a source after having gone through all the steps above (and used all the tools), enter "source unavailable" in the "checked" column. This applies in particular to non-Norwegian books, journal articles, working papers, and other literature where Zotero is the only available tool: if the item is not in Zotero, mark it "source unavailable". **Do not be afraid to do this – it is *very important* that you only check against *original sources* using *only* the tools defined above.**
 
-# 15) Final verification
-Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§4–13. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
+# 16) Final verification
+Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§5–14. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
 
 At the very end, you must also check:
 	- That all "discrepancy = yes" have a description filled in.
