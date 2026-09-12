@@ -2,7 +2,7 @@
 
 A Claude skill that verifies every reference and quotation in an academic legal
 text against the original sources. The skill checks sources across Zotero,
-Lovdata, EUR-Lex, HUDOC, EFTA Court, UNTC, ETS, Norges traktater, and
+Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, and
 Nasjonalbiblioteket, then produces an `.xlsx` worklist with per-reference
 status, severity-coded discrepancies, and a metadata sheet.
 
@@ -58,8 +58,7 @@ For the skill to work you need:
 - Zotero desktop running, _with_ **Settings → Advanced → "Allow other
   applications on this computer to communicate with Zotero"** _enabled_.
 - Zotero's own PDF full-text indexing complete for the library (Settings →
-  General → Full-text indexing). Lookups by case number and preparatory-work
-  citation number rely on it.
+  General → Full-text indexing). Needed for searching *inside* the fulltext of library items — e.g. for a quotation.
 - Optional: a Zoteus semantic index built with `ZOTEUS_INDEX_FULLTEXT=true`.
   The skill uses semantic search only as a secondary lookup and works without
   it.
