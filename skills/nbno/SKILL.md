@@ -205,6 +205,20 @@ There are three common ways the user may give you the item:
      for that, trust only `via: "url"`, `"catalog"` or `"urn-link"`.
 3. **Already canonical** — the user pastes `digibok_2008051600041` directly
    → use as-is.
+4. **Only a bibliographic reference** (author, title, year — a footnote or
+   bibliography entry): search the open catalogue with
+   `scripts/nb_search.py`, no credentials needed:
+
+   ```bash
+   python {SKILL_DIR}/scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001
+   ```
+
+   Every word must match, so use surname + a title word and narrow with
+   `--year`, not with more words. Each hit prints the id, year, publisher,
+   page count and access class. Pick the hit whose **year matches the
+   reference** — same title, different years are different editions, and
+   a title beginning "Utdrag av …" is an excerpt, not the book. `--type
+   tidsskrift` / `avis` for journals and newspapers, `--json` for scripts.
 
 Supported `type` prefixes: `digibok` (books, sheet music), `digavis`
 (newspapers), `digifoto` (photos, posters), `digitidsskrift` (journals),

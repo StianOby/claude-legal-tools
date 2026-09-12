@@ -31,6 +31,7 @@ nbno/
 ├── README.md                  # you are here
 └── scripts/
     ├── nbno_run.sh            # download wrapper
+    ├── nb_search.py           # find an item id from author/title/year (open catalogue)
     ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
     ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
     ├── build_zotero_rdf.py    # Zotero RDF generation
@@ -57,6 +58,9 @@ procedures relevant to a given task are loaded into Claude's context.
 ## Quickstart
 
 ```bash
+# find the id from a reference (edition = year; "Utdrag av" hits are excerpts)
+python scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001
+
 # open content (no login needed) — e.g. a pre-1900 book
 bash scripts/nbno_run.sh \
   --id "digibok_2008051600041" \
