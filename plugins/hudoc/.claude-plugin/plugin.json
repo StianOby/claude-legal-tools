@@ -1,6 +1,6 @@
 {
   "name": "hudoc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "European Court of Human Rights judgments from HUDOC",
   "author": {
     "name": "Stian Øby Johansen",

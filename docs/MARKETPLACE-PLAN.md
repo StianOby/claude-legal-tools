@@ -44,11 +44,10 @@ Caveats:
    kildesjekk README tell Cowork users to install them by hand; the field is
    kept for Claude Code. Re-test occasionally; drop the manual-install wording
    if Cowork starts honouring it.
-3. The Cowork docs never mention plugin versions: "Update" on a marketplace
-   pulls the latest repo state, and Cowork "checks for plugin updates", but
-   whether that check compares `plugin.json` versions (as Claude Code does) or
-   just re-fetches is undocumented. The automatic version bump in §5 covers
-   both cases; verify which applies in 7.4.
+3. **Verified 2026-09-12: Cowork's "Update" re-fetches the repo regardless of
+   `plugin.json` version** (a README change committed without a bump arrived
+   after clicking Update). Versions therefore only matter for Claude Code,
+   which caches by version; the automatic bump in §5 exists for that.
 4. Private repos need org-managed marketplaces via the Claude GitHub App. This
    repo is public, so not relevant.
 
@@ -285,9 +284,8 @@ Cowork test results (2026-09-12, after merge):
 - eurlex: bundled MCP server installs and its tools are used. ✔
 - hudoc: `python3 scripts/hudoc.py` resolves from the plugin location. ✔
 
-Still open:
+- Update without version bump (hudoc README marker, `--no-verify`): arrived
+  in Cowork after **Update**. Cowork does not key on `plugin.json` version. ✔
 
-- Whether Cowork keys updates on `plugin.json` version: install a plugin, push
-  a trivial change committed with `--no-verify` (no bump), click Update, see
-  if it arrives. Then bump the version and check again. Record the answer in
-  §1 caveat 3 and CLAUDE.md.
+Nothing open. Possible follow-ups: `claude plugin eval` for the skills with
+`evals/`; re-test `dependencies` in Cowork now and then.
