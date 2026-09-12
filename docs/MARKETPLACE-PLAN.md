@@ -1,8 +1,8 @@
 # Plan: turn this repo into a plugin marketplace
 
-Status: **implemented on branch `marketplace`, awaiting Cowork test** (2026-09-12).
-Steps 7.1–7.3 and 7.5–7.6 are done; 7.4 (live test in Cowork and Claude Code)
-and 7.7 (merge) remain. See §11 for what was verified while implementing.
+Status: **merged and live** (PR #1, 2026-09-12; release `skills-2026.09.12-105`).
+Cowork verified: marketplace lists all eleven plugins, eurlex's bundled MCP
+server and hudoc's `scripts/` work; `dependencies` is **not** honoured. See §11.
 
 Goal: let Cowork (and Claude Code) users install the skills in this repo as
 plugins via "Add marketplace → `StianOby/claude-legal-tools`", while keeping the
@@ -36,11 +36,14 @@ Decisions:
 Caveats:
 
 1. Personal-tab "Add marketplace" was reported missing in June 2026
-   (<https://github.com/anthropics/claude-code/issues/66184>). Docs now describe
-   it as present. **Verify in Cowork before doing the restructure.**
+   (<https://github.com/anthropics/claude-code/issues/66184>). **Verified
+   present 2026-09-12.**
 2. Plugin `dependencies` (auto-install of required plugins) is documented for
-   Claude Code only; Cowork docs never mention it. Assume kildesjekk's
-   dependency list may be a no-op in Cowork — see §4 for the fallback.
+   Claude Code only. **Verified 2026-09-12: Cowork ignores it** — installing
+   kildesjekk does not install the ten retrieval plugins. The README and
+   kildesjekk README tell Cowork users to install them by hand; the field is
+   kept for Claude Code. Re-test occasionally; drop the manual-install wording
+   if Cowork starts honouring it.
 3. The Cowork docs never mention plugin versions: "Update" on a marketplace
    pulls the latest repo state, and Cowork "checks for plugin updates", but
    whether that check compares `plugin.json` versions (as Claude Code does) or
@@ -274,14 +277,16 @@ Done on branch `marketplace`:
   check, `claude plugin validate`.
 - README, CLAUDE.md, every skill README updated with plugin install steps.
 
-Still to verify in 7.4 (needs the branch on `main`, since Cowork reads the
-default branch):
+Cowork test results (2026-09-12, after merge):
 
-- Cowork "Add marketplace" → `StianOby/claude-legal-tools` lists all eleven.
-- Whether Cowork honours kildesjekk's `dependencies`; if yes, drop the "install
-  each dependency by hand" wording in README and kildesjekk README.
-- The eurlex MCP tool prefix in Cowork.
-- `python3 scripts/…` resolves from the plugin cache path.
+- Add marketplace → `StianOby/claude-legal-tools` lists all eleven. ✔
+- kildesjekk's `dependencies`: **not honoured** by Cowork. Manual-install
+  wording in the READMEs stays. ✘ (accepted)
+- eurlex: bundled MCP server installs and its tools are used. ✔
+- hudoc: `python3 scripts/hudoc.py` resolves from the plugin location. ✔
+
+Still open:
+
 - Whether Cowork keys updates on `plugin.json` version: install a plugin, push
   a trivial change committed with `--no-verify` (no bump), click Update, see
   if it arrives. Then bump the version and check again. Record the answer in
