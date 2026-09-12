@@ -1,15 +1,21 @@
 # Plan: turn this repo into a plugin marketplace
 
-Status: **draft, not started** (2026-09-12).
+Status: **implemented on branch `marketplace`, awaiting Cowork test** (2026-09-12).
+Steps 7.1–7.3 and 7.5–7.6 are done; 7.4 (live test in Cowork and Claude Code)
+and 7.7 (merge) remain. See §11 for what was verified while implementing.
 
 Goal: let Cowork (and Claude Code) users install the skills in this repo as
 plugins via "Add marketplace → `StianOby/claude-legal-tools`", while keeping the
 existing per-skill `.zip` GitHub Releases for users who upload skills by file.
 
-Decisions so far:
+Decisions:
 
-- **One plugin per skill** (see §9 for the alternative to reconsider).
+- **One plugin per skill** — final (see §9). The ten retrieval skills are
+  useful on their own, future meta-skills besides kildesjekk will depend on
+  subsets of them, and Claude Code users should not pay context tokens for
+  skills they don't need.
 - **Keep the zip release workflow.**
+- **Explicit `./plugins/<name>` sources**, not `metadata.pluginRoot` (§3).
 
 ## 1. Cowork support (verified against docs 2026-09-12)
 
@@ -35,8 +41,11 @@ Caveats:
 2. Plugin `dependencies` (auto-install of required plugins) is documented for
    Claude Code only; Cowork docs never mention it. Assume kildesjekk's
    dependency list may be a no-op in Cowork — see §4 for the fallback.
-3. Cowork has no version pinning; updates replace the plugin with current repo
-   state. The version-bump CI guard in §5 only matters for Claude Code caching.
+3. The Cowork docs never mention plugin versions: "Update" on a marketplace
+   pulls the latest repo state, and Cowork "checks for plugin updates", but
+   whether that check compares `plugin.json` versions (as Claude Code does) or
+   just re-fetches is undocumented. The automatic version bump in §5 covers
+   both cases; verify which applies in 7.4.
 4. Private repos need org-managed marketplaces via the Claude GitHub App. This
    repo is public, so not relevant.
 
@@ -79,25 +88,30 @@ Use `git mv` so `git log --follow` keeps working.
   "name": "claude-legal-tools",
   "owner": { "name": "Stian Øby Johansen", "url": "https://github.com/StianOby" },
   "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
-  "metadata": { "pluginRoot": "./plugins" },
   "plugins": [
-    { "name": "efta-court", "source": "efta-court", "description": "EFTA Court judgments", "category": "legal-research", "keywords": ["efta", "eea", "case-law"] },
-    { "name": "ets", "source": "ets", "description": "Council of Europe treaty series", "category": "legal-research" },
-    { "name": "eurlex", "source": "eurlex", "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)", "category": "legal-research" },
-    { "name": "hudoc", "source": "hudoc", "description": "European Court of Human Rights judgments from HUDOC", "category": "legal-research" },
-    { "name": "icj", "source": "icj", "description": "ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations", "category": "legal-research" },
-    { "name": "lovdata-api", "source": "lovdata-api", "description": "Norwegian legislation from Lovdata (free content)", "category": "legal-research" },
-    { "name": "lovdata-pro", "source": "lovdata-pro", "description": "Norwegian case law and preparatory works from Lovdata Pro", "category": "legal-research" },
-    { "name": "nbno", "source": "nbno", "description": "Documents from the National Library of Norway (Nasjonalbiblioteket)", "category": "legal-research" },
-    { "name": "norges-traktater", "source": "norges-traktater", "description": "Norway's treaty register", "category": "legal-research" },
-    { "name": "untc", "source": "untc", "description": "UN Treaty Collection — treaty texts and ratification status", "category": "legal-research" },
-    { "name": "kildesjekk", "source": "kildesjekk", "description": "Source-check an academic legal text against all retrieval skills; produces an .xlsx worklist", "category": "legal-research" }
+    { "name": "efta-court", "source": "./plugins/efta-court", "description": "EFTA Court judgments", "category": "legal-research", "keywords": ["efta", "eea", "case-law"] },
+    { "name": "ets", "source": "./plugins/ets", "description": "Council of Europe treaty series", "category": "legal-research" },
+    { "name": "eurlex", "source": "./plugins/eurlex", "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)", "category": "legal-research" },
+    { "name": "hudoc", "source": "./plugins/hudoc", "description": "European Court of Human Rights judgments from HUDOC", "category": "legal-research" },
+    { "name": "icj", "source": "./plugins/icj", "description": "ICJ and PCIJ case law, jurisdiction data, and Article 36(2) declarations", "category": "legal-research" },
+    { "name": "lovdata-api", "source": "./plugins/lovdata-api", "description": "Norwegian legislation from Lovdata (free content)", "category": "legal-research" },
+    { "name": "lovdata-pro", "source": "./plugins/lovdata-pro", "description": "Norwegian case law and preparatory works from Lovdata Pro", "category": "legal-research" },
+    { "name": "nbno", "source": "./plugins/nbno", "description": "Documents from the National Library of Norway (Nasjonalbiblioteket)", "category": "legal-research" },
+    { "name": "norges-traktater", "source": "./plugins/norges-traktater", "description": "Norway's treaty register", "category": "legal-research" },
+    { "name": "untc", "source": "./plugins/untc", "description": "UN Treaty Collection — treaty texts and ratification status", "category": "legal-research" },
+    { "name": "kildesjekk", "source": "./plugins/kildesjekk", "description": "Source-check an academic legal text against all retrieval skills; produces an .xlsx worklist", "category": "legal-research" }
   ]
 }
 ```
 
 Leave `version` out of the marketplace entries; put it in each `plugin.json`
-so there is one place to bump.
+so there is one place to bump. (Docs: setting it in both places makes Claude
+Code silently prefer `plugin.json`.)
+
+Sources are written out as `./plugins/<name>` rather than bare names under
+`metadata.pluginRoot`: bare names need Claude Code ≥ 2.1.239 and the Cowork
+docs don't mention `pluginRoot`. Anthropic's own knowledge-work-plugins repo
+uses explicit relative paths too.
 
 ## 4. `plugin.json` per plugin
 
@@ -114,7 +128,9 @@ Template for the ten retrieval plugins:
 }
 ```
 
-(Confirm the SPDX id against `LICENSE`.)
+`LICENSE` is GPL v3 → SPDX `GPL-3.0-only`. Do **not** add `"skills": "./skills"`
+to `plugin.json`: the default `skills/` directory is always scanned, and a
+declared path is loaded *in addition* to it.
 
 kildesjekk additionally declares:
 
@@ -138,11 +154,12 @@ Ship `plugins/eurlex/.mcp.json` instead:
 { "mcpServers": { "eurlex": { "command": "npx", "args": ["-y", "eurlex-mcp-server"] } } }
 ```
 
-Verify: plugin-provided MCP servers may get a different tool-name prefix than a
-user-configured server (SKILL.md refers to `mcp__eurlex__eurlex_*`). After a
-local install, check the actual prefix and adjust SKILL.md wording. Keep the
-"if the tools are missing, tell the user" fallback for zip-installed users, who
-get no `.mcp.json`.
+Plugin-provided MCP servers get a different tool-name prefix than a
+user-configured server: `mcp__plugin_<plugin>_<server>__<tool>`, i.e.
+`mcp__plugin_eurlex_eurlex__eurlex_*` (Claude Code plugins reference). SKILL.md
+now names both prefixes and keeps the "if the tools are missing, tell the
+user" fallback for zip-installed users, who get no `.mcp.json`. Whether Cowork
+uses the same prefix is unverified — check during 7.4.
 
 ## 6. CI
 
@@ -167,9 +184,15 @@ get no `.mcp.json`.
 - The description-length check from `CLAUDE.md`, looped over
   `plugins/*/skills/*/SKILL.md` — turns the recurring ≤1024-char problem into a
   failing PR instead of a thing to remember.
-- Optional (Claude Code only): fail if files under `plugins/<p>/` changed since
-  the last `skills-*` tag but `plugins/<p>/.claude-plugin/plugin.json` version
-  did not. Claude Code caches plugins by version.
+- A consistency check: every `plugins/*` directory has a marketplace entry
+  with `source: ./plugins/<name>`, matching `plugin.json` name, and no
+  `version` in the marketplace entry.
+- Version guard: `.github/scripts/check-plugin-versions.sh` fails if files
+  under `plugins/<p>/` changed (vs. the PR base, or the last `skills-*` tag on
+  push) but the `plugin.json` version did not. The bump itself is automated
+  by the tracked `.githooks/pre-commit` hook (patch bump per changed plugin;
+  enable with `git config core.hooksPath .githooks`). Release notes list the
+  version of every plugin.
 
 ## 7. Migration order
 
@@ -206,20 +229,20 @@ get no `.mcp.json`.
 - **plugins/eurlex/skills/eurlex/README.md**: the "install the MCP server
   first" step applies to zip users only.
 
-## 9. Open decision: per-skill vs. single bundle
+## 9. Decision: per-skill plugins (closed)
 
-Because Cowork lets users toggle individual skills *inside* an installed
-plugin, the main argument for per-skill plugins ("install only what you need")
-is weaker for a Cowork-only audience. A single `legal-tools` bundle plugin
-would mean:
+A single bundle plugin was considered and rejected:
 
-- no directory restructure (`.claude-plugin/plugin.json` at repo root with
-  `"skills": "./skills"`, marketplace entry `"source": "./"`);
-- no `dependencies` uncertainty for kildesjekk;
-- one install click; users disable e.g. `lovdata-pro` in the plugin's Skills tab.
+- The "no restructure" variant does not exist: the marketplace reference says
+  "plugin directory must not be repo root for relative sources", so a bundle
+  would also have needed a `git mv` into `plugins/legal-tools/skills/`.
+- The ten retrieval skills are independently useful; other meta-skills than
+  kildesjekk are planned, each depending on a subset of them.
+- Claude Code loads every skill in an installed plugin into context; per-skill
+  plugins let users avoid paying for skills they don't use.
 
-Cost: Claude Code users can't pick and choose, and the marketplace shows one
-entry instead of eleven. Decide after step 7.4 confirms how Cowork behaves.
+Cost accepted: Cowork users of kildesjekk install eleven plugins by hand
+(unless 7.4 shows Cowork honours `dependencies`).
 
 ## 10. Risks / verify during testing
 
@@ -233,3 +256,33 @@ entry instead of eleven. Decide after step 7.4 confirms how Cowork behaves.
   repo paths.
 - **`evals/` directories** (efta-court, ets, untc) become usable with
   `claude plugin eval` once inside plugins — optional follow-up.
+
+## 11. Implementation log (2026-09-12)
+
+Done on branch `marketplace`:
+
+- `git mv skills/<x> plugins/<x>/skills/<x>` for all eleven (one commit,
+  `git log --follow` verified).
+- Eleven `plugin.json` files (version 1.0.0, GPL-3.0-only, `dependencies` on
+  kildesjekk), `plugins/eurlex/.mcp.json`, `.claude-plugin/marketplace.json`.
+- `npx -y @anthropic-ai/claude-code@latest plugin validate` (CLI 2.1.270)
+  passes for the marketplace and all eleven plugins with `--strict`.
+- eurlex SKILL.md names both MCP tool prefixes; description is 1022 chars.
+- Release workflow retargeted to `plugins/**`; zip contents verified to have
+  the same internal layout (skill files at zip root).
+- `validate.yml` added: description-length check, marketplace consistency
+  check, `claude plugin validate`.
+- README, CLAUDE.md, every skill README updated with plugin install steps.
+
+Still to verify in 7.4 (needs the branch on `main`, since Cowork reads the
+default branch):
+
+- Cowork "Add marketplace" → `StianOby/claude-legal-tools` lists all eleven.
+- Whether Cowork honours kildesjekk's `dependencies`; if yes, drop the "install
+  each dependency by hand" wording in README and kildesjekk README.
+- The eurlex MCP tool prefix in Cowork.
+- `python3 scripts/…` resolves from the plugin cache path.
+- Whether Cowork keys updates on `plugin.json` version: install a plugin, push
+  a trivial change committed with `--no-verify` (no bump), click Update, see
+  if it arrives. Then bump the version and check again. Record the answer in
+  §1 caveat 3 and CLAUDE.md.

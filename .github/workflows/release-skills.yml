@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'skills/**'
+      - 'plugins/**'
 
 jobs:
   release:
@@ -43,14 +43,24 @@ jobs:
             echo ""
             git log --no-merges --pretty=format:'- %s (%h)' "$RANGE"
             echo ""
+            echo ""
+            echo "### Plugin versions"
+            echo ""
+            for m in plugins/*/.claude-plugin/plugin.json; do
+              python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); print("- " + m["name"] + " " + m["version"])' "$m"
+            done
+            echo ""
             echo "CHANGELOG_EOF"
           } >> $GITHUB_OUTPUT
 
       - name: Package skills
+        # Zip the skill directory itself (not the plugin wrapper) so the zip
+        # layout stays identical to before the marketplace restructure.
         run: |
-          for skill_dir in skills/*/; do
-            skill=$(basename "$skill_dir")
-            (cd "$skill_dir" && zip -r "../../${skill}.zip" .)
+          for plugin_dir in plugins/*/; do
+            skill=$(basename "$plugin_dir")
+            (cd "$plugin_dir/skills/$skill" && zip -r "$GITHUB_WORKSPACE/${skill}.zip" . \
+               -x '*__pycache__*' '*.pyc')
           done
 
       - name: Create release

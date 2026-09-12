@@ -1,0 +1,82 @@
+name: Validate plugins
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check that changed plugins have a bumped version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+          else
+            base=$(git tag --list 'skills-*' --sort=-creatordate | head -n1)
+            [ -n "$base" ] || base="${{ github.event.before }}"
+          fi
+          echo "comparing against $base"
+          .github/scripts/check-plugin-versions.sh "$base"
+
+      - name: Check SKILL.md description length (≤ 1024 chars after YAML parsing)
+        run: |
+          pip install --quiet pyyaml
+          fail=0
+          for f in plugins/*/skills/*/SKILL.md; do
+            n=$(python3 -c "
+          import yaml, sys
+          text = open(sys.argv[1]).read()
+          fm = text.split('---', 2)[1]
+          print(len(yaml.safe_load(fm)['description']))
+          " "$f")
+            if [ "$n" -gt 1024 ]; then
+              echo "::error file=$f::description is $n chars (max 1024)"
+              fail=1
+            else
+              echo "$f: $n"
+            fi
+          done
+          exit $fail
+
+      - name: Check every plugin has a marketplace entry and vice versa
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          m = json.load(open(".claude-plugin/marketplace.json"))
+          listed = {p["name"] for p in m["plugins"]}
+          on_disk = {d for d in os.listdir("plugins") if os.path.isdir(f"plugins/{d}")}
+          for p in m["plugins"]:
+              assert p["source"] == f"./plugins/{p['name']}", p
+              pj = json.load(open(f"plugins/{p['name']}/.claude-plugin/plugin.json"))
+              assert pj["name"] == p["name"], p
+              assert "version" not in p, f"{p['name']}: version belongs in plugin.json only"
+          missing = on_disk - listed
+          extra = listed - on_disk
+          if missing or extra:
+              print("not in marketplace.json:", sorted(missing))
+              print("not on disk:", sorted(extra))
+              sys.exit(1)
+          print("marketplace entries OK:", sorted(listed))
+          PY
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate marketplace manifest
+        run: claude plugin validate .
+
+      - name: Validate plugin manifests
+        run: |
+          for p in plugins/*/; do
+            claude plugin validate "$p" --strict
+          done
