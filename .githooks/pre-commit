@@ -9,6 +9,10 @@
 # commit already did).
 set -euo pipefail
 
+# Nag (never block) when a checked-in data snapshot is older than the limit
+# in snapshots.json — see CLAUDE.md → "Cached data snapshots".
+python3 .github/scripts/snapshots.py check --quiet >&2 || true
+
 changed_plugins=$(git diff --cached --name-only --diff-filter=ACMRD -- plugins/ \
   | awk -F/ 'NF > 2 { print $2 }' | sort -u)
 

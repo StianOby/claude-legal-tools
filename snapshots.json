@@ -1,0 +1,32 @@
+{
+  "_comment": "Checked-in data fetched from live sources. `.github/scripts/snapshots.py check` warns when one is older than max_age_days; see CLAUDE.md → 'Cached data snapshots'.",
+  "max_age_days": 30,
+  "snapshots": [
+    {
+      "name": "untc-index",
+      "plugin": "untc",
+      "path": "plugins/untc/skills/untc/cache/index.json",
+      "source": "https://treaties.un.org/Pages/Treaties.aspx (MTDSG chapter pages I–XXIX)",
+      "count_key": "treaties",
+      "last_refreshed": "2026-09-08",
+      "refresh": "d=$(mktemp -d) && UNTC_CACHE_DIR=$d python3 plugins/untc/skills/untc/scripts/untc.py index --refresh && cp \"$d/index.json\" plugins/untc/skills/untc/cache/index.json"
+    },
+    {
+      "name": "ets-index",
+      "plugin": "ets",
+      "path": "plugins/ets/skills/ets/data/index.json",
+      "source": "https://www.coe.int/en/web/conventions — api/traites/search (full treaty list)",
+      "last_refreshed": "2026-09-12",
+      "refresh": "d=$(mktemp -d) && ETS_CACHE_DIR=$d python3 plugins/ets/skills/ets/scripts/coe.py index --refresh && cp \"$d/index.json\" plugins/ets/skills/ets/data/index.json"
+    },
+    {
+      "name": "eu-agreements-parties",
+      "plugin": "eu-agreements-treaties",
+      "path": "plugins/eu-agreements-treaties/skills/eu-agreements-treaties/data/parties.json",
+      "source": "https://www.consilium.europa.eu/en/documents/treaties-agreements/ (search-form party checkboxes, via tests/fixtures/search-form.html)",
+      "last_refreshed": "2026-09-16",
+      "refresh": null,
+      "refresh_manual": "Cowork only (site is behind a Cloudflare challenge): recapture tests/fixtures/search-form.html in the built-in browser (NOTES.md §3), regenerate parties.json with the node one-liner (NOTES.md §4), run `cd tests && npm test`, then `snapshots.py mark eu-agreements-parties`."
+    }
+  ]
+}

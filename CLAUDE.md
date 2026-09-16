@@ -75,3 +75,41 @@ Rules:
   layout stays identical to the pre-marketplace releases.
 - Validate locally with `npx -y @anthropic-ai/claude-code plugin validate .`
   and `… plugin validate plugins/<name> --strict`.
+
+## Cached data snapshots
+
+Some skills ship data fetched from a live source (the untc and ets treaty
+indexes, the eu-agreements-treaties party list). Users get whatever was
+checked in, so these go stale silently. `snapshots.json` at the repo root
+lists every such file with its source, `last_refreshed` date and refresh
+command; `.github/scripts/snapshots.py` keeps them honest.
+
+The routine — no fixed schedule, just a check whenever the skills are
+being worked on:
+
+1. **At the start of any session that will change files under `plugins/`,
+   run `.github/scripts/snapshots.py check`.** The pre-commit hook and CI
+   run the same check and print a warning for anything older than
+   `max_age_days` (30); neither blocks.
+2. If a snapshot is stale and has a `refresh` command, refresh it with
+   `.github/scripts/snapshots.py refresh <name>` (or `--all`). The script
+   runs the command, prints the before/after record count, refuses to stamp
+   if the count dropped by more than 10 % (a partial fetch), and writes
+   today's date into `snapshots.json`. Commit the data, the manifest and
+   the plugin's version bump together as their own commit —
+   `<plugin>: refresh <name> snapshot (YYYY-MM-DD, N records)` — separate
+   from whatever feature work prompted the session.
+3. If a snapshot has `"refresh": null`, it needs a manual procedure
+   (`refresh_manual`; currently `eu-agreements-parties`, which can only be
+   captured from the Cowork built-in browser). Tell the user it is due and
+   how; do not silently skip it. After the manual refresh, run
+   `.github/scripts/snapshots.py mark <name>`.
+4. Do not refresh a snapshot that is not stale unless asked; a refresh is a
+   network fetch and a data diff, not part of ordinary edits.
+
+When a skill gains a new checked-in file that is generated from a live
+source, add an entry to `snapshots.json` in the same commit — `path`,
+`source`, `last_refreshed`, and either a `refresh` shell command (run from
+the repo root, must leave the file in place) or `refresh: null` plus a
+`refresh_manual` description. Hand-written reference tables
+(`references/*.md`) are not snapshots.
