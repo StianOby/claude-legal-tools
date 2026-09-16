@@ -83,13 +83,21 @@ python {SKILL_DIR}/scripts/traktater.py search "" --year 2024 --max 50
 Flagg:
 - `--year YYYY` — bare traktater fra ett bestemt år
 - `--country NAVN` — filtrer på en motpart/land (norsk navn, f.eks.
-  `Storbritannia`, `Sverige`, `Den europeiske union`)
+  `Storbritannia`, `Sverige`, `Den europeiske union`). Les advarselen
+  nedenfor om hva som *ikke* finnes i listen.
 - `--context tittel|tekst` — søk i tittel (standard) eller fulltekst.
   Fulltekstsøk gir mange flere treff («menneskerett» gir 26 i tittel, 321 i
   tekst), men treffene er sortert **nyest først, ikke etter relevans**, så
   toppen av listen er ferske avtaler som tilfeldigvis nevner ordet. Bruk
   tittelsøk når du leter etter en bestemt traktat.
 - `--max N` — antall treff (standard 20, henter flere sider automatisk)
+- `--full` — bytt registerets forkortede titler mot dokumentenes egne.
+  Lovdata kutter titler rundt 200 tegn i trefflisten, så dette koster ett
+  dokumentoppslag per treff (cachet, og scriptet sier fra på stderr før det
+  begynner). Bruk det når du bygger en liste; dropp det når du bare skal
+  finne fram til én traktat.
+- `--json` — maskinlesbart utdata, `{"total", "shown", "results": [{"id",
+  "title", "year"}]}`. Da slipper du å parse tekstformatet.
 
 `--country` og `--year` valideres mot registerets egne nedtrekkslister før
 søket sendes. Det er med vilje: skriver du et land Lovdata ikke kjenner,
@@ -98,10 +106,41 @@ se ut som et ekte resultat. Scriptet stopper i stedet og foreslår nærmeste
 treff. `python {SKILL_DIR}/scripts/traktater.py countries [søk]` lister de
 216 gyldige landnavnene.
 
+#### `--country` er en innsnevring, ikke en fullstendighetsgaranti
+
+Nedtrekkslisten dekker ikke alle motparter som faktisk opptrer i registeret.
+Kjør alltid `countries` før du stoler på et partsfilter:
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py countries europ
+# Den europeiske union
+# Det europeiske økonomiske fellesskap
+```
+
+Det er alt EU-siden har. **«Det europeiske fellesskap» — motparten i praktisk
+talt hele perioden 1993–2009 — har ingen egen post**, og det samme gjelder
+Europol, Eurojust, Frontex og Euratom, som alle opptrer som motpart.
+
+Konsekvensen er en felle: de to åpenbare EU-filtrene gir til sammen 98 treff
+som *ser* uttømmende ut, men mangler blant annet EØS-avtalen selv
+(`1992-05-02-1`), Dublin-avtalen (`2001-01-19-1`) og Eurojust-avtalen
+(`2005-04-28-16`). En tidligere bruker av dette skillet bygde en masterliste
+på den antakelsen og fikk 31 rader stående uten Lovdata-referanse.
+
+Skal svaret være uttømmende, suppler derfor **alltid** partsfilteret med
+tittelsøk på motpartens navn og på saksområdet — og si fra til brukeren at
+partsfilteret alene ikke er uttømmende.
+
 #### Søkestrategi: bruk norske juridiske termer
 
-Søket matcher mot Lovdatas **norske tittelfeltet** — engelske ord og
-forkortelser gir ingen treff:
+Søket matcher Lovdatas **norske tittelfelter** — både `Tittel (norsk)` og
+`Korttittel (norsk)`. Engelske ord gir aldri treff. En forkortelse virker
+nøyaktig når Lovdata har lagt den inn i ett av de to feltene, og ikke
+ellers — og det går ikke an å gjette: `ECMWF` treffer fordi `1973-10-11-21`
+har `Korttittel (norsk): ECMWF`, mens `COTIF` ikke treffer noe.
+
+Praktisk rekkefølge: prøv forkortelsen først (ett kall), og gå over til det
+norske faguttrykket hvis den gir null treff.
 
 | Vil finne | Fungerer IKKE | Bruk i stedet |
 |-----------|--------------|---------------|
@@ -110,6 +149,18 @@ forkortelser gir ingen treff:
 | Overenskomsten om int. jernbanetransporter (COTIF) | `"COTIF"` | `"jernbanetransporter"` |
 | EMK | `"ECHR"`, `"human rights"` | `"menneskerettighetskonvensjonen"` |
 | Flyktningkonvensjonen | `"refugee"`, `"1951 Refugee"` | `"flyktning"` |
+| Pan-Euro-Med-konvensjonen om opprinnelsesregler | `"Pan-Euro-Med"` | `"preferanseopprinnelsesregler"` |
+| Energichartertraktaten | `"energichartertraktaten"` | `"energichartertraktat"` |
+| Den internasjonale kornavtalen | `"kornhandel"` | `"kornavtalen"` |
+
+Merk raden for energichartertraktaten: søket er ikke lemmatisert, så bestemt
+form gir null treff når tittelen står i ubestemt form. Søk på den korteste
+entydige ordstammen ved tvil.
+
+Forkortelser som *virker*, fordi de står i tittel eller korttittel: `Frontex`,
+`Europol`, `Schengen`, `ECMWF`. `COMETT` gir null treff fordi avtalen ikke
+finnes i registeret i det hele tatt — se «Traktaten finnes ikke i registeret»
+under Feilhåndtering.
 
 **For ILO-konvensjoner** er det mest pålitelige å søke på konvensjonsnummeret
 slik det står i den norske tittelen:
@@ -143,7 +194,27 @@ originalspråk), undertegningsdato/-sted, ikrafttredelse, Norges undertegning
 og ratifikasjon, depositar, Stortingets behandling (St.prp., Innst.S.,
 vedtak), publisering, FN-registrering og eventuelle merknader.
 
-To ting varierer fra traktat til traktat:
+Flagg:
+- `--json` — hele metadatasettet som JSON: `{"id", "url", "title",
+  "has_text", "metadata": {<norsk ledetekst>: <verdi>}, "fields":
+  {<Lovdatas feltnavn>: <verdi>}}`. Bruk `fields` når du skal slå opp et
+  bestemt felt programmatisk; `metadata` har ledetekstene slik Lovdata viser
+  dem, i Lovdatas rekkefølge.
+- `--batch FIL` — les IDer fra en fil, én per linje (`#` innleder kommentar,
+  duplikater droppes, `-` leser fra stdin; URL-er og fulle DokID-er går
+  også). Med `--json` kommer resultatet som én liste. Et oppslag som feiler
+  stopper ikke resten: raden får en `error`-nøkkel i JSON, og feilen skrives
+  til stderr.
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py meta --batch ids.txt --json
+```
+
+Skal du bygge et register over mange traktater, er `search … --full --json`
+pluss `meta --batch … --json` hele verktøykassen — ikke skriv en egen løkke
+over `meta`.
+
+Tre ting varierer fra traktat til traktat:
 
 - **Partslisten.** For noen traktater (EØS-avtalen, nordiske avtaler) lister
   Lovdata alle parter med datoer. For mange multilaterale konvensjoner står
@@ -153,9 +224,53 @@ To ting varierer fra traktat til traktat:
 - **Feltutvalget.** Ulike dokumenttyper har ulike felter; scriptet leser
   ledeteksten fra Lovdatas egen tabell, så nye felter dukker opp automatisk
   med riktig norsk navn.
+- **Bilateral/multilateral er ikke eget felt.** Det står sist i
+  `Ident`-linjen (`Ident: 14-10-2003 nr 121 Bilateral`) og må plukkes ut
+  derfra.
 
 Har traktaten ingen fri tekst, sier `meta` fra om det på linjen «Tekst: ikke
 publisert fritt på lovdata.no».
+
+#### Ikrafttredelsesfeltene er fritekst, ikke datoer
+
+Dette er den vanligste kilden til feil i maskinell bruk av registeret. Det
+finnes to felter, og de opptrer i alle kombinasjoner — begge, bare det ene,
+eller ingen:
+
+| Felt | Betyr |
+|------|-------|
+| `Avtalens ikrafttredelsesdato` | når traktaten trådte i kraft mellom partene |
+| `Ikrafttredelsesdato Norge` | når den trådte i kraft **for Norge** |
+
+Verdiene er norsk fritekst, med datoer på formen `DD-MM-ÅÅÅÅ` der det faktisk
+er en dato. Alle disse er påtruffet:
+
+| Verdi | Traktat |
+|-------|---------|
+| `01-01-2011 midlertidig anvendelse, i kraft 01-05-2011` | `2010-07-28-40` |
+| `Midlertidig anvendt fra 01-05-2004` | `2003-10-14-121` |
+| `06-12-2005, Midlertidig anvendt fra 01-05-2004` | `2003-10-14-187` |
+| `01-09-1995, med virkning fra 01-07-1995` | `1995-07-25-1` |
+| `01-01-2010 mellom EU og Norge` | `2007-10-30-27` |
+| `01-09-2007 (midlertidig), endelig i kraft 09-11-2011` | `2007-07-25-21` |
+
+`Avtalens undertegningsdato` kan også ha flere verdier: Prüm-avtalen
+(`2009-11-26-89`) har `26-11-2009, 30-11-2009`, fordi den ble undertegnet i
+Stockholm og Brussel på ulike dager.
+
+Og noen traktater har **ingen** ikrafttredelsesfelter i det hele tatt, men
+har `Dato for dep av rat.dok el.likn` — typisk der Norge har tiltrådt en
+avtale som allerede var i kraft:
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py meta 2003-01-29-212   # ECURIE: deponert 09-04-2015, ingen ikrafttredelsesfelt
+```
+
+**Ikke reduser disse verdiene til «i kraft / ikke i kraft».** Gjengi feltet
+slik det står, med forbeholdet det inneholder. Forskjellen mellom midlertidig
+anvendelse og endelig ikrafttredelse er rettslig reell, og en avtale kan være
+midlertidig anvendt i årevis før den trer i kraft (`2007-07-25-21`: fire år).
+Er ikrafttredelse selve spørsmålet, sitér feltet ordrett og forklar det.
 
 ### Hent full norsk tekst
 
@@ -198,11 +313,44 @@ parse-reglene i `scripts/traktater.py` som må oppdateres.
 
 ## Traktat-ID-format
 
-Lovdata gir hver traktat en stabil ID på formen `YYYY-MM-DD-N`, der `YYYY-MM-DD`
-er undertegningsdatoen og `N` er løpenummer for traktater inngått samme dato.
-Den fulle DokID-en er `TRAKTAT/traktat/YYYY-MM-DD-N`. Scriptet aksepterer
-begge formene — du kan også lime inn hele URL-en
+Lovdata gir hver traktat en stabil ID på formen `YYYY-MM-DD-N`, der
+`YYYY-MM-DD` er undertegningsdatoen. Den fulle DokID-en er
+`TRAKTAT/traktat/YYYY-MM-DD-N`. Scriptet aksepterer begge formene — du kan
+også lime inn hele URL-en
 (`https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1`).
+
+### Hva `N` teller har endret seg underveis
+
+| Periode | Hva `N` er |
+|---------|------------|
+| t.o.m. 1998 | løpenummer **innenfor datoen** — starter på 1 for hver ny undertegningsdato |
+| 1999–2002 | blandet: de fleste er datobaserte, men årsbaserte numre begynner å dukke opp |
+| f.o.m. 2003 | løpenummer **innenfor året** — uten sammenheng med datoen |
+
+Fire traktater deler datoen 14. oktober 2003, og numrene deres er 70, 121,
+124 og 187 — ikke 1–4:
+
+```bash
+python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-70    # Tilleggsprotokoll, EU-utvidelsen 2004
+python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-121   # Norsk finansieringsordning 2004–2009
+python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-124   # Visse landbruksvarer
+python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-187   # EØS-utvidelsen, ti nye stater
+```
+
+Og `N` er **ikke unikt innenfor året heller**: både `2004-04-29-119` og
+`2004-06-04-119` finnes. Bare hele ID-en identifiserer en traktat.
+
+### Sitér alltid hele ID-en
+
+**Forkort aldri til «ÅÅÅÅ nr N»** («2003 nr 121»). Den formen er tvetydig
+for hele registeret, og for traktater f.o.m. 2003 kan datoen ikke engang
+utledes av nummeret. En tidligere bruker av dette skillet forkortet slik i
+den tro at nummeret var datobasert og at en datokolonne ved siden av gjorde
+referansen entydig — og endte med seks ulike avtaler oppført under samme
+referanse.
+
+Lovdatas egen `Ident`-linje bruker formen `14-10-2003 nr 121`. Den er grei,
+fordi den beholder hele datoen; det er året *uten* dato som ødelegger.
 
 Et knippe vanlige traktater Norge er part i:
 
@@ -358,9 +506,16 @@ Bruk standard juridisk siteringsform:
 
 ### Bruker spør «hvilke traktater har Norge med X?»
 
-1. `search "" --country X --max 50` (norsk landnavn).
-2. Presenter en sortert liste med ID, dato, tittel.
-3. Tilby å hente metadata for de mest relevante.
+1. `countries X` først — er motparten i det hele tatt i nedtrekkslisten?
+2. `search "" --country X --max 50` (norsk landnavn). Legg til `--full` hvis
+   listen skal presenteres med titler.
+3. Suppler med tittelsøk på motpartens navn og eventuelle organer den
+   opptrer gjennom (for EU: `"Det europeiske fellesskap"`, `Europol`,
+   `Eurojust`, `Frontex`, `Euratom`) — se «`--country` er en innsnevring».
+4. Presenter en sortert liste med hele ID-en, dato og tittel, og si fra om
+   hvilke deler av svaret som kommer fra partsfilteret og hvilke fra
+   tittelsøk.
+5. Tilby `meta --batch` for de mest relevante.
 
 ### Bruker spør om Norges reservasjoner
 
@@ -382,7 +537,16 @@ og spør brukeren hvilken hvis det er flertydig.
 
 - **Nettverksfeil**: Informer brukeren; foreslå å prøve igjen.
 - **404 på `meta`**: ID-en finnes ikke. Sjekk format (skal være `YYYY-MM-DD-N`)
-  og at det faktisk er en traktat (ikke en lov/forskrift).
+  og at det faktisk er en traktat (ikke en lov/forskrift). Er formatet
+  riktig, se neste punkt.
+- **Traktaten finnes ikke i registeret**: Registeret inneholder det Norge er
+  folkerettslig bundet av. Instrumenter Norge aldri ratifiserte
+  (tiltredelsestraktaten av 1972, etter folkeavstemningen), og avtaler der
+  Norge deltar via EØS/EFTA-siden uten å være selvstendig part, kan mangle
+  helt selv om de ligger i EUs traktatdatabase. **Null treff er ikke
+  nødvendigvis en oppslagsfeil**, men det er heller ikke bevis for at Norge
+  ikke er bundet: si det som det er, og kryssjekk mot depositaren, `untc`
+  eller `eurlex` før du konkluderer.
 - **Tom kropp på `text`/`article`**: Se «Når kroppen er tom» — sjekk først om
   konvensjonen ligger i menneskerettsloven.
 - **Ukjent land i `--country`**: Scriptet stopper med forslag til nærmeste

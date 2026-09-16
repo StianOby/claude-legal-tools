@@ -92,6 +92,12 @@ python3 scripts/traktater.py search "non-refoulement" --context tekst
 # Metadata for one treaty (signing/ratification dates, parties, reservations)
 python3 scripts/traktater.py meta 1951-07-28-1
 
+# Machine-readable output, for building lists: --json on search and meta,
+# --full to replace the listing's truncated titles (one document fetch per
+# hit, cached), --batch to look up many IDs from a file in one call
+python3 scripts/traktater.py search "" --year 2003 --max 100 --full --json
+python3 scripts/traktater.py meta --batch ids.txt --json
+
 # Full Norwegian text
 python3 scripts/traktater.py text 1951-07-28-1
 

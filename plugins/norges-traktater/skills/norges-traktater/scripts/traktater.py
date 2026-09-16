@@ -11,7 +11,10 @@ Bruk:
   python traktater.py search "Wien"                Søk
   python traktater.py search "" --year 1969        Alle traktater fra 1969
   python traktater.py search "" --country Sverige  Bilateralt med ett land
+  python traktater.py search "Wien" --json         Maskinlesbart utdata
+  python traktater.py search "" --year 2003 --full Utrunkerte titler
   python traktater.py meta 1948-12-09-1            Metadata for én traktat
+  python traktater.py meta --batch ids.txt --json  Mange traktater i ett kall
   python traktater.py text 1948-12-09-1            Full norsk tekst
   python traktater.py article 1948-12-09-1 II      En bestemt artikkel
   python traktater.py countries                    Gyldige verdier til --country
@@ -341,6 +344,75 @@ def get_meta(tid, no_cache=False):
     return meta
 
 
+def full_title(tid, no_cache=False):
+    """The untruncated Norwegian title, or None if the document is missing.
+
+    Lovdata truncates titles in the register listing itself (around 200
+    characters, ending in "..."), so there is no way to a complete title
+    without fetching the document. Cached like any other document fetch.
+    """
+    html = fetch_doc_html(normalize_id(tid), no_cache=no_cache)
+    if not html:
+        return None
+    return parse_metadata(html).get("title")
+
+
+def add_full_titles(results, no_cache=False, progress=None):
+    """Replace each result's truncated title with the document's own.
+
+    Costs one document fetch per hit, so the caller decides (via --full)
+    whether the register listing's truncated titles are good enough. A hit
+    whose document cannot be read keeps its truncated title and is counted
+    as a failure in the returned tally.
+    """
+    failed = 0
+    for i, r in enumerate(results, 1):
+        if progress:
+            progress(i, len(results))
+        try:
+            title = full_title(r["id"], no_cache=no_cache)
+        except (urllib.error.URLError, ValueError):
+            title = None
+        if title:
+            r["title"] = title
+        else:
+            failed += 1
+    return failed
+
+
+def read_id_list(path):
+    """Treaty IDs from a file, or from stdin when `path` is "-".
+
+    One per line; blank lines and everything after a "#" are ignored, and
+    duplicates are dropped while order is kept. Each line goes through
+    normalize_id, so a list of pasted URLs or full DokIDs works too.
+    """
+    if path == "-":
+        text = sys.stdin.read()
+    else:
+        try:
+            text = Path(path).read_text(encoding="utf-8")
+        except OSError as e:
+            raise SystemExit(f"Kunne ikke lese ID-listen {path!r}: {e}")
+    out = []
+    seen = set()
+    for lineno, line in enumerate(text.splitlines(), 1):
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        try:
+            tid = normalize_id(line)
+        except ValueError:
+            sys.stderr.write(f"{path}:{lineno}: hopper over ulesbar linje: {line!r}\n")
+            continue
+        if tid not in seen:
+            seen.add(tid)
+            out.append(tid)
+    if not out:
+        raise SystemExit(f"Fant ingen traktat-ID-er i {path!r}.")
+    return out
+
+
 # -- Body / articles --------------------------------------------------------
 
 # Lovdata bruker ikke <ul>/<li>: bokstav- og nummerpunkter er én-rads
@@ -551,6 +623,18 @@ def cmd_search(args):
     payload = search(args.query or "", year=args.year, country=args.country,
                      context=args.context, max_results=args.max,
                      no_cache=args.no_cache)
+    if args.full and payload["results"]:
+        n = len(payload["results"])
+        if n > 1:
+            sys.stderr.write(
+                f"Henter utrunkerte titler for {n} treff "
+                f"(ett dokument per treff, caches) …\n")
+        failed = add_full_titles(payload["results"], no_cache=args.no_cache)
+        payload["full_titles"] = True
+        if failed:
+            sys.stderr.write(
+                f"{failed} av {n} dokumenter kunne ikke leses; "
+                "de radene har fortsatt registerets forkortede tittel.\n")
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
@@ -558,11 +642,42 @@ def cmd_search(args):
 
 
 def cmd_meta(args):
-    meta = get_meta(args.id, no_cache=args.no_cache)
+    if bool(args.id) == bool(args.batch):
+        raise SystemExit(
+            "meta tar enten én traktat-ID eller --batch FIL, ikke begge og "
+            "ikke ingen av delene.")
+    if not args.batch:
+        meta = get_meta(args.id, no_cache=args.no_cache)
+        if args.json:
+            print(json.dumps(meta, ensure_ascii=False, indent=2))
+        else:
+            print(fmt_meta(meta))
+        return
+
+    ids = read_id_list(args.batch)
+    metas = []
+    failed = 0
+    for tid in ids:
+        try:
+            metas.append(get_meta(tid, no_cache=args.no_cache))
+        except (FileNotFoundError, urllib.error.URLError, ValueError) as e:
+            # One bad ID in a long list must not throw away the rest.
+            failed += 1
+            sys.stderr.write(f"{tid}: {e}\n")
+            metas.append({"id": tid, "url": f"{DOC_BASE}/{tid}", "error": str(e)})
+
     if args.json:
-        print(json.dumps(meta, ensure_ascii=False, indent=2))
+        print(json.dumps(metas, ensure_ascii=False, indent=2))
     else:
-        print(fmt_meta(meta))
+        for i, meta in enumerate(metas):
+            if i:
+                print("\n" + "-" * 78 + "\n")
+            print(f"{meta['id']}: {meta['error']}" if "error" in meta
+                  else fmt_meta(meta))
+    if failed:
+        sys.stderr.write(f"\n{failed} av {len(ids)} oppslag feilet.\n")
+        if failed == len(ids):
+            sys.exit(1)
 
 
 def lovdata_pointers(meta):
@@ -688,11 +803,16 @@ def main(argv=None):
                     choices=["tittel", "tekst"],
                     help="Søk i tittel (standard) eller fulltekst")
     sp.add_argument("--max", type=int, default=20, help="Maks antall treff")
+    sp.add_argument("--full", action="store_true",
+                    help="Hent utrunkerte titler (ett dokument per treff)")
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_search)
 
-    sp = sub.add_parser("meta", help="Metadata for én traktat")
-    sp.add_argument("id")
+    sp = sub.add_parser("meta", help="Metadata for én eller flere traktater")
+    sp.add_argument("id", nargs="?", help="Traktat-ID, DokID eller URL")
+    sp.add_argument("--batch", metavar="FIL",
+                    help="Les IDer fra en fil (én per linje, # er kommentar); "
+                         "«-» leser fra stdin")
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_meta)
 
