@@ -7,6 +7,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 | Skill | What it does |
 |---|---|
+| [`eu-agreements-treaties`](plugins/eu-agreements-treaties/skills/eu-agreements-treaties/README.md) | EU-side treaty status (ratification, entry into force, declarations) from the Council of the EU Treaties Office database |
 | [`efta-court`](plugins/efta-court/skills/efta-court/README.md) | EFTA Court judgments |
 | [`ets`](plugins/ets/skills/ets/README.md) | Council of Europe treaty series |
 | [`eurlex`](plugins/eurlex/skills/eurlex/README.md) | EU legislation and case law from EUR-Lex (usage guide for the [eurlex MCP server](https://github.com/Honeyfield-Org/eurlex-mcp-server), which must be installed) |

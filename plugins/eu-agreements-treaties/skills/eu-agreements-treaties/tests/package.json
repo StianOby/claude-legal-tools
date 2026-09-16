@@ -1,0 +1,7 @@
+{
+  "name": "eu-agreements-treaties-tests",
+  "private": true,
+  "description": "Parser tests for scripts/browser/consilium.js against saved HTML fixtures. Dev-only; nothing here ships to users.",
+  "scripts": { "test": "node run.js" },
+  "devDependencies": { "linkedom": "^0.18.0" }
+}

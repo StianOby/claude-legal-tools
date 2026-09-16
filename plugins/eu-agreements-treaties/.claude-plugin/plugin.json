@@ -1,0 +1,20 @@
+{
+  "name": "eu-agreements-treaties",
+  "version": "0.1.1",
+  "description": "EU-side treaty status (signature, ratification, entry into force, declarations) from the Council of the EU Treaties Office database",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/eu-agreements-treaties",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "law",
+    "research",
+    "eu",
+    "treaties",
+    "agreements"
+  ]
+}

@@ -4,8 +4,20 @@
     "name": "Stian Øby Johansen",
     "url": "https://github.com/StianOby"
   },
-  "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
+  "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, Consilium, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
   "plugins": [
+    {
+      "name": "eu-agreements-treaties",
+      "source": "./plugins/eu-agreements-treaties",
+      "description": "EU-side treaty status from the Council of the EU Treaties Office database (Cowork only)",
+      "category": "legal-research",
+      "keywords": [
+        "eu",
+        "treaties",
+        "agreements",
+        "ratification"
+      ]
+    },
     {
       "name": "efta-court",
       "source": "./plugins/efta-court",

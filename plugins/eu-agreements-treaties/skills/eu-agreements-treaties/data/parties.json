@@ -1,0 +1,2667 @@
+[
+ {
+  "code": "A",
+  "name": "Austria",
+  "long_name": "Republic of Austria",
+  "names": [
+   "Austria",
+   "Republic of Austria",
+   "Austria - Republic of Austria",
+   "Republic of Austria (Austria)"
+  ]
+ },
+ {
+  "code": "AC",
+  "name": "Andean Pact",
+  "long_name": null,
+  "names": [
+   "Andean Pact",
+   "Andean Pact -"
+  ]
+ },
+ {
+  "code": "ACC",
+  "name": "Cartagena Agreement",
+  "long_name": "Cartagena Agreement",
+  "names": [
+   "Cartagena Agreement",
+   "Cartagena Agreement - Cartagena Agreement"
+  ]
+ },
+ {
+  "code": "ACP",
+  "name": "ACP",
+  "long_name": "African, Caribbean and Pacific States",
+  "names": [
+   "ACP",
+   "African, Caribbean and Pacific States",
+   "ACP - African, Caribbean and Pacific States"
+  ]
+ },
+ {
+  "code": "AD",
+  "name": "Andorra",
+  "long_name": "Principality of Andorra",
+  "names": [
+   "Andorra",
+   "Principality of Andorra",
+   "Andorra - Principality of Andorra",
+   "Principality of Andorra (Andorra)"
+  ]
+ },
+ {
+  "code": "AE",
+  "name": "United Arab Emirates",
+  "long_name": "United Arab Emirates",
+  "names": [
+   "United Arab Emirates",
+   "United Arab Emirates - United Arab Emirates"
+  ]
+ },
+ {
+  "code": "AF",
+  "name": "Afghanistan",
+  "long_name": "Islamic Republic of Afghanistan",
+  "names": [
+   "Afghanistan",
+   "Islamic Republic of Afghanistan",
+   "Afghanistan - Islamic Republic of Afghanistan",
+   "Islamic Republic of Afghanistan (Afghanistan)"
+  ]
+ },
+ {
+  "code": "AG",
+  "name": "Antigua and Barbuda",
+  "long_name": "Antigua and Barbuda",
+  "names": [
+   "Antigua and Barbuda",
+   "Antigua and Barbuda - Antigua and Barbuda"
+  ]
+ },
+ {
+  "code": "AL",
+  "name": "Albania",
+  "long_name": "Republic of Albania",
+  "names": [
+   "Albania",
+   "Republic of Albania",
+   "Albania - Republic of Albania",
+   "Republic of Albania (Albania)"
+  ]
+ },
+ {
+  "code": "AM",
+  "name": "Armenia",
+  "long_name": "Republic of Armenia",
+  "names": [
+   "Armenia",
+   "Republic of Armenia",
+   "Armenia - Republic of Armenia",
+   "Republic of Armenia (Armenia)"
+  ]
+ },
+ {
+  "code": "AND",
+  "name": "Andean Community",
+  "long_name": "Andean Community",
+  "names": [
+   "Andean Community",
+   "Andean Community - Andean Community"
+  ]
+ },
+ {
+  "code": "AO",
+  "name": "Angola",
+  "long_name": "Republic of Angola",
+  "names": [
+   "Angola",
+   "Republic of Angola",
+   "Angola - Republic of Angola",
+   "Republic of Angola (Angola)"
+  ]
+ },
+ {
+  "code": "AR",
+  "name": "Argentina",
+  "long_name": "Argentine Republic",
+  "names": [
+   "Argentina",
+   "Argentine Republic",
+   "Argentina - Argentine Republic"
+  ]
+ },
+ {
+  "code": "ASC",
+  "name": "ASECNA",
+  "long_name": "Agency for Aerial Navigation Safety in Africa and Madagascar",
+  "names": [
+   "ASECNA",
+   "Agency for Aerial Navigation Safety in Africa and Madagascar",
+   "ASECNA - Agency for Aerial Navigation Safety in Africa and Madagascar"
+  ]
+ },
+ {
+  "code": "ASE",
+  "name": "ASEAN",
+  "long_name": null,
+  "names": [
+   "ASEAN",
+   "ASEAN -"
+  ]
+ },
+ {
+  "code": "ASG",
+  "name": "Arab States of the Gulf",
+  "long_name": "Countries parties to the Charter of the Co-operation Council for the Arab States of the Gulf",
+  "names": [
+   "Arab States of the Gulf",
+   "Countries parties to the Charter of the Co-operation Council for the Arab States of the Gulf",
+   "Arab States of the Gulf - Countries parties to the Charter of the Co-operation Council for the Arab States of the Gulf",
+   "Countries parties to the Charter of the Co-operation Council for the Arab States of the Gulf (Arab States of the Gulf)"
+  ]
+ },
+ {
+  "code": "AU",
+  "name": "Australia",
+  "long_name": "Commonwealth of Australia",
+  "names": [
+   "Australia",
+   "Commonwealth of Australia",
+   "Australia - Commonwealth of Australia",
+   "Commonwealth of Australia (Australia)"
+  ]
+ },
+ {
+  "code": "AYM",
+  "name": "Former Yugoslav Republic of Macedonia",
+  "long_name": "Former Yugoslav Republic of Macedonia [See also North Macedonia]",
+  "names": [
+   "Former Yugoslav Republic of Macedonia",
+   "Former Yugoslav Republic of Macedonia [See also North Macedonia]",
+   "Former Yugoslav Republic of Macedonia - Former Yugoslav Republic of Macedonia [See also North Macedonia]"
+  ]
+ },
+ {
+  "code": "AZ",
+  "name": "Azerbaijan",
+  "long_name": "Republic of Azerbaijan",
+  "names": [
+   "Azerbaijan",
+   "Republic of Azerbaijan",
+   "Azerbaijan - Republic of Azerbaijan",
+   "Republic of Azerbaijan (Azerbaijan)"
+  ]
+ },
+ {
+  "code": "B",
+  "name": "Belgium",
+  "long_name": "Kingdom of Belgium",
+  "names": [
+   "Belgium",
+   "Kingdom of Belgium",
+   "Belgium - Kingdom of Belgium",
+   "Kingdom of Belgium (Belgium)"
+  ]
+ },
+ {
+  "code": "BA",
+  "name": "Bosnia and Herzegovina",
+  "long_name": "Bosnia and Herzegovina",
+  "names": [
+   "Bosnia and Herzegovina",
+   "Bosnia and Herzegovina - Bosnia and Herzegovina"
+  ]
+ },
+ {
+  "code": "BB",
+  "name": "Barbados",
+  "long_name": "Barbados",
+  "names": [
+   "Barbados",
+   "Barbados - Barbados"
+  ]
+ },
+ {
+  "code": "BD",
+  "name": "Bangladesh",
+  "long_name": "People's Republic of Bangladesh",
+  "names": [
+   "Bangladesh",
+   "People's Republic of Bangladesh",
+   "Bangladesh - People's Republic of Bangladesh",
+   "People's Republic of Bangladesh (Bangladesh)"
+  ]
+ },
+ {
+  "code": "BER",
+  "name": "EBRD",
+  "long_name": "European Bank for Reconstruction and Development",
+  "names": [
+   "EBRD",
+   "European Bank for Reconstruction and Development",
+   "EBRD - European Bank for Reconstruction and Development"
+  ]
+ },
+ {
+  "code": "BF",
+  "name": "Burkina Faso",
+  "long_name": "Burkina Faso",
+  "names": [
+   "Burkina Faso",
+   "Burkina Faso - Burkina Faso"
+  ]
+ },
+ {
+  "code": "BG",
+  "name": "Bulgaria",
+  "long_name": "Republic of Bulgaria",
+  "names": [
+   "Bulgaria",
+   "Republic of Bulgaria",
+   "Bulgaria - Republic of Bulgaria",
+   "Republic of Bulgaria (Bulgaria)"
+  ]
+ },
+ {
+  "code": "BH",
+  "name": "Bahrain",
+  "long_name": "Kingdom of Bahrain",
+  "names": [
+   "Bahrain",
+   "Kingdom of Bahrain",
+   "Bahrain - Kingdom of Bahrain",
+   "Kingdom of Bahrain (Bahrain)"
+  ]
+ },
+ {
+  "code": "BI",
+  "name": "Burundi",
+  "long_name": "Republic of Burundi",
+  "names": [
+   "Burundi",
+   "Republic of Burundi",
+   "Burundi - Republic of Burundi",
+   "Republic of Burundi (Burundi)"
+  ]
+ },
+ {
+  "code": "BJ",
+  "name": "Benin",
+  "long_name": "Republic of Benin",
+  "names": [
+   "Benin",
+   "Republic of Benin",
+   "Benin - Republic of Benin",
+   "Republic of Benin (Benin)"
+  ]
+ },
+ {
+  "code": "BN",
+  "name": "Brunei",
+  "long_name": "Brunei Darussalam",
+  "names": [
+   "Brunei",
+   "Brunei Darussalam",
+   "Brunei - Brunei Darussalam"
+  ]
+ },
+ {
+  "code": "BO",
+  "name": "Bolivia",
+  "long_name": "Plurinational State of Bolivia",
+  "names": [
+   "Bolivia",
+   "Plurinational State of Bolivia",
+   "Bolivia - Plurinational State of Bolivia",
+   "Plurinational State of Bolivia (Bolivia)"
+  ]
+ },
+ {
+  "code": "BR",
+  "name": "Brazil",
+  "long_name": "Federative Republic of Brazil",
+  "names": [
+   "Brazil",
+   "Federative Republic of Brazil",
+   "Brazil - Federative Republic of Brazil",
+   "Federative Republic of Brazil (Brazil)"
+  ]
+ },
+ {
+  "code": "BS",
+  "name": "Bahamas",
+  "long_name": "Commonwealth of the Bahamas",
+  "names": [
+   "Bahamas",
+   "Commonwealth of the Bahamas",
+   "Bahamas - Commonwealth of the Bahamas",
+   "Commonwealth of the Bahamas (Bahamas)"
+  ]
+ },
+ {
+  "code": "BT",
+  "name": "Bhutan",
+  "long_name": "Kingdom of Bhutan",
+  "names": [
+   "Bhutan",
+   "Kingdom of Bhutan",
+   "Bhutan - Kingdom of Bhutan",
+   "Kingdom of Bhutan (Bhutan)"
+  ]
+ },
+ {
+  "code": "BW",
+  "name": "Botswana",
+  "long_name": "Republic of Botswana",
+  "names": [
+   "Botswana",
+   "Republic of Botswana",
+   "Botswana - Republic of Botswana",
+   "Republic of Botswana (Botswana)"
+  ]
+ },
+ {
+  "code": "BY",
+  "name": "Belarus",
+  "long_name": "Republic of Belarus",
+  "names": [
+   "Belarus",
+   "Republic of Belarus",
+   "Belarus - Republic of Belarus",
+   "Republic of Belarus (Belarus)"
+  ]
+ },
+ {
+  "code": "BZ",
+  "name": "Belize",
+  "long_name": "Belize",
+  "names": [
+   "Belize",
+   "Belize - Belize"
+  ]
+ },
+ {
+  "code": "CA",
+  "name": "Canada",
+  "long_name": "Canada",
+  "names": [
+   "Canada",
+   "Canada - Canada"
+  ]
+ },
+ {
+  "code": "CC",
+  "name": "Court of Auditors",
+  "long_name": "European Court of Auditors",
+  "names": [
+   "Court of Auditors",
+   "European Court of Auditors",
+   "Court of Auditors - European Court of Auditors",
+   "European Court of Auditors (Court of Auditors)"
+  ]
+ },
+ {
+  "code": "CCS",
+  "name": "CCSBT",
+  "long_name": "Commission for the Conservation of Southern Bluefin Tuna (CCSBT)",
+  "names": [
+   "CCSBT",
+   "Commission for the Conservation of Southern Bluefin Tuna (CCSBT)",
+   "CCSBT - Commission for the Conservation of Southern Bluefin Tuna (CCSBT)"
+  ]
+ },
+ {
+  "code": "CDE",
+  "name": "Council of Europe",
+  "long_name": "Council of Europe",
+  "names": [
+   "Council of Europe",
+   "Council of Europe - Council of Europe"
+  ]
+ },
+ {
+  "code": "CE",
+  "name": "EC",
+  "long_name": "European Community",
+  "names": [
+   "EC",
+   "European Community",
+   "EC - European Community"
+  ]
+ },
+ {
+  "code": "CEA",
+  "name": "Euratom",
+  "long_name": "European Atomic Energy Community",
+  "names": [
+   "Euratom",
+   "European Atomic Energy Community",
+   "Euratom - European Atomic Energy Community"
+  ]
+ },
+ {
+  "code": "CEC",
+  "name": "ECSC",
+  "long_name": "European Coal and Steel Community",
+  "names": [
+   "ECSC",
+   "European Coal and Steel Community",
+   "ECSC - European Coal and Steel Community"
+  ]
+ },
+ {
+  "code": "CED",
+  "name": "ECOWAS",
+  "long_name": "Economic Community of West African States",
+  "names": [
+   "ECOWAS",
+   "Economic Community of West African States",
+   "ECOWAS - Economic Community of West African States"
+  ]
+ },
+ {
+  "code": "CEE",
+  "name": "EEC",
+  "long_name": "European Economic Community",
+  "names": [
+   "EEC",
+   "European Economic Community",
+   "EEC - European Economic Community"
+  ]
+ },
+ {
+  "code": "CF",
+  "name": "Central African Republic",
+  "long_name": "Central African Republic",
+  "names": [
+   "Central African Republic",
+   "Central African Republic - Central African Republic"
+  ]
+ },
+ {
+  "code": "CG",
+  "name": "Congo",
+  "long_name": "Republic of the Congo",
+  "names": [
+   "Congo",
+   "Republic of the Congo",
+   "Congo - Republic of the Congo",
+   "Republic of the Congo (Congo)"
+  ]
+ },
+ {
+  "code": "CGP",
+  "name": "P.R. Congo",
+  "long_name": "People's Republic of the Congo",
+  "names": [
+   "P.R. Congo",
+   "People's Republic of the Congo",
+   "P.R. Congo - People's Republic of the Congo"
+  ]
+ },
+ {
+  "code": "CH",
+  "name": "Switzerland",
+  "long_name": "Swiss Confederation",
+  "names": [
+   "Switzerland",
+   "Swiss Confederation",
+   "Switzerland - Swiss Confederation"
+  ]
+ },
+ {
+  "code": "CI",
+  "name": "Côte d'Ivoire",
+  "long_name": "Republic of Côte d'Ivoire",
+  "names": [
+   "Côte d'Ivoire",
+   "Republic of Côte d'Ivoire",
+   "Côte d'Ivoire - Republic of Côte d'Ivoire",
+   "Republic of Côte d'Ivoire (Côte d'Ivoire)"
+  ]
+ },
+ {
+  "code": "CJ",
+  "name": "Court of Justice",
+  "long_name": "Court of Justice of the European Union",
+  "names": [
+   "Court of Justice",
+   "Court of Justice of the European Union",
+   "Court of Justice - Court of Justice of the European Union"
+  ]
+ },
+ {
+  "code": "CK",
+  "name": "Cook Islands",
+  "long_name": "Cook Islands",
+  "names": [
+   "Cook Islands",
+   "Cook Islands - Cook Islands"
+  ]
+ },
+ {
+  "code": "CL",
+  "name": "Chile",
+  "long_name": "Republic of Chile",
+  "names": [
+   "Chile",
+   "Republic of Chile",
+   "Chile - Republic of Chile",
+   "Republic of Chile (Chile)"
+  ]
+ },
+ {
+  "code": "CM",
+  "name": "Cameroon",
+  "long_name": "Republic of Cameroon",
+  "names": [
+   "Cameroon",
+   "Republic of Cameroon",
+   "Cameroon - Republic of Cameroon",
+   "Republic of Cameroon (Cameroon)"
+  ]
+ },
+ {
+  "code": "CN",
+  "name": "China",
+  "long_name": "People's Republic of China",
+  "names": [
+   "China",
+   "People's Republic of China",
+   "China - People's Republic of China",
+   "People's Republic of China (China)"
+  ]
+ },
+ {
+  "code": "CO",
+  "name": "Colombia",
+  "long_name": "Republic of Colombia",
+  "names": [
+   "Colombia",
+   "Republic of Colombia",
+   "Colombia - Republic of Colombia",
+   "Republic of Colombia (Colombia)"
+  ]
+ },
+ {
+  "code": "COM",
+  "name": "Commission",
+  "long_name": "European Commission",
+  "names": [
+   "Commission",
+   "European Commission",
+   "Commission - European Commission",
+   "European Commission (Commission)"
+  ]
+ },
+ {
+  "code": "COR",
+  "name": "CoR",
+  "long_name": "European Committee of the Regions",
+  "names": [
+   "CoR",
+   "European Committee of the Regions",
+   "CoR - European Committee of the Regions",
+   "European Committee of the Regions (CoR)"
+  ]
+ },
+ {
+  "code": "CR",
+  "name": "Costa Rica",
+  "long_name": "Republic of Costa Rica",
+  "names": [
+   "Costa Rica",
+   "Republic of Costa Rica",
+   "Costa Rica - Republic of Costa Rica",
+   "Republic of Costa Rica (Costa Rica)"
+  ]
+ },
+ {
+  "code": "CS",
+  "name": "Czechoslovakia",
+  "long_name": null,
+  "names": [
+   "Czechoslovakia",
+   "Czechoslovakia -"
+  ]
+ },
+ {
+  "code": "CSE",
+  "name": "ES Committee",
+  "long_name": "European Economic and Social Committee",
+  "names": [
+   "ES Committee",
+   "European Economic and Social Committee",
+   "ES Committee - European Economic and Social Committee"
+  ]
+ },
+ {
+  "code": "CU",
+  "name": "Cuba",
+  "long_name": "Republic of Cuba",
+  "names": [
+   "Cuba",
+   "Republic of Cuba",
+   "Cuba - Republic of Cuba",
+   "Republic of Cuba (Cuba)"
+  ]
+ },
+ {
+  "code": "CUE",
+  "name": "Council",
+  "long_name": "Council of the European Union",
+  "names": [
+   "Council",
+   "Council of the European Union",
+   "Council - Council of the European Union"
+  ]
+ },
+ {
+  "code": "CV",
+  "name": "Cabo Verde",
+  "long_name": "Republic of Cabo Verde",
+  "names": [
+   "Cabo Verde",
+   "Republic of Cabo Verde",
+   "Cabo Verde - Republic of Cabo Verde",
+   "Republic of Cabo Verde (Cabo Verde)"
+  ]
+ },
+ {
+  "code": "CY",
+  "name": "Cyprus",
+  "long_name": "Republic of Cyprus",
+  "names": [
+   "Cyprus",
+   "Republic of Cyprus",
+   "Cyprus - Republic of Cyprus",
+   "Republic of Cyprus (Cyprus)"
+  ]
+ },
+ {
+  "code": "CZ",
+  "name": "Czechia",
+  "long_name": "Czech Republic",
+  "names": [
+   "Czechia",
+   "Czech Republic",
+   "Czechia - Czech Republic"
+  ]
+ },
+ {
+  "code": "D",
+  "name": "Germany",
+  "long_name": "Federal Republic of Germany",
+  "names": [
+   "Germany",
+   "Federal Republic of Germany",
+   "Federal Republic of Germany (Germany)",
+   "Germany - Federal Republic of Germany"
+  ]
+ },
+ {
+  "code": "DA",
+  "name": "Dahomey",
+  "long_name": null,
+  "names": [
+   "Dahomey",
+   "Dahomey -"
+  ]
+ },
+ {
+  "code": "DC",
+  "name": "D.R. Congo",
+  "long_name": "Democratic Republic of the Congo",
+  "names": [
+   "D.R. Congo",
+   "Democratic Republic of the Congo",
+   "D.R. Congo - Democratic Republic of the Congo"
+  ]
+ },
+ {
+  "code": "DJ",
+  "name": "Djibouti",
+  "long_name": "Republic of Djibouti",
+  "names": [
+   "Djibouti",
+   "Republic of Djibouti",
+   "Djibouti - Republic of Djibouti",
+   "Republic of Djibouti (Djibouti)"
+  ]
+ },
+ {
+  "code": "DK",
+  "name": "Denmark",
+  "long_name": "Kingdom of Denmark",
+  "names": [
+   "Denmark",
+   "Kingdom of Denmark",
+   "Denmark - Kingdom of Denmark",
+   "Kingdom of Denmark (Denmark)"
+  ]
+ },
+ {
+  "code": "DM",
+  "name": "Dominica",
+  "long_name": "Commonwealth of Dominica",
+  "names": [
+   "Dominica",
+   "Commonwealth of Dominica",
+   "Commonwealth of Dominica (Dominica)",
+   "Dominica - Commonwealth of Dominica"
+  ]
+ },
+ {
+  "code": "DO",
+  "name": "Dominican Republic",
+  "long_name": "Dominican Republic",
+  "names": [
+   "Dominican Republic",
+   "Dominican Republic - Dominican Republic"
+  ]
+ },
+ {
+  "code": "DZ",
+  "name": "Algeria",
+  "long_name": "People's Democratic Republic of Algeria",
+  "names": [
+   "Algeria",
+   "People's Democratic Republic of Algeria",
+   "Algeria - People's Democratic Republic of Algeria",
+   "People's Democratic Republic of Algeria (Algeria)"
+  ]
+ },
+ {
+  "code": "EC",
+  "name": "Ecuador",
+  "long_name": "Republic of Ecuador",
+  "names": [
+   "Ecuador",
+   "Republic of Ecuador",
+   "Ecuador - Republic of Ecuador",
+   "Republic of Ecuador (Ecuador)"
+  ]
+ },
+ {
+  "code": "ECT",
+  "name": "Eurocontrol",
+  "long_name": "Eurocontrol",
+  "names": [
+   "Eurocontrol",
+   "Eurocontrol - Eurocontrol"
+  ]
+ },
+ {
+  "code": "EE",
+  "name": "Estonia",
+  "long_name": "Republic of Estonia",
+  "names": [
+   "Estonia",
+   "Republic of Estonia",
+   "Estonia - Republic of Estonia",
+   "Republic of Estonia (Estonia)"
+  ]
+ },
+ {
+  "code": "EEE",
+  "name": "EEA",
+  "long_name": "European Economic Area",
+  "names": [
+   "EEA",
+   "European Economic Area",
+   "EEA - European Economic Area"
+  ]
+ },
+ {
+  "code": "EG",
+  "name": "Egypt",
+  "long_name": "Arab Republic of Egypt",
+  "names": [
+   "Egypt",
+   "Arab Republic of Egypt",
+   "Arab Republic of Egypt (Egypt)",
+   "Egypt - Arab Republic of Egypt"
+  ]
+ },
+ {
+  "code": "EM",
+  "name": "Member States",
+  "long_name": "Member States of the European Union",
+  "names": [
+   "Member States",
+   "Member States of the European Union",
+   "Member States - Member States of the European Union"
+  ]
+ },
+ {
+  "code": "ENC",
+  "name": "Energy Community",
+  "long_name": "Energy Community",
+  "names": [
+   "Energy Community",
+   "Energy Community - Energy Community"
+  ]
+ },
+ {
+  "code": "ER",
+  "name": "Eritrea",
+  "long_name": "State of Eritrea",
+  "names": [
+   "Eritrea",
+   "State of Eritrea",
+   "Eritrea - State of Eritrea",
+   "State of Eritrea (Eritrea)"
+  ]
+ },
+ {
+  "code": "ES",
+  "name": "Spain",
+  "long_name": "Kingdom of Spain",
+  "names": [
+   "Spain",
+   "Kingdom of Spain",
+   "Kingdom of Spain (Spain)",
+   "Spain - Kingdom of Spain"
+  ]
+ },
+ {
+  "code": "ESA",
+  "name": "ESA",
+  "long_name": "European Space Agency",
+  "names": [
+   "ESA",
+   "European Space Agency",
+   "ESA - European Space Agency"
+  ]
+ },
+ {
+  "code": "ET",
+  "name": "Ethiopia",
+  "long_name": "Federal Democratic Republic of Ethiopia",
+  "names": [
+   "Ethiopia",
+   "Federal Democratic Republic of Ethiopia",
+   "Ethiopia - Federal Democratic Republic of Ethiopia",
+   "Federal Democratic Republic of Ethiopia (Ethiopia)"
+  ]
+ },
+ {
+  "code": "F",
+  "name": "France",
+  "long_name": "French Republic",
+  "names": [
+   "France",
+   "French Republic",
+   "France - French Republic"
+  ]
+ },
+ {
+  "code": "FJ",
+  "name": "Fiji",
+  "long_name": "Republic of Fiji",
+  "names": [
+   "Fiji",
+   "Republic of Fiji",
+   "Fiji - Republic of Fiji",
+   "Republic of Fiji (Fiji)"
+  ]
+ },
+ {
+  "code": "FM",
+  "name": "Micronesia",
+  "long_name": "Federated States of Micronesia",
+  "names": [
+   "Micronesia",
+   "Federated States of Micronesia",
+   "Federated States of Micronesia (Micronesia)",
+   "Micronesia - Federated States of Micronesia"
+  ]
+ },
+ {
+  "code": "FO",
+  "name": "Faroes",
+  "long_name": "Faroe Islands",
+  "names": [
+   "Faroes",
+   "Faroe Islands",
+   "Faroes - Faroe Islands"
+  ]
+ },
+ {
+  "code": "GA",
+  "name": "Gabon",
+  "long_name": "Gabonese Republic",
+  "names": [
+   "Gabon",
+   "Gabonese Republic",
+   "Gabon - Gabonese Republic"
+  ]
+ },
+ {
+  "code": "GB",
+  "name": "United Kingdom",
+  "long_name": "United Kingdom of Great Britain and Northern Ireland",
+  "names": [
+   "United Kingdom",
+   "United Kingdom of Great Britain and Northern Ireland",
+   "United Kingdom - United Kingdom of Great Britain and Northern Ireland"
+  ]
+ },
+ {
+  "code": "GD",
+  "name": "Grenada",
+  "long_name": "Grenada",
+  "names": [
+   "Grenada",
+   "Grenada - Grenada"
+  ]
+ },
+ {
+  "code": "GE",
+  "name": "Georgia",
+  "long_name": "Georgia",
+  "names": [
+   "Georgia",
+   "Georgia - Georgia"
+  ]
+ },
+ {
+  "code": "GH",
+  "name": "Ghana",
+  "long_name": "Republic of Ghana",
+  "names": [
+   "Ghana",
+   "Republic of Ghana",
+   "Ghana - Republic of Ghana",
+   "Republic of Ghana (Ghana)"
+  ]
+ },
+ {
+  "code": "GL",
+  "name": "Greenland",
+  "long_name": null,
+  "names": [
+   "Greenland",
+   "Greenland -"
+  ]
+ },
+ {
+  "code": "GM",
+  "name": "Gambia",
+  "long_name": "Republic of The Gambia",
+  "names": [
+   "Gambia",
+   "Republic of The Gambia",
+   "Gambia - Republic of The Gambia",
+   "Republic of The Gambia (Gambia)"
+  ]
+ },
+ {
+  "code": "GN",
+  "name": "Guinea",
+  "long_name": "Republic of Guinea",
+  "names": [
+   "Guinea",
+   "Republic of Guinea",
+   "Guinea - Republic of Guinea",
+   "Republic of Guinea (Guinea)"
+  ]
+ },
+ {
+  "code": "GQ",
+  "name": "Equatorial Guinea",
+  "long_name": "Republic of Equatorial Guinea",
+  "names": [
+   "Equatorial Guinea",
+   "Republic of Equatorial Guinea",
+   "Equatorial Guinea - Republic of Equatorial Guinea",
+   "Republic of Equatorial Guinea (Equatorial Guinea)"
+  ]
+ },
+ {
+  "code": "GR",
+  "name": "Greece",
+  "long_name": "Hellenic Republic",
+  "names": [
+   "Greece",
+   "Hellenic Republic",
+   "Greece - Hellenic Republic",
+   "Hellenic Republic (Greece)"
+  ]
+ },
+ {
+  "code": "GT",
+  "name": "Guatemala",
+  "long_name": "Republic of Guatemala",
+  "names": [
+   "Guatemala",
+   "Republic of Guatemala",
+   "Guatemala - Republic of Guatemala",
+   "Republic of Guatemala (Guatemala)"
+  ]
+ },
+ {
+  "code": "GW",
+  "name": "Guinea-Bissau",
+  "long_name": "Republic of Guinea-Bissau",
+  "names": [
+   "Guinea-Bissau",
+   "Republic of Guinea-Bissau",
+   "Guinea-Bissau - Republic of Guinea-Bissau",
+   "Republic of Guinea-Bissau (Guinea-Bissau)"
+  ]
+ },
+ {
+  "code": "GY",
+  "name": "Guyana",
+  "long_name": "Cooperative Republic of Guyana",
+  "names": [
+   "Guyana",
+   "Cooperative Republic of Guyana",
+   "Cooperative Republic of Guyana (Guyana)",
+   "Guyana - Cooperative Republic of Guyana"
+  ]
+ },
+ {
+  "code": "H",
+  "name": "Hungary",
+  "long_name": "Hungary",
+  "names": [
+   "Hungary",
+   "Hungary - Hungary"
+  ]
+ },
+ {
+  "code": "HK",
+  "name": "Hong Kong",
+  "long_name": null,
+  "names": [
+   "Hong Kong",
+   "Hong Kong -"
+  ]
+ },
+ {
+  "code": "HN",
+  "name": "Honduras",
+  "long_name": "Republic of Honduras",
+  "names": [
+   "Honduras",
+   "Republic of Honduras",
+   "Honduras - Republic of Honduras",
+   "Republic of Honduras (Honduras)"
+  ]
+ },
+ {
+  "code": "HR",
+  "name": "Croatia",
+  "long_name": "Republic of Croatia",
+  "names": [
+   "Croatia",
+   "Republic of Croatia",
+   "Croatia - Republic of Croatia",
+   "Republic of Croatia (Croatia)"
+  ]
+ },
+ {
+  "code": "HT",
+  "name": "Haiti",
+  "long_name": "Republic of Haiti",
+  "names": [
+   "Haiti",
+   "Republic of Haiti",
+   "Haiti - Republic of Haiti",
+   "Republic of Haiti (Haiti)"
+  ]
+ },
+ {
+  "code": "HV",
+  "name": "Upper-Volta",
+  "long_name": null,
+  "names": [
+   "Upper-Volta",
+   "Upper-Volta -"
+  ]
+ },
+ {
+  "code": "I",
+  "name": "Italy",
+  "long_name": "Italian Republic",
+  "names": [
+   "Italy",
+   "Italian Republic",
+   "Italy - Italian Republic"
+  ]
+ },
+ {
+  "code": "ICA",
+  "name": "ICAO",
+  "long_name": "International Civil Aviation Organisation",
+  "names": [
+   "ICAO",
+   "International Civil Aviation Organisation",
+   "ICAO - International Civil Aviation Organisation"
+  ]
+ },
+ {
+  "code": "ICC",
+  "name": "ICC",
+  "long_name": "International Criminal Court",
+  "names": [
+   "ICC",
+   "International Criminal Court",
+   "ICC - International Criminal Court"
+  ]
+ },
+ {
+  "code": "ID",
+  "name": "Indonesia",
+  "long_name": "Republic of Indonesia",
+  "names": [
+   "Indonesia",
+   "Republic of Indonesia",
+   "Indonesia - Republic of Indonesia",
+   "Republic of Indonesia (Indonesia)"
+  ]
+ },
+ {
+  "code": "IL",
+  "name": "Israel",
+  "long_name": "State of Israel",
+  "names": [
+   "Israel",
+   "State of Israel",
+   "Israel - State of Israel",
+   "State of Israel (Israel)"
+  ]
+ },
+ {
+  "code": "IN",
+  "name": "India",
+  "long_name": "Republic of India",
+  "names": [
+   "India",
+   "Republic of India",
+   "India - Republic of India",
+   "Republic of India (India)"
+  ]
+ },
+ {
+  "code": "IQ",
+  "name": "Iraq",
+  "long_name": "Republic of Iraq",
+  "names": [
+   "Iraq",
+   "Republic of Iraq",
+   "Iraq - Republic of Iraq",
+   "Republic of Iraq (Iraq)"
+  ]
+ },
+ {
+  "code": "IR",
+  "name": "Iran",
+  "long_name": "Islamic Republic of Iran",
+  "names": [
+   "Iran",
+   "Islamic Republic of Iran",
+   "Iran - Islamic Republic of Iran"
+  ]
+ },
+ {
+  "code": "IRL",
+  "name": "Ireland",
+  "long_name": "Ireland",
+  "names": [
+   "Ireland",
+   "Ireland - Ireland"
+  ]
+ },
+ {
+  "code": "IS",
+  "name": "Iceland",
+  "long_name": "Iceland",
+  "names": [
+   "Iceland",
+   "Iceland - Iceland"
+  ]
+ },
+ {
+  "code": "JM",
+  "name": "Jamaica",
+  "long_name": "Jamaica",
+  "names": [
+   "Jamaica",
+   "Jamaica - Jamaica"
+  ]
+ },
+ {
+  "code": "JO",
+  "name": "Jordan",
+  "long_name": "Hashemite Kingdom of Jordan",
+  "names": [
+   "Jordan",
+   "Hashemite Kingdom of Jordan",
+   "Hashemite Kingdom of Jordan (Jordan)",
+   "Jordan - Hashemite Kingdom of Jordan"
+  ]
+ },
+ {
+  "code": "JP",
+  "name": "Japan",
+  "long_name": "Japan",
+  "names": [
+   "Japan",
+   "Japan - Japan"
+  ]
+ },
+ {
+  "code": "KE",
+  "name": "Kenya",
+  "long_name": "Republic of Kenya",
+  "names": [
+   "Kenya",
+   "Republic of Kenya",
+   "Kenya - Republic of Kenya",
+   "Republic of Kenya (Kenya)"
+  ]
+ },
+ {
+  "code": "KG",
+  "name": "Kyrgyzstan",
+  "long_name": "Kyrgyz Republic",
+  "names": [
+   "Kyrgyzstan",
+   "Kyrgyz Republic",
+   "Kyrgyzstan - Kyrgyz Republic"
+  ]
+ },
+ {
+  "code": "KH",
+  "name": "Cambodia",
+  "long_name": "Kingdom of Cambodia",
+  "names": [
+   "Cambodia",
+   "Kingdom of Cambodia",
+   "Cambodia - Kingdom of Cambodia",
+   "Kingdom of Cambodia (Cambodia)"
+  ]
+ },
+ {
+  "code": "KI",
+  "name": "Kiribati",
+  "long_name": "Republic of Kiribati",
+  "names": [
+   "Kiribati",
+   "Republic of Kiribati",
+   "Kiribati - Republic of Kiribati",
+   "Republic of Kiribati (Kiribati)"
+  ]
+ },
+ {
+  "code": "KM",
+  "name": "Comoros",
+  "long_name": "Union of the Comoros",
+  "names": [
+   "Comoros",
+   "Union of the Comoros",
+   "Comoros - Union of the Comoros",
+   "Union of the Comoros (Comoros)"
+  ]
+ },
+ {
+  "code": "KN",
+  "name": "Saint Kitts and Nevis",
+  "long_name": "Federation of Saint Kitts and Nevis",
+  "names": [
+   "Saint Kitts and Nevis",
+   "Federation of Saint Kitts and Nevis",
+   "Federation of Saint Kitts and Nevis (Saint Kitts and Nevis)",
+   "Saint Kitts and Nevis - Federation of Saint Kitts and Nevis"
+  ]
+ },
+ {
+  "code": "KR",
+  "name": "Korea",
+  "long_name": "Republic of Korea",
+  "names": [
+   "Korea",
+   "Republic of Korea",
+   "Korea - Republic of Korea",
+   "Republic of Korea (Korea)"
+  ]
+ },
+ {
+  "code": "KV",
+  "name": "Kosovo (under UNSC Resolution 1244/99)",
+  "long_name": "Kosovo (under UNSC Resolution 1244/99)",
+  "names": [
+   "Kosovo (under UNSC Resolution 1244/99)",
+   "Kosovo (under UNSC Resolution 1244/99) - Kosovo (under UNSC Resolution 1244/99)"
+  ]
+ },
+ {
+  "code": "KVO",
+  "name": "Kosovo*",
+  "long_name": "Kosovo* *This designation is without prejudice to positions on status, and is in line with UNSCR 1244/1999 and the ICJ Opinion on the Kosovo declaration of independence",
+  "names": [
+   "Kosovo*",
+   "Kosovo* *This designation is without prejudice to positions on status, and is in line with UNSCR 1244/1999 and the ICJ Opinion on the Kosovo declaration of independence",
+   "Kosovo* - Kosovo* *This designation is without prejudice to positions on status, and is in line with UNSCR 1244/1999 and the ICJ Opinion on the Kosovo declaration of independence"
+  ]
+ },
+ {
+  "code": "KW",
+  "name": "Kuwait",
+  "long_name": "State of Kuwait",
+  "names": [
+   "Kuwait",
+   "State of Kuwait",
+   "Kuwait - State of Kuwait",
+   "State of Kuwait (Kuwait)"
+  ]
+ },
+ {
+  "code": "KZ",
+  "name": "Kazakhstan",
+  "long_name": "Republic of Kazakhstan",
+  "names": [
+   "Kazakhstan",
+   "Republic of Kazakhstan",
+   "Kazakhstan - Republic of Kazakhstan",
+   "Republic of Kazakhstan (Kazakhstan)"
+  ]
+ },
+ {
+  "code": "LA",
+  "name": "Laos",
+  "long_name": "Lao People's Democratic Republic",
+  "names": [
+   "Laos",
+   "Lao People's Democratic Republic",
+   "Laos - Lao People's Democratic Republic"
+  ]
+ },
+ {
+  "code": "LB",
+  "name": "Lebanon",
+  "long_name": "Lebanese Republic",
+  "names": [
+   "Lebanon",
+   "Lebanese Republic",
+   "Lebanon - Lebanese Republic"
+  ]
+ },
+ {
+  "code": "LC",
+  "name": "Saint Lucia",
+  "long_name": "Saint Lucia",
+  "names": [
+   "Saint Lucia",
+   "Saint Lucia - Saint Lucia"
+  ]
+ },
+ {
+  "code": "LI",
+  "name": "Liechtenstein",
+  "long_name": "Principality of Liechtenstein",
+  "names": [
+   "Liechtenstein",
+   "Principality of Liechtenstein",
+   "Liechtenstein - Principality of Liechtenstein",
+   "Principality of Liechtenstein (Liechtenstein)"
+  ]
+ },
+ {
+  "code": "LK",
+  "name": "Sri Lanka",
+  "long_name": "Democratic Socialist Republic of Sri Lanka",
+  "names": [
+   "Sri Lanka",
+   "Democratic Socialist Republic of Sri Lanka",
+   "Democratic Socialist Republic of Sri Lanka (Sri Lanka)",
+   "Sri Lanka - Democratic Socialist Republic of Sri Lanka"
+  ]
+ },
+ {
+  "code": "LR",
+  "name": "Liberia",
+  "long_name": "Republic of Liberia",
+  "names": [
+   "Liberia",
+   "Republic of Liberia",
+   "Liberia - Republic of Liberia",
+   "Republic of Liberia (Liberia)"
+  ]
+ },
+ {
+  "code": "LS",
+  "name": "Lesotho",
+  "long_name": "Kingdom of Lesotho",
+  "names": [
+   "Lesotho",
+   "Kingdom of Lesotho",
+   "Kingdom of Lesotho (Lesotho)",
+   "Lesotho - Kingdom of Lesotho"
+  ]
+ },
+ {
+  "code": "LT",
+  "name": "Lithuania",
+  "long_name": "Republic of Lithuania",
+  "names": [
+   "Lithuania",
+   "Republic of Lithuania",
+   "Lithuania - Republic of Lithuania",
+   "Republic of Lithuania (Lithuania)"
+  ]
+ },
+ {
+  "code": "LU",
+  "name": "Luxembourg",
+  "long_name": "Grand Duchy of Luxembourg",
+  "names": [
+   "Luxembourg",
+   "Grand Duchy of Luxembourg",
+   "Grand Duchy of Luxembourg (Luxembourg)",
+   "Luxembourg - Grand Duchy of Luxembourg"
+  ]
+ },
+ {
+  "code": "LV",
+  "name": "Latvia",
+  "long_name": "Republic of Latvia",
+  "names": [
+   "Latvia",
+   "Republic of Latvia",
+   "Latvia - Republic of Latvia",
+   "Republic of Latvia (Latvia)"
+  ]
+ },
+ {
+  "code": "LY",
+  "name": "Libya",
+  "long_name": "State of Libya",
+  "names": [
+   "Libya",
+   "State of Libya",
+   "Libya - State of Libya",
+   "State of Libya (Libya)"
+  ]
+ },
+ {
+  "code": "MA",
+  "name": "Morocco",
+  "long_name": "Kingdom of Morocco",
+  "names": [
+   "Morocco",
+   "Kingdom of Morocco",
+   "Kingdom of Morocco (Morocco)",
+   "Morocco - Kingdom of Morocco"
+  ]
+ },
+ {
+  "code": "MAL",
+  "name": "Malgache",
+  "long_name": null,
+  "names": [
+   "Malgache",
+   "Malgache -"
+  ]
+ },
+ {
+  "code": "MC",
+  "name": "Monaco",
+  "long_name": "Principality of Monaco",
+  "names": [
+   "Monaco",
+   "Principality of Monaco",
+   "Monaco - Principality of Monaco",
+   "Principality of Monaco (Monaco)"
+  ]
+ },
+ {
+  "code": "MD",
+  "name": "Moldova",
+  "long_name": "Republic of Moldova",
+  "names": [
+   "Moldova",
+   "Republic of Moldova",
+   "Moldova - Republic of Moldova",
+   "Republic of Moldova (Moldova)"
+  ]
+ },
+ {
+  "code": "ME",
+  "name": "Montenegro",
+  "long_name": "Montenegro",
+  "names": [
+   "Montenegro",
+   "Montenegro - Montenegro"
+  ]
+ },
+ {
+  "code": "MG",
+  "name": "Madagascar",
+  "long_name": "Republic of Madagascar",
+  "names": [
+   "Madagascar",
+   "Republic of Madagascar",
+   "Madagascar - Republic of Madagascar",
+   "Republic of Madagascar (Madagascar)"
+  ]
+ },
+ {
+  "code": "MH",
+  "name": "Marshall Islands",
+  "long_name": "Republic of the Marshall Islands",
+  "names": [
+   "Marshall Islands",
+   "Republic of the Marshall Islands",
+   "Marshall Islands - Republic of the Marshall Islands",
+   "Republic of the Marshall Islands (Marshall Islands)"
+  ]
+ },
+ {
+  "code": "MK",
+  "name": "North Macedonia",
+  "long_name": "Republic of North Macedonia [See also Former Yugoslav Republic of Macedonia]",
+  "names": [
+   "North Macedonia",
+   "Republic of North Macedonia [See also Former Yugoslav Republic of Macedonia]",
+   "North Macedonia - Republic of North Macedonia [See also Former Yugoslav Republic of Macedonia]",
+   "Republic of North Macedonia [See also Former Yugoslav Republic of Macedonia] (North Macedonia)"
+  ]
+ },
+ {
+  "code": "ML",
+  "name": "Mali",
+  "long_name": "Republic of Mali",
+  "names": [
+   "Mali",
+   "Republic of Mali",
+   "Mali - Republic of Mali",
+   "Republic of Mali (Mali)"
+  ]
+ },
+ {
+  "code": "MM",
+  "name": "Myanmar",
+  "long_name": "Republic of the Union of Myanmar",
+  "names": [
+   "Myanmar",
+   "Republic of the Union of Myanmar",
+   "Myanmar - Republic of the Union of Myanmar",
+   "Republic of the Union of Myanmar (Myanmar)"
+  ]
+ },
+ {
+  "code": "MN",
+  "name": "Mongolia",
+  "long_name": "Mongolia",
+  "names": [
+   "Mongolia",
+   "Mongolia - Mongolia"
+  ]
+ },
+ {
+  "code": "MO",
+  "name": "Macau",
+  "long_name": "Macao Special Administrative Region",
+  "names": [
+   "Macau",
+   "Macao Special Administrative Region",
+   "Macau - Macao Special Administrative Region"
+  ]
+ },
+ {
+  "code": "MR",
+  "name": "Mauritania",
+  "long_name": "Islamic Republic of Mauritania",
+  "names": [
+   "Mauritania",
+   "Islamic Republic of Mauritania",
+   "Islamic Republic of Mauritania (Mauritania)",
+   "Mauritania - Islamic Republic of Mauritania"
+  ]
+ },
+ {
+  "code": "MS",
+  "name": "Mercosur",
+  "long_name": null,
+  "names": [
+   "Mercosur",
+   "Mercosur -"
+  ]
+ },
+ {
+  "code": "MT",
+  "name": "Malta",
+  "long_name": "Republic of Malta",
+  "names": [
+   "Malta",
+   "Republic of Malta",
+   "Malta - Republic of Malta",
+   "Republic of Malta (Malta)"
+  ]
+ },
+ {
+  "code": "MU",
+  "name": "Mauritius",
+  "long_name": "Republic of Mauritius",
+  "names": [
+   "Mauritius",
+   "Republic of Mauritius",
+   "Mauritius - Republic of Mauritius",
+   "Republic of Mauritius (Mauritius)"
+  ]
+ },
+ {
+  "code": "MV",
+  "name": "Maldives",
+  "long_name": "Republic of Maldives",
+  "names": [
+   "Maldives",
+   "Republic of Maldives",
+   "Maldives - Republic of Maldives",
+   "Republic of Maldives (Maldives)"
+  ]
+ },
+ {
+  "code": "MW",
+  "name": "Malawi",
+  "long_name": "Republic of Malawi",
+  "names": [
+   "Malawi",
+   "Republic of Malawi",
+   "Malawi - Republic of Malawi",
+   "Republic of Malawi (Malawi)"
+  ]
+ },
+ {
+  "code": "MX",
+  "name": "Mexico",
+  "long_name": "United Mexican States",
+  "names": [
+   "Mexico",
+   "United Mexican States",
+   "Mexico - United Mexican States",
+   "United Mexican States (Mexico)"
+  ]
+ },
+ {
+  "code": "MY",
+  "name": "Malaysia",
+  "long_name": "Malaysia",
+  "names": [
+   "Malaysia",
+   "Malaysia - Malaysia"
+  ]
+ },
+ {
+  "code": "MZ",
+  "name": "Mozambique",
+  "long_name": "Republic of Mozambique",
+  "names": [
+   "Mozambique",
+   "Republic of Mozambique",
+   "Mozambique - Republic of Mozambique",
+   "Republic of Mozambique (Mozambique)"
+  ]
+ },
+ {
+  "code": "NA",
+  "name": "Namibia",
+  "long_name": "Republic of Namibia",
+  "names": [
+   "Namibia",
+   "Republic of Namibia",
+   "Namibia - Republic of Namibia",
+   "Republic of Namibia (Namibia)"
+  ]
+ },
+ {
+  "code": "NAT",
+  "name": "NATO",
+  "long_name": "North Atlantic Treaty Organisation",
+  "names": [
+   "NATO",
+   "North Atlantic Treaty Organisation",
+   "NATO - North Atlantic Treaty Organisation"
+  ]
+ },
+ {
+  "code": "NE",
+  "name": "Niger",
+  "long_name": "Republic of the Niger",
+  "names": [
+   "Niger",
+   "Republic of the Niger",
+   "Niger - Republic of the Niger",
+   "Republic of the Niger (Niger)"
+  ]
+ },
+ {
+  "code": "NG",
+  "name": "Nigeria",
+  "long_name": "Federal Republic of Nigeria",
+  "names": [
+   "Nigeria",
+   "Federal Republic of Nigeria",
+   "Federal Republic of Nigeria (Nigeria)",
+   "Nigeria - Federal Republic of Nigeria"
+  ]
+ },
+ {
+  "code": "NI",
+  "name": "Nicaragua",
+  "long_name": "Republic of Nicaragua",
+  "names": [
+   "Nicaragua",
+   "Republic of Nicaragua",
+   "Nicaragua - Republic of Nicaragua",
+   "Republic of Nicaragua (Nicaragua)"
+  ]
+ },
+ {
+  "code": "NL",
+  "name": "Netherlands",
+  "long_name": "Kingdom of the Netherlands",
+  "names": [
+   "Netherlands",
+   "Kingdom of the Netherlands",
+   "Kingdom of the Netherlands (Netherlands)",
+   "Netherlands - Kingdom of the Netherlands"
+  ]
+ },
+ {
+  "code": "NO",
+  "name": "Norway",
+  "long_name": "Kingdom of Norway",
+  "names": [
+   "Norway",
+   "Kingdom of Norway",
+   "Kingdom of Norway (Norway)",
+   "Norway - Kingdom of Norway"
+  ]
+ },
+ {
+  "code": "NP",
+  "name": "Nepal",
+  "long_name": "Federal Democratic Republic of Nepal",
+  "names": [
+   "Nepal",
+   "Federal Democratic Republic of Nepal",
+   "Federal Democratic Republic of Nepal (Nepal)",
+   "Nepal - Federal Democratic Republic of Nepal"
+  ]
+ },
+ {
+  "code": "NR",
+  "name": "Naoero",
+  "long_name": "Republic of Naoero",
+  "names": [
+   "Naoero",
+   "Republic of Naoero",
+   "Naoero - Republic of Naoero",
+   "Republic of Naoero (Naoero)"
+  ]
+ },
+ {
+  "code": "NU",
+  "name": "Niue",
+  "long_name": "Niue",
+  "names": [
+   "Niue",
+   "Niue - Niue"
+  ]
+ },
+ {
+  "code": "NZ",
+  "name": "New Zealand",
+  "long_name": "New Zealand",
+  "names": [
+   "New Zealand",
+   "New Zealand - New Zealand"
+  ]
+ },
+ {
+  "code": "OCC",
+  "name": "OCCAR",
+  "long_name": "Organisation for Joint Armament Cooperation",
+  "names": [
+   "OCCAR",
+   "Organisation for Joint Armament Cooperation",
+   "OCCAR - Organisation for Joint Armament Cooperation"
+  ]
+ },
+ {
+  "code": "OLP",
+  "name": "Palestinian Authority",
+  "long_name": "Palestinian Authority",
+  "names": [
+   "Palestinian Authority",
+   "Palestinian Authority - Palestinian Authority"
+  ]
+ },
+ {
+  "code": "OM",
+  "name": "Oman",
+  "long_name": "Sultanate of Oman",
+  "names": [
+   "Oman",
+   "Sultanate of Oman",
+   "Oman - Sultanate of Oman",
+   "Sultanate of Oman (Oman)"
+  ]
+ },
+ {
+  "code": "OTI",
+  "name": "OTIF",
+  "long_name": "Intergovernmental Organisation for International Carriage by Rail",
+  "names": [
+   "OTIF",
+   "Intergovernmental Organisation for International Carriage by Rail",
+   "Intergovernmental Organisation for International Carriage by Rail (OTIF)",
+   "OTIF - Intergovernmental Organisation for International Carriage by Rail"
+  ]
+ },
+ {
+  "code": "P",
+  "name": "Portugal",
+  "long_name": "Portuguese Republic",
+  "names": [
+   "Portugal",
+   "Portuguese Republic",
+   "Portugal - Portuguese Republic"
+  ]
+ },
+ {
+  "code": "PA",
+  "name": "Panama",
+  "long_name": "Republic of Panama",
+  "names": [
+   "Panama",
+   "Republic of Panama",
+   "Panama - Republic of Panama",
+   "Republic of Panama (Panama)"
+  ]
+ },
+ {
+  "code": "PAC",
+  "name": "Central Africa Party",
+  "long_name": null,
+  "names": [
+   "Central Africa Party",
+   "Central Africa Party -"
+  ]
+ },
+ {
+  "code": "PAR",
+  "name": "Parliament",
+  "long_name": "European Parliament",
+  "names": [
+   "Parliament",
+   "European Parliament",
+   "European Parliament (Parliament)",
+   "Parliament - European Parliament"
+  ]
+ },
+ {
+  "code": "PE",
+  "name": "Peru",
+  "long_name": "Republic of Peru",
+  "names": [
+   "Peru",
+   "Republic of Peru",
+   "Peru - Republic of Peru",
+   "Republic of Peru (Peru)"
+  ]
+ },
+ {
+  "code": "PG",
+  "name": "Papua New Guinea",
+  "long_name": "Independent State of Papua New Guinea",
+  "names": [
+   "Papua New Guinea",
+   "Independent State of Papua New Guinea",
+   "Independent State of Papua New Guinea (Papua New Guinea)",
+   "Papua New Guinea - Independent State of Papua New Guinea"
+  ]
+ },
+ {
+  "code": "PH",
+  "name": "Philippines",
+  "long_name": "Republic of the Philippines",
+  "names": [
+   "Philippines",
+   "Republic of the Philippines",
+   "Philippines - Republic of the Philippines",
+   "Republic of the Philippines (Philippines)"
+  ]
+ },
+ {
+  "code": "PK",
+  "name": "Pakistan",
+  "long_name": "Islamic Republic of Pakistan",
+  "names": [
+   "Pakistan",
+   "Islamic Republic of Pakistan",
+   "Islamic Republic of Pakistan (Pakistan)",
+   "Pakistan - Islamic Republic of Pakistan"
+  ]
+ },
+ {
+  "code": "PL",
+  "name": "Poland",
+  "long_name": "Republic of Poland",
+  "names": [
+   "Poland",
+   "Republic of Poland",
+   "Poland - Republic of Poland",
+   "Republic of Poland (Poland)"
+  ]
+ },
+ {
+  "code": "PLO",
+  "name": "PLO",
+  "long_name": "Palestine Liberation Organisation",
+  "names": [
+   "PLO",
+   "Palestine Liberation Organisation",
+   "PLO - Palestine Liberation Organisation"
+  ]
+ },
+ {
+  "code": "PW",
+  "name": "Palau",
+  "long_name": "Republic of Palau",
+  "names": [
+   "Palau",
+   "Republic of Palau",
+   "Palau - Republic of Palau",
+   "Republic of Palau (Palau)"
+  ]
+ },
+ {
+  "code": "PY",
+  "name": "Paraguay",
+  "long_name": "Republic of Paraguay",
+  "names": [
+   "Paraguay",
+   "Republic of Paraguay",
+   "Paraguay - Republic of Paraguay",
+   "Republic of Paraguay (Paraguay)"
+  ]
+ },
+ {
+  "code": "QA",
+  "name": "Qatar",
+  "long_name": "State of Qatar",
+  "names": [
+   "Qatar",
+   "State of Qatar",
+   "Qatar - State of Qatar",
+   "State of Qatar (Qatar)"
+  ]
+ },
+ {
+  "code": "RDA",
+  "name": "GDR",
+  "long_name": "German Democratic Republic",
+  "names": [
+   "GDR",
+   "German Democratic Republic",
+   "GDR - German Democratic Republic"
+  ]
+ },
+ {
+  "code": "RO",
+  "name": "Romania",
+  "long_name": "Romania",
+  "names": [
+   "Romania",
+   "Romania - Romania"
+  ]
+ },
+ {
+  "code": "RS",
+  "name": "Serbia",
+  "long_name": "Republic of Serbia",
+  "names": [
+   "Serbia",
+   "Republic of Serbia",
+   "Republic of Serbia (Serbia)",
+   "Serbia - Republic of Serbia"
+  ]
+ },
+ {
+  "code": "RU",
+  "name": "Russia",
+  "long_name": "Russian Federation",
+  "names": [
+   "Russia",
+   "Russian Federation",
+   "Russia - Russian Federation"
+  ]
+ },
+ {
+  "code": "RW",
+  "name": "Rwanda",
+  "long_name": "Republic of Rwanda",
+  "names": [
+   "Rwanda",
+   "Republic of Rwanda",
+   "Rwanda - Republic of Rwanda"
+  ]
+ },
+ {
+  "code": "S",
+  "name": "Sweden",
+  "long_name": "Kingdom of Sweden",
+  "names": [
+   "Sweden",
+   "Kingdom of Sweden",
+   "Kingdom of Sweden (Sweden)",
+   "Sweden - Kingdom of Sweden"
+  ]
+ },
+ {
+  "code": "SA",
+  "name": "Saudi Arabia",
+  "long_name": "Kingdom of Saudi Arabia",
+  "names": [
+   "Saudi Arabia",
+   "Kingdom of Saudi Arabia",
+   "Kingdom of Saudi Arabia (Saudi Arabia)",
+   "Saudi Arabia - Kingdom of Saudi Arabia"
+  ]
+ },
+ {
+  "code": "SB",
+  "name": "Solomon Islands",
+  "long_name": "Solomon Islands",
+  "names": [
+   "Solomon Islands",
+   "Solomon Islands - Solomon Islands"
+  ]
+ },
+ {
+  "code": "SC",
+  "name": "Seychelles",
+  "long_name": "Republic of Seychelles",
+  "names": [
+   "Seychelles",
+   "Republic of Seychelles",
+   "Republic of Seychelles (Seychelles)",
+   "Seychelles - Republic of Seychelles"
+  ]
+ },
+ {
+  "code": "SD",
+  "name": "Sudan",
+  "long_name": "Republic of the Sudan",
+  "names": [
+   "Sudan",
+   "Republic of the Sudan",
+   "Republic of the Sudan (Sudan)",
+   "Sudan - Republic of the Sudan"
+  ]
+ },
+ {
+  "code": "SEM",
+  "name": "Serbia and Montenegro",
+  "long_name": "Serbia and Montenegro",
+  "names": [
+   "Serbia and Montenegro",
+   "Serbia and Montenegro - Serbia and Montenegro"
+  ]
+ },
+ {
+  "code": "SF",
+  "name": "Finland",
+  "long_name": "Republic of Finland",
+  "names": [
+   "Finland",
+   "Republic of Finland",
+   "Finland - Republic of Finland",
+   "Republic of Finland (Finland)"
+  ]
+ },
+ {
+  "code": "SG",
+  "name": "Singapore",
+  "long_name": "Republic of Singapore",
+  "names": [
+   "Singapore",
+   "Republic of Singapore",
+   "Republic of Singapore (Singapore)",
+   "Singapore - Republic of Singapore"
+  ]
+ },
+ {
+  "code": "SI",
+  "name": "Slovenia",
+  "long_name": "Republic of Slovenia",
+  "names": [
+   "Slovenia",
+   "Republic of Slovenia",
+   "Republic of Slovenia (Slovenia)",
+   "Slovenia - Republic of Slovenia"
+  ]
+ },
+ {
+  "code": "SK",
+  "name": "Slovakia",
+  "long_name": "Slovak Republic",
+  "names": [
+   "Slovakia",
+   "Slovak Republic",
+   "Slovakia - Slovak Republic"
+  ]
+ },
+ {
+  "code": "SL",
+  "name": "Sierra Leone",
+  "long_name": "Republic of Sierra Leone",
+  "names": [
+   "Sierra Leone",
+   "Republic of Sierra Leone",
+   "Republic of Sierra Leone (Sierra Leone)",
+   "Sierra Leone - Republic of Sierra Leone"
+  ]
+ },
+ {
+  "code": "SM",
+  "name": "San Marino",
+  "long_name": "Republic of San Marino",
+  "names": [
+   "San Marino",
+   "Republic of San Marino",
+   "Republic of San Marino (San Marino)",
+   "San Marino - Republic of San Marino"
+  ]
+ },
+ {
+  "code": "SN",
+  "name": "Senegal",
+  "long_name": "Republic of Senegal",
+  "names": [
+   "Senegal",
+   "Republic of Senegal",
+   "Republic of Senegal (Senegal)",
+   "Senegal - Republic of Senegal"
+  ]
+ },
+ {
+  "code": "SO",
+  "name": "Somalia",
+  "long_name": "Federal Republic of Somalia",
+  "names": [
+   "Somalia",
+   "Federal Republic of Somalia",
+   "Federal Republic of Somalia (Somalia)",
+   "Somalia - Federal Republic of Somalia"
+  ]
+ },
+ {
+  "code": "SR",
+  "name": "Suriname",
+  "long_name": "Republic of Suriname",
+  "names": [
+   "Suriname",
+   "Republic of Suriname",
+   "Republic of Suriname (Suriname)",
+   "Suriname - Republic of Suriname"
+  ]
+ },
+ {
+  "code": "SS",
+  "name": "South Sudan",
+  "long_name": "Republic of South Sudan",
+  "names": [
+   "South Sudan",
+   "Republic of South Sudan",
+   "Republic of South Sudan (South Sudan)",
+   "South Sudan - Republic of South Sudan"
+  ]
+ },
+ {
+  "code": "ST",
+  "name": "São Tomé and Príncipe",
+  "long_name": "Democratic Republic of São Tomé and Príncipe",
+  "names": [
+   "São Tomé and Príncipe",
+   "Democratic Republic of São Tomé and Príncipe",
+   "Democratic Republic of São Tomé and Príncipe (São Tomé and Príncipe)",
+   "São Tomé and Príncipe - Democratic Republic of São Tomé and Príncipe"
+  ]
+ },
+ {
+  "code": "SU",
+  "name": "USSR",
+  "long_name": null,
+  "names": [
+   "USSR",
+   "USSR -"
+  ]
+ },
+ {
+  "code": "SV",
+  "name": "El Salvador",
+  "long_name": "Republic of El Salvador",
+  "names": [
+   "El Salvador",
+   "Republic of El Salvador",
+   "El Salvador - Republic of El Salvador",
+   "Republic of El Salvador (El Salvador)"
+  ]
+ },
+ {
+  "code": "SWZ",
+  "name": "Eswatini",
+  "long_name": "Kingdom of Eswatini [See also Swaziland]",
+  "names": [
+   "Eswatini",
+   "Kingdom of Eswatini [See also Swaziland]",
+   "Eswatini - Kingdom of Eswatini [See also Swaziland]",
+   "Kingdom of Eswatini [See also Swaziland] (Eswatini)"
+  ]
+ },
+ {
+  "code": "SY",
+  "name": "Syria",
+  "long_name": "Syrian Arab Republic",
+  "names": [
+   "Syria",
+   "Syrian Arab Republic",
+   "Syria - Syrian Arab Republic"
+  ]
+ },
+ {
+  "code": "SZ",
+  "name": "Swaziland",
+  "long_name": "Kingdom of Swaziland [See also Eswatini]",
+  "names": [
+   "Swaziland",
+   "Kingdom of Swaziland [See also Eswatini]",
+   "Kingdom of Swaziland [See also Eswatini] (Swaziland)",
+   "Swaziland - Kingdom of Swaziland [See also Eswatini]"
+  ]
+ },
+ {
+  "code": "TD",
+  "name": "Chad",
+  "long_name": "Republic of Chad",
+  "names": [
+   "Chad",
+   "Republic of Chad",
+   "Chad - Republic of Chad",
+   "Republic of Chad (Chad)"
+  ]
+ },
+ {
+  "code": "TG",
+  "name": "Togo",
+  "long_name": "Togolese Republic",
+  "names": [
+   "Togo",
+   "Togolese Republic",
+   "Togo - Togolese Republic"
+  ]
+ },
+ {
+  "code": "TH",
+  "name": "Thailand",
+  "long_name": "Kingdom of Thailand",
+  "names": [
+   "Thailand",
+   "Kingdom of Thailand",
+   "Kingdom of Thailand (Thailand)",
+   "Thailand - Kingdom of Thailand"
+  ]
+ },
+ {
+  "code": "TJ",
+  "name": "Tajikistan",
+  "long_name": "Republic of Tajikistan",
+  "names": [
+   "Tajikistan",
+   "Republic of Tajikistan",
+   "Republic of Tajikistan (Tajikistan)",
+   "Tajikistan - Republic of Tajikistan"
+  ]
+ },
+ {
+  "code": "TM",
+  "name": "Turkmenistan",
+  "long_name": "Turkmenistan",
+  "names": [
+   "Turkmenistan",
+   "Turkmenistan - Turkmenistan"
+  ]
+ },
+ {
+  "code": "TN",
+  "name": "Tunisia",
+  "long_name": "Republic of Tunisia",
+  "names": [
+   "Tunisia",
+   "Republic of Tunisia",
+   "Republic of Tunisia (Tunisia)",
+   "Tunisia - Republic of Tunisia"
+  ]
+ },
+ {
+  "code": "TO",
+  "name": "Tonga",
+  "long_name": "Kingdom of Tonga",
+  "names": [
+   "Tonga",
+   "Kingdom of Tonga",
+   "Kingdom of Tonga (Tonga)",
+   "Tonga - Kingdom of Tonga"
+  ]
+ },
+ {
+  "code": "TP",
+  "name": "Timor-Leste",
+  "long_name": "Democratic Republic of Timor-Leste",
+  "names": [
+   "Timor-Leste",
+   "Democratic Republic of Timor-Leste",
+   "Democratic Republic of Timor-Leste (Timor-Leste)",
+   "Timor-Leste - Democratic Republic of Timor-Leste"
+  ]
+ },
+ {
+  "code": "TR",
+  "name": "Türkiye",
+  "long_name": "Republic of Türkiye",
+  "names": [
+   "Türkiye",
+   "Republic of Türkiye",
+   "Republic of Türkiye (Türkiye)",
+   "Türkiye - Republic of Türkiye"
+  ]
+ },
+ {
+  "code": "TT",
+  "name": "Trinidad and Tobago",
+  "long_name": "Republic of Trinidad and Tobago",
+  "names": [
+   "Trinidad and Tobago",
+   "Republic of Trinidad and Tobago",
+   "Republic of Trinidad and Tobago (Trinidad and Tobago)",
+   "Trinidad and Tobago - Republic of Trinidad and Tobago"
+  ]
+ },
+ {
+  "code": "TV",
+  "name": "Tuvalu",
+  "long_name": "Tuvalu",
+  "names": [
+   "Tuvalu",
+   "Tuvalu - Tuvalu"
+  ]
+ },
+ {
+  "code": "TW",
+  "name": "Taiwan",
+  "long_name": "Separate Customs Territory of Taiwan, Penghu, Kinmen and Matsu",
+  "names": [
+   "Taiwan",
+   "Separate Customs Territory of Taiwan, Penghu, Kinmen and Matsu",
+   "Separate Customs Territory of Taiwan, Penghu, Kinmen and Matsu (Taiwan)",
+   "Taiwan - Separate Customs Territory of Taiwan, Penghu, Kinmen and Matsu"
+  ]
+ },
+ {
+  "code": "TZ",
+  "name": "Tanzania",
+  "long_name": "United Republic of Tanzania",
+  "names": [
+   "Tanzania",
+   "United Republic of Tanzania",
+   "Tanzania - United Republic of Tanzania",
+   "United Republic of Tanzania (Tanzania)"
+  ]
+ },
+ {
+  "code": "UA",
+  "name": "Ukraine",
+  "long_name": "Ukraine",
+  "names": [
+   "Ukraine",
+   "Ukraine - Ukraine"
+  ]
+ },
+ {
+  "code": "UE",
+  "name": "European Union",
+  "long_name": "European Union",
+  "names": [
+   "European Union",
+   "European Union - European Union"
+  ]
+ },
+ {
+  "code": "UG",
+  "name": "Uganda",
+  "long_name": "Republic of Uganda",
+  "names": [
+   "Uganda",
+   "Republic of Uganda",
+   "Republic of Uganda (Uganda)",
+   "Uganda - Republic of Uganda"
+  ]
+ },
+ {
+  "code": "UN",
+  "name": "United Nations",
+  "long_name": null,
+  "names": [
+   "United Nations",
+   "United Nations -"
+  ]
+ },
+ {
+  "code": "UNK",
+  "name": "UNMIK",
+  "long_name": "United Nations Interim Administration Mission in Kosovo",
+  "names": [
+   "UNMIK",
+   "United Nations Interim Administration Mission in Kosovo",
+   "UNMIK - United Nations Interim Administration Mission in Kosovo"
+  ]
+ },
+ {
+  "code": "UNR",
+  "name": "UNRWA",
+  "long_name": null,
+  "names": [
+   "UNRWA",
+   "UNRWA -"
+  ]
+ },
+ {
+  "code": "US",
+  "name": "United States",
+  "long_name": "United States of America",
+  "names": [
+   "United States",
+   "United States of America",
+   "United States - United States of America"
+  ]
+ },
+ {
+  "code": "UY",
+  "name": "Uruguay",
+  "long_name": "Eastern Republic of Uruguay",
+  "names": [
+   "Uruguay",
+   "Eastern Republic of Uruguay",
+   "Eastern Republic of Uruguay (Uruguay)",
+   "Uruguay - Eastern Republic of Uruguay"
+  ]
+ },
+ {
+  "code": "UZ",
+  "name": "Uzbekistan",
+  "long_name": "Republic of Uzbekistan",
+  "names": [
+   "Uzbekistan",
+   "Republic of Uzbekistan",
+   "Republic of Uzbekistan (Uzbekistan)",
+   "Uzbekistan - Republic of Uzbekistan"
+  ]
+ },
+ {
+  "code": "VA",
+  "name": "Vatican",
+  "long_name": "Holy See",
+  "names": [
+   "Vatican",
+   "Holy See",
+   "Holy See (Vatican)",
+   "Vatican - Holy See"
+  ]
+ },
+ {
+  "code": "VC",
+  "name": "Saint Vincent and the Grenadines",
+  "long_name": "Saint Vincent and the Grenadines",
+  "names": [
+   "Saint Vincent and the Grenadines",
+   "Saint Vincent and the Grenadines - Saint Vincent and the Grenadines"
+  ]
+ },
+ {
+  "code": "VE",
+  "name": "Venezuela",
+  "long_name": "Bolivarian Republic of Venezuela",
+  "names": [
+   "Venezuela",
+   "Bolivarian Republic of Venezuela",
+   "Bolivarian Republic of Venezuela (Venezuela)",
+   "Venezuela - Bolivarian Republic of Venezuela"
+  ]
+ },
+ {
+  "code": "VN",
+  "name": "Viet Nam",
+  "long_name": "Socialist Republic of Viet Nam",
+  "names": [
+   "Viet Nam",
+   "Socialist Republic of Viet Nam",
+   "Socialist Republic of Viet Nam (Viet Nam)",
+   "Viet Nam - Socialist Republic of Viet Nam"
+  ]
+ },
+ {
+  "code": "VU",
+  "name": "Vanuatu",
+  "long_name": "Republic of Vanuatu",
+  "names": [
+   "Vanuatu",
+   "Republic of Vanuatu",
+   "Republic of Vanuatu (Vanuatu)",
+   "Vanuatu - Republic of Vanuatu"
+  ]
+ },
+ {
+  "code": "WAE",
+  "name": "WAEMU",
+  "long_name": "West African Economic and Monetary Union",
+  "names": [
+   "WAEMU",
+   "West African Economic and Monetary Union",
+   "WAEMU - West African Economic and Monetary Union"
+  ]
+ },
+ {
+  "code": "WS",
+  "name": "Samoa",
+  "long_name": "Independent State of Samoa",
+  "names": [
+   "Samoa",
+   "Independent State of Samoa",
+   "Independent State of Samoa (Samoa)",
+   "Samoa - Independent State of Samoa"
+  ]
+ },
+ {
+  "code": "WTO",
+  "name": "WTO",
+  "long_name": "World Trade Organization",
+  "names": [
+   "WTO",
+   "World Trade Organization",
+   "WTO - World Trade Organization"
+  ]
+ },
+ {
+  "code": "YE",
+  "name": "Yemen",
+  "long_name": "Republic of Yemen",
+  "names": [
+   "Yemen",
+   "Republic of Yemen",
+   "Republic of Yemen (Yemen)",
+   "Yemen - Republic of Yemen"
+  ]
+ },
+ {
+  "code": "YU",
+  "name": "Yugoslavia",
+  "long_name": "Federal Republic of Yugoslavia",
+  "names": [
+   "Yugoslavia",
+   "Federal Republic of Yugoslavia",
+   "Federal Republic of Yugoslavia (Yugoslavia)",
+   "Yugoslavia - Federal Republic of Yugoslavia"
+  ]
+ },
+ {
+  "code": "ZA",
+  "name": "South Africa",
+  "long_name": "Republic of South Africa",
+  "names": [
+   "South Africa",
+   "Republic of South Africa",
+   "Republic of South Africa (South Africa)",
+   "South Africa - Republic of South Africa"
+  ]
+ },
+ {
+  "code": "ZM",
+  "name": "Zambia",
+  "long_name": "Republic of Zambia",
+  "names": [
+   "Zambia",
+   "Republic of Zambia",
+   "Republic of Zambia (Zambia)",
+   "Zambia - Republic of Zambia"
+  ]
+ },
+ {
+  "code": "ZR",
+  "name": "Zaire",
+  "long_name": "Republic of Zaire",
+  "names": [
+   "Zaire",
+   "Republic of Zaire",
+   "Republic of Zaire (Zaire)",
+   "Zaire - Republic of Zaire"
+  ]
+ },
+ {
+  "code": "ZW",
+  "name": "Zimbabwe",
+  "long_name": "Republic of Zimbabwe",
+  "names": [
+   "Zimbabwe",
+   "Republic of Zimbabwe",
+   "Republic of Zimbabwe (Zimbabwe)",
+   "Zimbabwe - Republic of Zimbabwe"
+  ]
+ }
+]
