@@ -2,9 +2,10 @@
 
 A Claude skill that verifies every reference and quotation in an academic legal
 text against the original sources. The skill checks sources across Zotero,
-Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, and
-Nasjonalbiblioteket, then produces an `.xlsx` worklist with per-reference
-status, severity-coded discrepancies, and a metadata sheet.
+Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, the
+Council of the EU Treaties Office database, and Nasjonalbiblioteket, then
+produces an `.xlsx` worklist with per-reference status, severity-coded
+discrepancies, and a metadata sheet.
 
 Trigger phrases: **kildesjekk**, **source check**, **check references**,
 **verify citations**, **check footnotes** — for an academic article,
@@ -69,6 +70,7 @@ For the skill to work you need:
 |---|---|
 | [`efta-court`](../efta-court/README.md) | EFTA Court decisions |
 | [`ets`](../ets/README.md) | Council of Europe treaty database (CETS/ETS) |
+| [`eu-agreements-treaties`](../eu-agreements-treaties/README.md) | EU-side status of agreements concluded by or with the EU (signature, ratification, entry into force, declarations) from the Council of the EU Treaties Office database |
 | [`eurlex`](../eurlex/README.md) | Usage guide for the eurlex MCP (case numbers to CELEX, paragraph paging, consolidated versions) |
 | [`hudoc`](../hudoc/README.md) | ECtHR case law |
 | [`icj`](../icj/README.md) | ICJ and PCIJ case law |
@@ -80,6 +82,12 @@ For the skill to work you need:
 
 All skills are available in this repository. Install them alongside kildesjekk
 (see below).
+
+`eu-agreements-treaties`, `nbno` and the `lovdata-pro` fallbacks need Claude
+Desktop's built-in browser, so those steps of the source check run only in
+Cowork. Kildesjekk reports at startup which tools are missing and stops before
+a step that needs one, but only if the manuscript actually contains that
+category of source.
 
 ## How to use
 

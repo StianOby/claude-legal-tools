@@ -1,6 +1,6 @@
 ---
 name: kildesjekk
-description: Run a kildesjekk — verify every reference and quotation in an academic legal text against the original sources, using Zotero, Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, and Nasjonalbiblioteket. Produces an .xlsx worklist with per-reference status, severity-coded discrepancies, and a metadata sheet. Trigger on "kildesjekk", "source check", "check references", "verify citations", "check footnotes" for an academic article, manuscript, or thesis. Norwegian or English text.
+description: Run a kildesjekk — verify every reference and quotation in an academic legal text against the original sources, using Zotero, Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, the Council of the EU Treaties Office database, and Nasjonalbiblioteket. Produces an .xlsx worklist with per-reference status, severity-coded discrepancies, and a metadata sheet. Trigger on "kildesjekk", "source check", "check references", "verify citations", "check footnotes" for an academic article, manuscript, or thesis. Norwegian or English text.
 ---
 
 You are the user's research assistant. Your task is to assist with a source check of a draft of an academic text. The instructions for the source check are set out below.
@@ -34,10 +34,11 @@ Verify that you have access to all the relevant tools:
 	- MCP servers:
 		- zoteus MCP (Zotero; tools named `zotero_*`). Call `zotero_whoami` and confirm it reports the Zotero desktop app as reachable — reading PDFs depends on it.
 		- eurlex MCP
-	- Claude Desktop's built-in browser (Cowork — `mcp__Claude_Browser__*` tools).
+		- Claude Desktop's built-in browser (`mcp__Claude_Browser__*` tools).
 	- Skills:
 		- efta-court
 		- ets
+		- eu-agreements-treaties
 		- eurlex
 		- hudoc
 		- icj
@@ -47,7 +48,7 @@ Verify that you have access to all the relevant tools:
 		- nbno
 		- untc
 	
-Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9 and for nbno in §14, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
+Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10 and for nbno in §14, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Ask for the text document in PDF or DOCX format if not already provided.
 
@@ -264,6 +265,8 @@ Certain Zotero items, notably some monographs, will only have a single PDF attac
 # 6) Check EU legal sources
 Use the /eurlex skill — a guide to the eurlex MCP tools (case number/ECLI to CELEX, paging long judgments by paragraph offset, consolidated versions) — for all EU legislation (regulations, directives, decisions: never from Zotero, see §5) and for EU case law that was not found in Zotero. When the reference is to an act as it stood on a date, or to an article since amended, check the version the author cites (eurlex serves consolidated versions by date); a reference that is only right for the current text is a "Outdated/superseded source" or "Wrong page/section/paragraph" case, not a match.
 
+The *text* of an international agreement concluded by the EU (EEA, Schengen association, aviation, trade agreements and the like) is also read here, from the OJ (CELEX sector 2, `2yyyyAmmdd(nn)`). Claims about the *status* of such an agreement — who has signed, notified or ratified, entry into force, provisional application, declarations — are checked in §10 with /eu-agreements-treaties, which also supplies the OJ reference when the manuscript gives none.
+
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 7) Check Norwegian statutes and regulations
@@ -304,10 +307,23 @@ Example calls for modern HR cases, older Rt. cases and RG cases, plus the non-br
 Treaties found in Zotero (`statute` items, see §5) were handled there. For the rest, pick the appropriate tool from the list below — do not run them in a fixed order:
 	- /ets for Council of Europe treaties: anything cited with an ETS/CETS number or a CoE name (ECHR and its protocols, the Social Charter, the Istanbul, Lanzarote, Budapest and Oviedo conventions, Convention 108). Authentic English and French texts, explanatory reports, signatures, ratifications and reservations per state.
 	- /untc for treaties registered with the UN: the UN Charter, the 1966 Covenants, CEDAW, CRC, CAT, the Vienna Convention on the Law of Treaties, UNCLOS, the Rome Statute, the Geneva Conventions and, in principle, any treaty cited with a UNTS volume/page. Authentic texts and status (parties, reservations, entry into force).
-	- /norges-traktater for what is specific to Norway: the Norwegian text of a treaty, Norway's signature/ratification/entry-into-force dates and reservations, and bilateral or regional agreements (Nordic conventions, EEA-related and boundary agreements) that neither database indexes well. The Norwegian text is also what to check when the manuscript quotes a treaty in Norwegian.
+	- /norges-traktater for what is specific to Norway: the Norwegian text of a treaty, Norway's signature/ratification/entry-into-force dates, reservations and Stortinget consent, and bilateral or regional agreements with no EU party (Nordic conventions, boundary agreements) that neither the UN nor the CoE database indexes well. The Norwegian text is also what to check when the manuscript quotes a treaty in Norwegian. For agreements between the EU and Norway it is the primary register when the manuscript is in Norwegian (see "Two sides of an EU agreement" below).
+	- /eu-agreements-treaties (the Council of the EU Treaties Office database; needs the built-in browser) for agreements concluded by or with the EU, EC, EEC, Euratom or the member states — the EEA Agreement and its related agreements, Schengen and Dublin association, aviation, fisheries, trade and cooperation agreements with third countries. For agreements between the EU and Norway it is the primary register when the manuscript is in English or another non-Norwegian language (see "Two sides of an EU agreement" below). Use it for:
+		(a) references that cite the database itself (a `consilium.europa.eu/…/treaties-agreements` URL or a 7-digit Consilium ID) — `detail(id)`;
+		(b) claims about the *EU side* of an agreement: signature, ratification or notification by the EU or a member state, entry into force for the EU, provisional application, declarations and reservations — `detail(id)`, `declaration(id, code)`;
+		(c) treaties cited by an OJ reference (OJ L …; CELEX `2yyyyAmmdd(nn)`), which this database is likely to hold: locate the record with `find()` on the title words, confirm through `detail().oj_references` that the OJ reference is the one cited, then read the text with /eurlex (§6). If the manuscript gives only the OJ reference and no title, open the OJ act with /eurlex first and `find()` on its formal title;
+		(d) as a fallback when /untc, /ets and /norges-traktater return nothing and the treaty appears to be one concluded by or with the EU.
+		The database holds no treaty text: for the English or other-language text follow the `eurlex_hint` that `detail()` returns and use /eurlex; for the Norwegian text use /norges-traktater. In the description column, give the Consilium ID and the date of access for every status claim verified here — the ratification tables change.
 	- The Norwegian *and* English texts of the ECHR, the two 1966 Covenants, CEDAW, CRC and CRPD are free on lovdata.no as appendices to menneskerettsloven (`NL/lov/1999-05-21-30`, sections `emkn`/`emke`, `spn`, `oskn`, `kdkn`, `bkn`, `crpdn`); fetch them with /lovdata-api — the norges-traktater skill points there itself for these conventions.
 
 Check the text against the authentic language the manuscript quotes: a Norwegian quotation against the Norwegian text, an English one against the English. Note, however, that only very few treaties are *authentic* in Norwegian. Where a treaty appears in more than one database, one confirmed source is enough. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
+
+**Two sides of an EU agreement.** Agreements between the EU and Norway appear in both /norges-traktater and /eu-agreements-treaties; the two registers do not always agree on dates, and each is authoritative only for its own side. Which register is *primary* for such an agreement depends on the language of the manuscript: Norwegian manuscript → /norges-traktater; English or any other language → /eu-agreements-treaties. Then:
+	- A claim that says which side it concerns is checked against that side's register regardless of language: the EU's or a member state's signature, notification, ratification, entry into force or provisional application → /eu-agreements-treaties; Norway's signature, ratification, entry into force, reservations or Stortinget consent → /norges-traktater.
+	- A claim that does not say which side it concerns (e.g. "the agreement entered into force on 1 May 2010") is checked against the primary register first. If it agrees, it is a match; do not consult the other register. If it disagrees, consult the other register before flagging: if the other register agrees, set discrepancy = yes, type "Assessment uncertain", severity low, and give both dates with their sources in the description so the author can specify which side is meant; if neither register agrees, treat it as an ordinary discrepancy ("Claim not supported" or "Citation format error", usually high) and give the primary register's date.
+	- The link/reference column names the register actually used; when both were consulted, list both.
+
+Follow the skill's own rules when you read the Council database: empty cells in the ratification table inherit the agreement-level date (`*_inherited: true`) — report the inherited date as such, never as "not ratified"; the 7-digit ID does not encode the year, so never derive a year from it; and one record can bundle several instruments, so match against the manuscript by title, not by count.
 
 # 11) Check ICJ case law
 For ICJ (International Court of Justice) or PCIJ (Permanent Court of International Justice) case law, use the /icj skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
