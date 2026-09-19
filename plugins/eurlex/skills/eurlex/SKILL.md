@@ -97,6 +97,12 @@ language is also printed at the end of the judgment) and quote both.
   language and most complete), and retry once after a short wait — Cellar
   renders some documents on demand. Confirm the CELEX with `eurlex_case_law`
   (`ecli`) or `eurlex_search` before concluding it is absent.
+- **A timeout is not a negative result.** `eurlex_search` times out
+  intermittently, regardless of whether the query is any good. Retry it, and
+  if it times out again reword the query slightly (drop a term, or search the
+  party name instead of the case nickname) — that usually goes through. Never
+  report a source as absent, or a row as unverifiable, on the strength of one
+  timed-out search.
 - **`eurlex_consolidated` says no consolidated version:** the act was never
   amended (fetch the original) or is a decision/judgment (not consolidated).
 - **Truly absent from Cellar** (some early orders, unpublished AG opinions,
