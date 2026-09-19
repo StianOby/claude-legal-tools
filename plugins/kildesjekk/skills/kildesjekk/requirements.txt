@@ -1,0 +1,4 @@
+# openpyxl writes and reads the .xlsx worklist: the skill itself creates the
+# workbook with it (§2), and scripts/worklist.py reads the saved file back to
+# check the row invariants (§2, §16).
+openpyxl>=3.0

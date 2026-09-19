@@ -50,6 +50,8 @@ Verify that you have access to all the relevant tools:
 	
 Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10 and for nbno in §14, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
+Throughout these instructions, **`{SKILL_DIR}`** means the path printed in "Base directory for this skill:" at the top of your context — substitute it when you run one of this skill's scripts. This skill ships one: `scripts/worklist.py`, the worklist validator used in §2 and §16. It needs `openpyxl`, which you will be installing anyway to write the worklist.
+
 Ask for the text document in PDF or DOCX format if not already provided.
 
 If a worklist file (Kildesjekk_<documentname>.xlsx) already exists in the working directory, open the existing file and resume from it; do not overwrite. Before resuming, report current status counts (yes / no / source unavailable) and the next step that has un-checked rows, and confirm with the user before continuing. Derive <documentname> from the filename of the document you have just been given (without the extension) before checking for an existing worklist.
@@ -96,7 +98,17 @@ Row colours (to be set after checking a reference):
 
 ## Row invariants
 
-These hold for every row, at every save — not only at the final verification in §16. Check them each time you write the file; a row that breaks one of them is a bug in the worklist, not a finding about the manuscript.
+These hold for every row, at every save — not only at the final verification in §16. A row that breaks one of them is a bug in the worklist, not a finding about the manuscript.
+
+You do not have to check them by eye. **After every save, run the validator:**
+
+```
+python {SKILL_DIR}/scripts/worklist.py validate Kildesjekk_<documentname>.xlsx
+```
+
+It reports every row that breaks an invariant, and prints the status counts and the severity breakdown. Fix what it reports before carrying on; if it cannot run (no `openpyxl`, no skill directory on disk), `pip install openpyxl` — and if that fails too, say so to the user and check the invariants by eye instead.
+
+Read what a clean report means and what it does not. It says the worklist is *well formed* — permitted values, no duplicate keys, colours matching the rows, Metadata adding up. It knows nothing about whether you actually opened the source or compared the quotation, and those are the rules that matter most (§3, and the "checked" column above). Never let a passing validator stand in for having done the check, and never resolve a violation by weakening a row — marking something "source unavailable" that you did read, or dropping a discrepancy you found — because that always satisfies the validator and always makes the worklist wrong.
 
 | # | Invariant |
 |---|---|
@@ -106,6 +118,8 @@ These hold for every row, at every save — not only at the final verification i
 | 4 | If `discrepancy = no`: `type of discrepancy` and `severity` are empty, and the row is green. |
 | 5 | If `discrepancy = yes`: `severity` is `high`/`medium`/`low`, `type of discrepancy` and `description` are both non-empty, and the row colour matches the severity. |
 | 6 | `quoted text` is non-empty whenever `type of discrepancy = "Quotation not verbatim"`. |
+| 7 | If `checked = yes`: the "link/reference to the source you have consulted" column names the source you opened. A checked row without it cannot be audited by the user. |
+| 8 | If `checked = source unavailable`: `description` says which tools were tried (§2, "description" column). |
 
 Invariant 3 is the one most often broken, because "source unavailable" is a plausible-looking value for a column it does not belong in. Written out, a correct pair of rows looks like this:
 
@@ -362,8 +376,8 @@ For ECtHR case law not found in Zotero, use the /hudoc skill. If there is someth
 
 # 14) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. In short:
-1. Find the item from the reference with `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
-2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run `scripts/geo_check.py` if in doubt; `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
+1. Find the item from the reference with nbno's `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). These are the *nbno* skill's scripts, not this one's: run them from nbno's own base directory, as that skill's instructions spell out — a bare `scripts/…` path resolves against the working directory and will not be found. Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
+2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run nbno's `scripts/geo_check.py` if in doubt; `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
 3. Fetch only the pages you need with `--start`/`--stop` (canvas numbers, which are not printed page numbers: download a few canvases first to find the offset), then read them as described in nbno's `reading-ocr.md`. Use the printed pagination in the worklist.
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
@@ -374,16 +388,19 @@ If you are unable to find a source after having gone through all the steps above
 # 16) Final verification
 Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§5–14. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
 
-At the very end, you must also check:
-	- That all "discrepancy = yes" have a description filled in.
-	- That every row with type of discrepancy = "Quotation not verbatim" has a non-blank quoted text column, and that every non-blank quoted text was compared verbatim against the source.
-	- That row colours are consistent with row state: green for discrepancy = no; light yellow / orange / red for low / medium / high severity; grey for checked = source unavailable. Severity must match the colour, and grey rows must have blank discrepancy, type of discrepancy, and severity columns.
-	- That the "checked" column contains only the three permitted values (yes/no/source unavailable).
-	- That every value in the "footnote no./location in text" column is unique. List any duplicates in the chat: they mean either that two rows describe the same reference, or that a batch of updates reached only one of them, and both need looking at before the file is handed over.
-	- That no row with checked = "source unavailable" has anything at all in the discrepancy, type of discrepancy or severity columns (invariant 3). Count the rows you changed and say so, because the statistics below are wrong until this holds.
-	- That the number of rows in the main worksheet matches the value of `Total references identified` in the Metadata sheet. If the numbers diverge, identify the missing or extra rows, correct the discrepancy, and report what was changed in the chat.
+At the very end, run the validator in its end-of-job mode:
 
-Correct any errors and shortcomings found by the checks above. Report in the chat what was corrected, and provide the following statistics both in the chat and as new rows in the Metadata sheet:
+```
+python {SKILL_DIR}/scripts/worklist.py validate Kildesjekk_<documentname>.xlsx --final
+```
+
+`--final` adds the rule that no row may be left at checked = "no". The run must end with no violations. It covers the mechanical checks — permitted values, unique keys, empty discrepancy columns on "source unavailable" rows, descriptions and severities on findings, quoted text on a "Quotation not verbatim" row, row colours, and the Metadata counts. Work through whatever it reports, re-run it, and repeat until it is clean. If duplicate keys are reported, say so in the chat: they mean either that two rows describe the same reference, or that a batch of updates reached only one of them, and both need looking at before the file is handed over.
+
+Then check by hand the two things no script can see:
+	- That every non-blank quoted text was really compared verbatim against the source — not merely that the column is filled in.
+	- That every "checked = yes" rests on a source you actually opened, never on a citation of it in another work (§3).
+
+Correct any errors and shortcomings found by the checks above. Report in the chat what was corrected, and provide the following statistics both in the chat and as new rows in the Metadata sheet (the validator prints the first three; take them from its output rather than counting by hand):
 	- total references
 	- number of checked = yes and number of checked = source unavailable (the no count must be 0)
 	- total discrepancies, broken down by severity (high / medium / low)

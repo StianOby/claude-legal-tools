@@ -29,6 +29,7 @@ jobs:
 
       - name: Run script unit tests (no network)
         run: |
+          pip install --quiet openpyxl
           for t in plugins/*/skills/*/tests/test_*.py; do
             [ -e "$t" ] || continue
             echo "== $t"
