@@ -69,6 +69,8 @@ Create an .xlsx file, and save it in the working directory. File name: Kildesjek
 
 Write the file with Python and `openpyxl` (`pip install openpyxl` if the sandbox lacks it); set row colours with `PatternFill(fill_type="solid", start_color=...)` on every cell of the row. Always write to a temporary file and rename it over the worklist, so a failed save never destroys the previous state.
 
+If you write a helper script that fills in results by looking rows up on the location column, build the lookup as location → **list** of row numbers and apply the update to every row in the list, or refuse to run when a location occurs twice. A plain `{location: row}` dict keeps only the last row with a given key, so updates for the others vanish without an error. After every save, re-read the file and confirm that the number of rows you meant to update actually changed, and that the row invariants below still hold.
+
 This .xlsx file will serve as both your final output and your worklist. Include the following columns in the .xlsx file:
 
 | Column | Purpose |
@@ -92,7 +94,25 @@ Row colours (to be set after checking a reference):
 	- High severity: red background (FFC7CE).
 	- Source unavailable: grey background (E5E5E5).
 
-When checked = source unavailable, leave the "discrepancy", "type of discrepancy", and "severity" columns blank. The grey row colour alone signals the status.
+## Row invariants
+
+These hold for every row, at every save — not only at the final verification in §16. Check them each time you write the file; a row that breaks one of them is a bug in the worklist, not a finding about the manuscript.
+
+| # | Invariant |
+|---|---|
+| 1 | The value in "footnote no./location in text" is **unique across the whole sheet** — it is the row's key (see below). Two rows may never carry the same location string. |
+| 2 | `checked` is exactly one of `yes`, `no`, `source unavailable`. Nothing else, no blanks. |
+| 3 | If `checked = source unavailable`: `discrepancy`, `type of discrepancy` and `severity` are all **empty strings** — never the words "source unavailable", never "no". The grey row colour alone signals the status. |
+| 4 | If `discrepancy = no`: `type of discrepancy` and `severity` are empty, and the row is green. |
+| 5 | If `discrepancy = yes`: `severity` is `high`/`medium`/`low`, `type of discrepancy` and `description` are both non-empty, and the row colour matches the severity. |
+| 6 | `quoted text` is non-empty whenever `type of discrepancy = "Quotation not verbatim"`. |
+
+Invariant 3 is the one most often broken, because "source unavailable" is a plausible-looking value for a column it does not belong in. Written out, a correct pair of rows looks like this:
+
+| location | checked | discrepancy | type of discrepancy | severity | description |
+|---|---|---|---|---|---|
+| 14a | source unavailable | | | | Not in Zotero; searched by author and title, and by a phrase from the quotation. No other tool covers German journal articles. |
+| 14b | yes | yes | Wrong page/section/paragraph | low | The passage cited is at p. 212, not p. 211. |
 
 The following sections contain comments on some of the columns.
 
@@ -107,11 +127,15 @@ In addition to the main worksheet, create a second worksheet named "Metadata" in
 Fill in the Metadata sheet immediately after extracting all references from the text, before you start populating rows in the main worksheet. Confirm the totals in your reply to the user before proceeding with the source check (steps 3 onwards).
 
 ## The "footnote no./location in text" column
+**This column is the row's unique key.** Every row must have a different value, and you will use that value to find the row again when you fill in a result. If two rows share a location string, an update meant for one of them will silently land on the other — or on neither — so a duplicate is never acceptable, however natural it looks to describe seven references with the same words.
+
 List all footnotes containing references in numerical order (1, 2, 3 …). If a footnote contains several references, you shall add a letter in alphabetical order (21a, 21b, 21c …) so that each individual reference gets its own row.
 
 If the manuscript uses chapter-restarted footnote numbering, prefix the footnote number with the chapter number separated by a dot (e.g. 2.21b for chapter 2, footnote 21, second reference). Use a single sequence (no chapter prefix) only if the manuscript itself does so.
 
-After all references found in footnotes, you shall list references found in the main text (e.g. as "text p. 14") in ascending order by page number.
+After all references found in footnotes, you shall list references found in the main text (e.g. as "text p. 14") in ascending order by page number. **The letter rule applies here too**: where a page holds more than one reference, suffix them in the order they appear on the page — `text p. 22a`, `text p. 22b`, `text p. 22c` … A bibliography, a reading list or a table of instruments produces a run of references on one page, and each of them needs its own key. Any further description of the position (a section number, a heading) may follow the key, but the key itself must already be unique without it.
+
+Once written, a row's key is fixed. If you discover a reference you missed, give it the next free suffix rather than renumbering the rows around it.
 
 ## The "checked" column
 This column functions as a status overview (worklist) for you. It also lets the user verify that you have checked all sources.
@@ -265,6 +289,8 @@ Certain Zotero items, notably some monographs, will only have a single PDF attac
 # 6) Check EU legal sources
 Use the /eurlex skill — a guide to the eurlex MCP tools (case number/ECLI to CELEX, paging long judgments by paragraph offset, consolidated versions) — for all EU legislation (regulations, directives, decisions: never from Zotero, see §5) and for EU case law that was not found in Zotero. When the reference is to an act as it stood on a date, or to an article since amended, check the version the author cites (eurlex serves consolidated versions by date); a reference that is only right for the current text is a "Outdated/superseded source" or "Wrong page/section/paragraph" case, not a match.
 
+`eurlex_search` times out intermittently, whatever the query. A timeout is not an answer: retry it, and if it times out again reword the query (drop a term, search the party name rather than the case nickname) before concluding anything. Never write "source unavailable" on the strength of a search that timed out — that rule is for sources the tools genuinely do not hold.
+
 The *text* of an international agreement concluded by the EU (EEA, Schengen association, aviation, trade agreements and the like) is also read here, from the OJ (CELEX sector 2, `2yyyyAmmdd(nn)`). Claims about the *status* of such an agreement — who has signed, notified or ratified, entry into force, provisional application, declarations — are checked in §10 with /eu-agreements-treaties, which also supplies the OJ reference when the manuscript gives none.
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
@@ -353,6 +379,8 @@ At the very end, you must also check:
 	- That every row with type of discrepancy = "Quotation not verbatim" has a non-blank quoted text column, and that every non-blank quoted text was compared verbatim against the source.
 	- That row colours are consistent with row state: green for discrepancy = no; light yellow / orange / red for low / medium / high severity; grey for checked = source unavailable. Severity must match the colour, and grey rows must have blank discrepancy, type of discrepancy, and severity columns.
 	- That the "checked" column contains only the three permitted values (yes/no/source unavailable).
+	- That every value in the "footnote no./location in text" column is unique. List any duplicates in the chat: they mean either that two rows describe the same reference, or that a batch of updates reached only one of them, and both need looking at before the file is handed over.
+	- That no row with checked = "source unavailable" has anything at all in the discrepancy, type of discrepancy or severity columns (invariant 3). Count the rows you changed and say so, because the statistics below are wrong until this holds.
 	- That the number of rows in the main worksheet matches the value of `Total references identified` in the Metadata sheet. If the numbers diverge, identify the missing or extra rows, correct the discrepancy, and report what was changed in the chat.
 
 Correct any errors and shortcomings found by the checks above. Report in the chat what was corrected, and provide the following statistics both in the chat and as new rows in the Metadata sheet:
