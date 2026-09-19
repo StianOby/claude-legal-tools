@@ -93,10 +93,12 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
 - `text [<ref>] [--vol N --reg M | --vol N --page P] [--lang en|fr|other]`
   — download the UNTS treaty text. With a ref, the volume/registration
   are read from the cached status doc (fetched first if needed). With
-  `--page`, the volume's table of contents maps the cited page to the
-  registration number. Falls back to slicing the full volume PDF when
-  there is no per-treaty file (the output then says `"via": "volume-pdf"`
-  and gives the PDF page range).
+  `--page`, the cited page is mapped to a registration number from the
+  running headers printed in the volume itself, with the parsed contents
+  as a cross-check. Falls back to slicing the full volume PDF when there
+  is no per-treaty file (the output then says `"via": "volume-pdf"` and
+  gives both the PDF page range and the `printed_pages` those pages
+  carry).
 - `volume <N> [--search STR] [--json]` — list a UNTS volume's table of
   contents: registration number, first page, title (Annex A entries,
   i.e. later actions on earlier treaties, are flagged).
@@ -173,7 +175,15 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    the depositary. The text is still in the UNTS: use `fetch NPT` for
    the built-in ones, otherwise `text --vol N --page P` from the
    citation, or `volume N --search ...` to find the registration number.
-7. **If a download fails**, the CLI says whether the status doc, the
+7. **Check the pages you were given before quoting a sliced text.** The
+   output of `text` carries `printed_pages` — the folios the slice
+   actually holds — and `resolved_from.entry` when a `--page` citation
+   was mapped to a registration number. If either carries a `warning`,
+   or the printed pages do not contain the page cited, the contents of
+   that volume were mis-parsed: run `volume N --search <title words>`
+   and confirm the registration number before reading. The early volumes
+   are OCR'd, and their contents page column is the first thing to go.
+8. **If a download fails**, the CLI says whether the status doc, the
    per-treaty file or the whole volume is missing. The newest volumes
    (e.g. vol. 3370, the TPNW) are not yet published as PDFs; the error
    then gives the treaty's details page, where the certified true copy
@@ -189,8 +199,10 @@ their `source_url` into the JSON output. Format:
 > *UNTS [volume] p. [page], registration No. [reg], [source_url]*
 
 For a text sliced from a volume PDF, cite the volume PDF URL and the
-printed page from the volume's table of contents (`volume N`), not the
-PDF page index.
+printed page — `printed_pages` in the output, or the running header on
+the page you quote — not the PDF page index. Do not take the page from
+the parsed contents alone; in the OCR'd early volumes that column is
+unreliable.
 
 ## Out of scope
 

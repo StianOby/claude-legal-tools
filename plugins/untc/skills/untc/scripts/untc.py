@@ -797,12 +797,62 @@ def volume_toc(volume: int, *, force=False) -> list:
             "page": page,
             "annex": annex,
         })
+    # The page column is the last thing OCR gets right: a dropped column of
+    # dot leaders leaves the date at the end of the entry, so "signed ... on
+    # 6 March 1946" is read as page 1946. Anything past the volume's last
+    # folio is noise, not a page.
+    cap = max_printed_page(pages)
+    if cap:
+        for e in entries:
+            if e["page"] is not None and e["page"] > cap:
+                e["page"] = None
     return entries
+
+
+# A half-title page is a short line holding nothing but the registration
+# number. OCR mangles the "No." on it often enough to matter - volume 999
+# renders the ICCPR's as "lo. 14668" - so match any brief prefix, not the
+# literal word.
+_HALF_TITLE_RE = re.compile(r"^\s*[A-Za-z][A-Za-z0-9]{0,2}\s*[.,]?\s*(\d{3,6})\s*$")
+
+
+def _first_line(page_text: str) -> str:
+    return page_text.lstrip().split("\n", 1)[0].strip()
 
 
 def _page_starts_with_reg(page_text: str, reg: str) -> bool:
     head = page_text.lstrip()[:200]
-    return re.search(r"(^|\n)\s*No\.\s*%s\b" % re.escape(reg), head) is not None
+    if re.search(r"(^|\n)\s*No\.\s*%s\b" % re.escape(reg), head):
+        return True
+    m = _HALF_TITLE_RE.match(_first_line(page_text))
+    return m is not None and m.group(1) == reg
+
+
+_DOT_LEADER_RE = re.compile(r"\.{3,}|(?:\.\s){3,}")
+_ANY_REG_RE = re.compile(r"(?:^|\n)\s*Nos?\.?\s*(\d{3,6})\b")
+
+
+def _is_contents_page(page_text: str) -> bool:
+    """A contents or index page lists several "No. NNN" entries with dot
+    leaders; the opening page of a treaty does neither. The running header
+    and the section title on a contents page can push a "No. <reg>" line
+    into the first 200 characters, so _page_starts_with_reg alone matches
+    them - volume 15's contents for section II matched No. 102 (the Chicago
+    Convention) 300 pages before the text itself."""
+    if re.search(r"TABLE\s+(?:OF\s+CONTENTS|DES\s+MATI)", page_text, re.I):
+        return True
+    if not _DOT_LEADER_RE.search(page_text):
+        return False
+    return len(set(_ANY_REG_RE.findall(page_text))) >= 2
+
+
+def _opens_with_reg(page_text: str, reg: str) -> bool:
+    """"No. <reg>" is the whole first line - the treaty's half-title page."""
+    first = _first_line(page_text)
+    if re.match(r"No\.?\s*%s\b" % re.escape(reg), first):
+        return True
+    m = _HALF_TITLE_RE.match(first)
+    return m is not None and m.group(1) == reg
 
 
 def locate_in_volume(pages: list, reg: str, toc_end_hint: int = 0):
@@ -810,13 +860,16 @@ def locate_in_volume(pages: list, reg: str, toc_end_hint: int = 0):
     The treaty starts on the first page (after the contents) whose text opens
     with "No. <reg>" and ends where the next "No. <other>" page or ANNEX A
     begins."""
-    start = None
-    for i in range(toc_end_hint, len(pages)):
-        if _page_starts_with_reg(pages[i], reg):
+    cands = [i for i in range(toc_end_hint, len(pages))
+             if _page_starts_with_reg(pages[i], reg)
+             and not _is_contents_page(pages[i])]
+    if not cands:
+        return None
+    start = cands[0]
+    for i in cands:  # prefer the half-title over a body page's running header
+        if _opens_with_reg(pages[i], reg):
             start = i
             break
-    if start is None:
-        return None
     end = len(pages)
     for j in range(start + 1, len(pages)):
         head = pages[j].lstrip()[:200]
@@ -841,16 +894,118 @@ def _toc_end_index(pages: list) -> int:
     return 0
 
 
-def resolve_page_to_reg(volume: int, page: int) -> Optional[dict]:
-    """Map a printed page number (as in a citation '729 UNTS 161') to the
-    contents entry that starts at or before that page."""
+_RUNNING_HEAD_RE = re.compile(
+    r"United\s+Nations|Nations\s+Unies|Treaty\s+Series|Recuei\w*\s+des\s+Trait", re.I)
+
+
+def printed_page_of(page_text: str) -> Optional[int]:
+    """The printed folio from a UNTS running header, or None. Verso headers
+    read "296 United Nations - Treaty Series 1948", recto headers
+    "1948 Nations Unies - Recueil des Traites 297", so the folio is whichever
+    of the two numbers is not the year. Volumes never run to 1900 pages, so
+    a number in the year range is always the year."""
+    head = page_text.lstrip().split("\n", 1)[0].strip()
+    if not head or not _RUNNING_HEAD_RE.search(head):
+        return None
+    cands = []
+    lead = re.match(r"(\d{1,4})\b", head)
+    if lead:
+        cands.append(int(lead.group(1)))
+    trail = re.search(r"\b(\d{1,4})\s*$", head)
+    if trail:
+        cands.append(int(trail.group(1)))
+    for c in cands:
+        if not 1900 <= c <= 2100:
+            return c
+    return None
+
+
+def max_printed_page(pages: list) -> Optional[int]:
+    """The highest folio printed in the volume - anything above it in a
+    parsed contents entry is OCR noise (a year, usually)."""
+    seen = [printed_page_of(p) for p in pages]
+    seen = [n for n in seen if n is not None]
+    return max(seen) if seen else None
+
+
+def index_for_printed_page(pages: list, page: int) -> Optional[int]:
+    """PDF index of the printed page `page`, from the running headers. Body
+    pages map 1:1 onto folios, so the nearest header fixes the offset for the
+    pages that carry none (half-titles, blank versos)."""
     best = None
-    for e in volume_toc(volume):
+    for i, p in enumerate(pages):
+        n = printed_page_of(p)
+        if n is None:
+            continue
+        if n == page:
+            return i
+        d = abs(n - page)
+        if best is None or d < best[0]:
+            best = (d, i - n)
+    if best is None:
+        return None
+    idx = page + best[1]
+    return idx if 0 <= idx < len(pages) else None
+
+
+def _reg_at_index(pages: list, idx: int, back: int = 200) -> Optional[str]:
+    """The registration number whose text covers PDF page `idx`: the nearest
+    "No. NNN" heading at or before it, skipping contents pages."""
+    for i in range(idx, max(-1, idx - back), -1):
+        if _is_contents_page(pages[i]):
+            continue
+        m = _HALF_TITLE_RE.match(_first_line(pages[i]))
+        if m:
+            return m.group(1)
+        m = _ANY_REG_RE.search(pages[i].lstrip()[:200])
+        if m:
+            return m.group(1)
+    return None
+
+
+def resolve_page_to_reg(volume: int, page: int, *, force=False) -> Optional[dict]:
+    """Map a printed page number (as in a citation '729 UNTS 161') to the
+    registration number printed there.
+
+    The volume's own running headers are authoritative; the parsed contents
+    are only a cross-check, because the page column is regularly lost to OCR
+    in the early volumes (volume 15 yields "p. ?" for No. 102 and reads the
+    year 1946 as a page for No. 227, which made a lookup of 15 UNTS 295 -
+    the Chicago Convention - resolve to No. 243 instead)."""
+    return _resolve_page(volume_pages(volume, force=force),
+                         volume_toc(volume, force=force), page)
+
+
+def _resolve_page(pages: list, toc: list, page: int) -> Optional[dict]:
+    """The logic of resolve_page_to_reg, with the volume already in hand."""
+    toc_hit = None
+    for e in toc:
         if e["annex"] or e["page"] is None:
             continue
-        if e["page"] <= page and (best is None or e["page"] > best["page"]):
-            best = e
-    return best
+        if e["page"] <= page and (toc_hit is None or e["page"] > toc_hit["page"]):
+            toc_hit = e
+
+    idx = index_for_printed_page(pages, page)
+    reg = _reg_at_index(pages, idx) if idx is not None else None
+    if reg is None:
+        if toc_hit is None:
+            return None
+        hit = dict(toc_hit, via="contents")
+        hit["warning"] = ("resolved from the parsed contents only; no running "
+                          "header for p. %d in the volume PDF" % page)
+        return hit
+
+    hit = {"reg": reg, "page": page, "annex": "", "via": "running-head",
+           "pdf_page": idx + 1, "title": ""}
+    for e in toc:
+        if e["reg"] == reg:
+            hit["title"] = e["title"]
+            break
+    if toc_hit is not None and toc_hit["reg"] != reg:
+        hit["warning"] = ("the parsed contents put p. %d under No. %s (%s); "
+                          "the running headers put it under No. %s"
+                          % (page, toc_hit["reg"], toc_hit["title"][:60], reg))
+    return hit
 
 
 def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
@@ -876,10 +1031,10 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
     if reg_num is None:
         hit = resolve_page_to_reg(volume, page)
         if not hit:
-            raise SystemExit("no contents entry at or before p. %d in volume %d; "
+            raise SystemExit("nothing found at p. %d in volume %d; "
                              "run `untc.py volume %d` to see the contents" % (page, volume, volume))
         reg_num = hit["reg"]
-        resolved_from = {"page": page, "toc_entry": hit}
+        resolved_from = {"page": page, "entry": hit}
     reg_num = str(reg_num)
 
     out_dir = treaty_dir(ref) if ref is not None else UNTS_DIR / ("v%d-%s-%s" % (volume, series, reg_num))
@@ -927,6 +1082,24 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
             "the contents" % (url, reg_num, url_unts_volume(volume), volume)
         )
     start, end = loc
+    # The printed folios of the slice: what the citation gives, and the one
+    # thing that shows at a glance whether the right pages were found.
+    printed = [(i, printed_page_of(pages[i])) for i in range(start, end)]
+    printed = [(i, n) for i, n in printed if n is not None]
+    printed_range = None
+    if printed:
+        # Half-titles and blank versos carry no folio; extrapolate from the
+        # nearest page that does, so the range starts at the page the
+        # citation gives rather than one page in.
+        printed_range = [printed[0][1] - (printed[0][0] - start),
+                         printed[-1][1] + (end - 1 - printed[-1][0])]
+    page_warning = None
+    if page is not None and printed_range and not (
+            printed_range[0] - 2 <= page <= printed_range[1]):
+        page_warning = (
+            "the citation gives p. %d but the located text runs from printed "
+            "p. %d to p. %d; check `untc.py volume %d` before quoting"
+            % (page, printed_range[0], printed_range[1], volume))
     txt = out_dir / ("text.%s.txt" % lang)
     header = ("[UNTS volume %d, registration No. %s - pages %d-%d of the "
               "volume PDF %s; all language versions in sequence]\n\n"
@@ -936,11 +1109,14 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
         "via": "volume-pdf",
         "text_pdf": str(volume_pdf(volume)),
         "pdf_pages": [start + 1, end],
+        "printed_pages": printed_range,
         "text_txt": str(txt),
         "source_url": url_unts_volume(volume),
         "note": "no per-treaty file; text sliced from the volume PDF "
                 "(contains every authentic language in sequence)",
     })
+    if page_warning:
+        info["warning"] = page_warning
     return info
 
 # ---------------------------------------------------------------------------
