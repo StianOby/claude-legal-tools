@@ -9,7 +9,7 @@
     {
       "name": "eu-agreements-treaties",
       "source": "./plugins/eu-agreements-treaties",
-      "description": "EU-side treaty status from the Council of the EU Treaties Office database (Cowork only)",
+      "description": "EU-side treaty status from the Council of the EU Treaties Office database",
       "category": "legal-research",
       "keywords": [
         "eu",
