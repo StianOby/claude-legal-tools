@@ -27,6 +27,14 @@ jobs:
       - name: Check data snapshot age (warning only, see CLAUDE.md)
         run: .github/scripts/snapshots.py check || true
 
+      - name: Run script unit tests (no network)
+        run: |
+          for t in plugins/*/skills/*/tests/test_*.py; do
+            [ -e "$t" ] || continue
+            echo "== $t"
+            python3 "$t"
+          done
+
       - name: Check SKILL.md description length (≤ 1024 chars after YAML parsing)
         run: |
           pip install --quiet pyyaml
