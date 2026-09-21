@@ -42,15 +42,6 @@ Every skill is published in two forms: as a **plugin** in this repository's mark
 
 Anthropic's guide — [Install plugins in Cowork](https://claude.com/docs/cowork/guide/plugins) — has screenshots and more detail.
 
-**Claude Code:**
-
-```
-/plugin marketplace add StianOby/claude-legal-tools
-/plugin install hudoc@claude-legal-tools
-```
-
-Installing `kildesjekk` in Claude Code also installs the retrieval plugins it depends on.
-
 ### Option 2 — Upload the skill `.zip` file
 
 Use this if you cannot add a marketplace (for example if your organisation restricts plugins) or want to use the skills in Claude chat rather than Cowork. You will need a Claude plan that includes Skills (Pro, Team, or Enterprise).
