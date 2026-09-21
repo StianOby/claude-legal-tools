@@ -21,7 +21,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 ## Research workflow skills
 
-These skills orchestrate the document retrieval skills above to carry out broader academic research tasks. To use them, install both the workflow skill and all the retrieval skills it depends on (Claude Code does this automatically; in Cowork, install each one). Click the skill name in the table below to open its README file.
+These skills orchestrate the document retrieval skills above to carry out broader academic research tasks. To use them, install both the workflow skill and all the retrieval skills it depends on. Click the skill name in the table below to open its README file.
 
 | Skill | What it does | Requires |
 |---|---|---|
@@ -85,4 +85,4 @@ plugins/<name>/
   skills/<name>/                    # the skill itself: SKILL.md, README.md, scripts/ …
 ```
 
-Each plugin carries its own version number, bumped automatically on every commit that changes it (see [CLAUDE.md](CLAUDE.md)). Claude Code offers an update when the version changes; Cowork's **Update** button on the marketplace always pulls the current repository state.
+Each plugin carries its own version number, bumped automatically on every commit that changes it (see [CLAUDE.md](CLAUDE.md)). Cowork's **Update** button on the marketplace always pulls the current repository state.
