@@ -343,8 +343,26 @@ def _list_marker(m: re.Match) -> str:
     return "\n" + _MARK + html.unescape(m.group(1)) + "\n"
 
 
+# Fotnotehenvisning og -etikett. Markøren hindrer at fotnotetallet smelter
+# sammen med et tall foran (se tests/test_html_to_text.py).
+_FN_REF = re.compile(r'<sup[^>]*\bclass="footnotereference"[^>]*>(.*?)</sup>', re.I | re.S)
+_FN_LABEL = re.compile(r'<span[^>]*\bclass="footnoteLabel"[^>]*>(.*?)</span>', re.I | re.S)
+# Øvrige <sup> er eksponenter (m<sup>2</sup>, cm<sup>3</sup>).
+_SUP = re.compile(r"<sup>([^<]*)</sup>", re.I)
+_SUPERSCRIPT = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+
+def _fn_marker(m: re.Match) -> str:
+    return "[fn " + re.sub(r"<[^>]+>", "", m.group(1)).strip() + "]"
+
+
 def _html_to_text(chunk: str) -> str:
     """Konverter HTML-fragment til ren tekst med bevart avsnittsstruktur."""
+    # Fotnoter: «protokoll 3[fn 5]» i teksten, «[fn 5] Gjelder ...» i fotnoten
+    chunk = _FN_REF.sub(_fn_marker, chunk)
+    chunk = _FN_LABEL.sub(_fn_marker, chunk)
+    chunk = _SUP.sub(lambda m: m.group(1).translate(_SUPERSCRIPT)
+                     if m.group(1).isdigit() else "^" + m.group(1), chunk)
     # Listepunkter: skriv ut markøren (a., 1., ...) før teksten
     chunk = re.sub(r'<li[^>]*\sdata-name="([^"]+)"[^>]*>', _list_marker, chunk, flags=re.I)
     # Blokknivå-tagger blir linjeskift; inline-tagger (span, a, ...) fjernes sporløst

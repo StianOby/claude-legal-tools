@@ -217,6 +217,10 @@ Bruk standard norsk juridisk siteringsform:
 
 Sitat skal alltid komme fra scriptet — ikke fra hukommelse.
 
+Fotnoter står som `[fn N]` i teksten og `[fn N] …` i fotnoteteksten under
+bestemmelsen («protokoll 3[fn 5]» = protokoll 3, fotnote 5). Ta ikke med
+markøren i sitater; `[fn N]` er fra scriptet, ikke fra lovteksten.
+
 ---
 
 ## Hvor lagres data og state?

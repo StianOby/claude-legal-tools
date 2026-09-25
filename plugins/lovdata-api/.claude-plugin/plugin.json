@@ -1,6 +1,6 @@
 {
   "name": "lovdata-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Norwegian legislation from Lovdata (free content)",
   "author": {
     "name": "Stian Øby Johansen",
