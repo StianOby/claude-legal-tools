@@ -57,6 +57,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import unicodedata
 import urllib.parse
@@ -551,7 +552,7 @@ def _fetch_page_tiled(
     full_h = int(info.get("height") or 0)
     if full_w <= 0 or full_h <= 0:
         return None
-    canvas = Image.new("RGB", (full_w, full_h), "white")
+    tiles: List[Tuple[int, int, bytes]] = []
     for y in range(0, full_h, tile_size):
         for x in range(0, full_w, tile_size):
             tw = min(tile_size, full_w - x)
@@ -560,14 +561,20 @@ def _fetch_page_tiled(
             try:
                 req = urllib.request.Request(url, headers=hdr_img)
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    tile = Image.open(io.BytesIO(resp.read())).convert("RGB")
+                    tiles.append((x, y, resp.read()))
             except urllib.error.HTTPError as e:
                 if e.code in (403, 404):
                     return None
                 raise
-            canvas.paste(tile, (x, y))
-    buf = io.BytesIO()
-    canvas.save(buf, format="JPEG", quality=92)
+    # Downloading is network-bound and runs on all --workers threads; the
+    # full-resolution canvas and JPEG encode are CPU- and memory-bound, so
+    # only one page per usable CPU is stitched at a time.
+    with _STITCH_SLOTS:
+        canvas = Image.new("RGB", (full_w, full_h), "white")
+        for x, y, data in tiles:
+            canvas.paste(Image.open(io.BytesIO(data)).convert("RGB"), (x, y))
+        buf = io.BytesIO()
+        canvas.save(buf, format="JPEG", quality=92)
     return buf.getvalue()
 
 
@@ -894,6 +901,10 @@ def usable_cpus() -> int:
     except (OSError, ValueError):
         pass
     return max(1, n)
+
+
+# Pages being stitched from tiles at once (see _fetch_page_tiled).
+_STITCH_SLOTS = threading.BoundedSemaphore(usable_cpus())
 
 
 def default_ocr_jobs() -> int:
