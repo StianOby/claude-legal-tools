@@ -133,7 +133,7 @@ python {SKILL_DIR}/scripts/zotero_book.py \
 # Then ONE of these per bash tool call, re-running while it exits 2:
 python {SKILL_DIR}/scripts/ocr_chunked.py \
     --pdf "$OUT_DIR/Author_Title_(Year).pdf" \
-    --langs nor+nno --time-budget 35 --jobs 4
+    --langs nor+nno --time-budget 35
 
 # In-copyright content where the resolver downsamples single-shot requests.
 # --tiles always forces native-res tiles for every page (slower but correct).
@@ -157,7 +157,7 @@ New flags worth knowing about:
 | flag | purpose |
 | --- | --- |
 | `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. **`always` ignores `--resize`** — tiles are fetched at each canvas's native resolution, so pages come out full-size whatever width you asked for. |
-| `--ocr-jobs N`   | parallel jobs for ocrmypdf (default 4) |
+| `--ocr-jobs N`   | parallel jobs for ocrmypdf (default: half the usable CPUs, at most 4) |
 | `--force-auth`   | skip the `accessInfo` pre-check; attempt the chosen path regardless |
 | `--no-ocr`       | skip OCR (use with `ocr_chunked.py` afterwards for big books) |
 | `--shrink`       | recompress embedded images as JPEG after OCR. Defaults target ~50 MB on a 350-page book. Copies the OCRed master to `<basename>.original.pdf` before rewriting in place. |

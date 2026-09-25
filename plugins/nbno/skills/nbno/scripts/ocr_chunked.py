@@ -95,6 +95,39 @@ def _which(binary: str) -> Optional[str]:
     return None
 
 
+def usable_cpus() -> int:
+    """CPUs this process may actually use. os.cpu_count() reports the host's
+    cores; a sandbox limited by CPU affinity or a cgroup quota gets fewer."""
+    n = os.cpu_count() or 1
+    try:
+        n = min(n, len(os.sched_getaffinity(0)))
+    except (AttributeError, OSError):
+        pass
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()[:2]
+        if quota != "max":
+            n = min(n, int(quota) // int(period))
+    except (OSError, ValueError):
+        pass
+    return max(1, n)
+
+
+def default_ocr_jobs() -> int:
+    """Parallel ocrmypdf workers: half the usable CPUs, at most 4. Every
+    worker runs Ghostscript and a multi-threaded Tesseract, so one worker per
+    core already oversubscribes; on a 2-vCPU Cowork sandbox the old default
+    of 4 thrashed to ~24 s/page against ~4 s/page with 1."""
+    return max(1, min(4, usable_cpus() // 2))
+
+
+def ocr_env(jobs: int) -> dict:
+    """Environment for ocrmypdf: cap Tesseract's OpenMP threads so that
+    jobs x threads stays within the usable CPUs."""
+    env = os.environ.copy()
+    env.setdefault("OMP_THREAD_LIMIT", str(max(1, usable_cpus() // jobs)))
+    return env
+
+
 def tesseract_preflight(requested: str) -> str:
     """Drop missing language packs from `requested`; warn if any are missing.
 
@@ -204,12 +237,12 @@ def _split_pages(pikepdf, pdf_path: Path, pages_dir: Path) -> int:
 
 
 def _ocr_page(ocrmypdf_bin: str, src: Path, dst: Path,
-              languages: str) -> Tuple[Path, int]:
+              languages: str, env: dict) -> Tuple[Path, int]:
     """OCR a single-page PDF. Returns (dst, returncode)."""
     rc = subprocess.call(
         [ocrmypdf_bin, "--language", languages, "--skip-text",
-         "--optimize", "1", "--quiet", str(src), str(dst)],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+         "--optimize", "1", "--jobs", "1", "--quiet", str(src), str(dst)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env,
     )
     return dst, rc
 
@@ -301,14 +334,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--time-budget", type=float, default=35.0,
                     help="Stop launching new pages after this many seconds "
                          "(default: 35; leaves headroom under a 45s sandbox).")
-    ap.add_argument("--jobs", type=int, default=4,
-                    help="Parallel ocrmypdf workers (default: 4).")
+    ap.add_argument("--jobs", type=int, default=None,
+                    help="Parallel ocrmypdf workers (default: half the "
+                         "usable CPUs, at most 4 — 1 on a 2-vCPU sandbox).")
     ap.add_argument("--keep-intermediates", action="store_true",
                     help="Keep the per-page cache directory after merging. "
                          "By default the cache is deleted on a successful "
                          "merge; partial exits always preserve the cache so "
                          "the next call can resume.")
     args = ap.parse_args(argv)
+    if args.jobs is None:
+        args.jobs = default_ocr_jobs()
+    args.jobs = max(1, args.jobs)
+    env = ocr_env(args.jobs)
 
     pdf_path = Path(args.pdf).expanduser().resolve()
     if not pdf_path.exists():
@@ -359,7 +397,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     done_before = total - len(pending)
     print(f"[ocr] {done_before}/{total} pages already OCRed; "
           f"{len(pending)} pending. Budget: {args.time_budget:.0f}s, "
-          f"jobs: {args.jobs}.", file=sys.stderr)
+          f"jobs: {args.jobs} (usable CPUs: {usable_cpus()}).",
+          file=sys.stderr)
 
     if not pending:
         print("[ocr] all pages cached; merging output...", file=sys.stderr)
@@ -376,7 +415,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # the budget check then never fires and the call runs until the entire
     # book is OCRed — or, in a sandbox, until it is killed.
     pending_iter = iter(pending)
-    with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         in_flight = {}
 
         def submit_next() -> bool:
@@ -387,10 +426,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             except StopIteration:
                 return False
             dst = ocred_dir / src.name
-            in_flight[pool.submit(_ocr_page, ocrmypdf_bin, src, dst, langs)] = dst
+            in_flight[pool.submit(_ocr_page, ocrmypdf_bin, src, dst, langs, env)] = dst
             return True
 
-        for _ in range(max(1, args.jobs)):
+        for _ in range(args.jobs):
             if not submit_next():
                 break
 

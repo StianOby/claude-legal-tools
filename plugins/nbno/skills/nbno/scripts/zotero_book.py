@@ -879,6 +879,39 @@ def download_via_wrapper(
 # OCR
 # ---------------------------------------------------------------------------
 
+def usable_cpus() -> int:
+    """CPUs this process may actually use. os.cpu_count() reports the host's
+    cores; a sandbox limited by CPU affinity or a cgroup quota gets fewer."""
+    n = os.cpu_count() or 1
+    try:
+        n = min(n, len(os.sched_getaffinity(0)))
+    except (AttributeError, OSError):
+        pass
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()[:2]
+        if quota != "max":
+            n = min(n, int(quota) // int(period))
+    except (OSError, ValueError):
+        pass
+    return max(1, n)
+
+
+def default_ocr_jobs() -> int:
+    """Parallel ocrmypdf workers: half the usable CPUs, at most 4. Every
+    worker runs Ghostscript and a multi-threaded Tesseract, so one worker per
+    core already oversubscribes; on a 2-vCPU Cowork sandbox the old default
+    of 4 thrashed to ~24 s/page against ~4 s/page with 1."""
+    return max(1, min(4, usable_cpus() // 2))
+
+
+def ocr_env(jobs: int) -> dict:
+    """Environment for ocrmypdf: cap Tesseract's OpenMP threads so that
+    jobs x threads stays within the usable CPUs."""
+    env = os.environ.copy()
+    env.setdefault("OMP_THREAD_LIMIT", str(max(1, usable_cpus() // jobs)))
+    return env
+
+
 def tesseract_preflight(requested: str) -> str:
     """Check which of the requested tesseract languages are installed.
 
@@ -985,7 +1018,7 @@ def _which_in_pylib(binary: str) -> Optional[str]:
 
 
 def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
-                 jobs: int = 4) -> None:
+                 jobs: Optional[int] = None) -> None:
     """Add a searchable text layer in place. Uses --skip-text so pages that
     already have text aren't re-OCRed.
 
@@ -1011,6 +1044,7 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
                 "--break-system-packages ocrmypdf"
             )
     languages = tesseract_preflight(languages)
+    jobs = max(1, jobs) if jobs else default_ocr_jobs()
     cmd = [
         binary,
         "--language", languages,
@@ -1022,7 +1056,7 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
         str(pdf_path),
     ]
     print(f"[ocr] running: {' '.join(cmd)}")
-    rc = subprocess.call(cmd)
+    rc = subprocess.call(cmd, env=ocr_env(jobs))
     if rc != 0:
         raise SystemExit(
             f"ERROR: ocrmypdf exited with status {rc}. "
@@ -1072,8 +1106,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Skip the OCR step.")
     ap.add_argument("--ocr-langs", default="nor+nno",
                     help="Tesseract language string (default: nor+nno).")
-    ap.add_argument("--ocr-jobs", type=int, default=4,
-                    help="Parallel jobs for ocrmypdf (default 4).")
+    ap.add_argument("--ocr-jobs", type=int, default=None,
+                    help="Parallel jobs for ocrmypdf (default: half the "
+                         "usable CPUs, at most 4).")
     ap.add_argument("--shrink", action="store_true",
                     help="Recompress embedded images (JPEG) after OCR. "
                          "Lossy. With the default settings (q70 + 900 px) "

@@ -101,9 +101,13 @@ code 2 means partial (call it again):
 python {SKILL_DIR}/scripts/ocr_chunked.py \
     --pdf "$PDF" \
     --langs nor+nno \
-    --time-budget 35 \
-    --jobs 4
+    --time-budget 35
 ```
+
+Leave `--jobs` at its default (half the usable CPUs, at most 4 — 1 on a
+2-vCPU sandbox). Each worker runs Ghostscript plus multi-threaded Tesseract;
+more workers than that thrash the CPU (a 2-vCPU sandbox with `--jobs 4`
+went from ~4 s to ~24 s per page, with complete stalls).
 
 > **⛔ Do NOT wrap this in a single-call `until … ; do … ; done` loop.**
 > A single `ocr_chunked.py` invocation can itself exceed the 45 s sandbox
