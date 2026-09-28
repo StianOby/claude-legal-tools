@@ -12,9 +12,15 @@ downloaded XML files, which are updated daily.
   - **SF** — all current central regulations (over 5 000 XML files)
 - Search across titles, Lovdata's short titles / abbreviations (`aml`,
   `fvl`, `Grl.`) and document IDs.
+- Full-text search across the provisions themselves (`find`), for when the
+  law that governs a topic is not known.
 - Retrieve the full text of any law or regulation (to stdout or a file).
 - Retrieve a single numbered section (paragraph) with amendment history,
-  or a whole chapter.
+  or a whole chapter — or a single convention article from the
+  human-rights annexes of menneskerettsloven (`emkn/a8`, `emkn/p1/a1`).
+- Accept a document as DokID, `LOV-…`/`FOR-…` reference, lovdata.no URL
+  or unambiguous short title; the Grunnloven in bokmål by default and in
+  nynorsk with `--nn`.
 - Report download status and data freshness.
 
 Local regulations (LF) are not included in the free packages.
@@ -25,8 +31,9 @@ Local regulations (LF) are not included in the free packages.
 lovdata-api/
 ├── SKILL.md          # the skill manifest Claude reads
 ├── README.md         # you are here
-└── scripts/
-    └── lovdata.py    # the CLI
+├── scripts/
+│   └── lovdata.py    # the CLI
+└── tests/            # offline regression tests (python tests/test_*.py)
 ```
 
 Data and state are written to a writable user directory outside the skill
@@ -70,6 +77,22 @@ python scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
 
 # retrieve a whole chapter
 python scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
+
+# other ways to name the document; the § in a URL is used as the section
+python scripts/lovdata.py get LOV-2005-06-17-62 4-6
+python scripts/lovdata.py get "https://lovdata.no/dokument/NL/lov/2005-06-17-62/§4-6"
+python scripts/lovdata.py get aml 4-6
+
+# one article of the ECHR annex of menneskerettsloven (Norwegian text)
+python scripts/lovdata.py get NL/lov/1999-05-21-30 emkn/a8
+
+# the Grunnloven in nynorsk
+python scripts/lovdata.py get Grunnloven 100 --nn
+
+# full-text search: every word must occur in the provision
+python scripts/lovdata.py find "deltid"
+python scripts/lovdata.py find "rimelig tid" --phrase
+python scripts/lovdata.py find "oppfølgingsplan" aml
 ```
 
 Section text keeps list markers (`a.`, `b.`, `1.`) so that "annet ledd
@@ -112,11 +135,9 @@ interrupted update never leaves a half-populated data set. The search index
 to the data directory, so the directory can be moved. Subsequent runs are
 near-instant when nothing has changed.
 
-## With an API key
-
-If `api_key` is set in `state.json`, the script gains access to additional
-Lovdata endpoints (live search, history, etc.). Keys are not yet generally
-available; the free packages cover all current statute text.
+If the network is down, `update` keeps the data from the last successful
+download and prints a warning with its dates; it fails only when there is
+no local data at all.
 
 ## Installing as a Claude skill
 

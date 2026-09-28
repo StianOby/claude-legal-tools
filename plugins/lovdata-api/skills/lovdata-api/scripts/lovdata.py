@@ -13,10 +13,16 @@ Bruk:
   python lovdata.py status                     Vis nedlastningsstatus og datoer
   python lovdata.py index                      Bygg søkeindeks (kjøres automatisk etter update)
   python lovdata.py search <søkeord>           Søk i titler, korttitler (aml, fvl ...) og DokID
+  python lovdata.py find <ord> [dokid]         Fulltekstsøk i bestemmelsene (--sf, --phrase)
   python lovdata.py get <dokid>                Hent full lovtekst (f.eks. NL/lov/2005-06-17-62)
   python lovdata.py get <dokid> <paragraf>     Hent spesifikk paragraf (f.eks. §4-6 eller 4-6)
   python lovdata.py get <dokid> kap4           Hent et helt kapittel
+  python lovdata.py get <dokid> emkn/a8        Hent en seksjon eller artikkel i et vedlegg
+  python lovdata.py get <dokid> --nn           Nynorsk-versjonen (Grunnloven)
   python lovdata.py get <dokid> --out FIL      Skriv teksten til fil i stedet for stdout
+
+<dokid> kan også være LOV-2005-06-17-62, FOR-…, en lovdata.no-URL eller en
+entydig korttittel/forkortelse (aml, Grunnloven).
 
 Tilstand og nedlastede data lagres i en skrivbar brukerkatalog (ikke i selve
 ferdighetskatalogen, som ofte er skrivebeskyttet når skillet er installert).
@@ -38,6 +44,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -267,6 +274,7 @@ def build_index(data_dir: Path) -> dict:
                         "dokid": dokid,
                         "base": base_code,
                         "lastChange": _dd(content, "lastChangeInForce"),
+                        "dateInForce": _dd(content, "dateInForce"),
                         "filename": xml_file.name,
                     }
             except Exception:
@@ -299,36 +307,60 @@ def _load_index() -> dict:
 
 def _short_forms(title_short: str) -> list[str]:
     """Lovdatas korttittel har formen «Arbeidsmiljøloven – aml»; returner
-    begge delene (uten avsluttende punktum) i små bokstaver."""
-    parts = re.split(r"\s+[–-]\s+", title_short)
-    return [p.strip().rstrip(".").lower() for p in parts if p.strip()]
+    begge delene (uten avsluttende punktum) i små bokstaver. En del med
+    parentes («Grunnloven (bokmål)») gir også formen uten parentesen."""
+    out = []
+    for p in re.split(r"\s+[–-]\s+", title_short):
+        p = p.strip().rstrip(".").lower()
+        if not p:
+            continue
+        out.append(p)
+        bare = re.sub(r"\s*\([^)]*\)\s*$", "", p).strip()
+        if bare and bare != p:
+            out.append(bare)
+    return out
+
+
+def _is_nynorsk(path: str) -> bool:
+    """Grunnloven finnes i to filer med samme DokID; nynorsk-filen heter *-nn.xml."""
+    return path.endswith("-nn.xml")
 
 
 def search_index(index: dict, query: str, max_results: int = 15) -> list[dict]:
     """Søk i indeksen etter tittel, korttittel/forkortelse eller dokid (case-insensitive).
 
-    En forkortelse som «aml» eller «Grl.» treffer Lovdatas korttittel
-    eksakt og rangeres først; deretter delstrengtreff i tittel og korttittel.
+    En forkortelse eller korttittel («aml», «Grl.», «Grunnloven») treffer
+    eksakt og rangeres først; deretter delstrengtreff i tittel og
+    korttittel. Et søk med flere ord treffer også når hvert ord står et
+    sted i tittelen eller korttittelen («arbeidsmiljø lov»). Lover rangeres
+    foran forskrifter og delegeringsvedtak med samme poengsum.
     """
     q = query.strip().rstrip(".").lower()
     if not q:
         return []
+    words = q.split()
     results = []
     for path, meta in index.items():
         score = 0
         short = meta.get("titleShort", "")
+        short_l = short.lower()
+        title_l = meta["title"].lower()
         forms = _short_forms(short) if short else []
         if q in forms:
             score += 6
-        elif short and q in short.lower():
+        elif short and q in short_l:
             score += 3
         if q in meta["dokid"].lower():
             score += 3
-        if q in meta["title"].lower():
+        if q in title_l:
             score += 2
+        if not score and len(words) > 1 and all(w in title_l or w in short_l for w in words):
+            score += 1
         if score:
+            if meta["dokid"].startswith("NL/"):
+                score += 1
             results.append({**meta, "_score": score, "_path": path})
-    results.sort(key=lambda x: (-x["_score"], x["title"]))
+    results.sort(key=lambda x: (-x["_score"], _is_nynorsk(x["_path"]), x["title"]))
     return results[:max_results]
 
 
@@ -406,12 +438,40 @@ def _element_end(content: str, start: int, tag: str) -> int:
     return len(content)
 
 
+# Konvensjonsvedleggene i menneskerettsloven er delt i seksjoner og
+# artikler med sammensatte navn: emkn (EMK på norsk), emkn/a8 (artikkel 8),
+# emkn/p1 (protokoll 1), emkn/p1/a1 (protokoll 1 artikkel 1). Brukere skriver
+# gjerne «emkn art 8» eller «emkn protokoll 1 art. 1»; oversett til
+# Lovdatas navn.
+_SECTION_ALIAS_RE = re.compile(
+    r"([a-zæøå]+)"
+    r"(?:\s*/?\s*(?:protokoll|prot\.?|p)\s*(?:nr\.?\s*)?(\d+))?"
+    r"(?:\s*/?\s*(?:artikkel|art\.?|a)\s*(\d+[a-z]?))?",
+    re.I,
+)
+
+
+def _section_name(para: str) -> str:
+    """«emkn art 8» -> «emkn/a8», «emkn p1 a1» -> «emkn/p1/a1»; ellers uendret."""
+    m = _SECTION_ALIAS_RE.fullmatch(para.strip())
+    if not m or not (m.group(2) or m.group(3)):
+        return para
+    name = m.group(1)
+    if m.group(2):
+        name += "/p" + m.group(2)
+    if m.group(3):
+        name += "/a" + m.group(3).lower()
+    return name
+
+
 def get_law_text(xml_path: str | Path, paragraph: str | None = None) -> str:
     """
     Hent tekst fra en dokumentfil (XHTML, til tross for .xml-endelsen).
     Hvis paragraph er oppgitt (f.eks. '4-6' eller '§4-6'), hentes bare den paragrafen;
     'kap4' / 'kapittel 4' henter hele kapittelet. Et vedleggs- eller
-    seksjonsnavn virker også ('emkn' = EMK på norsk i menneskerettsloven).
+    seksjonsnavn virker også ('emkn' = EMK på norsk i menneskerettsloven),
+    og det samme gjør én artikkel eller protokoll i et vedlegg ('emkn/a8',
+    'emkn/p1', 'emkn/p1/a1', eller 'emkn art 8').
     """
     with open(xml_path, encoding="utf-8") as f:
         content = f.read()
@@ -423,16 +483,21 @@ def get_law_text(xml_path: str | Path, paragraph: str | None = None) -> str:
     sec_name = None
     if chap:
         sec_name = "kap" + chap.group(1)
-    elif para and re.fullmatch(r"[A-Za-zæøåÆØÅ][\w./-]*", para):
-        sec_name = para
+    elif para and re.fullmatch(r"[A-Za-zæøåÆØÅ][\w./ -]*", para):
+        sec_name = _section_name(para)
     if sec_name:
-        m = re.search(rf'<section[^>]*data-name="{re.escape(sec_name)}"', content, flags=re.I)
+        # Seksjoner (kapitler, vedlegg, protokoller) er <section>; en enkelt
+        # artikkel i et vedlegg (emkn/a8) er <article>.
+        m = re.search(rf'<(section|article)\b[^>]*data-name="{re.escape(sec_name)}"', content, flags=re.I)
         if not m:
-            names = sorted(set(re.findall(r'<section[^>]*data-name="([^"/]+)"', content)))
-            what = f"Kapittel {chap.group(1)}" if chap else f"Seksjonen {para!r}"
+            names = sorted(set(re.findall(r'<section[^>]*data-name="([^"]+)"', content)))
+            what = f"Kapittel {chap.group(1)}" if chap else f"Seksjonen {sec_name!r}"
             listing = (" Tilgjengelige seksjoner: " + ", ".join(names)) if names else ""
+            if any("/" in n for n in names):
+                listing += (". Enkeltartikler heter <seksjon>/a<nr>, f.eks. emkn/a8 "
+                            "eller emkn/p1/a1")
             return f"{what} ble ikke funnet i dette dokumentet.{listing}"
-        chunk = content[m.start():_element_end(content, m.start(), "section")]
+        chunk = content[m.start():_element_end(content, m.start(), m.group(1).lower())]
     elif paragraph:
         # Normalize: ensure it starts with §
         para_norm = paragraph.strip()
@@ -469,13 +534,151 @@ def get_law_text(xml_path: str | Path, paragraph: str | None = None) -> str:
     return _html_to_text(chunk)
 
 
-def find_by_dokid(index: dict, dokid: str) -> str | None:
+_PROVISION_START = re.compile(r'<article class="legalArticle"[^>]*data-name="([^"]+)"')
+
+
+def _plain(chunk: str) -> str:
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", chunk))).strip()
+
+
+def find_text(index: dict, query: str, *, only: str | None = None,
+              include_sf: bool = False, nynorsk: bool = False,
+              phrase: bool = False) -> list[dict]:
+    """Fulltekstsøk i bestemmelsene (paragrafer og konvensjonsartikler).
+
+    Treffer en bestemmelse når hvert ord i `query` står i teksten (som
+    delstreng, uten hensyn til store/små bokstaver), eller hele `query`
+    ordrett med phrase=True. Søker i lovene (NL); forskriftene bare med
+    include_sf, siden de er sju ganger så mange filer. `only` er en
+    indeksnøkkel som begrenser søket til ett dokument.
+
+    Returnerer én rad per bestemmelse, bestemmelser der hele frasen står
+    ordrett først, deretter lover før forskrifter og flest forekomster først:
+    {dokid, title, titleShort, provision, snippet, exact, count}.
+    """
+    q = re.sub(r"\s+", " ", query.strip().lower())
+    if not q:
+        return []
+    words = [q] if phrase else q.split(" ")
+    if only:
+        paths = [only]
+    else:
+        paths = [p for p, meta in index.items()
+                 if (include_sf or meta["dokid"].startswith("NL/"))
+                 and _is_nynorsk(p) == nynorsk]
+    hits = []
+    for path in sorted(paths):
+        meta = index[path]
+        try:
+            content = index_path(path).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        low = content.lower()
+        if not all(w in low for w in words):
+            continue  # billig forhåndsfilter før teksten deles opp
+        starts = list(_PROVISION_START.finditer(content))
+        for i, m in enumerate(starts):
+            end = starts[i + 1].start() if i + 1 < len(starts) else len(content)
+            text = _plain(content[m.start():end])
+            tl = text.lower()
+            if not all(w in tl for w in words):
+                continue
+            pos = tl.find(q) if q in tl else tl.find(words[0])
+            a, b = max(0, pos - 120), min(len(text), pos + len(q) + 160)
+            hits.append({
+                "dokid": meta["dokid"],
+                "title": meta["title"],
+                "titleShort": meta.get("titleShort", ""),
+                "provision": m.group(1),
+                "snippet": ("…" if a else "") + text[a:b] + ("…" if b < len(text) else ""),
+                "exact": q in tl,
+                "count": tl.count(q) if q in tl else sum(tl.count(w) for w in words),
+            })
+    hits.sort(key=lambda h: (not h["exact"], not h["dokid"].startswith("NL/"), -h["count"]))
+    return hits
+
+
+def _pick_language(paths: list[str], nynorsk: bool = False) -> str | None:
+    """Grunnloven har to filer med samme DokID. Velg bokmål med mindre
+    nynorsk er bedt om (og finnes)."""
+    if not paths:
+        return None
+    preferred = [p for p in paths if _is_nynorsk(p) == nynorsk]
+    return (preferred or paths)[0]
+
+
+def find_by_dokid(index: dict, dokid: str, nynorsk: bool = False) -> str | None:
     """Finn filsti for et gitt dokid."""
-    dokid_clean = dokid.strip()
-    for path, meta in index.items():
-        if meta["dokid"].lower() == dokid_clean.lower():
-            return path
-    return None
+    dokid_clean = dokid.strip().lower()
+    paths = [p for p, meta in index.items() if meta["dokid"].lower() == dokid_clean]
+    return _pick_language(paths, nynorsk)
+
+
+_LOVDATA_URL_RE = re.compile(
+    r"^https?://(?:www\.)?lovdata\.no/(?:pro/)?(?:#?/?document/|dokument/)?"
+    r"(?:(?P<base>[A-Z]+)/)?(?P<kind>lov|forskrift)/(?P<id>\d{4}-\d{2}-\d{2}(?:-\d+)?)"
+    r"(?P<rest>.*)$",
+    re.I,
+)
+_LOVDATA_REF_RE = re.compile(r"^(?P<kind>LOV|FOR)-(?P<id>\d{4}-\d{2}-\d{2}(?:-\d+)?)$", re.I)
+_KIND_ID_RE = re.compile(
+    r"^(?:(?P<base>[A-Z]+)/)?(?P<kind>lov|forskrift)/(?P<id>\d{4}-\d{2}-\d{2}(?:-\d+)?)$", re.I)
+
+
+def resolve_ref(index: dict, raw: str, nynorsk: bool = False):
+    """Finn filsti for det brukeren oppga som dokument.
+
+    Godtar DokID (NL/lov/2005-06-17-62), Lovdatas referanseform
+    (LOV-2005-06-17-62, FOR-1996-12-06-1127), lov/… og forskrift/… uten
+    base, lovdata.no-URL-er (også med «/§4-6» på slutten) og korttitler
+    eller forkortelser som «aml» og «Grunnloven» når de er entydige.
+
+    Returnerer (sti, paragraf_fra_url, feilmelding); sti er None ved feil.
+    """
+    s = raw.strip()
+    para = None
+    kind = ident = None
+    m = _LOVDATA_URL_RE.match(urllib.parse.unquote(s))
+    if m:
+        kind, ident = m.group("kind"), m.group("id")
+        pm = re.search(r"§\s*([\w-]+)", m.group("rest") or "")
+        if pm:
+            para = pm.group(1)
+    elif _LOVDATA_REF_RE.match(s):
+        m = _LOVDATA_REF_RE.match(s)
+        kind = "lov" if m.group("kind").upper() == "LOV" else "forskrift"
+        ident = m.group("id")
+    elif _KIND_ID_RE.match(s):
+        m = _KIND_ID_RE.match(s)
+        path = find_by_dokid(index, s, nynorsk) if m.group("base") else None
+        if path:
+            return path, None, None
+        kind, ident = m.group("kind"), m.group("id")
+
+    if kind:
+        suffix = f"/{kind.lower()}/{ident}"
+        paths = [p for p, meta in index.items() if meta["dokid"].lower().endswith(suffix)]
+        # En lov ligger i NL; en forskrift oftest i SF, ellers i DEL/INS/STV.
+        paths.sort(key=lambda p: (not index[p]["dokid"].startswith(("NL/", "SF/")), p))
+        path = _pick_language(paths, nynorsk)
+        if path:
+            return path, para, None
+        return None, None, f"Fant ikke {kind} {ident} i de frie pakkene."
+
+    # Korttittel eller forkortelse: bare når den peker på ett dokument.
+    q = s.rstrip(".").lower()
+    hits = {}
+    for p, meta in index.items():
+        if meta.get("titleShort") and q in _short_forms(meta["titleShort"]):
+            hits.setdefault(meta["dokid"], []).append(p)
+    if len(hits) == 1:
+        # Slå opp på DokID, ikke på treffet: «Grunnloven» står bare i
+        # bokmålsfilens korttittel, men --nn skal likevel gi nynorsk.
+        return find_by_dokid(index, next(iter(hits)), nynorsk), None, None
+    if len(hits) > 1:
+        return None, None, (f"«{s}» er tvetydig: " + ", ".join(sorted(hits))
+                            + ". Oppgi DokID.")
+    return None, None, None
 
 
 # --- Kommandoer --------------------------------------------------------------
@@ -488,6 +691,11 @@ def cmd_update(args, state: dict) -> dict:
         available = get_package_list(api_key)
     except Exception as e:
         print(f"FEIL: Kunne ikke hente pakkeoversikt: {e}", file=sys.stderr)
+        if INDEX_FILE.exists():
+            # Lokale data fra forrige vellykkede update er fortsatt brukbare.
+            # Ikke oppdater last_checked: sjekken ble ikke gjort.
+            print(_stale_data_warning(state), file=sys.stderr)
+            return state
         sys.exit(1)
 
     pkg_map = {p["filename"]: p for p in available}
@@ -495,6 +703,7 @@ def cmd_update(args, state: dict) -> dict:
     _ensure_data_root()
 
     updated_any = False
+    missing = []
     for pkg_key, pkg_info in PACKAGES.items():
         filename = pkg_info["filename"]
         remote = pkg_map.get(filename)
@@ -516,9 +725,22 @@ def cmd_update(args, state: dict) -> dict:
             print(f"Oppdatering tilgjengelig for {pkg_info['description']}")
             print(f"  Fjernversjon: {remote_modified}  Lokal: {local_modified or 'ikke lastet ned'}")
             archive_path = DATA_DIR / filename
-            download_package(filename, archive_path, api_key)
-            extract_package(archive_path, subdir)
-            archive_path.unlink()  # Remove archive after extraction
+            try:
+                download_package(filename, archive_path, api_key)
+                extract_package(archive_path, subdir)
+            except Exception as e:
+                # extract_package bytter bare inn en ferdig utpakket katalog,
+                # så de gamle filene står urørt når noe feiler her.
+                print(f"FEIL: {pkg_info['description']} kunne ikke oppdateres: {e}",
+                      file=sys.stderr)
+                if subdir.exists() and any(subdir.glob("*.xml")):
+                    print("  Bruker de lokale filene fra forrige nedlasting "
+                          f"({local_modified or 'ukjent dato'}).", file=sys.stderr)
+                else:
+                    missing.append(pkg_info["description"])
+                continue
+            finally:
+                archive_path.unlink(missing_ok=True)
             state["packages"][pkg_key] = {
                 "lastModified": remote_modified,
                 "downloaded": datetime.now(timezone.utc).isoformat(),
@@ -534,8 +756,23 @@ def cmd_update(args, state: dict) -> dict:
         _save_index(index)
         print(f"  Indekserte {len(index)} dokumenter")
 
+    if missing:
+        save_state(state)
+        print("FEIL: Ingen lokale data for: " + ", ".join(missing), file=sys.stderr)
+        sys.exit(1)
+
     state["last_checked"] = datetime.now(timezone.utc).isoformat()
     return state
+
+
+def _stale_data_warning(state: dict) -> str:
+    dates = ", ".join(
+        f"{PACKAGES[k]['description']}: {v.get('lastModified') or 'ukjent'}"
+        for k, v in (state.get("packages") or {}).items() if k in PACKAGES
+    )
+    return ("ADVARSEL: Fortsetter med lokale data som kan være utdatert"
+            + (f" ({dates})" if dates else "")
+            + ". Si fra til brukeren at teksten ikke er sjekket mot dagens versjon.")
 
 
 def cmd_status(args, state: dict):
@@ -575,22 +812,55 @@ def cmd_search(args, state: dict):
         return
     print(f"Treff for '{args.query}' ({len(results)} resultater):\n")
     for r in results:
-        print(f"  [{r['base']}] {r['title']}")
+        lang = "  (nynorsk — hent med get --nn)" if _is_nynorsk(r["_path"]) else ""
+        print(f"  [{r['base']}] {r['title']}{lang}")
         if r.get("titleShort"):
             print(f"         Korttittel: {r['titleShort']}")
         print(f"         DokID: {r['dokid']}  Sist endret: {r['lastChange'] or 'ukjent'}")
         print()
 
 
+def cmd_find(args, state: dict):
+    """Fulltekstsøk i bestemmelsene."""
+    index = _load_index()
+    only = None
+    if args.dokid:
+        only, _, problem = resolve_ref(index, args.dokid, nynorsk=args.nn)
+        if not only:
+            print(f"Dokument ikke funnet: {args.dokid}" + (f" — {problem}" if problem else ""),
+                  file=sys.stderr)
+            sys.exit(1)
+    hits = find_text(index, args.query, only=only, include_sf=args.sf,
+                     nynorsk=args.nn, phrase=args.phrase)
+    scope = index[only]["dokid"] if only else ("lover og forskrifter" if args.sf else "lovene")
+    if not hits:
+        print(f"Ingen bestemmelser i {scope} inneholder '{args.query}'.")
+        return
+    docs = len({h["dokid"] for h in hits})
+    shown = hits[: args.max]
+    print(f"'{args.query}' i {scope}: {len(hits)} bestemmelser i {docs} "
+          + ("dokument" if docs == 1 else "dokumenter")
+          + (f", viser de {len(shown)} første (--max for flere)" if len(shown) < len(hits) else "")
+          + ":\n")
+    for h in shown:
+        name = h["titleShort"] or h["title"]
+        prov = h["provision"].replace("§", "§ ", 1) if h["provision"].startswith("§") else h["provision"]
+        print(f"  {name} — {prov}   ({h['dokid']})")
+        print(f"      {h['snippet']}")
+        print()
+
+
 def cmd_get(args, state: dict):
     """Hent lovtekst for et dokid, evt. for en spesifikk paragraf eller et kapittel."""
     index = _load_index()
+    nynorsk = getattr(args, "nn", False)
 
-    path = find_by_dokid(index, args.dokid)
+    path, url_para, problem = resolve_ref(index, args.dokid, nynorsk=nynorsk)
     if not path:
-        print(f"Dokument ikke funnet: {args.dokid}", file=sys.stderr)
+        print(f"Dokument ikke funnet: {args.dokid}" + (f" — {problem}" if problem else ""),
+              file=sys.stderr)
         # Try partial match
-        results = search_index(index, args.dokid.split("/")[-1])
+        results = search_index(index, args.dokid.rstrip("/").split("/")[-1])
         if results:
             print("Mente du kanskje:")
             for r in results[:5]:
@@ -598,18 +868,24 @@ def cmd_get(args, state: dict):
         sys.exit(1)
 
     meta = index[path]
+    if nynorsk and not _is_nynorsk(path):
+        print(f"Merk: {meta['dokid']} finnes bare på bokmål i pakkene.", file=sys.stderr)
     file_path = index_path(path)
     if not file_path.exists():
         print(f"Filen for {meta['dokid']} finnes ikke lenger ({file_path}). "
               "Kjør 'python lovdata.py index' for å bygge indeksen på nytt.", file=sys.stderr)
         sys.exit(1)
-    paragraph = getattr(args, "paragraph", None)
+    paragraph = getattr(args, "paragraph", None) or url_para
     text = get_law_text(file_path, paragraph)
 
     header = [f"=== {meta['title']} ==="]
     if meta.get("titleShort"):
         header.append(f"Korttittel: {meta['titleShort']}")
     header.append(f"DokID: {meta['dokid']}  |  Sist endret: {meta['lastChange'] or 'ukjent'}")
+    # Ikrafttredelse kan være «Kongen bestemmer»: en vedtatt, men ennå ikke
+    # ikraftsatt lov ligger i pakken side om side med den som gjelder.
+    if meta.get("dateInForce"):
+        header.append(f"Ikrafttredelse: {meta['dateInForce']}")
     if paragraph:
         header.append(f"Paragraf: {paragraph}")
 
@@ -641,9 +917,20 @@ def main():
     p_search = subparsers.add_parser("search", help="Søk etter lover/forskrifter")
     p_search.add_argument("query", help="Søkeord (tittel eller dokid)")
 
+    p_find = subparsers.add_parser("find", help="Fulltekstsøk i bestemmelsene")
+    p_find.add_argument("query", help="Ord som alle skal stå i bestemmelsen")
+    p_find.add_argument("dokid", nargs="?", help="Søk bare i dette dokumentet (DokID, LOV-…, aml …)")
+    p_find.add_argument("--phrase", action="store_true", help="Søk etter hele uttrykket ordrett")
+    p_find.add_argument("--sf", action="store_true", help="Ta med forskriftene (tregere)")
+    p_find.add_argument("--nn", action="store_true", help="Søk i nynorsk-versjonen (Grunnloven)")
+    p_find.add_argument("--max", type=int, default=20, help="Maks antall treff som vises (standard 20)")
+
     p_get = subparsers.add_parser("get", help="Hent lovtekst")
-    p_get.add_argument("dokid", help="DokumentID, f.eks. NL/lov/2005-06-17-62")
-    p_get.add_argument("paragraph", nargs="?", help="Paragraf (§4-6 eller 4-6) eller kapittel (kap4)")
+    p_get.add_argument("dokid", help="DokID (NL/lov/2005-06-17-62), LOV-2005-06-17-62, "
+                                     "lovdata.no-URL eller entydig korttittel (aml)")
+    p_get.add_argument("paragraph", nargs="?",
+                       help="Paragraf (§4-6 eller 4-6), kapittel (kap4) eller seksjon/artikkel (emkn, emkn/a8)")
+    p_get.add_argument("--nn", action="store_true", help="Nynorsk-versjonen (finnes for Grunnloven)")
     p_get.add_argument("--out", metavar="FIL", help="Skriv teksten til denne filen i stedet for stdout")
 
     # Windows-konsollen bruker cp1252 som standard; lovtekst inneholder tegn
@@ -671,6 +958,8 @@ def main():
         save_state(state)
     elif args.command == "search":
         cmd_search(args, state)
+    elif args.command == "find":
+        cmd_find(args, state)
     elif args.command == "get":
         cmd_get(args, state)
 

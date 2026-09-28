@@ -81,9 +81,11 @@ Erstatt `{SKILL_DIR}` med basiskatalogens sti fra "Base directory for this skill
 python {SKILL_DIR}/scripts/lovdata.py search "søkeord"
 ```
 
-Søker i titler, Lovdatas korttitler/forkortelser (`aml`, `fvl`, `Grl.`) og
-DokID. Returnerer liste med tittel, korttittel, DokID og sist-endret-dato.
-Eksakt treff på forkortelse rangeres først.
+Søker i titler, Lovdatas korttitler/forkortelser (`aml`, `fvl`, `Grl.`,
+`Grunnloven`) og DokID. Returnerer liste med tittel, korttittel, DokID og
+sist-endret-dato. Eksakt treff på forkortelse eller korttittel rangeres
+først, og lover før forskrifter og delegeringsvedtak. Flere ord treffer når
+hvert ord står i tittelen («arbeidsmiljø lov»).
 
 **Eksempler:**
 ```
@@ -91,6 +93,26 @@ python .../lovdata.py search "arbeidsmiljø"
 python .../lovdata.py search "aml"
 python .../lovdata.py search "internkontroll"
 ```
+
+### Fulltekstsøk i bestemmelsene
+
+Når du ikke vet hvilken lov som regulerer et tema:
+
+```bash
+python {SKILL_DIR}/scripts/lovdata.py find "deltid"
+python {SKILL_DIR}/scripts/lovdata.py find "rimelig tid" --phrase
+python {SKILL_DIR}/scripts/lovdata.py find "oppfølgingsplan" aml        # bare i én lov
+python {SKILL_DIR}/scripts/lovdata.py find "personopplysninger" --sf    # også forskriftene
+```
+
+Gir én linje per paragraf (lov, §, DokID) med et utdrag. En bestemmelse
+treffer når *alle* ordene står i den, som delstrenger («deltid» treffer
+også «deltidsstilling»); `--phrase` krever hele uttrykket ordrett.
+Bestemmelser med hele uttrykket ordrett kommer først, deretter lover før
+forskrifter og flest forekomster først. Standard er bare lovene (`--sf`
+tar med forskriftene), og 20 treff (`--max N`). Si fra til brukeren når
+det er flere treff enn du viste. Utdraget er bare en pekepinn: hent alltid
+paragrafen med `get` før du siterer.
 
 ### Hent en spesifikk paragraf
 
@@ -103,6 +125,27 @@ python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
 Returnerer ren tekst av paragrafen med alle ledd, inkl. endringshistorikk.
 Listepunkter beholder markøren (`a.`, `b.`, `1.`), slik at «annet ledd
 bokstav b» kan siteres presist.
+
+Dokumentet kan oppgis på flere måter — `get` godtar alle disse:
+
+| Form | Eksempel |
+|------|----------|
+| DokID | `NL/lov/2005-06-17-62`, `SF/forskrift/1996-12-06-1127` |
+| Lovdatas referanse | `LOV-2005-06-17-62`, `FOR-1996-12-06-1127` |
+| lovdata.no-URL | `https://lovdata.no/dokument/NL/lov/2005-06-17-62/§4-6` (paragrafen i URL-en brukes når du ikke oppgir en) |
+| Entydig korttittel/forkortelse | `aml`, `Grl.`, `Grunnloven` |
+
+Er en korttittel tvetydig (f.eks. `forvaltningsloven`, se DokID-listen
+nedenfor), sier scriptet hvilke DokID-er den kan være.
+
+**Grunnloven** finnes på bokmål og nynorsk med samme DokID. `get` gir
+bokmål; legg til `--nn` for nynorsk. Siter den språkformen forfatteren eller
+brukeren bruker.
+
+**Ikrafttredelse.** Hodet viser `Ikrafttredelse:` når Lovdata oppgir den.
+Pakken inneholder også vedtatte lover som ikke er satt i kraft ennå — står
+det «Kongen bestemmer» eller en dato fram i tid, er teksten *ikke* gjeldende
+rett, og du må si det.
 
 ### Hent et kapittel eller et vedlegg
 
@@ -120,15 +163,23 @@ som vedlegg i fulltekst — de samme konvensjonene traktatregisteret
 
 | Konvensjon | Norsk | Engelsk |
 |------------|-------|---------|
-| EMK med protokoller | `emkn` | `emke` |
+| EMK | `emkn` | `emke` |
 | SP | `spn` | `spe` |
 | ØSK | `oskn` | `oske` |
 | Barnekonvensjonen | `bkn` | `bke` |
 | Kvinnekonvensjonen | `kdkn` | `kdke` |
 | CRPD | `crpdn` | `crpde` |
 
+Seksjonen inneholder bare selve konvensjonen. **Protokollene er egne
+seksjoner**: `emkn/p1`, `emkn/p4`, `emkn/p6`, `emkn/p7`, `emkn/p13` (og
+`bkn/p1`, `bkn/p2`, `kdkn/p1` …). **Én artikkel** hentes med `/a<nr>`:
+`emkn/a8` er EMK art. 8, `emkn/p1/a1` er protokoll 1 art. 1. Skrivemåtene
+`"emkn art 8"` og `"emkn protokoll 1 art. 1"` virker også. Hent én artikkel
+fremfor hele konvensjonen når spørsmålet gjelder én bestemmelse.
+
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn"
+python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/a8"
+python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/p1/a1"
 ```
 
 Oppgir du et ukjent seksjonsnavn, lister scriptet de gyldige.
@@ -163,7 +214,9 @@ er i bruk.
 
 Vanlige lover og forkortelser:
 - `NL/lov/2005-06-17-62` — arbeidsmiljøloven (aml.)
-- `NL/lov/1967-02-10` — forvaltningsloven (fvl.)
+- `NL/lov/1967-02-10` — forvaltningsloven (fvl.). Den nye forvaltningsloven
+  (`NL/lov/2025-06-20-81`) ligger også i pakken; sjekk `Ikrafttredelse:` før
+  du bruker den.
 - `NL/lov/2006-05-19-16` — offentleglova (offl.)
 - `NL/lov/2005-05-20-28` — straffeloven (strl.)
 - `NL/lov/1981-05-22-25` — straffeprosessloven (strpl.)
@@ -195,7 +248,8 @@ ikke her — bruk `lovdata-pro` for historiske versjoner.
 ### Bruker spør hva loven sier om et tema
 
 1. Kjør `update`.
-2. Kjør `search` med relevante norske søkeord.
+2. Kjør `search` med relevante norske søkeord for å finne loven. Vet du ikke
+   hvilken lov temaet står i, bruk `find` med et faguttrykk.
 3. Hent relevante kapitler (`get <dokid> kapN`) eller paragrafer med `get`;
    hent hele loven med `--out` bare når det virkelig trengs.
 4. Presenter relevante bestemmelser med sitat på norsk.
@@ -240,19 +294,12 @@ ferdighetskatalogen, blir disse migrert over første gang scriptet kjører.
 
 ---
 
-## Med API-nøkkel
-
-Hvis `api_key` i `state.json` er satt, får scriptet tilgang til ytterligere
-Lovdata-endepunkter (live oppslag, søk, historikk). Nøklene er foreløpig ikke
-generelt tilgjengelige. De frie datapakkene gir tilgang til gjeldende
-lovtekst for alle praktiske formål.
-
----
-
 ## Feilhåndtering
 
-- **Nettverksfeil under update**: Informer brukeren; bruk evt. eksisterende
-  lokale data hvis de finnes (sjekk status med `status`-kommandoen).
+- **Nettverksfeil under update**: Scriptet fortsetter med de lokale dataene
+  fra forrige vellykkede nedlasting og skriver en `ADVARSEL` med datoene.
+  Si da fra til brukeren at teksten ikke er sjekket mot dagens versjon.
+  Finnes ingen lokale data, avslutter det med feil.
 - **Dokument ikke funnet**: Prøv `search` med andre søkeord; husk at lokale
   forskrifter (LF) ikke er inkludert i de frie pakkene.
 - **Tom paragraf**: Paragrafen kan være opphevet — sjekk lovteksten rundt.
