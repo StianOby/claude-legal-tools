@@ -113,9 +113,6 @@ state.
   **Install**. Also install each of the dependency plugins listed above —
   Cowork does not install them automatically. Click **Update** on the
   marketplace later to get new versions.
-- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
-  `/plugin install kildesjekk@claude-legal-tools`. The dependency plugins are
-  installed automatically.
 
 **Alternative — upload the skill zip (Claude Desktop):**
 
@@ -128,12 +125,5 @@ state.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code, for development):**
-
-- macOS / Linux:
-  `ln -s /path/to/kildesjekk ~/.claude/skills/kildesjekk`
-- Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\kildesjekk" "C:\path\to\kildesjekk"`
-
-Then describe the task in Claude Code and the trigger description in `SKILL.md`
+Then describe the task in Cowork and the trigger description in `SKILL.md`
 will activate the skill automatically.

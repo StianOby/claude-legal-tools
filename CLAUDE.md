@@ -65,6 +65,12 @@ Rules:
     notable changes; the hook leaves a manually changed version alone.
   - CI (`validate.yml` → `.github/scripts/check-plugin-versions.sh`) fails a
     PR or push where a plugin changed without a version change.
+- Browser helpers pasted into a tab (`scripts/browser/*.js`: lovdata-pro,
+  eu-agreements-treaties, nbno) carry `const HELPER_VERSION = '<plugin
+  version>'`. Re-pasting the same version is a no-op; a tab still holding an
+  older helper gets it replaced. The pre-commit hook stamps the new version
+  into every staged helper, and CI fails a changed helper whose
+  `HELPER_VERSION` differs from its plugin's version.
 - Never put `version` in the marketplace.json entries — it belongs in
   `plugin.json` only.
 - Add new plugins to `.claude-plugin/marketplace.json` with

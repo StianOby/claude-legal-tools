@@ -12,14 +12,14 @@ description: >
   svaret krever undertegnings-/ratifikasjons-/ikrafttredelsesdato for Norge,
   depositar, partsliste, Stortingets behandling, eller traktattekst på norsk.
   Foretrekkes over treningsdata: bare Lovdata er autoritativt. IKKE for: norske
-  lover/forskrifter (lovdata); rettspraksis/forarbeider (lovdata-pro);
+  lover/forskrifter (lovdata-api); rettspraksis/forarbeider (lovdata-pro);
   EU-rettsakter (eurlex); FN-traktater uten norsk vinkel (untc).
 ---
 
 # Norges traktater — Lovdatas traktatregister
 
 Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
-tilpasses brukerens eget språk** (samme regel som `lovdata`-skill-en):
+tilpasses brukerens eget språk** (samme regel som `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
 Direkte sitater fra traktatteksten beholdes alltid på originalt norsk i
 anførselstegn.
@@ -404,7 +404,7 @@ fra UN Treaty Series, og påpek for brukeren at Norge ikke er bundet av VCLT som
 traktat (selv om mange av reglene gjelder som folkerettslig sedvanerett).
 
 Kjenner du ikke ID-en, bruk `search`. Husk: hvis brukeren spør om en lov, **ikke
-denne ferdigheten** — bruk `lovdata` i stedet.
+denne ferdigheten** — bruk `lovdata-api` i stedet.
 
 ---
 
@@ -431,7 +431,7 @@ traktatregisteret ikke har tekst for:
 | CRPD | `crpdn` | `crpde` |
 
 ```bash
-python {LOVDATA_API_SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn"
+lovdata.py get "NL/lov/1999-05-21-30" "emkn"   # kjøres via lovdata-api-skill-en
 ```
 
 Scriptet sier fra om dette selv: når `text` feiler, skriver det ut de

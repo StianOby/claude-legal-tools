@@ -142,7 +142,7 @@ it will ask you to type a sentence naming the action first — that is expected,
 not a bug.
 
 Fallback ladder when the built-in browser is unavailable: Claude in Chrome →
-manual DevTools cookie. Claude Code CLI has no built-in browser and lands on
+manual DevTools cookie. A client with no built-in browser lands on
 the manual route, which costs one copy-paste:
 
 1. Log in to nb.no in your own browser and open the item. Accept the digital
@@ -203,8 +203,6 @@ directories cannot be overwritten from bash.
 - *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
   marketplace**, enter `StianOby/claude-legal-tools`, find `nbno` and click
   **Install**. Click **Update** on the marketplace later to get new versions.
-- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
-  `/plugin install nbno@claude-legal-tools`.
 
 **Alternative — upload the skill zip (Claude Desktop):**
 
@@ -216,14 +214,7 @@ directories cannot be overwritten from bash.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code, for development):**
-
-- macOS / Linux:
-  `ln -s /path/to/nbno ~/.claude/skills/nbno`
-- Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\nbno" "C:\path\to\nbno"`
-
-Then in Claude Code: paste an nb.no URN or describe the task ("download this
+Then in Cowork: paste an nb.no URN or describe the task ("download this
 book from nb.no") and the trigger description in `SKILL.md` will activate the
 skill automatically.
 

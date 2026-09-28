@@ -11,7 +11,7 @@ description: |
   or PCIJ judgment or jurisdictional text, this is the right tool. Prefer over
   training-data recall — declarations change and only icj-cij.org is authoritative.
   Do NOT use for: ECtHR/Strasbourg (hudoc); CJEU/EU law (eurlex); Norwegian domestic
-  law (lovdata); Council of Europe treaties (ets); UN treaty status (untc); EFTA Court.
+  law (lovdata-api); Council of Europe treaties (ets); UN treaty status (untc); EFTA Court.
   Pleadings and verbatim records are out of scope.
 ---
 

@@ -6,8 +6,8 @@ browser (Cowork). The skill never paraphrases from training-data recall —
 every quote is fetched live from Lovdata's servers in the user's own,
 already-logged-in browser session.
 
-**This skill requires Claude Desktop with Cowork.** It does not run in
-Claude Code CLI — there is no built-in browser tool surface there.
+**This skill requires Claude Desktop with Cowork.** It does not run
+anywhere else — the built-in browser tools it depends on exist only there.
 
 ## What it can do
 
@@ -148,6 +148,6 @@ it and the skill asks the user to log in again.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills and Cowork on your plan.
 
-This skill is not installable in Claude Code CLI — describing the task there
-("what did Høyesterett hold in HR-2016-2554-P?") will not trigger it, since
-the built-in browser tools it depends on don't exist outside Claude Desktop.
+Describing the task ("what did Høyesterett hold in HR-2016-2554-P?")
+triggers the skill only in Claude Desktop with Cowork, since the built-in
+browser tools it depends on exist only there.

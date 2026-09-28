@@ -14,7 +14,7 @@ description: >
   — triggers the PDF + OCR + Zotero RDF workflow.
   Uses the Cowork built-in browser for FEIDE session capture when available;
   falls back to a manual DevTools cookie.
-  Do NOT use for: Lovdata legal texts (use the lovdata skill), generic web
+  Do NOT use for: Lovdata legal texts (use lovdata-api / lovdata-pro), generic web
   scraping, or content the user has no right to access.
 ---
 
@@ -69,11 +69,12 @@ through the tool channel is not viable for a book.
    "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
    IdP / BankID / Vipps domains may each need separate approval on first login.
 2. **Paste the helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js`
-   via `javascript_tool`. Idempotent — safe to paste again in the same tab.
-   It defines `window.__nb`.
+   via `javascript_tool`. Idempotent — safe to paste again in the same tab;
+   an older helper from before a skill update is replaced. It defines
+   `window.__nb` (`__nb.VERSION` shows which version runs).
    > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
    > `navigate` or `preview_start` destroys it. Re-paste after every
-   > navigation — the `if (!window.__nb)` guard makes that free when it is
+   > navigation — the version guard makes that free when it is
    > still there. `__nb.access()`, `status()` and `manifest()` fetch
    > cross-origin and do **not** need the tab parked anywhere in particular;
    > only `resolveUrn()` reads the current page.

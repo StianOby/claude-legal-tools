@@ -12,7 +12,7 @@ description: |
   status / documents of a specific case, this is the right tool. Prefer this over
   training-data recall — the EFTA Court regularly delivers new judgments and only
   eftacourt.int guarantees current text. Do NOT use for: CJEU case law (eurlex);
-  Norwegian Høyesterett (lovdata-pro); Norwegian statutes (lovdata); ECHR.
+  Norwegian Høyesterett (lovdata-pro); Norwegian statutes (lovdata-api); ECHR.
 ---
 
 # EFTA Court — Case Law Lookup

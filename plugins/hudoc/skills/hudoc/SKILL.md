@@ -10,7 +10,7 @@ description: |
   and Article 8", "cases cited by …", "official PDF of …", "search HUDOC for
   …", "hva sa Strasbourg-domstolen i …". Use even if HUDOC isn't named: if
   answering needs the text or metadata of an ECtHR document, this is the
-  tool. Do NOT use for: Norwegian law or case law (lovdata, lovdata-pro); EU
+  tool. Do NOT use for: Norwegian law or case law (lovdata-api, lovdata-pro); EU
   law / GDPR / CJEU (eurlex); UN treaties (untc); WTO/WIPO; news about
   Strasbourg; Rule-39 / how-to-apply procedural questions; the bare Convention
   text with no case lookup; or essays needing no specific judgment.

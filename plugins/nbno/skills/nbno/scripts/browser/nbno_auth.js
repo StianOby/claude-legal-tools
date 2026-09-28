@@ -1,6 +1,7 @@
 // nb.no in-page helper — paste into javascript_tool once per tab.
 //
-// Idempotent: re-pasting is a no-op if window.__nb already exists. All
+// Idempotent: re-pasting is a no-op if the same version of window.__nb
+// already exists (see HELPER_VERSION below). All
 // functions are async and return plain JSON-serialisable objects (that is
 // what javascript_tool hands back to the caller — no DOM nodes, no
 // functions, no page bytes).
@@ -13,7 +14,13 @@
 // Error convention: functions never throw to the caller. They return
 // {error: 'http_<n>' | 'cors' | 'bad_id' | 'not_found' | 'ambiguous', detail}.
 
-if (!window.__nb) {
+// HELPER_VERSION follows the plugin version and changes whenever this file
+// does (the pre-commit hook stamps it; CI checks it). A helper of another
+// version already in the tab — pasted before a skill update — is replaced,
+// dropping its cache; the same version is left alone.
+(() => {
+  const HELPER_VERSION = '1.0.3';
+  if (window.__nb && window.__nb.VERSION === HELPER_VERSION) return;
   window.__nb = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
     // maximum allowed tokens") rather than truncating silently. 45000 leaves
@@ -289,6 +296,7 @@ if (!window.__nb) {
     }
 
     return {
+      VERSION: HELPER_VERSION,
       status: status,
       access: access,
       loanStatus: loanStatus,
@@ -299,4 +307,4 @@ if (!window.__nb) {
       _internal: { normId: normId, urnForm: urnForm, distinctIds: distinctIds, MAX_CHARS: MAX_CHARS },
     };
   })();
-}
+})();

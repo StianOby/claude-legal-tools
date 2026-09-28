@@ -1,6 +1,7 @@
 // Lovdata Pro in-page helper — paste into javascript_tool once per tab.
 //
-// Idempotent: re-pasting is a no-op if window.__lp already exists. All
+// Idempotent: re-pasting is a no-op if the same version of window.__lp
+// already exists (see HELPER_VERSION below). All
 // functions are async and return plain JSON-serialisable objects (this is
 // what javascript_tool returns to the caller — no DOM nodes, no functions).
 //
@@ -12,7 +13,13 @@
 // Error convention: functions never throw to the caller. They return
 // {error: 'not_logged_in' | 'not_found' | 'collection_mismatch' | 'cors' | 'http_<n>', detail}.
 
-if (!window.__lp) {
+// HELPER_VERSION follows the plugin version and changes whenever this file
+// does (the pre-commit hook stamps it; CI checks it). A helper of another
+// version already in the tab — pasted before a skill update — is replaced,
+// dropping its cache; the same version is left alone.
+(() => {
+  const HELPER_VERSION = '1.0.1';
+  if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
     // maximum allowed tokens") rather than truncating silently — measured
@@ -528,6 +535,7 @@ if (!window.__lp) {
     }
 
     return {
+      VERSION: HELPER_VERSION,
       cache,
       isLoggedIn,
       load,
@@ -542,4 +550,4 @@ if (!window.__lp) {
       _internal: { toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
     };
   })();
-}
+})();

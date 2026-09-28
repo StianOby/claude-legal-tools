@@ -14,7 +14,7 @@ nothing comes from training-data recall.
 Cloudflare browser check that returns 403 to every non-browser client, so
 the skill only works through the built-in browser: a helper script is pasted
 into a tab on the database and fetches pages from inside that session. It
-does not run in Claude Code CLI, and it does not try to get around the
+needs Claude Desktop with Cowork, and it does not try to get around the
 check.
 
 ## What it can do
@@ -125,10 +125,9 @@ two codes.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills and Cowork on your plan.
 
-This skill is not installable in Claude Code CLI — describing the task there
-("has the EU ratified the aviation agreement with Norway?") will not trigger
-it, since the built-in browser tools it depends on don't exist outside
-Claude Desktop.
+Describing the task ("has the EU ratified the aviation agreement with
+Norway?") triggers the skill only in Claude Desktop with Cowork, since the
+built-in browser tools it depends on exist only there.
 
 ## Notes on scope
 

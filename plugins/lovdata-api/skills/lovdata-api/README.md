@@ -125,8 +125,6 @@ available; the free packages cover all current statute text.
 - *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
   marketplace**, enter `StianOby/claude-legal-tools`, find `lovdata-api` and click
   **Install**. Click **Update** on the marketplace later to get new versions.
-- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
-  `/plugin install lovdata-api@claude-legal-tools`.
 
 **Alternative — upload the skill zip (Claude Desktop):**
 
@@ -138,12 +136,5 @@ available; the free packages cover all current statute text.
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code, for development):**
-
-- macOS / Linux:
-  `ln -s /path/to/lovdata-api ~/.claude/skills/lovdata-api`
-- Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\lovdata-api" "C:\path\to\lovdata-api"`
-
-Then in Claude Code: describe the task ("what does aml. § 4-6 say?") and the
+Then in Cowork: describe the task ("what does aml. § 4-6 say?") and the
 trigger description in `SKILL.md` will activate the skill automatically.

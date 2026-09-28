@@ -18,6 +18,20 @@ changed_plugins=$(git diff --cached --name-only --diff-filter=ACMRD -- plugins/ 
 
 [ -z "$changed_plugins" ] && exit 0
 
+# Browser helpers pasted into a tab (scripts/browser/*.js) carry
+# `const HELPER_VERSION = '<plugin version>'`, so a tab still holding the
+# previous version replaces it on the next paste. Stamp the new version into
+# every staged helper. Note: `git add` stages the whole file.
+stamp_helpers() {  # <plugin> <version> <staged files>
+  local f
+  for f in $(printf '%s\n' "$3" | grep -E "^plugins/$1/skills/[^/]+/scripts/browser/[^/]+\.js$" || true); do
+    [ -f "$f" ] && grep -q "HELPER_VERSION = '" "$f" || continue
+    sed -i.bak -E "s/(const HELPER_VERSION = ')[^']*'/\1$2'/" "$f" && rm -f "$f.bak"
+    git add "$f"
+    echo "pre-commit: $f HELPER_VERSION → $2"
+  done
+}
+
 for plugin in $changed_plugins; do
   manifest="plugins/$plugin/.claude-plugin/plugin.json"
   [ -f "$manifest" ] || continue
@@ -25,12 +39,15 @@ for plugin in $changed_plugins; do
   head_version=$(git show "HEAD:$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
   index_version=$(git show ":$manifest" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null || echo "")
 
-  # Only the manifest itself staged, or version already bumped: leave it alone.
-  if [ -n "$head_version" ] && [ "$head_version" != "$index_version" ]; then
-    continue
-  fi
   other_files=$(git diff --cached --name-only -- "plugins/$plugin" | grep -v -x "$manifest" || true)
   [ -z "$other_files" ] && continue
+
+  # Version already bumped (by hand, or by an earlier run on an amended
+  # commit): keep it, but still stamp any staged browser helper below.
+  if [ -n "$head_version" ] && [ "$head_version" != "$index_version" ]; then
+    stamp_helpers "$plugin" "$index_version" "$other_files"
+    continue
+  fi
 
   new_version=$(python3 - "$manifest" <<'PY'
 import json, re, sys
@@ -44,4 +61,5 @@ PY
 )
   git add "$manifest"
   echo "pre-commit: $plugin → $new_version"
+  stamp_helpers "$plugin" "$new_version" "$other_files"
 done

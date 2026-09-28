@@ -3,7 +3,8 @@
 // https://www.consilium.europa.eu/en/documents/treaties-agreements/ via
 // javascript_tool once per tab.
 //
-// Idempotent: re-pasting is a no-op if window.__cs already exists. All
+// Idempotent: re-pasting is a no-op if the same version of window.__cs
+// already exists (see HELPER_VERSION below). All
 // functions are async and return plain JSON-serialisable objects. They never
 // throw to the caller — errors come back as
 // {error: 'challenge' | 'wrong_origin' | 'unknown_party' | 'bad_id' |
@@ -21,8 +22,13 @@
 // Also exported for Node (CommonJS) so the pure parsers can be unit-tested
 // against saved HTML fixtures with a DOM shim — see NOTES.md §3 and tests/run.js.
 
+// HELPER_VERSION follows the plugin version and changes whenever this file
+// does (the pre-commit hook stamps it; CI checks it). A helper of another
+// version already in the tab — pasted before a skill update — is replaced,
+// dropping its cache; the same version is left alone.
 (function (root) {
-  if (root.window && root.window.__cs) return;
+  const HELPER_VERSION = '0.1.2';
+  if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
     // javascript_tool errors hard above ~49-50K raw characters ("result
@@ -884,6 +890,7 @@
     }
 
     return {
+      VERSION: HELPER_VERSION,
       PAGE_SIZE,
       cache,
       ready,

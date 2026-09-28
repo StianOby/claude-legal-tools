@@ -107,8 +107,6 @@ After `fetch ICCPR` you'll have:
 - *Claude Cowork:* in Claude Desktop, go to **Customize → Plugins → Add
   marketplace**, enter `StianOby/claude-legal-tools`, find `untc` and click
   **Install**. Click **Update** on the marketplace later to get new versions.
-- *Claude Code:* `/plugin marketplace add StianOby/claude-legal-tools`, then
-  `/plugin install untc@claude-legal-tools`.
 
 **Alternative — upload the skill zip (Claude Desktop):**
 
@@ -120,14 +118,7 @@ After `fetch ICCPR` you'll have:
 See [Use Skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
 for full details, including how to enable Skills on your plan.
 
-**Alternative — symlink from a local clone (Claude Code, for development):**
-
-- macOS / Linux:
-  `ln -s /path/to/untc ~/.claude/skills/untc`
-- Windows:
-  `mklink /D "%USERPROFILE%\.claude\skills\untc" "C:\path\to\untc"`
-
-Then in Claude Code or Cowork: describe the task ("get me the ICCPR text")
+Then in Cowork: describe the task ("get me the ICCPR text")
 and the description in `SKILL.md` will trigger it.
 
 ## URL schemes (reference)

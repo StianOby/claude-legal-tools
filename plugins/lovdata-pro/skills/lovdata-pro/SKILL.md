@@ -9,9 +9,9 @@ description: >
   TOSLO-/TOSL-YYYY-N (tingrett), Ot.prp. nr. N (YYYY-YY), Prop. N L (YYYY-YY), NOU
   YYYY:N, Innst. N L (YYYY-YY), Meld. St. N (YYYY-YY); also natural-language
   asks like "find the Holship judgment", "hva sa Høyesterett i Finanger I",
-  "hent forarbeidene til mineralloven". Use this skill even when the user
-  doesn't name Lovdata: if the answer requires the text of a Norwegian court
-  decision or preparatory work, this is the right tool. Do NOT use for:
+  "hent forarbeidene til mineralloven". Use it even when Lovdata isn't named,
+  if the answer needs the text of a Norwegian court decision or preparatory
+  work. Do NOT use for:
   looking up gjeldende lov/forskrift text (that's the free `lovdata-api` skill);
   finding a lawyer; general questions about Norwegian legal theory that
   don't need the actual document text.
@@ -64,7 +64,9 @@ Claude Desktop med Cowork aktivert.
    igjen.
 3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/lovdata_pro.js` via
    `javascript_tool` (`action: "javascript_exec"`). Idempotent — trygt å lime
-   inn flere ganger i samme fane.
+   inn flere ganger i samme fane. En eldre versjon av hjelperen fra før en
+   skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION` viser hvilken
+   som kjører.
 4. Kjør `await __lp.isLoggedIn()`. På `#myPage` avgjøres svaret av
    `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
    lite prøveoppslag mot Pro (`source: "probe"`).

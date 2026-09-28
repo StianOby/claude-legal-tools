@@ -5,14 +5,14 @@ description: >
   concluded by the EU, EC, EEC, Euratom or EU member states — signature,
   ratification/notification per party, entry into force, provisional
   application, declarations/reservations, or the OJ reference — from the
-  Council of the EU Treaties Office database
-  (consilium.europa.eu/en/documents/treaties-agreements). Triggers: "has the
+  Council of the EU Treaties Office database (consilium.europa.eu).
+  Triggers: "has the
   EU ratified", "which member states have notified", "when did X enter into
   force for the EU", "Council treaty database", "agreements between the EU and
   Norway/Iceland/Switzerland/UK", status of EEA, Schengen, Dublin or aviation
   agreements, 7-digit Consilium IDs (e.g. 2016032), party codes UE/CE/CEE.
-  Requires the Claude Desktop built-in browser (Cowork); the site blocks all
-  other clients. NOT for: treaty text (eurlex, via the OJ reference); Norwegian
+  Requires the Cowork built-in browser (the site blocks other clients).
+  NOT for: treaty text (eurlex, via the OJ reference); Norwegian
   entry into force or Stortinget consent (norges-traktater); UN-deposited
   treaties (untc); Council of Europe conventions (ets); EU legislation or
   CJEU case law (eurlex).
@@ -68,7 +68,9 @@ parsing in-page.
    "https://www.consilium.europa.eu/", scope: "site"}` and retry. If the user
    declines, stop.
 3. Paste the whole of `{SKILL_DIR}/scripts/browser/consilium.js` via
-   `javascript_tool` (`action: "javascript_exec"`). Idempotent.
+   `javascript_tool` (`action: "javascript_exec"`). Idempotent; an older
+   helper left in the tab from before a skill update is replaced
+   (`__cs.VERSION` shows which one runs).
 4. `await __cs.ready()` →
    - `{ok: true, parties: 256, …}` → go on.
    - `{error: "challenge"}` → the tab is still on the Cloudflare page. Wait a

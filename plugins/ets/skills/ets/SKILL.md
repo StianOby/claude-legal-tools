@@ -1,8 +1,8 @@
 ---
 name: ets
 description: |
-  Retrieve Council of Europe (CoE) treaty documents from the Treaty
-  Office — ETS (nos. 1–193) and CETS (nos. 194+). Fetches: (a)
+  Retrieve Council of Europe (CoE) treaty documents — ETS (nos.
+  1–193) and CETS (nos. 194+). Fetches: (a)
   treaty text PDF; (b) Explanatory Report; (c) signatures/
   ratifications per state; (d) declarations and reservations per
   state. Trigger on: CoE convention name or acronym (ECHR, CPT,
@@ -10,12 +10,12 @@ description: |
   Convention, Oviedo Convention, Bern Convention, Anti-Doping,
   Macolin, Convention 108, Faro Convention, Warsaw Convention, GRECO
   statute, European Social Charter); CETS/ETS number ("ETS No. 5",
-  "CETS 210", "treaty 185"); verbs like fetch/pull the text, what
+  "CETS 210", "treaty 185"); asks like fetch the text, what
   reservations did [state] make to, list parties to, when did
   [treaty] enter into force, get the explanatory report. Do NOT
   trigger for: ECtHR judgments or Strasbourg case law; EU law/GDPR/
   directives (use eurlex); UN-deposited treaties (ICCPR, CEDAW, Rome
-  Statute, UNCLOS — use untc); Norwegian law (lovdata); WIPO/WTO; UN
+  Statute, UNCLOS — use untc); Norwegian law (lovdata-api); WIPO/WTO; UN
   GA/SC resolutions; drafting contractual clauses.
 ---
 

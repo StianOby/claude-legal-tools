@@ -17,5 +17,16 @@ for plugin_dir in plugins/*/; do
   else
     echo "$plugin: $old → $new"
   fi
+  # A changed browser helper must carry the new version, or a tab holding the
+  # old helper keeps it after the next paste (see .githooks/pre-commit).
+  for js in $(printf '%s\n' "$changed" | grep -E '/scripts/browser/[^/]+\.js$' || true); do
+    [ -f "$js" ] || continue
+    hv=$(sed -n -E "s/.*const HELPER_VERSION = '([^']*)'.*/\1/p" "$js" | head -n1)
+    [ -z "$hv" ] && continue
+    if [ "$hv" != "$new" ]; then
+      echo "::error file=$js::HELPER_VERSION is '$hv' but $plugin is $new — set it to $new (the pre-commit hook does this)"
+      fail=1
+    fi
+  done
 done
 exit $fail
