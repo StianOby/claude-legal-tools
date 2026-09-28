@@ -120,5 +120,6 @@ python3 scripts/traktater.py status
   menneskerettsloven (`NL/lov/1999-05-21-30`). Fetch them with the
   `lovdata-api` skill, e.g.
   `lovdata.py get "NL/lov/1999-05-21-30" "emkn"` (`emke` for English; `spn`,
-  `oskn`, `bkn`, `kdkn`, `crpdn` for the others). Lovdata Pro is the last
+  `oskn`, `bkn`, `kdkn`, `crpdn` for the others). The protocols are separate
+  sections (`emkn/p1` …) and a single article is `emkn/a8`. Lovdata Pro is the last
   resort, not the first.

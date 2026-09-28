@@ -423,7 +423,7 @@ traktatregisteret ikke har tekst for:
 
 | Konvensjon | Norsk tekst | Engelsk tekst |
 |------------|-------------|---------------|
-| EMK med protokoller | `emkn` | `emke` |
+| EMK | `emkn` | `emke` |
 | SP (sivile og politiske rettigheter) | `spn` | `spe` |
 | ØSK (økonomiske, sosiale og kulturelle) | `oskn` | `oske` |
 | Barnekonvensjonen (CRC) | `bkn` | `bke` |
@@ -431,8 +431,12 @@ traktatregisteret ikke har tekst for:
 | CRPD | `crpdn` | `crpde` |
 
 ```bash
-lovdata.py get "NL/lov/1999-05-21-30" "emkn"   # kjøres via lovdata-api-skill-en
+lovdata.py get "NL/lov/1999-05-21-30" "emkn/a8"      # kjøres via lovdata-api-skill-en
 ```
+
+Seksjonen inneholder bare selve konvensjonen: protokollene er egne seksjoner
+(`emkn/p1`, `emkn/p4` …), og én artikkel hentes som `emkn/a8` eller
+`emkn/p1/a1`.
 
 Scriptet sier fra om dette selv: når `text` feiler, skriver det ut de
 lovdata.no-lenkene Lovdata oppgir i metadataene (for EMK peker feltet
