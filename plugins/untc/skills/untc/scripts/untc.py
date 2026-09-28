@@ -676,12 +676,39 @@ def _check_status_lang(lang):
         )
 
 
+# The UN regenerates MTDSG status PDFs as depositary actions come in, so a
+# cached one is re-downloaded once it is older than this.
+STATUS_MAX_AGE_DAYS = 7
+
+
+def pdf_document_date(pdf: Path) -> Optional[str]:
+    """The date the PDF says it was generated (/ModDate, else
+    /CreationDate) as YYYY-MM-DD, read from the raw file so no PDF library
+    is needed. MTDSG status PDFs carry no "status as at" line; this is
+    the date their participant list reflects."""
+    try:
+        raw = pdf.read_bytes()
+    except OSError:
+        return None
+    for key in (rb"/ModDate", rb"/CreationDate"):
+        m = re.search(key + rb"\s*\(D:(\d{4})(\d{2})(\d{2})", raw)
+        if m:
+            return "-".join(g.decode() for g in m.groups())
+    return None
+
+
 def fetch_status(ref, *, lang="en", force=False):
     _check_status_lang(lang)
     out_dir = treaty_dir(ref)
     out_dir.mkdir(parents=True, exist_ok=True)
     pdf = out_dir / ("status.%s.pdf" % lang)
     url = url_mtdsg_status(ref, lang)
+    if not force and _has_content(pdf):
+        age_days = (time.time() - pdf.stat().st_mtime) / 86400
+        if age_days > STATUS_MAX_AGE_DAYS:
+            print("cached status document is %d days old - downloading the current one"
+                  % age_days, file=sys.stderr)
+            force = True
     try:
         download_pdf(url, pdf, force=force)
     except DocumentNotFound:
@@ -699,7 +726,10 @@ def fetch_status(ref, *, lang="en", force=False):
     meta["status_txt"] = str(txt)
     meta["source_url"] = url
     meta["details_url"] = url_view_details(ref)
-    meta["fetched_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    # When the cached PDF was downloaded (not when this command ran), and
+    # the date the UN generated it: the date to give for "status as at".
+    meta["fetched_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(pdf.stat().st_mtime))
+    meta["status_date"] = pdf_document_date(pdf)
     _write_json(out_dir / ("meta.%s.json" % lang), meta)
     if lang == "en":
         _write_json(out_dir / "meta.json", meta)

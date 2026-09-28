@@ -89,7 +89,11 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
 - `status <ref> [--lang en|fr]` — download + parse the MTDSG status doc.
   Writes `meta.json` with title, place/date, entry into force,
   registration date + number, UNTS volume + page, signatories, parties,
-  and the treaty's `details_url` on treaties.un.org.
+  and the treaty's `details_url` on treaties.un.org. Two dates tell you
+  how current it is: `status_date` is when the UN generated the status
+  document (the date its participant list reflects), `fetched_utc` when
+  this copy was downloaded. A cached status document older than 7 days
+  is downloaded again; `--force` does it now.
 - `text [<ref>] [--vol N --reg M | --vol N --page P] [--lang en|fr|other]`
   — download the UNTS treaty text. With a ref, the volume/registration
   are read from the cached status doc (fetched first if needed). With
@@ -194,7 +198,12 @@ is known. The index is only used for name-based `lookup` / `fetch`.
 Always cite the source URL UNTC uses. `status` and `text` both write
 their `source_url` into the JSON output. Format:
 
-> *MTDSG status as of [today], UN Treaty Collection, [source_url]*
+> *MTDSG status as of [status_date], UN Treaty Collection, [source_url]*
+
+Use `status_date` from the JSON, not today's date: the participant list
+is only as current as the document the UN last generated. If the
+question turns on a very recent ratification, run `status <ref> --force`
+and check the treaty's `details_url` page as well.
 >
 > *UNTS [volume] p. [page], registration No. [reg], [source_url]*
 
