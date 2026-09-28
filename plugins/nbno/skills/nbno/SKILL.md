@@ -319,7 +319,15 @@ listed in this file:
   502px image which makes OCR unusable);
 - verifies the returned image dimensions with PIL and, on mismatch, falls
   back to native-resolution `regionByPx` 1024×1024 tiles stitched together;
-- skips the `_C2` back cover automatically.
+- skips the `_C2` back cover automatically;
+- retries timeouts, dropped connections, 429 and 5xx on every request, and
+  gives failed pages a second, slower pass;
+- never drops a page: one that cannot be downloaded becomes a placeholder
+  page saying so, **in its own place**, so every later page keeps its page
+  number. It returns `{"pages": N, "missing": [PDF page numbers]}`, and
+  `zotero_book.py` exits with status 3 and a warning when `missing` is not
+  empty. Tell the user which pages are placeholders and re-run to fill
+  them; never quote or cite from a placeholder page.
 
 **Auth arguments are all optional.** `api.nb.no` authenticates by cookie, so
 there is no bearer token to capture — `bearer=None` is the normal case and
@@ -333,7 +341,7 @@ from zotero_book import download_via_iiif
 from pathlib import Path
 
 # Public domain, or Bokhylla from a Norwegian IP — no credentials at all.
-download_via_iiif(
+result = download_via_iiif(
     canonical_id="digibok_2008051600041",
     out_pdf=Path("/tmp/nbno_direct/book.pdf"),
     resize_width=1024,    # listed sizes will be checked; actual cap may be lower
@@ -550,11 +558,16 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   not permit redistribution. The user is responsible for using downloaded
   content in line with that agreement. Don't help redistribute clearly
   in-copyright material.
-- **Rate limiting.** nbno is multi-threaded by default. If a download
-  fails with HTTP errors, retry with fewer workers or a smaller page
-  range (`--start`/`--stop`).
-- **Size.** A full novel scanned at 100% can be 200–500 MB. Suggest
-  `--resize 60` if the user just wants something readable.
+- **Rate limiting.** Downloads are multi-threaded. `zotero_book.py`
+  retries 429/5xx and timeouts itself and re-tries failed pages more
+  slowly; if pages are still missing (placeholders, exit status 3), re-run
+  with fewer `--workers`. For the `nbno_run.sh` wrapper, retry with a
+  smaller page range (`--start`/`--stop`).
+- **Size.** A full novel at full resolution can be 200–500 MB. Use
+  `--shrink` (in `zotero_book.py`) for a smaller file. `--resize 60` only
+  helps where pages are fetched in one piece — the `nbno_run.sh` wrapper
+  and public-domain items — not for tiled pages (`--tiles always`, the
+  normal route for in-copyright items), where it is ignored.
 - **Content search API does not work for pliktmonografi items.** The nb.no
   content search API (`https://api.nb.no/catalog/v1/contentsearch/{item_id}/search?q=...`)
   returns empty results for `pliktmonografi` items even when the user is
@@ -610,8 +623,10 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   default is not a ceiling — re-run passing an explicit timeout (up to
   600 s) before narrowing the `--start`/`--stop` range. Backgrounding with
   `nohup … &` does **not** work: the process dies when the call returns.
-- *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque; ask for
-  the Referere/Sitere string (URN) instead. Don't guess.
+- *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque. Resolve
+  it with `__nb.resolveUrn()` as in Step 1; only when the browser tools
+  are unavailable, or it answers `ambiguous`, ask for the Referere/Sitere
+  string (URN). Don't guess an ID from the hash.
 - *User mentions `pliktavlevering` content.* ID prefix will be
   `pliktmonografi_...` or `pliktperiodika_...`. **Check `accessInfo` first**
   rather than guessing — some pliktmonografi items are open, some are FEIDE-

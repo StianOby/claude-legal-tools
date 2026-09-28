@@ -29,16 +29,17 @@ nbno/
 ├── zotero-ready.md            # full Zotero-ready (PDF + OCR + RDF) workflow
 ├── iiif-download.md           # inline IIIF recipe + the resolver's gotchas
 ├── README.md                  # you are here
-└── scripts/
-    ├── nbno_run.sh            # download wrapper
-    ├── nb_search.py           # find an item id from author/title/year (open catalogue)
-    ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
-    ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
-    ├── build_zotero_rdf.py    # Zotero RDF generation
-    ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
-    ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
-    └── browser/
-        └── nbno_auth.js       # in-page helper for the built-in browser
+├── scripts/
+│   ├── nbno_run.sh            # download wrapper
+│   ├── nb_search.py           # find an item id from author/title/year (open catalogue)
+│   ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
+│   ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
+│   ├── build_zotero_rdf.py    # Zotero RDF generation
+│   ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
+│   ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
+│   └── browser/
+│       └── nbno_auth.js       # in-page helper for the built-in browser
+└── tests/test_download.py     # offline tests (needs Pillow)
 ```
 
 SKILL.md is kept deliberately lean — it routes to `auth.md`,

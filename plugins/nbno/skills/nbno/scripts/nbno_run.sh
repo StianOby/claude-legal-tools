@@ -93,8 +93,17 @@ fi
 # its `authorization=` line is empty — which would make the CLI send a literal
 # empty Authorization header on every request. Strip it instead.
 SANITISED_COOKIE=""
-cleanup_cookie() { [[ -n "$SANITISED_COOKIE" ]] && rm -f "$SANITISED_COOKIE"; }
-trap cleanup_cookie EXIT
+WORKDIR=""
+# On any exit, success or failure: remove the sanitised cookie copy and the
+# scratch work folder (which holds the partial page images of a failed run).
+cleanup() {
+  [[ -n "$SANITISED_COOKIE" ]] && rm -f "$SANITISED_COOKIE"
+  if [[ -n "$WORKDIR" && -d "$WORKDIR" ]]; then
+    cd / && rm -rf "$WORKDIR"
+  fi
+  return 0
+}
+trap cleanup EXIT
 
 if [[ -n "$COOKIE" ]]; then
   if [[ ! -r "$COOKIE" ]]; then

@@ -51,6 +51,7 @@ Each subprocess call has its own timeout.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import re
@@ -60,6 +61,7 @@ import sys
 import threading
 import time
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -464,6 +466,37 @@ def _fetch_manifest(canonical_id: str, hdr_api: Dict[str, str],
     )
 
 
+# HTTP statuses worth retrying: rate limiting and transient server errors.
+_RETRY_STATUS = {429, 500, 502, 503, 504}
+_RETRY_DELAYS = (2.0, 5.0, 12.0)
+
+
+def _read_url(url: str, headers: Dict[str, str], timeout: float) -> bytes:
+    """GET `url` and return the body, retrying transient failures (timeouts,
+    dropped connections, 429 and 5xx) with backoff. 403/404 and other
+    client errors are raised at once — they mean "not allowed" or "not
+    there", which a retry will not change."""
+    for attempt in range(len(_RETRY_DELAYS) + 1):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            if e.code not in _RETRY_STATUS or attempt == len(_RETRY_DELAYS):
+                raise
+            delay = _RETRY_DELAYS[attempt]
+            retry_after = e.headers.get("Retry-After") if e.headers else None
+            if retry_after and retry_after.isdigit():
+                delay = min(float(retry_after), 60.0)
+        except (OSError, http.client.HTTPException):
+            # URLError, timeouts, dropped connections, truncated bodies.
+            if attempt == len(_RETRY_DELAYS):
+                raise
+            delay = _RETRY_DELAYS[attempt]
+        time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
 def _fetch_iiif_info(base_url: str, hdr_img: Dict[str, str],
                      timeout: float = 15.0) -> dict:
     """GET <base_url>/info.json — the IIIF Image API descriptor.
@@ -472,10 +505,7 @@ def _fetch_iiif_info(base_url: str, hdr_img: Dict[str, str],
     {width, height} entries that the resolver will actually serve without
     silently downsampling).
     """
-    url = f"{base_url}/info.json"
-    req = urllib.request.Request(url, headers=hdr_img)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    return json.loads(_read_url(f"{base_url}/info.json", hdr_img, timeout).decode("utf-8"))
 
 
 def _pick_iiif_width(info: dict, target_width: int) -> int:
@@ -517,9 +547,7 @@ def _fetch_page_singleshot(
     import io
     url = f"{base_url}/full/{width},/0/default.jpg"
     try:
-        req = urllib.request.Request(url, headers=hdr_img)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = resp.read()
+        data = _read_url(url, hdr_img, timeout)
     except urllib.error.HTTPError as e:
         if e.code in (403, 404):
             return None, None
@@ -559,9 +587,7 @@ def _fetch_page_tiled(
             th = min(tile_size, full_h - y)
             url = f"{base_url}/{x},{y},{tw},{th}/full/0/default.jpg"
             try:
-                req = urllib.request.Request(url, headers=hdr_img)
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    tiles.append((x, y, resp.read()))
+                tiles.append((x, y, _read_url(url, hdr_img, timeout)))
             except urllib.error.HTTPError as e:
                 if e.code in (403, 404):
                     return None
@@ -667,7 +693,7 @@ def download_via_iiif(
     resize_width: int = 1024,
     workers: int = 12,
     tiles: str = "auto",
-) -> None:
+) -> dict:
     """Fast in-process downloader.
 
     Pulls the IIIF manifest, downloads each canvas at the largest listed
@@ -686,12 +712,29 @@ def download_via_iiif(
     tiles ∈ {"auto", "always", "never"}:
       - auto:   single-shot first, tile only on 403 or dimension mismatch
       - always: skip single-shot entirely; tile every page
-      - never:  single-shot only; pages that fail are dropped
-    """
-    from concurrent.futures import ThreadPoolExecutor
+      - never:  single-shot only
 
+    Every request retries transient failures (timeouts, 429, 5xx), and pages
+    that still fail get a second, slower pass. A page that cannot be had at
+    all is NOT dropped: it becomes a placeholder page saying so, so every
+    later page keeps its page number in the PDF (kildesjekk and citations
+    depend on that). Returns {"pages", "missing"} — `missing` lists the
+    1-based PDF page numbers that are placeholders; the caller must tell
+    the user about them.
+    """
     import tempfile
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
+    try:
+        return _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
+                                  resize_width, workers, tiles, tmpdir)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
+                       workers, tiles, tmpdir: Path) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+
     referer = f"https://www.nb.no/items/{urn_form(canonical_id)}"
     hdr_api: Dict[str, str] = {}
     if bearer:
@@ -803,20 +846,42 @@ def download_via_iiif(
         path.write_bytes(data)
         return idx, str(path), mode
 
+    def fetch_page_safe(idx_entry):
+        # One page's network error (after _read_url's retries) must not
+        # abort the other pages of the book.
+        try:
+            return fetch_page(idx_entry)
+        except Exception as e:  # noqa: BLE001
+            return idx_entry[0], None, f"error_failed ({type(e).__name__}: {e})"
+
     t0 = time.time()
     results: Dict[int, Optional[str]] = {}
-    modes: List[str] = []
+    modes: Dict[int, str] = {}
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for idx, path, mode in pool.map(
-            fetch_page, list(enumerate(entries, start=1))
+            fetch_page_safe, list(enumerate(entries, start=1))
         ):
             results[idx] = path
-            modes.append(mode)
+            modes[idx] = mode
+
+    # Second pass for failed pages, two at a time after a pause: a burst of
+    # 429s or a flaky tile server usually lets them through on a retry.
+    retry = [i for i, m in modes.items() if m.endswith("_failed") or "_failed " in m]
+    if retry:
+        print(f"[iiif] {len(retry)} page(s) failed; retrying them more slowly ...")
+        time.sleep(5)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            for idx, path, mode in pool.map(
+                fetch_page_safe, [(i, entries[i - 1]) for i in retry]
+            ):
+                results[idx] = path
+                modes[idx] = mode
+
     elapsed = time.time() - t0
     ok = sum(1 for v in results.values() if v)
-    tile_count = sum(1 for m in modes if m.startswith("tiled"))
-    downsample_count = sum(1 for m in modes if "downsampled" in m or "downsample" in m)
-    failed = [m for m in modes if m.endswith("_failed")]
+    tile_count = sum(1 for m in modes.values() if m.startswith("tiled"))
+    downsample_count = sum(1 for m in modes.values() if "downsample" in m)
+    failed = sorted(i for i, m in modes.items() if "_failed" in m)
     print(f"[iiif] {ok}/{len(entries)} pages in {elapsed:.1f}s "
           f"(tiled: {tile_count}, single-shot downsamples observed: "
           f"{downsample_count}"
@@ -834,16 +899,48 @@ def download_via_iiif(
             "--nbsso set?"
         )
 
-    _assemble_pages_to_pdf(page_paths, out_pdf)
-    for p in page_paths:
-        try:
-            os.unlink(p)
-        except OSError:
-            pass
+    # A failed page becomes a placeholder in its own place, so the pages
+    # after it keep their numbers. PDF page numbers count only the pages
+    # that go into the PDF (the _C2 canvases are skipped).
+    ordered: List[str] = []
+    missing: List[int] = []
+    for idx in sorted(results):
+        if modes[idx] == "skipped_c2":
+            continue
+        if results[idx]:
+            ordered.append(results[idx])
+        else:
+            ordered.append(_placeholder_page(tmpdir, idx, entries[idx - 1]["canvas"],
+                                             page_paths[0], modes[idx]))
+            missing.append(len(ordered))
+    _assemble_pages_to_pdf(ordered, out_pdf)
+    if missing:
+        print(f"[iiif] WARNING: {len(missing)} page(s) could not be downloaded and are "
+              f"placeholder pages in the PDF: {missing}. The other pages keep their "
+              "page numbers. Run the download again to fill them in, and tell the "
+              "user which pages are missing.")
+        for idx in failed:
+            print(f"[iiif]   canvas {entries[idx - 1]['canvas']}: {modes[idx]}")
+    return {"pages": len(ordered), "missing": missing}
+
+
+def _placeholder_page(tmpdir: Path, idx: int, canvas: str, like: str, why: str) -> str:
+    """A white page the size of `like`, saying which page is missing."""
+    from PIL import Image, ImageDraw, ImageFont
+    with Image.open(like) as ref:
+        size = ref.size
+    img = Image.new("RGB", size, "white")
+    draw = ImageDraw.Draw(img)
     try:
-        tmpdir.rmdir()
-    except OSError:
-        pass
+        font = ImageFont.load_default(size=max(24, size[0] // 30))
+    except TypeError:  # Pillow < 10.1 has no sized default font
+        font = ImageFont.load_default()
+    text = (f"PAGE NOT DOWNLOADED\n\nmanifest canvas {idx} ({canvas})\n"
+            f"{why[:120]}\n\nRun the download again to fill it in.")
+    draw.multiline_text((size[0] // 12, size[1] // 3), text, fill="black", font=font, spacing=12)
+    path = tmpdir / f"page_{idx:04d}.missing.jpg"
+    img.save(path, "JPEG", quality=80)
+    return str(path)
 
 
 def download_via_wrapper(
@@ -1218,6 +1315,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         use_iiif = not args.cookie or bool(args.nbsso or args.bearer)
     else:
         use_iiif = args.downloader == "iiif"
+    missing_pages: dict = {"missing": []}
     if use_iiif:
         creds = "+".join(k for k, v in (("nbsso", args.nbsso),
                                         ("bearer", args.bearer)) if v)
@@ -1226,7 +1324,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.cookie:
             print("[dl] note: --cookie is only read by the nbno_run.sh wrapper; "
                   "pass --nbsso for the IIIF path, or --downloader wrapper")
-        download_via_iiif(
+        missing_pages = download_via_iiif(
             canonical_id=canonical,
             out_pdf=pdf_path,
             bearer=args.bearer,
@@ -1335,6 +1433,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("Also present:")
         for line in extras:
             print(line)
+    if missing_pages["missing"]:
+        print()
+        print(f"WARNING: PDF pages {missing_pages['missing']} are placeholders — those "
+              "pages could not be downloaded. Re-run the same command to fill them in; "
+              "until then, tell the user they are missing.")
+        return 3
     return 0
 
 
