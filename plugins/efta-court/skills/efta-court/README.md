@@ -21,8 +21,9 @@ efta-court/
 ├── README.md
 ├── scripts/
 │   └── efta_court.py       # single self-contained CLI; stdlib only
-└── evals/
-    └── evals.json          # task-eval prompts
+├── evals/
+│   └── evals.json          # task-eval prompts
+└── tests/                  # offline tests: python tests/test_efta_court.py
 ```
 
 The cache (index, case pages, PDFs) is *not* inside the skill folder; it is

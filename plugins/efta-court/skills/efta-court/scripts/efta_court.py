@@ -28,6 +28,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -40,6 +41,12 @@ REST = f"{BASE}/wp-json/wp/v2/cases"
 USER_AGENT = "Mozilla/5.0 (efta-court-skill; +https://eftacourt.int/cases/)"
 PROCEDURE_CODES = ("AO", "INF", "DA")
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
+# The case index is refreshed from the REST API when it is older than this,
+# so newly lodged cases turn up without an explicit `update`.
+INDEX_TTL = 24 * 3600
+# A cached case page that does not say "Decided" is re-fetched when older
+# than this: pending cases gain documents, and eventually a judgment.
+PENDING_TTL = 24 * 3600
 
 # ---------------------------------------------------------------------------
 # Cache directory resolution
@@ -189,6 +196,30 @@ def load_index() -> dict | None:
         return None
 
 
+def _index_age(idx: dict) -> float:
+    try:
+        fetched = datetime.fromisoformat(idx["fetched_at"].replace("Z", "+00:00"))
+    except (KeyError, ValueError):
+        return float("inf")
+    return (datetime.now(timezone.utc) - fetched).total_seconds()
+
+
+def get_index(verbose: bool = True) -> dict:
+    """The case index, refreshed from the REST API when missing or older
+    than INDEX_TTL. A failed refresh falls back to the old index."""
+    idx = load_index()
+    if idx is not None and _index_age(idx) < INDEX_TTL:
+        return idx
+    try:
+        return update_index(verbose=verbose)
+    except (urllib.error.URLError, TimeoutError) as e:
+        if idx is None:
+            raise
+        print(f"[update] refresh failed ({e}); using the index from {idx.get('fetched_at')}",
+              file=sys.stderr)
+        return idx
+
+
 def save_index(idx: dict) -> None:
     idx["verified_count"] = sum(1 for e in idx["cases"] if e.get("status"))
     _write(index_path(), json.dumps(idx, indent=2, ensure_ascii=False))
@@ -288,11 +319,14 @@ def verify_recent_status(years: int = 3, *, verbose: bool = True) -> dict:
     because the /cases/pending/ listing page is JS-paginated and incomplete.
     Cases older than the window are assumed decided.
     """
-    idx = load_index() or update_index(verbose=verbose)
+    idx = get_index(verbose=verbose)
     cutoff = datetime.now(timezone.utc).year - years
+    # Pending cases are re-checked too: fetch_case() re-reads a pending
+    # page once it is older than PENDING_TTL, so a case decided since the
+    # last run stops showing up as pending.
     candidates = [
         e for e in idx["cases"]
-        if not e.get("status") and e["case_number"] and _case_year(e) >= cutoff
+        if e.get("status") != "Decided" and e["case_number"] and _case_year(e) >= cutoff
     ]
     # Anything older than the window: mark Decided without fetching. Failed or
     # unreadable pages stay unverified (status None) so a later run retries.
@@ -303,7 +337,9 @@ def verify_recent_status(years: int = 3, *, verbose: bool = True) -> dict:
         save_index(idx)
         return idx
     if verbose:
-        print(f"[verify] checking status of {len(candidates)} recent cases …", file=sys.stderr)
+        print(f"[verify] checking status of {len(candidates)} recent cases "
+              "(pending and unverified; cached pages under a day old are not re-fetched) …",
+              file=sys.stderr)
     for i, entry in enumerate(candidates, 1):
         try:
             meta = fetch_case(entry["case_number"], idx=idx, persist=False)
@@ -428,13 +464,22 @@ def _resolve_entry(case_canonical: str, idx: dict) -> dict:
 def fetch_case(case: str, force: bool = False, *, idx: dict | None = None, persist: bool = True) -> dict:
     canonical = normalise(case)
     if idx is None:
-        idx = load_index() or update_index()
-    entry = _resolve_entry(canonical, idx)
+        idx = get_index()
+    try:
+        entry = _resolve_entry(canonical, idx)
+    except SystemExit:
+        if _index_age(idx) < 60:
+            raise
+        idx = update_index()  # a case lodged since the index was fetched
+        entry = _resolve_entry(canonical, idx)
     cdir = cache_dir() / "cases" / case_key(canonical)
     raw_p = cdir / "raw.html"
     if force or not _has_content(raw_p):
         _write(raw_p, fetch_text(entry["url"]))
     meta = parse_case_html(_read(raw_p), canonical=canonical, entry=entry)
+    if not force and meta["status"] != "Decided" and time.time() - raw_p.stat().st_mtime > PENDING_TTL:
+        _write(raw_p, fetch_text(entry["url"]))
+        meta = parse_case_html(_read(raw_p), canonical=canonical, entry=entry)
     _write(cdir / "meta.json", json.dumps(meta, indent=2, ensure_ascii=False))
     _write(cdir / "summary.txt", _summary(meta))
     # Feed status / parties / country / procedure back into the index so
@@ -557,26 +602,47 @@ def parse_case_html(raw: str, canonical: str, entry: dict) -> dict:
 
 # Document labels look like:
 #   "14/15 Judgment 19/04/2016 EN"
-#   "8/26 Notification 06/05/2026 EN"
 #   "8/26 Request AO 06/05/2026 NO"
+#   "1/24 Report for the Hearing EN"      (no date — common since ~2020)
+#   "5/22 - Judgment DE"                  (stray dash)
+#   "2/11 RH Rev 08/04/2013 EN"           (older cases abbreviate the report)
+#   "6/25 Information Note 04/08/2025"    (no language)
+# The language is matched against known codes so that "Request AO" is not
+# read as a request in language "AO".
 _DOC_LABEL_RE = re.compile(
-    r'^(?P<num>\d+/\d+)\s+'
-    r'(?P<type>.+?)\s+'
-    r'(?P<date>\d{1,2}/\d{1,2}/\d{2,4})\s+'
-    r'(?P<lang>[A-Z]{2,3})$'
+    r'^(?P<num>\d+/\d+)\s*[-–]?\s*'
+    r'(?P<type>.+?)'
+    r'(?:\s+(?P<date>\d{1,2}/\d{1,2}/\d{2,4}))?'
+    r'(?:\s+(?P<lang>EN|NO|NN|IS|DE|FR|FI|SV|DA|NL|IT|ES|PT|PL))?$'
 )
 _DOC_TYPE_NORMAL = {
     "judgment": "judgment",
     "advisory opinion": "advisory-opinion",
     "order": "order",
+    "order of the president": "order",
     "costs order": "costs-order",
     "request ao": "request",
     "request": "request",
     "notification": "notification",
     "summary of the request": "summary",
     "report for the hearing": "report",
+    "rh": "report",
+    "rh rev": "report",
     "opinion of the advocate general": "opinion-aag",
     "opinion": "opinion",
+    "press release": "press-release",
+    "information note": "information-note",
+}
+# Extra spellings accepted by `get --type` (after hyphens → spaces).
+_TYPE_ALIASES = {
+    "hearing report": "report",
+    "report for the hearing": "report",
+    "rh": "report",
+    "aag": "opinion-aag",
+    "advocate general": "opinion-aag",
+    "ao": "advisory-opinion",
+    "request ao": "request",
+    "press": "press-release",
 }
 
 
@@ -584,11 +650,12 @@ def _parse_doc_label(label: str) -> dict:
     m = _DOC_LABEL_RE.match(label)
     if not m:
         return {"type": "", "date": "", "lang": ""}
-    raw_type = m.group("type").strip().lower()
+    raw_type = re.sub(r"\s+", " ", m.group("type").strip().lower())
+    doc_type = _DOC_TYPE_NORMAL.get(raw_type) or re.sub(r"[^a-z0-9]+", "-", raw_type).strip("-")
     return {
-        "type": _DOC_TYPE_NORMAL.get(raw_type, raw_type),
-        "date": m.group("date"),
-        "lang": m.group("lang").upper(),
+        "type": doc_type,
+        "date": m.group("date") or "",
+        "lang": m.group("lang") or "",
     }
 
 
@@ -623,19 +690,43 @@ def _summary(meta: dict) -> str:
 # ---------------------------------------------------------------------------
 # Get a specific document
 
-def get_document(case: str, doc_type: str | None, lang: str) -> tuple[Path, Path | None]:
+def format_documents(docs: list[dict]) -> str:
+    """Numbered document list, as `get` prints it; the number is what --doc takes."""
+    lines = []
+    for i, d in enumerate(docs, 1):
+        lines.append(f"  {i:2}. {d.get('type') or '?':17} {d.get('lang') or '??':3} "
+                     f"{d.get('date') or '':10}  {d.get('label', '')}")
+    return "\n".join(lines)
+
+
+def get_document(case: str, doc_type: str | None, lang: str,
+                 doc_no: int | None = None) -> tuple[Path, Path | None] | None:
+    """Download one document and extract its text.
+
+    Returns None (after printing the document list) when neither --type nor
+    --doc says which document to get.
+    """
     canonical = normalise(case)
     meta = fetch_case(canonical)
     docs = meta["documents"]
     if not docs:
         raise SystemExit(f"No documents listed on the case page for {canonical}.")
-    chosen = _choose_doc(docs, doc_type, lang)
-    if not chosen:
-        avail = ", ".join(f"{d.get('type') or d.get('label') or '?'}({d.get('lang') or '?'})" for d in docs)
-        raise SystemExit(f"No matching document. Available: {avail}")
+    if doc_no is not None:
+        if not 1 <= doc_no <= len(docs):
+            raise SystemExit(f"--doc {doc_no} is out of range; {canonical} has {len(docs)} documents:\n"
+                             + format_documents(docs))
+        chosen = docs[doc_no - 1]
+    elif not doc_type:
+        print(f"Documents for {canonical} — pick one with --type T [--lang L] or --doc N:")
+        print(format_documents(docs))
+        return None
+    else:
+        chosen = _choose_doc(docs, doc_type, lang)
+        if not chosen:
+            raise SystemExit(f"No {doc_type!r} document for {canonical}. Available:\n"
+                             + format_documents(docs))
     cdir = cache_dir() / "cases" / case_key(canonical)
-    stem = chosen.get("type") or re.sub(r"[^a-z0-9]+", "-", chosen.get("label", "doc").lower()).strip("-") or "doc"
-    pdf_p = cdir / f"{stem}-{chosen.get('lang') or 'XX'}.pdf"
+    pdf_p = cdir / f"{_doc_stem(docs, chosen)}.pdf"
     if not _has_content(pdf_p):
         download(chosen["url"], pdf_p)
     txt_p = pdf_p.with_suffix(".txt")
@@ -648,24 +739,57 @@ def get_document(case: str, doc_type: str | None, lang: str) -> tuple[Path, Path
     return pdf_p, txt_p
 
 
+def _doc_stem(docs: list[dict], doc: dict) -> str:
+    """Cache file stem: '<type>-<lang>' ('judgment-EN'), unless another
+    document on the page has the same type and language (two orders, say).
+    Then the date is added, and the document's list number if even that
+    is shared, so each document gets its own file."""
+    dtype = doc.get("type") or re.sub(r"[^a-z0-9]+", "-", doc.get("label", "doc").lower()).strip("-") or "doc"
+    lang = doc.get("lang") or "XX"
+    same = [d for d in docs if (d.get("type"), d.get("lang")) == (doc.get("type"), doc.get("lang"))]
+    if len(same) <= 1:
+        return f"{dtype}-{lang}"
+    date = "-".join(reversed(doc.get("date", "").split("/"))) if doc.get("date") else ""
+    if date and sum(1 for d in same if d.get("date") == doc.get("date")) == 1:
+        return f"{dtype}-{date}-{lang}"
+    return f"{dtype}-{lang}-{docs.index(doc) + 1}"
+
+
 def _norm_type(s: str) -> str:
     """Normalize a document type string: lowercase, collapse hyphens/underscores to spaces."""
-    return re.sub(r'[-_]+', ' ', s.lower().strip())
+    return re.sub(r'[-_\s]+', ' ', s.lower().strip())
 
 
-def _choose_doc(docs: list[dict], doc_type: str | None, lang: str) -> dict | None:
+def _choose_doc(docs: list[dict], doc_type: str, lang: str) -> dict | None:
+    """The document of exactly this type, in `lang` if there is one.
+
+    Types match exactly after normalising ('advisory opinion' ==
+    'advisory-opinion'), so 'order' does not pick up a costs order, and a
+    document whose label could not be parsed (empty type) never matches.
+    When the type exists only in other languages, EN is preferred and a
+    note on stderr says which language was used instead.
+    """
+    want = _norm_type(doc_type)
+    want = _norm_type(_TYPE_ALIASES.get(want, want))
+    candidates = [d for d in docs if d.get("type") and _norm_type(d["type"]) == want]
+    if not candidates:
+        return None
     lang = lang.upper()
-    candidates = docs
-    if doc_type:
-        dt = _norm_type(doc_type)
-        # Substring match in both directions so 'advisory opinion' matches 'advisory-opinion' etc.
-        candidates = [d for d in docs if dt in _norm_type(d.get("type", "")) or _norm_type(d.get("type", "")) in dt]
-    # prefer requested language, then EN, then anything
     for L in (lang, "EN"):
-        for d in candidates:
-            if d.get("lang", "").upper() == L:
-                return d
-    return candidates[0] if candidates else None
+        same_lang = [d for d in candidates if d.get("lang", "").upper() == L]
+        if same_lang:
+            if len(same_lang) > 1:
+                print(f"[note] {len(same_lang)} {doc_type!r} documents in {L}; using the first "
+                      "(see the list without --type, and pick another with --doc N).", file=sys.stderr)
+            if L != lang:
+                langs = sorted({d.get('lang') for d in candidates if d.get('lang')})
+                print(f"[note] no {lang} version of {doc_type!r}; using {L} "
+                      f"(available: {', '.join(langs)}).", file=sys.stderr)
+            return same_lang[0]
+    langs = sorted({d.get('lang') for d in candidates if d.get('lang')})
+    print(f"[note] no {lang} or EN version of {doc_type!r}; using {candidates[0].get('lang') or '?'} "
+          f"(available: {', '.join(langs)}).", file=sys.stderr)
+    return candidates[0]
 
 
 def extract_pdf_text(pdf: Path) -> str | None:
@@ -736,7 +860,7 @@ def _filter_rows(rows: list[dict], year: int | None, country: str | None, proced
 
 
 def cmd_list(args: argparse.Namespace) -> None:
-    idx = load_index() or update_index()
+    idx = get_index()
     # When the user filters by status, verify all recent cases first — the index
     # alone can't be trusted for pending/decided (see verify_recent_status docstring).
     if args.pending or args.decided:
@@ -762,7 +886,7 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 
 def cmd_search(args: argparse.Namespace) -> None:
-    idx = load_index() or update_index()
+    idx = get_index()
     rows = _filter_rows(idx["cases"], _year_arg(args.year), args.country, None)
     q = args.query.lower()
     hits: list[tuple[dict, str]] = []
@@ -826,7 +950,10 @@ def cmd_fetch(args: argparse.Namespace) -> None:
 
 
 def cmd_get(args: argparse.Namespace) -> None:
-    pdf, txt = get_document(args.case, args.type, args.lang)
+    got = get_document(args.case, args.type, args.lang, args.doc)
+    if got is None:
+        return
+    pdf, txt = got
     print(f"PDF:  {pdf}")
     if txt:
         print(f"TEXT: {txt}")
@@ -898,8 +1025,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     pg = sub.add_parser("get", help="Download a specific document PDF and extract text.")
     pg.add_argument("case")
-    pg.add_argument("--type", help="judgment, order, request, notification, opinion-aag, etc.")
+    pg.add_argument("--type", help="judgment, advisory-opinion, order, costs-order, request, notification, "
+                                   "summary, report, opinion-aag, opinion, press-release. "
+                                   "Without --type or --doc, list the documents.")
     pg.add_argument("--lang", default="EN")
+    pg.add_argument("--doc", type=int, metavar="N",
+                    help="Get document number N from the list (overrides --type/--lang).")
 
     return p
 

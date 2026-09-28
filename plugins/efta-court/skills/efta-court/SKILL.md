@@ -93,8 +93,9 @@ Always start with the script's `--help`, then use these recipes:
 ### Subcommands
 
 - **`update`** — refresh the local case index from the WP REST API. The
-  index is small (~150 KB) so refreshing is cheap. Run when the user asks
-  about something recent, or when a `fetch` returns "case not found".
+  index is small (~150 KB) so refreshing is cheap. The other commands do
+  this themselves when the index is more than a day old, and `fetch`/`get`
+  do it when a case is not in the index, so you rarely need it by hand.
 - **`list`** — query the local index. Filters: `--year`, `--country`
   (NO/IS/LI), `--procedure` (AO/INF/DA), `--pending`, `--decided`,
   `--limit`. Returns a JSON-and-text table of case numbers. The first
@@ -103,19 +104,34 @@ Always start with the script's `--help`, then use these recipes:
   `--verify-years N`) by fetching their detail pages — this is necessary
   because the public pending listing on eftacourt.int is JS-paginated
   and unreliable. The verified statuses are cached in the index, so
-  later calls are fast.
+  later calls are fast. Decided is final; a case recorded as Pending is
+  re-checked on every `--pending`/`--decided` run, and its page is
+  re-fetched once it is more than a day old, so a case decided since the
+  last run moves to Decided.
 - **`fetch <case>`** — resolve the case via the index, download the
   detail page, parse it, and write `meta.json` + a human-readable
   `summary.txt`. Also lists the available documents and their PDF URLs.
   Pass a case number in any reasonable form: `E-14/15`, `E-14-15`,
-  `e14/15`.
-- **`get <case> [--type T] [--lang L]`** — download a specific PDF
-  and write a plain-text extraction next to it. `--lang` defaults to
-  EN; pass NO / IS / DE / FR for other language versions when the
-  case has them. Without `--type`, the CLI lists what's available.
-  Valid `--type` values (hyphens and spaces are interchangeable):
-  `judgment`, `advisory-opinion`, `order`, `costs-order`, `request`,
-  `notification`, `summary`, `report`, `opinion-aag`, `opinion`.
+  `e14/15`. A cached page is reused, except that a page for a case that
+  was not yet decided is re-fetched after a day; `--refresh` forces it.
+- **`get <case> [--type T] [--lang L] [--doc N]`** — download a
+  specific PDF and write a plain-text extraction next to it.
+  - Without `--type` or `--doc` it downloads nothing and prints the
+    numbered document list (type, language, date, label). Start there
+    when you don't know what the case has.
+  - `--type` matches the type exactly (hyphens and spaces are
+    interchangeable): `judgment`, `advisory-opinion`, `order`,
+    `costs-order`, `request`, `notification`, `summary`, `report`,
+    `opinion-aag`, `opinion`, `press-release`, `information-note`.
+    `order` does not match a costs order. Old cases' "RH" is `report`,
+    and an "Order of the President" is `order`.
+  - `--lang` defaults to EN; pass NO / IS / DE for other language
+    versions. If the type is not there in that language, the CLI uses EN
+    and says so on stderr — tell the user which language you quote.
+    Judgments often exist only in EN and the language of the case.
+  - `--doc N` gets document N from the list. Use it when a case has two
+    documents of the same type and language (the CLI notes this), e.g.
+    two hearing reports.
 - **`search <query> [--party-only] [--year YYYY] [--country C]`** —
   search **local cache only** — it cannot search eftacourt.int.
   The REST index holds only case numbers, so party names, subject
@@ -238,6 +254,10 @@ text and the party names.
 <cache>/cases/E-14-15/judgment-EN.pdf
 <cache>/cases/E-14-15/judgment-EN.txt
 ```
+
+When a case has more than one document of the same type and language,
+each gets its own file: the date is added (`report-2023-07-28-EN.pdf`),
+or the list number if there is no date. `get` prints the path; use that.
 
 ### When you present an EFTA Court case to the user
 
