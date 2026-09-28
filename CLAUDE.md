@@ -62,7 +62,7 @@ Rules:
   bump is for Claude Code users.) CI (`validate.yml` →
   `.github/scripts/check-plugin-versions.sh`) fails a PR or push where a
   plugin changed without a version change.
-- Browser helpers pasted into a tab (`scripts/browser/*.js`: lovdata-pro,
+- Browser helpers pasted into a tab (`scripts/browser/*.js`: hudoc, lovdata-pro,
   eu-agreements-treaties, nbno) carry `const HELPER_VERSION = '<plugin
   version>'`. Re-pasting the same version is a no-op; a tab still holding an
   older helper gets it replaced. When you change a helper, set its

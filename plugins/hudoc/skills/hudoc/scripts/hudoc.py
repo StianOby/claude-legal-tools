@@ -70,9 +70,15 @@ PDF_URL = f"{BASE}/app/conversion/pdf/"
 DOCX_URL = f"{BASE}/app/conversion/docx/"
 WEB_URL = f"{BASE}/eng?i="  # human-friendly URL Claude should cite
 
-USER_AGENT = (
-    "hudoc-skill/0.1 "
-    "(legal research; Python urllib; contact via Claude session)"
+# Cloudflare in front of HUDOC sometimes answers "Just a moment…" (HTTP 403)
+# instead of data. Which requests it challenges changes from minute to minute:
+# on 2026-09-28 the same agent string from the same machine passed four times
+# in a row and was challenged eight times in a row a minute apart, for curl
+# and urllib alike, and waiting 4 + 10 s and retrying did not help. No agent
+# string passes reliably, so _http_get() only detects a challenge and says so.
+# $HUDOC_USER_AGENT overrides the string.
+USER_AGENT = os.environ.get("HUDOC_USER_AGENT") or (
+    "hudoc-skill/0.2 (+https://github.com/StianOby/claude-legal-tools; legal research)"
 )
 
 # Default field set: everything the HUDOC UI itself exposes for a result row,
@@ -178,7 +184,15 @@ def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -
                 print(f"HTTP {e.code}, retrying in {wait}s ({attempt}/{retries})...", file=sys.stderr)
                 time.sleep(wait)
                 continue
-            body = e.read()[:300].decode("utf-8", errors="replace")
+            raw = e.read()
+            if e.code == 403 and (b"Just a moment" in raw
+                                  or (e.headers.get("cf-mitigated") or "").lower() == "challenge"):
+                raise RuntimeError(
+                    "HUDOC answered with a Cloudflare challenge page (HTTP 403, "
+                    "\"Just a moment…\"), not data. This is not a missing document: "
+                    "try again in a few minutes, and tell the user if it persists."
+                ) from None
+            body = raw[:300].decode("utf-8", errors="replace")
             raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from None
         except urllib.error.URLError as e:
             raise RuntimeError(f"Network error fetching {url}: {e}") from None
@@ -487,8 +501,16 @@ def docx_to_text(docx_path: Path) -> str:
                     parts.append(f" [fn {fid}]")
         return "".join(parts).strip()
 
+    def top_level_paragraphs(root):
+        # A paragraph inside a text box is nested in another paragraph, whose
+        # para_text() already includes it; iter() visits both, so skip the
+        # inner one rather than print its text twice.
+        paras = list(root.iter(W + "p"))
+        nested = {id(q) for p in paras for q in p.iter(W + "p") if q is not p}
+        return [p for p in paras if id(p) not in nested]
+
     out_paragraphs = []
-    for para in tree.iter(W + "p"):
+    for para in top_level_paragraphs(tree.getroot()):
         text = para_text(para)
         if text:
             out_paragraphs.append(text)
@@ -500,7 +522,7 @@ def docx_to_text(docx_path: Path) -> str:
             fid = fn.get(W + "id")
             if not fid or int(fid) <= 0:
                 continue  # separator / continuation pseudo-notes
-            body = " ".join(t for t in (para_text(p) for p in fn.iter(W + "p")) if t)
+            body = " ".join(t for t in (para_text(p) for p in top_level_paragraphs(fn)) if t)
             if body:
                 notes.append(f"[fn {fid}] {body}")
     if notes:

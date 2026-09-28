@@ -43,7 +43,10 @@ languages) are supported.
 
 ## How to use
 
-The whole skill is one self-contained Python CLI: `scripts/hudoc.py`. No
+The skill is one self-contained Python CLI, `scripts/hudoc.py`, plus an
+in-page helper for the built-in browser that takes over when HUDOC's
+Cloudflare check blocks the CLI (see **Fallback: the built-in browser**
+below). No
 third-party packages for the normal DOCX path — only the standard library
 (`urllib`, `zipfile`, `xml.etree`); `pypdf` or poppler's `pdftotext` is
 needed only for the rare PDF-only documents. Run it from this skill's
@@ -321,7 +324,63 @@ for factual questions (parties, conclusion, articles, separate opinions,
 list of cases cited). Read this first before extracting from the full text
 when answering quick questions.
 
+## Fallback: the built-in browser (when the script is challenged)
+
+HUDOC sits behind Cloudflare, which often answers the script with a "Just a
+moment…" page (HTTP 403) instead of data — the script then fails with
+*"HUDOC answered with a Cloudflare challenge page"*. Which requests it
+challenges changes from minute to minute, and the document download
+(`fetch`) is hit far more often than search and metadata. **A challenge says
+nothing about whether the document exists: never report a case as missing
+or "source unavailable" because of one.**
+
+In Claude Desktop with Cowork, switch to the built-in browser, which HUDOC
+lets through. The helper `scripts/browser/hudoc.js` makes the same requests
+as the script from inside a HUDOC tab, and converts the judgment's DOCX to
+the same text the script would have cached — same paragraph breaks, same
+`[fn N]` footnote markers — so paragraph numbers match either way.
+
+1. `tabs_context` — reuse a tab on `hudoc.echr.coe.int`, or `preview_start
+   {url: "https://hudoc.echr.coe.int/eng"}`. If the site is not approved,
+   `request_access {url: "https://hudoc.echr.coe.int/", scope: "site"}`.
+2. Paste the whole of `scripts/browser/hudoc.js` via `javascript_tool`.
+   Idempotent; an older helper from before a skill update is replaced
+   (`__hd.VERSION` shows which one runs). Navigating the tab wipes it —
+   re-paste after any navigation.
+3. `await __hd.ready()` → `{ok: true}`. `{error: "challenge"}` means the tab
+   itself is on the Cloudflare page: wait a few seconds, retry, and ask the
+   user to reload the tab if it persists.
+
+Then, with the same reference forms as the CLI (name, appno, itemid, ECLI,
+Lucene clause) and the same options (`{doctype: "ADMISSIBILITY"}`,
+`{langPref: ["FRE", "ENG"]}`):
+
+| CLI | Browser |
+|---|---|
+| `resolve <ref>` | `await __hd.resolve("Soering v. UK")` |
+| `metadata <ref>` | `await __hd.metadata("14038/88")` |
+| `citations <ref>` | `await __hd.citations("001-210077")` |
+| `search '<lucene>'` | `await __hd.search('(article:"8") AND (respondent:"NOR")', {length: 20})` — compact fields; `{select: "full"}` for all |
+| `fetch <ref> --format text` | `await __hd.load("Soering v. UK")` → `{itemid, totalChars, …}`; then read it: |
+| `grep -n "^88\." judgment.txt` | `await __hd.paragraph("001-57619", 88)` (`, 88, 3)` for 88–90) |
+| `grep "phrase" judgment.txt` | `await __hd.grep("001-57619", "inhuman or degrading")` — literal; hits carry their paragraph number |
+| reading the file | `await __hd.page("001-57619", offset)` — follow `next` until `null` |
+
+Every call returns at most 45 000 characters. The text lives in the tab, not
+the sandbox: quote from what `paragraph()`/`grep()`/`page()` return, and
+cite `source_url` as usual. `paragraph(n)` returns the first block starting
+`n.`; separate opinions and the operative part number from 1 again, which
+the result's `note` points out. For the dispositif, `grep` for `FOR THESE
+REASONS`.
+
+Without the browser tools (not in Cowork), tell the user HUDOC is blocking
+the script right now and to try again in a few minutes.
+
 ## Error handling and edge cases
+
+- **"HUDOC answered with a Cloudflare challenge page"** — see the fallback
+  above. (`$HUDOC_USER_AGENT` overrides the script's agent string, for
+  testing; no agent string passes reliably.)
 
 - **Empty `scl`** — Older Commission decisions, Committee of Ministers
   resolutions, press releases, and many committee-level admissibility

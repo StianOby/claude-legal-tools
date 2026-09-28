@@ -21,10 +21,21 @@ hudoc/
 ├── SKILL.md
 ├── README.md
 ├── scripts/
-│   └── hudoc.py            # single self-contained CLI; stdlib only
-└── references/
-    └── query-fields.md     # HUDOC Lucene query syntax + field reference
+│   ├── hudoc.py            # single self-contained CLI; stdlib only
+│   └── browser/
+│       └── hudoc.js        # in-page fallback for the Cowork built-in browser
+├── references/
+│   └── query-fields.md     # HUDOC Lucene query syntax + field reference
+└── tests/                  # offline tests: python tests/test_docx.py,
+                            # node tests/test_browser.js
 ```
+
+HUDOC sits behind Cloudflare, which often answers the CLI with a "Just a
+moment…" challenge — the document download above all — and which requests it
+challenges changes from minute to minute. In Cowork the skill then switches to
+the built-in browser: `scripts/browser/hudoc.js` is pasted into a HUDOC tab and
+does the same lookups from there, converting the DOCX to exactly the text the
+CLI would have produced (the tests check the two against each other).
 
 Downloads are cached outside the skill folder, under `$HUDOC_CACHE_DIR` if
 set and otherwise `~/.cache/hudoc/items/<itemid>/`.

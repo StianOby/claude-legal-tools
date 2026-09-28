@@ -81,6 +81,14 @@ jobs:
         with:
           node-version: 22
 
+      - name: Run browser-helper unit tests (no network, no npm packages)
+        run: |
+          for t in plugins/*/skills/*/tests/test_*.js; do
+            [ -e "$t" ] || continue
+            echo "== $t"
+            node "$t"
+          done
+
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 

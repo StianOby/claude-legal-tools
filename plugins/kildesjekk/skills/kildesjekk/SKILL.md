@@ -48,7 +48,7 @@ Verify that you have access to all the relevant tools:
 		- nbno
 		- untc
 	
-Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10 and for nbno in §14, and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
+Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10, for nbno in §14, for reading ICJ judgment PDFs in §11 and for the hudoc fallback in §13 (HUDOC's Cloudflare check often blocks the script, above all for judgment texts), and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Throughout these instructions, **`{SKILL_DIR}`** means the path printed in "Base directory for this skill:" at the top of your context — substitute it when you run one of this skill's scripts. This skill ships one: `scripts/worklist.py`, the worklist validator used in §2 and §16. It needs `openpyxl`, which you will be installing anyway to write the worklist.
 
@@ -372,7 +372,7 @@ For ICJ (International Court of Justice) or PCIJ (Permanent Court of Internation
 For EFTA Court case law not found in Zotero, use the /efta-court skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 13) Check ECtHR case law
-For ECtHR case law not found in Zotero, use the /hudoc skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
+For ECtHR case law not found in Zotero, use the /hudoc skill. When its script reports a Cloudflare challenge, that is not a missing source: switch to the skill's built-in-browser fallback as its instructions describe, and never mark a row "source unavailable" because of a challenge. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 14) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. In short:
