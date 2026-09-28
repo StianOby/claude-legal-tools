@@ -8,8 +8,8 @@ description: |
   state. Trigger on: CoE convention name or acronym (ECHR, CPT,
   Istanbul Convention, Lanzarote Convention, Cybercrime/Budapest
   Convention, Oviedo Convention, Bern Convention, Anti-Doping,
-  Macolin, Convention 108, Faro Convention, Warsaw Convention, GRECO
-  statute, European Social Charter); CETS/ETS number ("ETS No. 5",
+  Macolin, Convention 108, Faro Convention, Warsaw Convention, FCNM,
+  Tromsø Convention, European Social Charter); CETS/ETS number ("ETS No. 5",
   "CETS 210", "treaty 185"); asks like fetch the text, what
   reservations did [state] make to, list parties to, when did
   [treaty] enter into force, get the explanatory report. Do NOT
@@ -108,10 +108,16 @@ Available subcommands (`python3 scripts/coe.py --help` shows all):
   to start. `--refresh` re-downloads it (one POST). Any command that
   is asked for a number missing from the cached index refreshes
   automatically once before giving up, so new CETS numbers work
-  without manual intervention.
+  without manual intervention, and `text`/`report`/`signatures`/
+  `declarations`/`fetch` refresh it when it is more than 30 days old
+  (keeping the old one if the refresh fails).
 - `lookup <query>` — fuzzy-search the cached index by name or number.
 - `text <ref>` — download + extract the treaty text (PDF, or HTML
   for the few translations that rm.coe.int publishes as web pages).
+  A cached document is reused only while the index still points to
+  the same URL; when the Treaty Office publishes a new PDF (e.g. a
+  consolidated text after an amending protocol) it is downloaded
+  again. The same holds for `report`.
 - `report <ref>` — download + extract the Explanatory Report.
 - `signatures <ref>` — fetch + flatten the signature/ratification
   table to plain text.
@@ -125,8 +131,21 @@ Available subcommands (`python3 scripts/coe.py --help` shows all):
 
 `<ref>` accepts: a 1–3 digit CETS number (`5`, `005`, `210`), a
 prefixed form (`ETS 5`, `CETS 210`, `treaty 185`), an alias
-(`ECHR`, `Istanbul`, `Cybercrime`, `Convention 108`, …), or any
-free-text title (fuzzy-matched against the cached index).
+(`ECHR`, `Istanbul`, `Cybercrime`, `Convention 108`, `FCNM`,
+`Tromsø`, …), or any free-text title (fuzzy-matched against the
+cached index).
+
+"Warsaw Convention" resolves to CETS 198 (money laundering and
+financing of terrorism), as the Council of Europe uses the name, with
+a note on stderr: CETS 196 (Prevention of Terrorism) and CETS 197
+(Trafficking in Human Beings) were opened in Warsaw the same day. If
+the user's context points to one of those, use its number.
+
+GRECO (the Group of States against Corruption) is set up by a partial
+agreement, not a convention, so there is no GRECO treaty text here.
+The skill can fetch the conventions GRECO monitors: the Criminal Law
+Convention on Corruption (173), its Additional Protocol (191) and the
+Civil Law Convention on Corruption (174).
 
 ## Cache layout
 
@@ -143,6 +162,7 @@ leaves a truncated file behind that later looks cached.
 <cache>/treaties/<NNN>/meta.json                # promoted-fields meta
 <cache>/treaties/<NNN>/text.en.pdf              # or text.<lang>.html when only a web page exists
 <cache>/treaties/<NNN>/text.en.txt              # extracted plain text
+<cache>/treaties/<NNN>/text.en.url              # the URL it came from (re-downloaded when the index changes)
 <cache>/treaties/<NNN>/report.en.pdf
 <cache>/treaties/<NNN>/report.en.txt
 <cache>/treaties/<NNN>/signatures.en.json       # raw API response

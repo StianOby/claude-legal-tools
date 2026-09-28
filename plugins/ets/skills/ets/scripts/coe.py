@@ -49,6 +49,7 @@ import shutil
 import ssl
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -63,6 +64,8 @@ CACHE_DIR = Path(os.environ.get("ETS_CACHE_DIR", _default_cache))
 TREATIES_DIR = CACHE_DIR / "treaties"
 INDEX_PATH = CACHE_DIR / "index.json"
 SEED_INDEX = Path(__file__).resolve().parent.parent / "data" / "index.json"
+# The cached index is refreshed when older than this (see resolve_treaty).
+INDEX_MAX_AGE_DAYS = 30
 
 API_BASE = "https://conventions-ws.coe.int/WS_LFRConventions/"
 # Public token embedded in the Treaty Office page source. Required as
@@ -145,8 +148,21 @@ ALIASES = {
     "criminal law convention on corruption": "173",
     "money laundering":   "141",
     "warsaw convention":  "198",
+    "warsaw":             "198",
     "trafficking":        "197",
     "human trafficking":  "197",
+    "anti-trafficking convention": "197",
+    "prevention of terrorism": "196",
+    # Minorities / access to documents
+    "fcnm":               "157",
+    "national minorities": "157",
+    "framework convention on national minorities": "157",
+    "framework convention for the protection of national minorities": "157",
+    "tromsø":             "205",
+    "tromso":             "205",
+    "tromsø convention":  "205",
+    "tromso convention":  "205",
+    "access to official documents": "205",
     # Constitutional / institutional
     "statute":            "001",
     "council of europe statute": "001",
@@ -163,6 +179,17 @@ ALIASES = {
     "echr p15":           "213",
     "echr p16":           "214",
 }
+
+# Aliases that are a convention, not the only reasonable reading: the note
+# is printed whenever the alias is used, so the caller can switch.
+ALIAS_NOTES = {
+    "198": ("'Warsaw Convention' is taken as CETS 198 (money laundering and financing of "
+            "terrorism), the treaty the Council of Europe itself calls that. CETS 196 "
+            "(Prevention of Terrorism) and CETS 197 (Action against Trafficking in Human "
+            "Beings) were opened in Warsaw the same day, 16 May 2005 — pass 196 or 197 if "
+            "one of those is meant."),
+}
+_ALIAS_NOTE_KEYS = {"warsaw", "warsaw convention"}
 
 # Subset of fields we promote to a flat per-treaty meta.json. Keeps the
 # common factual answers (entry into force, place of signature, the
@@ -276,16 +303,30 @@ def download_document(url, stem: Path):
     non-official translations) are HTML pages. The real type is
     detected from the Content-Type header and the file's magic bytes,
     and the file is saved as `<stem>.pdf` or `<stem>.html`. Returns
-    (path, kind) where kind is 'pdf' or 'html'. If a file of either
-    kind is already cached it is returned without a request.
+    (path, kind) where kind is 'pdf' or 'html'.
+
+    The URL a document came from is kept next to it (`<stem>.url`). A
+    cached file is reused only while the index still points to that URL;
+    when the Treaty Office publishes a new PDF (a consolidated text after
+    an amending protocol, a corrected report) the index gets a new URL and
+    the document and its extracted text are fetched again.
     """
     # Not with_suffix(): the stem already ends in ".<lang>" and must be kept.
     pdf_p = stem.with_name(stem.name + ".pdf")
     html_p = stem.with_name(stem.name + ".html")
-    if _has_content(pdf_p):
-        return pdf_p, "pdf"
-    if _has_content(html_p):
-        return html_p, "html"
+    url_p = stem.with_name(stem.name + ".url")
+    cached_url = _read(url_p).strip() if _has_content(url_p) else None
+    if cached_url == url:
+        if _has_content(pdf_p):
+            return pdf_p, "pdf"
+        if _has_content(html_p):
+            return html_p, "html"
+    elif _has_content(pdf_p) or _has_content(html_p):
+        why = "the index now points to a new document" if cached_url else "its source was not recorded"
+        print(f"re-downloading {stem.name}: {why}", file=sys.stderr)
+    for old in (pdf_p, html_p, stem.with_name(stem.name + ".txt")):
+        old.unlink(missing_ok=True)
+    print(f"downloading {url} -> {stem}.*", file=sys.stderr)
     headers = {"User-Agent": USER_AGENT, "Accept": "application/pdf,text/html,*/*"}
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=120) as r:
@@ -293,9 +334,11 @@ def download_document(url, stem: Path):
         ctype = (r.headers.get("Content-Type") or "").lower()
     if data.startswith(b"%PDF"):
         _write_bytes(pdf_p, data)
+        _write(url_p, url)
         return pdf_p, "pdf"
     if "html" in ctype or data.lstrip()[:15].lower().startswith((b"<!doctype", b"<html")):
         _write_bytes(html_p, data)
+        _write(url_p, url)
         return html_p, "html"
     raise SystemExit(
         f"{url} returned neither a PDF nor an HTML page (Content-Type: {ctype or '?'}); "
@@ -393,13 +436,21 @@ def _haystack(t) -> str:
     ])).lower()
 
 
-def _alias_for(query: str):
+def _alias_key(query: str):
+    """The ALIASES key `query` matches, or None."""
     q = query.strip().lower()
     if q in ALIASES:
-        return ALIASES[q]
+        return q
     qs = re.sub(r"[^\w\s+]", " ", q)
     qs = re.sub(r"\s+", " ", qs).strip()
-    return ALIASES.get(qs)
+    return qs if qs in ALIASES else None
+
+
+def _alias_for(query: str):
+    key = _alias_key(query)
+    if key in _ALIAS_NOTE_KEYS:
+        print(f"note: {ALIAS_NOTES[ALIASES[key]]}", file=sys.stderr)
+    return ALIASES.get(key) if key else None
 
 
 def lookup_ref(query):
@@ -504,11 +555,19 @@ def find_treaty_in_index(idx, ref):
 
 
 def resolve_treaty(ref_query, lang=DEFAULT_LANG):
-    """Resolve a query to (ref, record). If the number is not in the
-    cached index (bundled seed or stale cache), refresh once from the
-    live API before giving up — new CETS numbers appear a few times a
-    year."""
+    """Resolve a query to (ref, record). The cached index is refreshed from
+    the live API when it is older than INDEX_MAX_AGE_DAYS (its document
+    URLs decide whether a cached PDF is still current), and when the number
+    is not in it — new CETS numbers appear a few times a year. A failed
+    age refresh keeps the old index."""
     idx = load_index_or_die()
+    age_days = (time.time() - INDEX_PATH.stat().st_mtime) / 86400
+    if age_days > INDEX_MAX_AGE_DAYS:
+        print(f"cached index is {age_days:.0f} days old — refreshing from the live API …", file=sys.stderr)
+        try:
+            idx = refresh_index(lang=lang)
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            print(f"refresh failed ({e}); using the cached index", file=sys.stderr)
     ref, _, _ = lookup_ref(ref_query)
     t = find_treaty_in_index(idx, ref)
     if t is None:
@@ -606,7 +665,6 @@ def cmd_text(args):
     if not url:
         raise SystemExit(f"treaty {ref}: no document URL in index ({t.get('Libelle_titre_ENG')})")
     stem = treaty_dir(ref) / f"text.{lang_used}"
-    print(f"downloading {url} -> {stem}.*", file=sys.stderr)
     doc, kind = download_document(url, stem)
     txt = extract_text(doc, kind)
     print(json.dumps({
@@ -630,7 +688,6 @@ def cmd_report(args):
               f"({t.get('Libelle_titre_ENG')})", file=sys.stderr)
         return
     stem = treaty_dir(ref) / f"report.{lang_used}"
-    print(f"downloading {url} -> {stem}.*", file=sys.stderr)
     doc, kind = download_document(url, stem)
     txt = extract_text(doc, kind)
     print(json.dumps({

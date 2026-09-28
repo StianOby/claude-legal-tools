@@ -29,6 +29,8 @@ ets/
     trigger_evals.json     # Trigger evaluation test cases
   scripts/
     coe.py                 # Self-contained CLI
+  tests/
+    test_coe.py            # Offline tests: python tests/test_coe.py
 ```
 
 ## Requirements
