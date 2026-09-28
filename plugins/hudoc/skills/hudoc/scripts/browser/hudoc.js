@@ -31,7 +31,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.1.0';
+  const HELPER_VERSION = '1.2.0';
   if (root.window && root.window.__hd && root.window.__hd.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -142,8 +142,56 @@
     // --- resolve (ported from scripts/hudoc.py) -----------------------------
 
     const ITEMID_RE = /^\d{3}-\d+(?:-\d+)?$/;
-    const APPNO_RE = /^\d{1,6}\/\d{2}(?:;\d{1,6}\/\d{2})*$/;
     const ECLI_RE = /^ECLI:CE:ECHR:\d{4}:\d{4}[A-Z]{3}\d{9,12}$/i;
+    // Application numbers, alone or listed after "no." / "nos." /
+    // "Application no." / "n°" (see appnos_in in hudoc.py).
+    const APPNO_PREFIX_RE = /^(?:(?:application|app\.|requête|req\.)\s*)?(?:nos?\.?|n[°º]s?\.?)?\s*/i;
+    const APPNO_ANY_RE = /(?<![\d/])\d{1,6}\/\d{2}(?![\d/])/g;
+    const APPNO_LIST_RE = /^\d{1,6}\/\d{2}(?:\s*(?:;|,|&|\band\b|\bet\b)\s*\d{1,6}\/\d{2})*$/i;
+
+    function appnosIn(s) {
+      const rest = String(s).trim().replace(APPNO_PREFIX_RE, '').replace(/[ .]+$/, '');
+      return APPNO_LIST_RE.test(rest) ? rest.match(APPNO_ANY_RE) : [];
+    }
+
+    // Respondent states as HUDOC codes them (ISO-3); same table as
+    // RESPONDENT_CODES in hudoc.py.
+    const RESPONDENT_CODES = {
+      ALB: ['albania', 'albanie'], AND: ['andorra', 'andorre'], ARM: ['armenia', 'arménie'],
+      AUT: ['austria', 'autriche'], AZE: ['azerbaijan', 'azerbaïdjan'], BEL: ['belgium', 'belgique'],
+      BIH: ['bosnia and herzegovina', 'bosnie-herzégovine'], BGR: ['bulgaria', 'bulgarie'],
+      HRV: ['croatia', 'croatie'], CYP: ['cyprus', 'chypre'],
+      CZE: ['czech republic', 'czechia', 'république tchèque', 'tchéquie'],
+      DNK: ['denmark', 'danemark'], EST: ['estonia', 'estonie'], FIN: ['finland', 'finlande'],
+      FRA: ['france'], GEO: ['georgia', 'géorgie'], DEU: ['germany', 'allemagne'],
+      GRC: ['greece', 'grèce'], HUN: ['hungary', 'hongrie'], ISL: ['iceland', 'islande'],
+      IRL: ['ireland', 'irlande'], ITA: ['italy', 'italie'], LVA: ['latvia', 'lettonie'],
+      LIE: ['liechtenstein'], LTU: ['lithuania', 'lituanie'], LUX: ['luxembourg'],
+      MLT: ['malta', 'malte'],
+      MDA: ['moldova', 'republic of moldova', 'république de moldova', 'moldavie'],
+      MCO: ['monaco'], MNE: ['montenegro', 'monténégro'], NLD: ['netherlands', 'pays-bas'],
+      MKD: ['north macedonia', 'former yugoslav republic of macedonia', 'macedonia',
+        'macédoine du nord', 'ex-république yougoslave de macédoine', 'fyrom'],
+      NOR: ['norway', 'norvège'], POL: ['poland', 'pologne'], PRT: ['portugal'],
+      ROU: ['romania', 'roumanie'],
+      RUS: ['russia', 'russian federation', 'russie', 'fédération de russie'],
+      SMR: ['san marino', 'saint-marin'], SRB: ['serbia', 'serbie'],
+      SVK: ['slovakia', 'slovak republic', 'slovaquie'], SVN: ['slovenia', 'slovénie'],
+      ESP: ['spain', 'espagne'], SWE: ['sweden', 'suède'], CHE: ['switzerland', 'suisse'],
+      TUR: ['turkey', 'türkiye', 'turkiye', 'turquie'], UKR: ['ukraine'],
+      GBR: ['united kingdom', 'uk', 'u.k.', 'royaume-uni', 'great britain'],
+    };
+    const RESPONDENT_BY_NAME = {};
+    for (const [code, names] of Object.entries(RESPONDENT_CODES)) for (const n of names) RESPONDENT_BY_NAME[n] = code;
+    const VERSUS_RE = /\s+(?:v\.?|c\.|vs\.?)\s+/i;
+    const NAME_FILLER = new Set(['and', 'others', 'other', 'et', 'autres', 'the', 'of']);
+
+    function respondentCode(state) {
+      let s = String(state).split(/[[(,]/)[0];
+      s = s.trim().toLowerCase().replace(/^(?:the|la|le|l')\s*/, '');
+      s = s.replace(/\s+/g, ' ').replace(/^[ .]+|[ .]+$/g, '');
+      return RESPONDENT_BY_NAME[s] || RESPONDENT_BY_NAME[s.replace(/\./g, '')] || null;
+    }
 
     const BRANCH_PRIORITY = {
       GRANDCHAMBER: 0, CHAMBER: 1, COMMITTEE: 2,
@@ -178,24 +226,68 @@
       return 0;
     }
 
+    // {clause, length} for the query, plus `fallback` (the name without the
+    // respondent filter) when a name search is narrowed by respondent state.
     function referenceClause(ref) {
       if (ITEMID_RE.test(ref)) return { clause: `itemid:"${ref}"`, length: 1 };
-      if (APPNO_RE.test(ref)) return { clause: `appno:"${ref.split(';')[0]}"`, length: 50 };
+      const appnos = appnosIn(ref);
+      if (appnos.length) return { clause: `appno:"${appnos[0]}"`, length: 50 };
       if (ECLI_RE.test(ref)) return { clause: `ecli:"${ref.toUpperCase()}"`, length: 50 };
       if (ref.includes(':') && !ref.startsWith('"')) return { clause: ref, length: 50 };
-      // Free-text case name: AND of the tokens before " v. " / " c. ".
-      const head = ref.split(/\s+(?:v\.|c\.|vs\.?)\s+/)[0];
+      // A citation with its application number: the number is the key.
+      const found = ref.match(APPNO_ANY_RE);
+      if (found) return { clause: `appno:"${found[0]}"`, length: 50 };
+      // Free-text case name: AND of the tokens before " v. " / " c. ",
+      // narrowed by the respondent state after it.
+      const parts = ref.split(VERSUS_RE);
+      const head = parts[0];
       let tokens = (head.match(/[\p{L}\p{N}_'-]+/gu) || []).filter((t) => t.length > 1);
       if (!tokens.length) tokens = ref.match(/[\p{L}\p{N}_'-]+/gu) || [];
       const clause = tokens.map((t) => 'docname:' + t).join(' AND ') || `docname:"${ref}"`;
-      return { clause, length: 50 };
+      const code = parts.length > 1 ? respondentCode(parts.slice(1).join(' ')) : null;
+      // The applicant's name for ranking: every word before "v.", one-letter
+      // ones included ("A v. Norway"), never "v" or the state, and not the
+      // words that differ between the English and French title.
+      const name = (head.match(/[\p{L}\p{N}_'-]+/gu) || []).filter((t) => !NAME_FILLER.has(t.toLowerCase()));
+      if (code) return { clause: `${clause} AND respondent:"${code}"`, length: 50, fallback: clause, name };
+      return { clause, length: 50, name };
+    }
+
+    // See NAME_SEARCH_MAX_ROWS / name_matches / _rows_for in hudoc.py:
+    // HUDOC's docname search matches inside words ("Kurt" finds Özkurt), so
+    // a name search reads further pages and whole-word matches rank first.
+    const NAME_SEARCH_MAX_ROWS = 300;
+
+    function nameMatches(row, name) {
+      const docname = String(row.docname || '').toUpperCase();
+      return (name || []).every((t) => {
+        const esc = t.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`(?<![\\p{L}\\p{N}_])${esc}(?![\\p{L}\\p{N}_])`, 'u').test(docname);
+      });
+    }
+
+    async function rowsFor(clause, length, name, fields) {
+      const r = await query(clause, { fields, length });
+      if (r.error || !name || !name.length) return r;
+      const rows = r.rows;
+      while (rows.length && rows.length < Math.min(r.resultcount, NAME_SEARCH_MAX_ROWS)) {
+        const more = await query(clause, { fields, start: rows.length, length: 100 });
+        if (more.error) return more;
+        if (!more.rows.length) break;
+        rows.push(...more.rows);
+      }
+      return { resultcount: r.resultcount, rows };
     }
 
     async function resolveRow(reference, { doctype = null, langPref = ['ENG', 'FRE'], fields = DEFAULT_FIELDS } = {}) {
       const ref = String(reference).trim();
-      const { clause, length } = referenceClause(ref);
-      const r = await query(clause, { fields, length });
+      const { clause, length, fallback, name } = referenceClause(ref);
+      let r = await rowsFor(clause, length, name, fields);
       if (r.error) return r;
+      if (!r.rows.length && fallback) {
+        r = await rowsFor(fallback, length, name, fields);
+        if (r.error) return r;
+      }
       let rows = r.rows;
       if (!rows.length) return { error: 'no_match', detail: `no HUDOC item matched ${JSON.stringify(ref)}; try search()` };
       if (doctype) {
@@ -208,7 +300,9 @@
         rows = filtered;
       }
       if (ITEMID_RE.test(ref)) return { row: rows[0] };
-      rows.sort((a, b) => compareKeys(scoreKey(a, langPref), scoreKey(b, langPref)));
+      // Whole-word name matches first (Kurt before Özkurt), then the rest.
+      const key = (x) => [nameMatches(x, name) ? 0 : 1, ...scoreKey(x, langPref)];
+      rows.sort((a, b) => compareKeys(key(a), key(b)));
       return { row: rows[0] };
     }
 
@@ -558,7 +652,7 @@
       paragraph,
       // exposed for unit tests / debugging only:
       _deps: deps,
-      _internal: { referenceClause, scoreKey, compareKeys, parseScl, unzipEntries, wordParagraphs, docxXmlToText, docxToText, queryUrl, isChallenge, paragraphStarts },
+      _internal: { referenceClause, appnosIn, respondentCode, nameMatches, scoreKey, compareKeys, parseScl, unzipEntries, wordParagraphs, docxXmlToText, docxToText, queryUrl, isChallenge, paragraphStarts },
     };
   })();
 

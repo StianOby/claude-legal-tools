@@ -80,9 +80,12 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
   check('appno (first of several)', rc('58170/13;62322/14').clause, 'appno:"58170/13"');
   check('ECLI upper-cased', rc('ecli:ce:echr:1989:0707jud001403888').clause, 'ecli:"ECLI:CE:ECHR:1989:0707JUD001403888"');
   check('Lucene passes through', rc('docname:(big brother)').clause, 'docname:(big brother)');
-  check('case name: tokens before v.', rc('Big Brother Watch v. UK').clause,
-    'docname:Big AND docname:Brother AND docname:Watch');
-  check('non-ASCII names keep their letters', rc('Öcalan v. Turkey').clause, 'docname:Öcalan');
+  // Same table as tests/test_references.py runs through hudoc.py.
+  const REFS = JSON.parse(fs.readFileSync(path.join(FIX, 'references.json'), 'utf8'));
+  for (const [ref, clause, fallback] of REFS) {
+    const got = rc(ref);
+    check(ref, [got.clause, got.fallback ?? null], [clause, fallback]);
+  }
   check('query URL has the site filter and brackets',
     decodeURIComponent(hd._internal.queryUrl('itemid:"1"', { fields: ['itemid'], length: 1 })),
     '/app/query/results?query=(contentsitename=ECHR) AND (itemid:"1")&select=itemid&sort=&start=0&length=1');
@@ -93,6 +96,36 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
   check('language preference', (await hd.resolve('X v. Y', { langPref: ['FRE', 'ENG'] })).itemid, '001-3');
   check('doctype filter', (await hd.resolve('X v. Y', { doctype: 'ADMISSIBILITY' })).itemid, '001-5');
   check('doctype filter with no row', (await hd.resolve('X v. Y', { doctype: 'COMMITTEE' })).error, 'no_match');
+  // A respondent-narrowed query that finds nothing is retried without it.
+  const urls = stub();
+  const empty = JSON.stringify({ resultcount: 0, results: [] });
+  const full = JSON.stringify({ resultcount: ROWS.length, results: ROWS.map((c) => ({ columns: c })) });
+  const plainFetch = hd._deps.fetch;
+  hd._deps.fetch = async (url) => {
+    const r = await plainFetch(url);
+    if (!url.startsWith('/app/query/results')) return r;
+    const body = decodeURIComponent(url).includes('respondent:"TUR"') ? empty : full;
+    return { ok: true, status: 200, text: async () => body };
+  };
+  check('respondent fallback', (await hd.resolve('X v. Turkey')).itemid, '001-4');
+  check('narrowed query tried first', urls.map((u) => decodeURIComponent(u).includes('respondent:"TUR"')), [true, false]);
+  // "Kurt v. Turkey": 213 hits because docname:Kurt matches inside Özkurt,
+  // Bozkurt …; the judgment is on page 2 and older than the Özkurt one.
+  const kurt = [{ itemid: '001-145119', docname: 'CASE OF BELEK AND ÖZKURT v. TURKEY (No. 7)', doctype: 'HEJUD', doctypebranch: 'COMMITTEE', languageisocode: 'ENG', kpdate: '2014-07-01T00:00:00' }];
+  for (let i = 0; i < 150; i++) kurt.push({ itemid: `001-9${i}`, docname: `CASE OF BOZKURT ${i} v. TURKEY`, doctype: 'HEJUD', doctypebranch: 'CHAMBER', languageisocode: 'ENG', kpdate: '2010-01-01T00:00:00' });
+  kurt.push({ itemid: '001-58198', docname: 'CASE OF KURT v. TURKEY', doctype: 'HEJUD', doctypebranch: 'CHAMBER', languageisocode: 'ENG', kpdate: '1998-05-25T00:00:00' });
+  for (let i = 0; i < 61; i++) kurt.push({ itemid: `001-8${i}`, docname: `CASE OF KIZILKURT ${i} v. TURKEY`, doctype: 'HEJUD', doctypebranch: 'CHAMBER', languageisocode: 'ENG', kpdate: '2012-01-01T00:00:00' });
+  const kurtUrls = stub();
+  hd._deps.fetch = async (url) => {
+    kurtUrls.push(url);
+    const q = new URLSearchParams(url.split('?')[1]);
+    const start = Number(q.get('start')); const length = Number(q.get('length'));
+    const body = JSON.stringify({ resultcount: kurt.length, results: kurt.slice(start, start + length).map((c) => ({ columns: c })) });
+    return { ok: true, status: 200, text: async () => body };
+  };
+  check('Kurt v. Turkey finds the whole-word match past page 1', (await hd.resolve('Kurt v. Turkey')).itemid, '001-58198');
+  check('pages read up to the hit count', kurtUrls.map((u) => new URLSearchParams(u.split('?')[1]).get('start')), ['0', '50', '150']);
+  stub();
   const cit = await hd.citations('X v. Y');
   check('citations parsed from scl', cit.cited.map((c) => [c.name, c.appnos]),
     [['Klass and Others v. Germany, 6 September 1978, Series A no. 28', []], ['Roman Zakharov v. Russia [GC]', ['47143/06']]]);

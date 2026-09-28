@@ -26,7 +26,7 @@ hudoc/
 │       └── hudoc.js        # in-page fallback for the Cowork built-in browser
 ├── references/
 │   └── query-fields.md     # HUDOC Lucene query syntax + field reference
-└── tests/                  # offline tests: python tests/test_docx.py,
+└── tests/                  # offline tests: python tests/test_docx.py, tests/test_references.py,
                             # node tests/test_browser.js
 ```
 

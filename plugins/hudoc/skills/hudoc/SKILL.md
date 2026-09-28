@@ -76,6 +76,20 @@ an itemid, an ECLI, or a Lucene clause. `resolve`/`metadata`/`fetch`/
 yourself; the script picks the best matching row (judgment over press release,
 GC over Chamber over Committee, English over French, most recent rehearing).
 
+- **Application numbers** can come bare (`14038/88`), with "no."/"nos."
+  (`no. 14038/88`, `nos. 58170/13, 62322/14 and 24960/15`), or inside a
+  full citation (`Soering v. the United Kingdom, no. 14038/88, § 88`) —
+  the number is then the lookup key, which is the most precise one. Pass
+  the whole citation when you have it.
+- **Case names** are matched on the applicant's name *and* the respondent
+  state after "v."/"c." (English or French name, "UK", "Türkiye" …), so
+  "Kurt v. Turkey" does not return Kurt v. Austria [GC]. If no row matches
+  with the state, the lookup retries on the name alone. HUDOC's name
+  search also matches inside words (Kurt → Özkurt, Bozkurt), so for a
+  common name the lookup reads up to 300 hits and ranks titles with the
+  name as a whole word first. Always check that the `docname` you got back
+  is the case you meant.
+
 ## Mental model
 
 HUDOC has no official API documentation, but two stable endpoints exist:
@@ -404,9 +418,11 @@ the script right now and to try again in a few minutes.
   If you only have a `002-` itemid, run `search 'appno:"<appno>"'` to find
   the corresponding `001-` judgment.
 - **No match for a case name** — `resolve` builds the docname clause as an
-  AND-of-tokens, stripping " v. " / " c. " / "vs.". If a name still
-  doesn't resolve, fall back to `search 'docname:(token1 token2)'` and
-  inspect the candidates.
+  AND-of-tokens from the part before " v. " / " c. " / "vs.", plus
+  `respondent:"<ISO-3>"` for the state after it. If a name still doesn't
+  resolve (or resolves to the wrong case), fall back to
+  `search 'docname:(token1 token2) AND respondent:"TUR"'` and inspect the
+  candidates.
 - **Multiple-application cases** — A single judgment can have a dozen
   applicants joined into one case (e.g. `58170/13;62322/14;24960/15`).
   Searching by any one of the constituent application numbers returns the

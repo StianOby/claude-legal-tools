@@ -235,18 +235,172 @@ def _flatten_columns(api_result: dict) -> list[dict]:
 
 # Itemids look like NNN-NNNNNN (e.g. 001-57619, 003-8420063-11915360).
 ITEMID_RE = re.compile(r"^\d{3}-\d+(?:-\d+)?$")
-# Application numbers are NUMBER/YY (e.g. 14038/88; sometimes joined with ;)
-APPNO_RE = re.compile(r"^\d{1,6}/\d{2}(?:;\d{1,6}/\d{2})*$")
 # European Case Law Identifiers, e.g. ECLI:CE:ECHR:1989:0707JUD001403888
 ECLI_RE = re.compile(r"^ECLI:CE:ECHR:\d{4}:\d{4}[A-Z]{3}\d{9,12}$", re.IGNORECASE)
+
+
+# Application numbers are NUMBER/YY (e.g. 14038/88), alone or in a list:
+# "no. 14038/88", "nos. 58170/13, 62322/14 and 24960/15", "Application
+# no. 14038/88", "requête no 14038/88", "n° 14038/88".
+_APPNO_PREFIX_RE = re.compile(
+    r"^(?:(?:application|app\.|requête|req\.)\s*)?(?:nos?\.?|n[°º]s?\.?)?\s*", re.IGNORECASE)
+_APPNO_ANY_RE = re.compile(r"(?<![\d/])\d{1,6}/\d{2}(?![\d/])")
+_APPNO_LIST_RE = re.compile(r"^\d{1,6}/\d{2}(?:\s*(?:;|,|&|\band\b|\bet\b)\s*\d{1,6}/\d{2})*$", re.IGNORECASE)
 
 
 def looks_like_itemid(s: str) -> bool:
     return bool(ITEMID_RE.match(s.strip()))
 
 
-def looks_like_appno(s: str) -> bool:
-    return bool(APPNO_RE.match(s.strip()))
+def appnos_in(s: str) -> list[str]:
+    """Application numbers when `s` is nothing but one or a list of them,
+    optionally after "no." / "nos." / "Application no."; else []."""
+    rest = _APPNO_PREFIX_RE.sub("", s.strip(), count=1).rstrip(" .")
+    return _APPNO_ANY_RE.findall(rest) if _APPNO_LIST_RE.match(rest) else []
+
+
+# Respondent states as HUDOC codes them (ISO 3166 alpha-3), keyed by the
+# lower-cased English and French names used in case titles.
+RESPONDENT_CODES = {
+    "ALB": ["albania", "albanie"],
+    "AND": ["andorra", "andorre"],
+    "ARM": ["armenia", "arménie"],
+    "AUT": ["austria", "autriche"],
+    "AZE": ["azerbaijan", "azerbaïdjan"],
+    "BEL": ["belgium", "belgique"],
+    "BIH": ["bosnia and herzegovina", "bosnie-herzégovine"],
+    "BGR": ["bulgaria", "bulgarie"],
+    "HRV": ["croatia", "croatie"],
+    "CYP": ["cyprus", "chypre"],
+    "CZE": ["czech republic", "czechia", "république tchèque", "tchéquie"],
+    "DNK": ["denmark", "danemark"],
+    "EST": ["estonia", "estonie"],
+    "FIN": ["finland", "finlande"],
+    "FRA": ["france"],
+    "GEO": ["georgia", "géorgie"],
+    "DEU": ["germany", "allemagne"],
+    "GRC": ["greece", "grèce"],
+    "HUN": ["hungary", "hongrie"],
+    "ISL": ["iceland", "islande"],
+    "IRL": ["ireland", "irlande"],
+    "ITA": ["italy", "italie"],
+    "LVA": ["latvia", "lettonie"],
+    "LIE": ["liechtenstein"],
+    "LTU": ["lithuania", "lituanie"],
+    "LUX": ["luxembourg"],
+    "MLT": ["malta", "malte"],
+    "MDA": ["moldova", "republic of moldova", "république de moldova", "moldavie"],
+    "MCO": ["monaco"],
+    "MNE": ["montenegro", "monténégro"],
+    "NLD": ["netherlands", "pays-bas"],
+    "MKD": ["north macedonia", "former yugoslav republic of macedonia", "macedonia",
+            "macédoine du nord", "ex-république yougoslave de macédoine", "fyrom"],
+    "NOR": ["norway", "norvège"],
+    "POL": ["poland", "pologne"],
+    "PRT": ["portugal"],
+    "ROU": ["romania", "roumanie"],
+    "RUS": ["russia", "russian federation", "russie", "fédération de russie"],
+    "SMR": ["san marino", "saint-marin"],
+    "SRB": ["serbia", "serbie"],
+    "SVK": ["slovakia", "slovak republic", "slovaquie"],
+    "SVN": ["slovenia", "slovénie"],
+    "ESP": ["spain", "espagne"],
+    "SWE": ["sweden", "suède"],
+    "CHE": ["switzerland", "suisse"],
+    "TUR": ["turkey", "türkiye", "turkiye", "turquie"],
+    "UKR": ["ukraine"],
+    "GBR": ["united kingdom", "uk", "u.k.", "royaume-uni", "great britain"],
+}
+_RESPONDENT_BY_NAME = {n: code for code, names in RESPONDENT_CODES.items() for n in names}
+# "Kurt v. Turkey", "Soering v UK", "Kurt c. Turquie", "X vs. Norway".
+_VERSUS_RE = re.compile(r"\s+(?:v\.?|c\.|vs\.?)\s+", re.IGNORECASE)
+
+
+def respondent_code(state: str) -> Optional[str]:
+    """ISO-3 respondent code for the text after "v." in a case name, or None.
+
+    Drops a trailing "[GC]", "(no. 2)", ", no. …" or date, and a leading
+    "the" / "la" / "l'", so "the United Kingdom (no. 2) [GC]" is GBR.
+    """
+    s = re.split(r"[\[(,]", state, maxsplit=1)[0]
+    s = re.sub(r"^(?:the|la|le|l')\s*", "", s.strip().lower())
+    s = re.sub(r"\s+", " ", s).strip(" .")
+    return _RESPONDENT_BY_NAME.get(s) or _RESPONDENT_BY_NAME.get(s.replace(".", ""))
+
+
+# HUDOC's docname search matches inside words ("Kurt" finds Bozkurt and
+# Özkurt too), so a common name can have hundreds of hits, and the case
+# wanted need not be in the first page. A name search reads up to this many
+# rows; resolve() then ranks whole-word name matches first.
+NAME_SEARCH_MAX_ROWS = 300
+_NAME_FILLER = {"and", "others", "other", "et", "autres", "the", "of"}
+
+
+def reference_query(ref: str) -> tuple[str, int, Optional[str], list[str]]:
+    """(clause, length, fallback, name) for a reference `resolve` does not
+    look up by itemid. `fallback` is a looser clause to try when `clause`
+    finds nothing (a name search without the respondent filter), else None.
+    `name` holds the applicant-name tokens of a case-name search ([] for
+    every other kind of reference)."""
+    appnos = appnos_in(ref)
+    if appnos:
+        # HUDOC indexes every appno of a joined case; the first one is enough.
+        return f'appno:"{appnos[0]}"', 50, None, []
+    if looks_like_ecli(ref):
+        # An ECLI identifies one judgment; rows differ only by language /
+        # translation, so the usual scoring picks the preferred version.
+        return f'ecli:"{ref.upper()}"', 50, None, []
+    if ":" in ref and not ref.startswith('"'):
+        # Caller already wrote a Lucene clause (e.g. `docname:"foo"`).
+        return ref, 50, None, []
+    # A case citation with its application number ("Soering v. UK, no.
+    # 14038/88, § 88"): the number is the precise key.
+    found = _APPNO_ANY_RE.findall(ref)
+    if found:
+        return f'appno:"{found[0]}"', 50, None, []
+    # Free-text case name. Build a *non-phrasal* docname clause: HUDOC's
+    # docnames are like "CASE OF FOO AND OTHERS v. THE UNITED KINGDOM", so
+    # the literal user phrase "Foo v. UK" almost never matches as an exact
+    # substring. Search for the tokens before " v. " (AND-of-tokens), and
+    # narrow by the respondent state after it: "Kurt v. Turkey" must not
+    # come back as Kurt v. Austria [GC], which the ranking would prefer.
+    parts = _VERSUS_RE.split(ref, maxsplit=1)
+    head = parts[0]
+    # Drop punctuation that breaks the Lucene parser
+    tokens = [t for t in re.findall(r"[\w'-]+", head) if len(t) > 1]
+    if not tokens:
+        tokens = re.findall(r"[\w'-]+", ref)
+    clause = " AND ".join(f'docname:{t}' for t in tokens) or f'docname:"{ref}"'
+    code = respondent_code(parts[1]) if len(parts) > 1 else None
+    # The applicant's name for ranking: every word before "v.", one-letter
+    # ones included ("A v. Norway"), never "v" or the state, and not the
+    # words that differ between the English and French title ("and Others"
+    # / "et autres").
+    name = [t for t in re.findall(r"[\w'-]+", head) if t.lower() not in _NAME_FILLER]
+    if code:
+        return f'{clause} AND respondent:"{code}"', 50, clause, name
+    return clause, 50, None, name
+
+
+def name_matches(row: dict, name: list[str]) -> bool:
+    """True if every name token is a whole word of the row's docname, so
+    "Kurt" matches CASE OF KURT v. TURKEY but not BELEK AND ÖZKURT."""
+    docname = (row.get("docname") or "").upper()
+    return all(re.search(rf"(?<!\w){re.escape(t.upper())}(?!\w)", docname) for t in name)
+
+
+def _rows_for(clause: str, length: int, name: list[str]) -> list[dict]:
+    """Rows for `clause`; for a name search, further pages up to
+    NAME_SEARCH_MAX_ROWS when HUDOC reports more hits than the first page."""
+    api = _query(clause, length=length)
+    rows = _flatten_columns(api)
+    total = int(api.get("resultcount") or 0)
+    while name and rows and len(rows) < min(total, NAME_SEARCH_MAX_ROWS):
+        page = _flatten_columns(_query(clause, start=len(rows), length=100))
+        if not page:
+            break
+        rows += page
+    return rows
 
 
 def looks_like_ecli(s: str) -> bool:
@@ -344,33 +498,13 @@ def resolve(
             raise RuntimeError(f"No HUDOC item with itemid={ref}")
         return rows[0]
 
-    if looks_like_appno(ref):
-        # Application number — usually 2-4 hits across languages
-        # Use the first appno only when there's a list; HUDOC indexes them
-        first_app = ref.split(";")[0]
-        api = _query(f'appno:"{first_app}"', length=50)
-    elif looks_like_ecli(ref):
-        # An ECLI identifies one judgment; rows differ only by language /
-        # translation, so the usual scoring picks the preferred version.
-        api = _query(f'ecli:"{ref.upper()}"', length=50)
-    elif ":" in ref and not ref.startswith('"'):
-        # Caller already wrote a Lucene clause (e.g. `docname:"foo"`).
-        api = _query(ref, length=50)
-    else:
-        # Free-text case name. Build a *non-phrasal* docname clause: HUDOC's
-        # docnames are like "CASE OF FOO AND OTHERS v. THE UNITED KINGDOM",
-        # so the literal user phrase "Foo v. UK" almost never matches as an
-        # exact substring. Strip everything after the first " v. " or " c. "
-        # and search for the remaining tokens against docname (AND-of-tokens).
-        head = re.split(r"\s+(?:v\.|c\.|vs\.?)\s+", ref, maxsplit=1)[0]
-        # Drop punctuation that breaks the Lucene parser
-        tokens = [t for t in re.findall(r"[\w'-]+", head) if len(t) > 1]
-        if not tokens:
-            tokens = re.findall(r"[\w'-]+", ref)
-        clause = " AND ".join(f'docname:{t}' for t in tokens) or f'docname:"{ref}"'
-        api = _query(clause, length=50)
+    clause, length, fallback, name = reference_query(ref)
+    rows = _rows_for(clause, length, name)
+    if not rows and fallback:
+        # The respondent filter found nothing (an unusual title, or a state
+        # coded differently): fall back to the name alone.
+        rows = _rows_for(fallback, length, name)
 
-    rows = _flatten_columns(api)
     if not rows:
         raise RuntimeError(
             f"No HUDOC item matched reference {ref!r}. Try `hudoc.py search` "
@@ -387,7 +521,9 @@ def resolve(
                 f"Pass the itemid directly to skip resolve filtering."
             )
         rows = filtered
-    rows.sort(key=lambda c: _score_candidate(c, lang_pref))
+    # Whole-word name matches first (Kurt before Özkurt), then the usual
+    # judgment > decision, GC > Chamber, language, date ranking.
+    rows.sort(key=lambda c: (not name_matches(c, name),) + _score_candidate(c, lang_pref))
     return rows[0]
 
 
