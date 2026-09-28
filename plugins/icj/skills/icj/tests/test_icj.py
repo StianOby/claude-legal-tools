@@ -54,6 +54,8 @@ TITLES = [
     (91, "Application of the Convention on the Prevention and Punishment of the Crime of Genocide (Bosnia and Herzegovina v. Serbia and Montenegro)", "Contentious"),
     (70, "Military and Paramilitary Activities in and against Nicaragua (Nicaragua v. United States of America)", "Contentious"),
     (64, "United States Diplomatic and Consular Staff in Tehran (United States of America v. Iran)", "Contentious"),
+    (105, "Legality of Use of Force (Serbia and Montenegro v. Belgium)", "Contentious"),
+    (100, "Difference Relating to Immunity from Legal Process of a Special Rapporteur of the Commission on Human Rights", "Advisory"),
 ]
 cases.list_all = lambda force_refresh=False: {
     "source_url": "x", "fetched_at": 0, "count_total": len(TITLES),
@@ -77,6 +79,9 @@ check("USA alias", ids("Nicaragua v. USA"), [70])
 check("prefix: Russia -> Russian Federation", ids("Ukraine v. Russia"), [182])
 check("accents ignored", ids("Gabcikovo"), [92])
 check("Tehran hostages", ids("Tehran hostages"), [64])
+check("full title with 'US'", ids("US Diplomatic and Consular Staff in Tehran"), [64])
+check("person's name (Cumaraswamy)", ids("Cumaraswamy"), [100])
+check("former name Yugoslavia", ids("Yugoslavia v. Belgium"), [105])
 check("the case before its interpretation", ids("Avena"), [128, 139])
 check("the cases before a later request", ids("Nuclear Tests"), [59, 58, 97])
 check("kind is searchable", ids("climate advisory"), [187])

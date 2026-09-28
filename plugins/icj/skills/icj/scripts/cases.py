@@ -235,6 +235,17 @@ NICKNAMES = {
     "genocide reservations": [12], "reservations genocide": [12],
     "nuclear weapons": [95, 93],
     "climate": [187],
+    # Named after a person or place that is not in the title.
+    "mortished": [66],
+    "cumaraswamy": [100],
+    "bakassi": [94],
+    "habre": [144],
+    "nuclear weapons who": [93], "who nuclear weapons": [93],
+    # One case is meant among several that match.
+    "namibia": [53],
+    "armed activities": [116],
+    "jurisdictional immunities": [143],
+    "south west africa": [46, 47],
 }
 # Words that say nothing about which case is meant.
 _STOP_WORDS = {"the", "a", "of", "case", "cases", "icj", "judgment", "judgement", "opinion",
@@ -246,7 +257,11 @@ _FOLLOW_UP = re.compile(
     re.IGNORECASE)
 # Short forms the titles spell out.
 _ALIASES = {"usa": "united states", "us": "united states", "uk": "united kingdom",
-            "drc": "congo", "gb": "united kingdom"}
+            "drc": "congo", "gb": "united kingdom", "cerd": "racial discrimination"}
+# Names the Court has since replaced in case titles: tried when a query
+# finds nothing ("Yugoslavia v. Belgium" is now "Serbia and Montenegro v.
+# Belgium").
+_FORMER_NAMES = {"yugoslavia": "serbia montenegro"}
 
 
 def _fold(s: str) -> str:
@@ -268,7 +283,14 @@ def search(query: str, *, force_refresh: bool = False) -> dict:
     "Russia" finds "Russian Federation". Common nicknames (NICKNAMES) put
     their case first. Returns the same shape as list_all."""
     payload = list_all(force_refresh=force_refresh)
-    words = _query_words(query)
+    out = _search_words(payload, _query_words(query), query)
+    if not out["cases"] and any(w in _FORMER_NAMES for w in _query_words(query)):
+        words = " ".join(_FORMER_NAMES.get(w, w) for w in _query_words(query)).split()
+        out = _search_words(payload, words, query)
+    return out
+
+
+def _search_words(payload: dict, words: list[str], query: str) -> dict:
     by_id = {c["case_id"]: c for c in payload["cases"]}
     hits: list[dict] = []
     # A nickname applies when the query is the nickname, give or take words
