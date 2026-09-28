@@ -352,12 +352,16 @@ NAME_TO_ISO2 = {
 
 
 def resolve_state(name_or_code: str) -> Optional[str]:
-    """Return ISO-2 for a state name or pass through a 2-letter code (lowercased)."""
+    """Return ISO-2 for a state name or pass through a 2-letter code (lowercased).
+
+    Names and aliases are looked up before a two-letter input is taken as a
+    code, so "uk" is gb (the Court's code) rather than a non-existent "uk".
+    """
     s = name_or_code.strip().lower()
-    if len(s) == 2 and s.isalpha():
-        return s
     if s in NAME_TO_ISO2:
         return NAME_TO_ISO2[s]
+    if len(s) == 2 and s.isalpha():
+        return s
     # Try a unique prefix match.
     matches = [code for name, code in NAME_TO_ISO2.items() if name.startswith(s)]
     matches = list(set(matches))

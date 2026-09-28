@@ -43,9 +43,10 @@ The CLI entry point is `scripts/icj.py`. Run `python3 scripts/icj.py --help` for
 
 Jurisdiction pages (the seven `/index.php/...` pages listed below) and the per-state declaration texts change over time as states deposit new declarations, terminate them, or amend reservations. The skill keeps a local cache and offers explicit freshness controls so you don't silently serve stale answers:
 
-- `python scripts/icj.py status` — print, for every cached page, when it was last fetched, the server's `Last-Modified` header (if any), and whether a HEAD request now reports the resource as changed.
-- `python scripts/icj.py refresh` — re-fetch any page that has changed (or all pages if `--all` is passed). Updates the cache and the manifest atomically.
-- The default TTL for jurisdiction data is 14 days. After that, every read prints a "stale, consider refreshing" notice on stderr but still returns the cached value.
+- `python scripts/icj.py status` — for every cached jurisdiction and declaration page: when it was last fetched, the server's `Last-Modified` header (if any), and whether a HEAD request now reports it as changed. Then one line on the other cached pages (case lists, case pages, PCIJ pages).
+- `python scripts/icj.py refresh` — re-fetch the jurisdiction and declaration pages that have changed. `refresh --all` re-fetches every cached page, case pages included.
+- Jurisdiction and declaration pages are cached for 14 days, then re-fetched on the next read.
+- Case lists (`list-of-all-cases`, `pending-cases`, `decisions`) and case pages are cached for **one day**, so a new order in a pending case, or a case moving from pending to concluded, shows up the next day. For something from today, pass `--force-refresh`.
 
 When the user asks a question that hinges on the *current* state of jurisdiction (e.g., "does Iceland still accept compulsory jurisdiction"), run `status` first; if anything is stale or changed, run `refresh` before answering. When the question is about historical facts (e.g., what the Lotus judgment said), the cache age does not matter — case-law PDFs at `icj-cij.org` are immutable.
 
@@ -58,7 +59,7 @@ The CLI groups functionality by data type. Each subcommand prints either machine
 - `cases list [--pending] [--year YYYY] [--country XX] [--advisory] [--contentious]` — list the Court's cases. The site's `list-of-all-cases` page holds only *concluded* cases (with years and type); pending cases live on `pending-cases` with title only. The default merges both (pending entries carry `"pending": true`, blank years, and a case type inferred from the title); `--pending` shows only the pending ones.
 - `cases show <case_id>` — show a case: title and links to all judgments / orders / advisory opinions / summaries / press releases / institution documents, grouped by section. The documents are read from the per-section subpages (`/case/<N>/orders`, `/judgments`, `/press-releases`, `/institution-proceedings`, `/summaries`, `/other-documents`, and for advisory cases `/request-advisory-opinion`, `/advisory-opinions`) — the case page itself only lists "latest developments". **Pleadings and oral proceedings are intentionally omitted** unless you pass `--include-pleadings` (see "Out of scope" below).
 - `cases recent [--limit N]` — the latest decisions across all cases (mirrors the `/decisions` page).
-- `cases search "query"` — substring search over case titles in the cache.
+- `cases search "query"` — word search over case titles: every word must start a word of the title, in any order, ignoring accents and case, so `"Bosnia Genocide"`, `"Ukraine v. Russia"` (Russian Federation), `"Gabcikovo"` and `"Nicaragua v. USA"` all work. Common nicknames whose words are not in the title (`"Israeli Wall"`, `"Tehran hostages"`, `"Yerodia"`, `"Rohingya"`, `"Nicaragua"` for Military and Paramilitary Activities) put that case first. PCIJ cases (Lotus, Chorzów) are not here — use `pcij list`.
 
 ### `pcij` — Permanent Court of International Justice (1922-1946)
 
@@ -109,13 +110,19 @@ Direct HTTP requests to `icj-cij.org` PDF URLs — via `curl`, `urllib` or any s
 
 1. Get the PDF URL from `cases show <N>` or `pcij show <code>`.
 2. In the internal browser, first open the HTML case page (e.g. `https://www.icj-cij.org/case/82`) so the Cloudflare cookies are set, then open the PDF URL in the same browser session. The built-in PDF viewer renders the text; read and quote from it there, with the paragraph numbers.
-3. If the user needs the file itself, save it from the browser (download) or, where the browser tool can run page scripts, fetch it as base64 from the case page context and write the decoded bytes to a `.pdf` file:
-   ```javascript
-   const r = await fetch(pdfUrl, { credentials: 'include' });
-   const buf = await r.arrayBuffer();
-   return btoa(String.fromCharCode(...new Uint8Array(buf)));
-   ```
-   then `base64.b64decode(...)` in Python and read the PDF with a PDF tool.
+3. If the user needs the file itself, save it from the browser (download). Where the browser tool can only run page scripts, copy it across in pieces — one reply from the browser tool holds only about 45,000 characters, and a judgment PDF is typically 0.5–5 MB (0.7–7 MB as base64):
+   - From the case page, load the PDF into the tab and report its size:
+     ```javascript
+     const r = await fetch(pdfUrl, { credentials: 'include' });
+     const blob = await r.blob();
+     window.__pdf = await new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result.split(',')[1]); f.readAsDataURL(blob); });
+     ({ status: r.status, type: blob.type, bytes: blob.size, chunks: Math.ceil(window.__pdf.length / 40000) })
+     ```
+     `type` must be `application/pdf`; `text/html` means Cloudflare answered instead — open the case page first and try again.
+   - For `i` = 0 … `chunks`−1, get `window.__pdf.slice(i * 40000, (i + 1) * 40000)` and append it to `outputs/<name>.b64` with bash (`printf '%s' '<chunk>' >> …`).
+   - Then `base64 -d outputs/<name>.b64 > outputs/<name>.pdf` and check the page count with a PDF tool.
+
+   Tell the user up front how many calls it takes; for reading and quoting, the PDF viewer (step 2) is much quicker.
 
 If no browser tool is available in the session, give the user the PDF URL and quote only what `cases show` / the summaries page provides; do not reconstruct judgment text from memory.
 
@@ -126,7 +133,7 @@ This skill does not expose:
 - **Pleadings, written observations, counter-memorials, or verbatim records of oral hearings.** Even when present in a case page, they are filtered out of `cases show` output. A separate skill will handle hearing documents.
 - **PDF text extraction via simple HTTP.** Direct download from icj-cij.org is blocked by Cloudflare; read PDFs through the Claude Cowork internal browser as described in **Fetching PDF text** above.
 - **Translation.** Documents are surfaced in English by default. French URLs are noted when present but not parsed.
-- **Live-scraping every request.** Jurisdiction data goes through the cache; case data is fetched on demand and cached briefly. The user-facing freshness contract is described above.
+- **Live-scraping every request.** Jurisdiction data is cached for 14 days, case lists and case pages for one day. The user-facing freshness contract is described above.
 
 ## File layout
 
@@ -147,6 +154,7 @@ icj/
 │   ├── declaration-analysis.md   # how to compare two declarations (Norway-Finland worked example)
 │   ├── pcij-series.md            # Series A/B/A/B/C/D/E/F overview
 │   └── data-codes.md             # ISO-2 codes, document-type codes used in PDF filenames
+└── tests/test_icj.py         # offline tests: python tests/test_icj.py
                                # runtime cache: ~/.cache/icj/ (or $ICJ_CACHE_DIR)
 ```
 

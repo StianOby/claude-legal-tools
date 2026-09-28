@@ -7,8 +7,8 @@ Subcommands:
   pcij  list|show                         Permanent Court of International Justice
   jurisdiction states|non-un|non-parties|basis|treaties|organs
   declarations list|show|compare          Article 36(2) optional-clause declarations
-  status                                  Show cache freshness for jurisdiction pages
-  refresh                                 Re-fetch jurisdiction pages
+  status                                  Show cache freshness (jurisdiction pages HEAD-checked)
+  refresh [--all]                         Re-fetch changed jurisdiction pages (--all: everything cached)
 
 Common flags:
   --json                                  Emit JSON instead of human prose
@@ -175,6 +175,28 @@ def _print_freshness(reports):
         print(f"  {flag:<8} {r['url']}  age={r['age_days']}d  head={r.get('head_status')}{reason}")
 
 
+def _case_page_summary(manifest, jurisdiction_urls):
+    """Cached pages outside the jurisdiction set: the case lists, case pages
+    and PCIJ pages. They are not HEAD-checked (there can be hundreds); case
+    pages and lists simply expire after cases_mod.CASE_TTL."""
+    now = time.time()
+    ages = sorted(round((now - e.fetched_at) / 86400, 1)
+                  for u, e in manifest.items() if u not in jurisdiction_urls)
+    return {"count": len(ages), "oldest_days": ages[-1] if ages else None,
+            "ttl_days": cases_mod.CASE_TTL / 86400}
+
+
+def _print_status(payload):
+    print("Jurisdiction and declaration pages (14-day cache, HEAD-checked):")
+    _print_freshness(payload["jurisdiction_pages"])
+    cp = payload["case_pages"]
+    print()
+    print(f"Case lists, case pages and PCIJ pages: {cp['count']} cached"
+          + (f", oldest {cp['oldest_days']} days" if cp["count"] else "")
+          + f". Case pages and lists are re-fetched after {cp['ttl_days']:g} day; "
+            "`refresh --all` re-fetches everything now.")
+
+
 # --- Argument parsing ---------------------------------------------------
 
 def _add_common_flags(p):
@@ -183,6 +205,18 @@ def _add_common_flags(p):
 
 
 def main(argv=None):
+    """Run the CLI; a failed fetch is one line on stderr and exit status 1,
+    not a traceback."""
+    try:
+        return _main(argv)
+    except RuntimeError as e:  # http_get's error after its retries
+        sys.stderr.write(f"icj: error: {e}\n")
+        return 1
+    except KeyboardInterrupt:
+        return 130
+
+
+def _main(argv=None):
     parser = argparse.ArgumentParser(prog="icj", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -191,7 +225,8 @@ def main(argv=None):
 
     p_refresh = sub.add_parser("refresh", help="re-fetch jurisdiction pages that have changed")
     p_refresh.add_argument("--all", action="store_true",
-                           help="refresh every page, not just changed ones")
+                           help="re-fetch every cached page (case pages and lists included), "
+                                "not just changed jurisdiction pages")
     p_refresh.add_argument("--json", action="store_true")
 
     p_cases = sub.add_parser("cases")
@@ -259,7 +294,8 @@ def main(argv=None):
         manifest = _load_manifest()
         urls = urls + sorted(u for u in manifest.keys() if "/declarations/" in u and u not in urls)
         rep = freshness_report(urls)
-        emit(rep, as_json=args.json, human_fn=_print_freshness)
+        payload = {"jurisdiction_pages": rep, "case_pages": _case_page_summary(manifest, urls)}
+        emit(payload, as_json=args.json, human_fn=_print_status)
         return 0
 
     if args.cmd == "refresh":
@@ -268,7 +304,9 @@ def main(argv=None):
         manifest = _load_manifest()
         urls = urls + sorted(u for u in manifest.keys() if "/declarations/" in u and u not in urls)
         if args.all:
-            targets = urls
+            # Everything cached: jurisdiction and declaration pages, and the
+            # case lists and case pages (which otherwise expire after a day).
+            targets = urls + sorted(u for u in manifest.keys() if u not in urls)
         else:
             rep = freshness_report(urls)
             targets = [r["url"] for r in rep if r.get("changed")]
@@ -347,6 +385,8 @@ def main(argv=None):
         elif args.sub == "show":
             payload = decl_mod.show(args.state, force_refresh=args.force_refresh)
             emit(payload, as_json=args.json, human_fn=_print_decl_show)
+            if "error" in payload:
+                return 1
         elif args.sub == "compare":
             payload = decl_mod.compare(args.states, force_refresh=args.force_refresh)
             emit(payload, as_json=args.json, human_fn=_print_decl_compare)

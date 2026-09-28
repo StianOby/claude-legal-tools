@@ -46,6 +46,9 @@ Standard library only (Python 3.9+); nothing to install.
 `~/.cache/icj/` (or `$ICJ_CACHE_DIR`) holds scraped HTML keyed by URL with
 a manifest tracking `fetched_at`, `Last-Modified`, `ETag`, and a SHA-256 of
 the body. Nothing is written inside the skill folder.
-`status` does HEAD requests against the cached URLs to flag changes;
-`refresh` re-downloads anything stale (or `--all` for everything). Default
-TTL: 14 days.
+`status` does HEAD requests against the cached jurisdiction and declaration
+pages to flag changes; `refresh` re-downloads the changed ones (`--all`
+re-downloads every cached page). Jurisdiction and declaration pages are
+cached for 14 days; case lists and case pages for one day.
+
+Tests (offline): `python tests/test_icj.py`.

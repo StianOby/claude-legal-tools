@@ -30,15 +30,25 @@ names, so section membership is decided by the subpage, not the file name.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Optional
 from urllib.parse import urljoin
 
-from _common import BASE, fetch_cached
+from _common import BASE, fetch_cached as _fetch_cached
 from _html import Node, main_content, parse
 
 LIST_ALL_URL = f"{BASE}/index.php/list-of-all-cases"
 DECISIONS_URL = f"{BASE}/index.php/decisions"
 PENDING_URL = f"{BASE}/index.php/pending-cases"
+
+# Case pages and the case lists change as the Court works (new orders in a
+# pending case, a case moving from pending to concluded, a new decision), so
+# they are cached for a day, not the 14 days used for jurisdiction pages.
+CASE_TTL = 24 * 3600
+
+
+def fetch_cached(url: str, *, force_refresh: bool = False):
+    return _fetch_cached(url, force_refresh=force_refresh, ttl=CASE_TTL)
 
 
 # Document types we expose. Anything else (mem, cmem, rep, rej, cr, ...)
@@ -205,13 +215,83 @@ def list_all(*, force_refresh: bool = False, year: Optional[int] = None,
     }
 
 
+# Names people use for cases whose official title does not contain the
+# words ("Israeli Wall" is "Legal Consequences of the Construction of a Wall
+# in the Occupied Palestinian Territory"), or where one case is meant among
+# many that match ("Nicaragua" alone is Military and Paramilitary
+# Activities). Keys are compared after _fold() and stop-word removal; the
+# listed cases come first, in this order, before ordinary word matches.
+NICKNAMES = {
+    "israeli wall": [131], "wall": [131], "separation wall": [131], "separation barrier": [131],
+    "nicaragua": [70], "nicaragua united states": [70],
+    "tehran hostages": [64], "hostages": [64], "iran hostages": [64],
+    "yerodia": [121],
+    "rohingya": [178], "myanmar genocide": [178],
+    "bosnian genocide": [91], "bosnia genocide": [91],
+    "opt": [186], "palestine": [186, 131], "israel palestine": [186, 131],
+    "anglo norwegian fisheries": [5], "norwegian fisheries": [5],
+    "icelandic fisheries": [55, 56],
+    "bernadotte": [4],
+    "genocide reservations": [12], "reservations genocide": [12],
+    "nuclear weapons": [95, 93],
+    "climate": [187],
+}
+# Words that say nothing about which case is meant.
+_STOP_WORDS = {"the", "a", "of", "case", "cases", "icj", "judgment", "judgement", "opinion",
+               "v", "vs", "versus", "and", "in", "re", "concerning", "sak", "saken", "dom"}
+# Titles of proceedings that follow up an earlier case (interpretation,
+# revision, examination of the situation); ranked after the case itself.
+_FOLLOW_UP = re.compile(
+    r"(?:Request for (?:an )?(?:Interpretation|Examination)|Application for (?:Revision|Interpretation))\b",
+    re.IGNORECASE)
+# Short forms the titles spell out.
+_ALIASES = {"usa": "united states", "us": "united states", "uk": "united kingdom",
+            "drc": "congo", "gb": "united kingdom"}
+
+
+def _fold(s: str) -> str:
+    """Lower-case, accents removed ("Gabčíkovo" -> "gabcikovo")."""
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in s if not unicodedata.combining(ch)).lower()
+
+
+def _query_words(query: str) -> list[str]:
+    words = [_ALIASES.get(w, w) for w in re.findall(r"[a-z0-9]+", _fold(query))]
+    return [w for w in " ".join(words).split() if w not in _STOP_WORDS]
+
+
 def search(query: str, *, force_refresh: bool = False) -> dict:
-    """Substring search over case titles. Returns the same shape as list_all
-    so the same printer can render it."""
+    """Word search over case titles (and case type). Every word of the query
+    must start a word of the title, in any order and ignoring accents, so
+    "Bosnia Genocide" finds Application of the Convention on the Prevention
+    and Punishment of the Crime of Genocide (Bosnia and Herzegovina v. …) and
+    "Russia" finds "Russian Federation". Common nicknames (NICKNAMES) put
+    their case first. Returns the same shape as list_all."""
     payload = list_all(force_refresh=force_refresh)
-    q = query.lower()
-    hits = [c for c in payload["cases"] if q in c["title"].lower()]
-    return {
+    words = _query_words(query)
+    by_id = {c["case_id"]: c for c in payload["cases"]}
+    hits: list[dict] = []
+    # A nickname applies when the query is the nickname, give or take words
+    # for the kind of case ("Israeli Wall advisory opinion"); "Nicaragua v.
+    # Colombia" is not the "Nicaragua" nickname.
+    rest = [w for w in words if w not in ("advisory", "contentious")]
+    for cid in NICKNAMES.get(" ".join(rest), []):
+        if cid in by_id:
+            hits.append({**by_id[cid], "matched_by": "nickname"})
+    seen = {c["case_id"] for c in hits}
+    if words:
+        matched = []
+        for c in payload["cases"]:
+            if c["case_id"] in seen:
+                continue
+            title_words = re.findall(r"[a-z0-9]+", _fold(c["title"] + " " + c["kind"]))
+            if all(any(t.startswith(w) for t in title_words) for w in words):
+                matched.append(c)
+        # The case itself before later proceedings about it: "Avena" is the
+        # 2004 judgment, not the 2008 Request for Interpretation.
+        matched.sort(key=lambda c: bool(_FOLLOW_UP.match(c["title"])))
+        hits += matched
+    out = {
         "source_url": payload["source_url"],
         "fetched_at": payload["fetched_at"],
         "query": query,
@@ -219,6 +299,11 @@ def search(query: str, *, force_refresh: bool = False) -> dict:
         "count_returned": len(hits),
         "cases": hits,
     }
+    if not hits:
+        out["hint"] = ("no ICJ case title has all of these words. PCIJ cases (Lotus, Chorzów, "
+                       "Eastern Greenland …) are under `pcij list`; otherwise try fewer or "
+                       "different words, e.g. a party name")
+    return out
 
 
 # --- /case/<N> ----------------------------------------------------------
@@ -293,7 +378,8 @@ def show(case_id: int, *, force_refresh: bool = False,
         section, items = _parse_section_page(sub_html)
         # Procedural sub-collections reuse the generic "Written proceedings"
         # heading; name them by their slug instead so the output is unambiguous.
-        if slug in ("provisional-measures", "intervention", "discontinuance") or not section:
+        if slug in ("provisional-measures", "preliminary-objections", "intervention",
+                    "discontinuance") or not section:
             section = slug.replace("-", " ").capitalize()
         rec = {"section": section, "slug": slug, "url": sub_url, "items": items}
         if slug in PLEADING_SUBPAGES:

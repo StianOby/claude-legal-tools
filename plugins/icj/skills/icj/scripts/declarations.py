@@ -99,7 +99,15 @@ def show(name_or_code: str, *, force_refresh: bool = False) -> dict:
                 "hint": "Pass an ISO-2 code (no, fi, gb) or check `declarations list`.",
             }
     url = _per_state_url(cc)
-    html, entry, _ = fetch_cached(url, force_refresh=force_refresh)
+    try:
+        html, entry, _ = fetch_cached(url, force_refresh=force_refresh)
+    except RuntimeError as e:
+        # Usually a 404: a two-letter code with no declaration behind it.
+        return {
+            "error": f"no declaration page for {name_or_code!r} ({cc}): {e}",
+            "hint": "That state may not have a declaration in force. See `declarations list` "
+                    "for the states and their codes (the United Kingdom is gb).",
+        }
     main = main_content(parse(html))
     # The declaration text sits inside the page body, after the H1
     # (which is generic) and an H3 with the state name.
