@@ -140,8 +140,10 @@ with open(pdf, "wb") as fh:
 print(pdf)
 ```
 
-Keep each Python call under ~40 s; `/tmp` is wiped if the sandbox restarts
-after a timeout.
+Keep each Python call inside the bash tool's timeout (default 120 s; pass
+up to 600 s for a long book). Do not count on `/tmp` or `~` surviving
+to the next call in Cowork; keep anything you need later under the outputs
+directory.
 
 ---
 

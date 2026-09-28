@@ -390,8 +390,10 @@ range (≤ 7 pages of `digibok_*`).
 > - A short batch: `--start 10 --stop 16`
 > - Full book: omit both flags
 
-> **The 45 s bash timeout is a default, not a ceiling — raise it instead of
-> splitting the work.** The bash tool takes an explicit timeout (up to ~600 s);
+> **The bash tool's timeout is a default, not a ceiling — raise it instead of
+> splitting the work.** The default is 120 s (45 s in earlier Cowork builds),
+> and the tool takes an explicit timeout up to 600 s (verified 2026-09-28: a
+> 120 s job ran to completion with `timeout` 300000 ms);
 > pass it and a long download runs to completion in one call. A full
 > 173-canvas tiled book took ~40 s wall in one foreground call. Only fall back
 > to `--start`/`--stop` batching when a job genuinely cannot fit in the raised
@@ -605,8 +607,8 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   exists there. Switch to `--out /tmp/nbno_out` and copy afterward with
   `shutil.copy2`.
 - *Wrapper times out / PDF not created.* The bash call hit its timeout. The
-  45 s default is not a ceiling — re-run passing an explicit timeout (up to
-  ~600 s) before narrowing the `--start`/`--stop` range. Backgrounding with
+  default is not a ceiling — re-run passing an explicit timeout (up to
+  600 s) before narrowing the `--start`/`--stop` range. Backgrounding with
   `nohup … &` does **not** work: the process dies when the call returns.
 - *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque; ask for
   the Referere/Sitere string (URN) instead. Don't guess.
@@ -631,18 +633,20 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   language you requested — `nno` is missing from many sandboxes. (OCR setup
   detailed in [`reading-ocr.md`](reading-ocr.md).)
 - *`ocrmypdf: command not found` between bash calls.* `~/.local/bin` is
-  wiped in Cowork between calls. The orchestrator installs to
+  wiped between calls in Cowork (not every time, so never rely on it). The
+  orchestrator installs to
   `<--out>/_pylib/` and prepends `<--out>/_pylib/bin` to `PATH`
   automatically; if you're running ocrmypdf by hand, install with
   `pip install --target outputs/_pylib --break-system-packages ocrmypdf`
   and `export PATH="outputs/_pylib/bin:$PATH"
   PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
-- *Single ocrmypdf call times out at 45 s on a long book.* Use
+- *Single ocrmypdf call times out on a long book* (even with the timeout
+  raised to 600 s). Use
   `scripts/ocr_chunked.py`, calling the bash tool **repeatedly** (one
   invocation per call; re-run on exit 2, stop on exit 0) — same OCR quality,
   per-page cache, makes progress every call. Do **not** wrap it in a
-  single-call `until … ; do … ; done` loop: one invocation can itself exceed
-  45 s, so the loop times out on its first iteration and never re-runs.
+  single-call `until … ; do … ; done` loop: the whole loop then has to fit
+  one call's timeout, which is exactly what a long book does not do.
 - *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
   Run `scripts/shrink_pdf.py --pdf book.pdf` (or re-run `zotero_book.py`
   with `--shrink`) to JPEG-recompress the embedded images in place. The

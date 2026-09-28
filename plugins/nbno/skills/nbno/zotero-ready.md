@@ -66,14 +66,15 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    - Auto-installs `ocrmypdf` to a persistent pip --target so the binary
      survives across Cowork bash invocations. By default the target is
      `<--out>/_pylib`; override with `NBNO_PYLIB=/some/path`. `~/.local/`
-     would be wiped between bash calls and is not used.
+     is not used: Cowork wipes it between bash calls.
    - System packages required: `tesseract-ocr`, `tesseract-ocr-nor`, and
      ideally `tesseract-ocr-nno`. The `nno` pack is missing in some Cowork
      sandboxes — `tesseract_preflight()` drops it and warns; if none of the
      requested packs is installed it falls back to `eng` (see
      `reading-ocr.md`).
    - Uses `--skip-text` so already-OCRed pages aren't re-processed.
-   - Pass `--no-ocr` to skip. For books too big for the 45 s sandbox, use
+   - Pass `--no-ocr` to skip. For books whose OCR does not fit one bash call
+     (even at the 600 s maximum timeout), use
      `scripts/ocr_chunked.py` separately after the download — same quality,
      resumable per-page cache.
 7. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
@@ -188,8 +189,9 @@ and has no role in the final deliverable.
 
 ## Sandbox notes
 
-- **The 45-second bash timeout is a default, not a ceiling.** Pass the bash
-  tool an explicit timeout (up to ~600 s) and `zotero_book.py` runs to
+- **The bash timeout is a default, not a ceiling** (120 s; 45 s in earlier
+  Cowork builds). Pass the bash tool an explicit timeout (up to 600 s) and
+  `zotero_book.py` runs to
   completion in one call — a 173-canvas tiled book downloaded in ~40 s wall.
   Reach for splitting only when a job cannot fit even then, which in practice
   means OCR rather than download: use `--no-ocr` for the download call and

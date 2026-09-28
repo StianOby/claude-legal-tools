@@ -81,8 +81,9 @@ machine-readable text rather than a visual check.
 
 ### OCR for whole books — `ocr_chunked.py`
 
-`scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf designed
-for the 45-second Cowork bash limit:
+`scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf for books
+whose OCR does not fit one bash call, even with the tool's timeout raised to
+its 600 s maximum:
 
 1. Split input into per-page PDFs (cached under
    `<pdf_dir>/.ocr_cache/<stem>/<hash>/pages/`).
@@ -110,17 +111,18 @@ more workers than that thrash the CPU (a 2-vCPU sandbox with `--jobs 4`
 went from ~4 s to ~24 s per page, with complete stalls).
 
 > **⛔ Do NOT wrap this in a single-call `until … ; do … ; done` loop.**
-> A single `ocr_chunked.py` invocation can itself exceed the 45 s sandbox
-> timeout (one page's OCR may run past the `--time-budget`, which is only
-> checked *between* pages). If you put the loop inside one bash call, that
-> first iteration blows the tool timeout and you never regain control to
-> re-invoke — the loop never iterates.
+> The loop would have to finish inside one bash call's timeout, which is
+> the very limit the chunking exists to get around; when it runs out, you
+> lose control mid-loop with no report of how far it got.
 >
 > The correct Cowork pattern is to **call the bash tool repeatedly, once per
 > iteration**, inspecting the exit code (and progress output) between calls:
 > re-run on exit 2, stop on exit 0. The per-page cache survives between
 > calls, so every invocation makes forward progress. Keep `--time-budget`
-> safely under the tool timeout (35 is a good default for a 45 s limit).
+> safely under the tool timeout: one page's OCR can run past the budget,
+which is only checked *between* pages. The default 35 s suits any timeout;
+with the timeout raised you may pass a larger budget (e.g. 240 with a 300 s
+timeout) for fewer calls.
 
 Quality is identical to a single-shot ocrmypdf run because each page goes
 through the same pipeline; only the orchestration is chunked. The cache key

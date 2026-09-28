@@ -1041,7 +1041,7 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
     The nno pack is missing in some Cowork sandboxes; tesseract_preflight()
     will warn and degrade to nor in that case.
 
-    For books that won't fit a 45s sandbox window, use ocr_chunked.py instead.
+    For books whose OCR won't fit one bash call, use ocr_chunked.py instead.
     """
     binary = _which_in_pylib("ocrmypdf")
     if binary is None:

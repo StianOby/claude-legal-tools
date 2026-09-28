@@ -190,8 +190,9 @@ The key may itself contain underscores — newspaper issues are
 numbers. On a first run, download canvases 1–7 and inspect the page footer to
 determine the offset between canvas numbers and printed pages.
 
-In a Cowork bash sandbox the 45 s bash timeout is a *default*: pass an
-explicit timeout (up to ~600 s) and a full book downloads in one call. If you
+In a Cowork bash sandbox the bash timeout is a *default* (120 s; 45 s in
+earlier builds): pass an explicit timeout (up to 600 s) and a full book
+downloads in one call. If you
 do batch, each batch has ~25 s startup overhead and each page adds ~1–2 s. Always
 write output to `/tmp`, not a mounted workspace directory — files in mounted
 directories cannot be overwritten from bash.

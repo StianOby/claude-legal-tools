@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ocr_chunked.py — OCR a PDF in resumable chunks that fit the 45s Cowork bash
-sandbox.
+ocr_chunked.py — OCR a PDF in resumable chunks, each of which fits one Cowork
+bash call (default timeout 120 s, 45 s in earlier builds; at most 600 s).
 
 Splits the input PDF into single-page PDFs, OCRs each with ocrmypdf
 (--skip-text, full preprocessing — same quality as a one-shot ocrmypdf run),
@@ -333,7 +333,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "<pdf_dir>/.ocr_cache/<pdf_stem>/<hash>).")
     ap.add_argument("--time-budget", type=float, default=35.0,
                     help="Stop launching new pages after this many seconds "
-                         "(default: 35; leaves headroom under a 45s sandbox).")
+                         "(default: 35; leaves headroom under any bash timeout — "
+                         "raise it along with the timeout for fewer calls).")
     ap.add_argument("--jobs", type=int, default=None,
                     help="Parallel ocrmypdf workers (default: half the "
                          "usable CPUs, at most 4 — 1 on a 2-vCPU sandbox).")
