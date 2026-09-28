@@ -1,7 +1,7 @@
 ---
 name: eurlex
 description: |
-  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62014CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/14, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (mcp__eurlex__* or mcp__plugin_eurlex_eurlex__* tools, must be installed) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
+  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (mcp__eurlex__* or mcp__plugin_eurlex_eurlex__* tools, must be installed) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
 # eurlex — using the EUR-Lex MCP well
@@ -44,7 +44,7 @@ The MCP takes CELEX everywhere, plus ECLI in `eurlex_case_law` and ELI /
 OJ references for legislation. Convert what the user gives you:
 
 - **Case number → CELEX (sector 6):** `6` + 4-digit year + type + number
-  padded to 4 digits. `C-131/14` → `62014CJ0131`. Court of Justice:
+  padded to 4 digits. `C-131/12` → `62012CJ0131`. Court of Justice:
   `CJ` judgment, `CO` order, `CC` Advocate General opinion. General Court:
   `TJ` judgment, `TO` order. Joined cases use the first number. Old cases
   keep their real year: `26/62` (Van Gend en Loos) → `61962CJ0026`.
@@ -108,14 +108,14 @@ language is also printed at the end of the judgment) and quote both.
 - **Truly absent from Cellar** (some early orders, unpublished AG opinions,
   material from before electronic publication): say so and give the
   InfoCuria search URL for the user to check manually:
-  `https://curia.europa.eu/juris/liste.jsf?num=C-131%2F14&language=EN`.
+  `https://curia.europa.eu/juris/liste.jsf?num=C-131%2F12&language=EN`.
   Do not guess text.
 
 ## Citing
 
-- Case law: *Case C‑131/14 Google Spain, ECLI:EU:C:2014:317, para 80.* Give
+- Case law: *Case C‑131/12 Google Spain, ECLI:EU:C:2014:317, para 80.* Give
   the ECLI (from `eurlex_case_law`/`eurlex_metadata`) and the EUR-Lex URL
-  `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62014CJ0131`.
+  `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62012CJ0131`.
 - Legislation: article + paragraph + the act's full title once, then short
   title; for consolidated text add "as consolidated on <consolidation_date>".
 - Match the user's language in your reply but keep quotes in the language
