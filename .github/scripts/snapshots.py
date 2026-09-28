@@ -2,7 +2,7 @@
 """Keep the checked-in data snapshots (snapshots.json) from going stale.
 
   snapshots.py check            list snapshots, exit 1 if any is stale
-  snapshots.py check --quiet    print only stale ones (used by the pre-commit hook)
+  snapshots.py check --quiet    print only stale ones
   snapshots.py refresh NAME     run the snapshot's refresh command, show the
                                 before/after record count, stamp today's date
   snapshots.py refresh --all    refresh every snapshot that has a command

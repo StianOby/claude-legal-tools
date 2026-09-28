@@ -55,22 +55,19 @@ Rules:
   skill name are always the same. The `skills` path must be a *parent* of the
   `SKILL.md` directory, which is why there are two levels.
 - **Every commit that touches a plugin's files must bump `version` in
-  `plugins/<name>/.claude-plugin/plugin.json`.** Claude Code caches plugins by
+  `plugins/<name>/.claude-plugin/plugin.json` by hand** (patch for ordinary
+  changes, minor/major for notable ones). Claude Code caches plugins by
   version and users only receive updates when it changes. (Cowork's Update
   re-fetches the repo regardless of version — verified 2026-09-12 — so the
-  bump is for Claude Code users.) This is automated:
-  - `.githooks/pre-commit` bumps the patch version of every plugin with
-    staged changes. Enable it once per clone with
-    `git config core.hooksPath .githooks`. Bump minor/major by hand for
-    notable changes; the hook leaves a manually changed version alone.
-  - CI (`validate.yml` → `.github/scripts/check-plugin-versions.sh`) fails a
-    PR or push where a plugin changed without a version change.
+  bump is for Claude Code users.) CI (`validate.yml` →
+  `.github/scripts/check-plugin-versions.sh`) fails a PR or push where a
+  plugin changed without a version change.
 - Browser helpers pasted into a tab (`scripts/browser/*.js`: lovdata-pro,
   eu-agreements-treaties, nbno) carry `const HELPER_VERSION = '<plugin
   version>'`. Re-pasting the same version is a no-op; a tab still holding an
-  older helper gets it replaced. The pre-commit hook stamps the new version
-  into every staged helper, and CI fails a changed helper whose
-  `HELPER_VERSION` differs from its plugin's version.
+  older helper gets it replaced. When you change a helper, set its
+  `HELPER_VERSION` to the plugin's new version by hand; CI fails a changed
+  helper whose `HELPER_VERSION` differs from its plugin's version.
 - Never put `version` in the marketplace.json entries — it belongs in
   `plugin.json` only.
 - Add new plugins to `.claude-plugin/marketplace.json` with
@@ -94,9 +91,9 @@ The routine — no fixed schedule, just a check whenever the skills are
 being worked on:
 
 1. **At the start of any session that will change files under `plugins/`,
-   run `.github/scripts/snapshots.py check`.** The pre-commit hook and CI
-   run the same check and print a warning for anything older than
-   `max_age_days` (30); neither blocks.
+   run `.github/scripts/snapshots.py check`.** CI runs the same
+   check and prints a warning for anything older than `max_age_days` (30);
+   it does not block.
 2. If a snapshot is stale and has a `refresh` command, refresh it with
    `.github/scripts/snapshots.py refresh <name>` (or `--all`). The script
    runs the command, prints the before/after record count, refuses to stamp

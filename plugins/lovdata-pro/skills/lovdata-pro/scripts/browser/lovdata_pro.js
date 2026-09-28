@@ -14,11 +14,11 @@
 // {error: 'not_logged_in' | 'not_found' | 'collection_mismatch' | 'cors' | 'http_<n>', detail}.
 
 // HELPER_VERSION follows the plugin version and changes whenever this file
-// does (the pre-commit hook stamps it; CI checks it). A helper of another
+// does (bump it by hand; CI checks it). A helper of another
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.0.1';
+  const HELPER_VERSION = '1.0.2';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
