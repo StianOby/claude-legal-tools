@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.0.4';
+  const HELPER_VERSION = '1.1.1';
   if (window.__nb && window.__nb.VERSION === HELPER_VERSION) return;
   window.__nb = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
