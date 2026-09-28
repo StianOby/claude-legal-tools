@@ -292,10 +292,21 @@ python {SKILL_DIR}/scripts/traktater.py article "1951-07-28-1" "33"
 ```
 
 Aksepterer både romertall (I, II, III, …) og arabiske tall, med eller uten
-prefikset «Artikkel». Returnerer artikkelteksten alene, inkludert alle ledd
-og bokstavpunkter. Bokstav- og nummerpunkter kommer på egne linjer med
-markøren bevart («a. å drepe medlemmer av gruppen;»), slik at «artikkel II
-bokstav a» kan siteres presist.
+prefiks («Artikkel», «art.», engelsk «Article»). Returnerer artikkelteksten
+alene, inkludert alle ledd og bokstavpunkter. Bokstav- og nummerpunkter
+kommer på egne linjer med markøren bevart («a. å drepe medlemmer av
+gruppen;»), slik at «artikkel II bokstav a» kan siteres presist.
+
+**Underartikler** som «1 A», «4a» eller «8 bis» er hos Lovdata normalt ledd
+inne i artikkelen, ikke egne blokker. Scriptet prøver underartikkelen først
+og faller ellers tilbake på hele artikkelen (Flyktningkonvensjonen «1 A» gir
+hele artikkel 1), med en merknad på stderr. Finn leddet i teksten og sitér
+bare det.
+
+Når samme artikkelnummer finnes flere ganger i dokumentet (en avtale med
+protokoller eller vedlegg), har den andre forekomsten nøkkelen `1_1`, den
+tredje `1_2` osv. Artikkellisten i feilmeldingen står i dokumentets
+rekkefølge, så du ser hvilken del hvert nummer hører til.
 
 ### Sjekk hva scriptet kan finne
 
@@ -560,8 +571,9 @@ og spør brukeren hvilken hvis det er flertydig.
   status 1.
 - **Artikkel ikke funnet**: Eldre traktater bruker romertall (I, II, …);
   nyere bruker arabiske tall. Scriptet håndterer begge — men hvis noen ber om
-  «artikkel 2» på Folkemordkonvensjonen får de Artikkel II. Sjekk
-  artikkellisten i `text`-utdataen ved tvil.
+  «artikkel 2» på Folkemordkonvensjonen får de Artikkel II. Ved tvil: bruk
+  listen over tilgjengelige artikler som feilmeldingen gir (i dokumentets
+  rekkefølge).
 
 ---
 
@@ -575,4 +587,5 @@ Scriptet cacher hentede sider for å unngå unødvendige requests. Stien velges:
 4. `~/.cache/norges-traktater` — ellers
 
 Cache-tid: 24 timer for registerlistinger, 7 dager for traktatdokumenter
-(metadata endres sjelden retroaktivt). Tving fersk henting med `--no-cache`.
+(metadata endres sjelden retroaktivt). Tving fersk henting med `--no-cache`,
+før eller etter underkommandoen (`meta 1948-12-09-1 --no-cache` virker).

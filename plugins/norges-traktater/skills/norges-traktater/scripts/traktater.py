@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import json
 import os
 import re
@@ -78,7 +79,11 @@ def _ensure_cache() -> None:
 
 
 def _cache_key(url: str) -> Path:
-    safe = re.sub(r"[^a-zA-Z0-9]+", "_", url)[:200]
+    safe = re.sub(r"[^a-zA-Z0-9]+", "_", url)
+    if len(safe) > 200:
+        # A long search URL cut at 200 characters could share its name with
+        # another page of the same query; the hash keeps them apart.
+        safe = safe[:180] + "_" + hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
     return CACHE / f"{safe}.html"
 
 
@@ -521,12 +526,52 @@ def _roman(n):
     return out
 
 
+_ROMAN_VALUES = {"i": 1, "v": 5, "x": 10, "l": 50}
+
+
+def _roman_to_int(s):
+    total, prev = 0, 0
+    for ch in reversed(s.lower()):
+        val = _ROMAN_VALUES[ch]
+        total += -val if val < prev else val
+        prev = val
+    return total
+
+
+def _split_sub_article(s):
+    """"1 A" / "4a" / "8 bis" -> ("1", "a") etc.; (s, None) otherwise.
+
+    Lovdata marks up an article as <div data-id="ARTIKKEL_<n>">. A lettered
+    part such as the Refugee Convention's "artikkel 1 A" is a paragraph
+    inside article 1, not a block of its own, so the caller tries "1a"
+    first and falls back to the whole article.
+    """
+    m = re.fullmatch(r"(\d+|[ivxl]+)\s*(?:\(?([a-z])\)?|(bis|ter|quater))", s, re.I)
+    # "IV" / "VI" alone are roman numerals, not "I" + "V".
+    if not m or re.fullmatch(r"[ivxl]+", s, re.I):
+        return s, None
+    return m.group(1), (m.group(2) or m.group(3)).lower()
+
+
 def _normalize_article_key(raw):
+    """Candidate ARTIKKEL_<key> values for a user-supplied article number.
+
+    Accepts "2", "II", "Artikkel 2", "art. 2", English "Article 2",
+    lettered parts ("1 A", "4a", "8 bis") and Lovdata's own suffixed keys
+    for a repeated number ("1_1" = article 1 of the treaty's next part).
+    """
     s = raw.strip()
-    s = re.sub(r"^[Aa]rt(?:ikkel|\.|ikel)?\s*", "", s)
+    s = re.sub(r"^art(?:ikkel|icle|ikel|\.)?\.?\s*", "", s, flags=re.I)
     s = s.strip().rstrip(".")
     candidates = []
     if not s:
+        return candidates
+    base, suffix = _split_sub_article(s)
+    if suffix:
+        candidates.append(f"{base}{suffix}".lower())
+        for key in _normalize_article_key(base):
+            if key not in candidates:
+                candidates.append(key)
         return candidates
     if s.isdigit():
         n = int(s)
@@ -536,13 +581,7 @@ def _normalize_article_key(raw):
     else:
         candidates.append(s.lower())
         if re.fullmatch(r"[ivxl]+", s.lower()):
-            order = {"i": 1, "v": 5, "x": 10, "l": 50}
-            total, prev = 0, 0
-            for ch in reversed(s.lower()):
-                val = order[ch]
-                total += -val if val < prev else val
-                prev = val
-            candidates.append(str(total))
+            candidates.append(str(_roman_to_int(s)))
     return candidates
 
 
@@ -558,6 +597,8 @@ def get_article(tid, art, no_cache=False):
     keys = _normalize_article_key(art)
     if not keys:
         raise ValueError(f"Kunne ikke tolke artikkelnummer: {art!r}")
+    bare = re.sub(r"^art(?:ikkel|icle|ikel|\.)?\.?\s*", "", art.strip(), flags=re.I).strip().rstrip(".")
+    _, suffix = _split_sub_article(bare)
     for key in keys:
         start_re = re.compile(
             rf'<div[^>]+data-id="ARTIKKEL_{re.escape(key)}"[^>]*>', re.I)
@@ -568,12 +609,23 @@ def get_article(tid, art, no_cache=False):
         nxt = re.search(
             r'<a[^>]+name="(?:ARTIKKEL_[^"]+|KAPITTEL_[^"]+)"', rest[1:])
         chunk = rest[: 1 + nxt.start()] if nxt else rest
-        return {"id": tid, "article": art, "body": _strip_html(chunk),
-                "available": True, "url": f"{DOC_BASE}/{tid}"}
-    found = sorted(set(re.findall(r'ARTIKKEL_([a-zA-Z0-9_-]+)', body_html)))
+        out = {"id": tid, "article": art, "body": _strip_html(chunk),
+               "available": True, "url": f"{DOC_BASE}/{tid}"}
+        if suffix and key != keys[0]:
+            out["note"] = (f"Lovdata har ikke {art!r} som egen artikkel; dette er hele "
+                           f"artikkel {key}. Finn ledd/bokstav {suffix.upper()} i teksten.")
+        return out
+    # Document order, not sorted: sorting as text gives 1, 10, 11 … 2 and
+    # i, ii, iii, iv, ix, v. A repeated number carries a _N suffix
+    # (1, 2 … 1_1, 2_1 …) for the next part of the treaty (protocol, annex).
+    found = list(dict.fromkeys(re.findall(r'data-id="ARTIKKEL_([a-zA-Z0-9_-]+)"', body_html)))
+    if not found:
+        found = list(dict.fromkeys(re.findall(r'ARTIKKEL_([a-zA-Z0-9_-]+)', body_html)))
     return {"id": tid, "article": art, "body": "", "available": False,
             "url": f"{DOC_BASE}/{tid}", "available_articles": found,
-            "error": (f"Artikkel {art!r} ble ikke funnet. Tilgjengelige artikler: "
+            "error": (f"Artikkel {art!r} ble ikke funnet. Tilgjengelige artikler "
+                      f"(i dokumentets rekkefølge; _1, _2 … er samme nummer i neste "
+                      f"del, f.eks. en protokoll): "
                       f"{', '.join(found) if found else '(ingen)'}.")}
 
 
@@ -749,6 +801,8 @@ def cmd_article(args):
                 "Se «Når kroppen er tom» i SKILL.md for hvilke kilder som "
                 "har teksten (menneskerettsloven, untc, eurlex, lovdata-pro).\n")
         sys.exit(2)
+    if res.get("note"):
+        sys.stderr.write(res["note"] + "\n")
     print(res["body"])
 
 
@@ -793,9 +847,18 @@ def main(argv=None):
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--no-cache", action="store_true",
                    help="Ignorer cache, hent friskt")
+    # --no-cache is accepted after the subcommand too ("meta X --no-cache").
+    # SUPPRESS keeps the subcommand from overwriting a --no-cache given
+    # before it with its own default.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--no-cache", action="store_true", default=argparse.SUPPRESS,
+                        help="Ignorer cache, hent friskt")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sp = sub.add_parser("search", help="Søk i registeret")
+    def add(name, **kw):
+        return sub.add_parser(name, parents=[common], **kw)
+
+    sp = add("search", help="Søk i registeret")
     sp.add_argument("query", nargs="?", default="", help="Søkeord (kan være tom)")
     sp.add_argument("--year", help="Bare ett bestemt år")
     sp.add_argument("--country", help="Filtrer på motpart/land (norsk navn)")
@@ -808,7 +871,7 @@ def main(argv=None):
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_search)
 
-    sp = sub.add_parser("meta", help="Metadata for én eller flere traktater")
+    sp = add("meta", help="Metadata for én eller flere traktater")
     sp.add_argument("id", nargs="?", help="Traktat-ID, DokID eller URL")
     sp.add_argument("--batch", metavar="FIL",
                     help="Les IDer fra en fil (én per linje, # er kommentar); "
@@ -816,20 +879,20 @@ def main(argv=None):
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_meta)
 
-    sp = sub.add_parser("text", help="Full norsk tekst for én traktat")
+    sp = add("text", help="Full norsk tekst for én traktat")
     sp.add_argument("id")
     sp.set_defaults(func=cmd_text)
 
-    sp = sub.add_parser("article", help="Hent én bestemt artikkel")
+    sp = add("article", help="Hent én bestemt artikkel")
     sp.add_argument("id")
     sp.add_argument("article", help="Artikkelnummer")
     sp.set_defaults(func=cmd_article)
 
-    sp = sub.add_parser("countries", help="List gyldige verdier til --country")
+    sp = add("countries", help="List gyldige verdier til --country")
     sp.add_argument("query", nargs="?", help="Filtrer listen")
     sp.set_defaults(func=cmd_countries)
 
-    sp = sub.add_parser("status", help="Diagnose")
+    sp = add("status", help="Diagnose")
     sp.set_defaults(func=cmd_status)
 
     args = p.parse_args(argv)

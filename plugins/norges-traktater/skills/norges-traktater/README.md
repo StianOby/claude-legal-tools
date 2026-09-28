@@ -21,8 +21,9 @@ python3 scripts/traktater.py text 1951-07-28-1
 norges-traktater/
 ├── SKILL.md
 ├── README.md
-└── scripts/
-    └── traktater.py    # single self-contained CLI; stdlib only
+├── scripts/
+│   └── traktater.py    # single self-contained CLI; stdlib only
+└── tests/              # offline tests: python tests/test_traktater.py
 ```
 
 ## Requirements
