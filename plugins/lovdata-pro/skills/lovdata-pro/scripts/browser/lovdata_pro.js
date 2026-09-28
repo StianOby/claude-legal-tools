@@ -18,7 +18,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.0.2';
+  const HELPER_VERSION = '1.1.0';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -27,6 +27,39 @@
     // tool's own wrapper text and for JSON-escaping expansion of special
     // characters (Norwegian letters, embedded quotes).
     const PAGE_SIZE = 45000;
+
+    // Every function below keeps its whole JSON result under PAGE_SIZE, not
+    // just its main text field: newlines and quotes double in size when
+    // JSON-escaped, and a big toc or many grep hits add up the same way.
+    const jsonLen = (v) => JSON.stringify(v).length;
+
+    // Longest slice of text from `offset` (at most `size` chars) whose JSON
+    // encoding fits in `budget`. An escaped char costs at least 2, so cutting
+    // the overshoot converges in a few rounds.
+    function fitSlice(text, offset, size, budget) {
+      let end = Math.min(text.length, offset + size);
+      let slice = text.slice(offset, end);
+      let over;
+      while ((over = jsonLen(slice) - budget) > 0) {
+        end -= over;
+        slice = text.slice(offset, end);
+      }
+      return slice;
+    }
+
+    // As many toc entries from `start` as fit in `budget`; next is null when
+    // the rest of the toc fitted.
+    function fitToc(toc, start, budget) {
+      const items = [];
+      let used = 2;
+      for (let k = start; k < toc.length; k++) {
+        const len = jsonLen(toc[k]) + 1;
+        if (used + len > budget) return { items, next: k };
+        items.push(toc[k]);
+        used += len;
+      }
+      return { items, next: null };
+    }
 
     // --- login detection --------------------------------------------------
     // #myPage is present in location.hash in BOTH the logged-in and
@@ -360,7 +393,6 @@
         title: entry.title,
         metadata: entry.metadata,
         totalChars: entry.fullText.length,
-        toc: entry.toc,
       };
       // Some Pro records are header-only (St.prp. and other non-law
       // propositions, pre-1985 NOUs under PUBG, Meld. St. shells): the page
@@ -379,7 +411,24 @@
         out.noHeadings = true;
         out.hint = 'this document has no headings — section() will not work; use grep() and page().';
       }
+      // A big forarbeid has hundreds of sections (NOU 2022:8 has 708), which
+      // alone can pass PAGE_SIZE. Return what fits; toc() pages the rest.
+      const { items, next } = fitToc(entry.toc, 0, PAGE_SIZE - 500 - jsonLen(out));
+      out.toc = items;
+      if (next !== null) {
+        out.tocTotal = entry.toc.length;
+        out.tocNext = next;
+        out.tocHint = `toc truncated at ${next} of ${entry.toc.length} entries — call toc(path, ${next}) for the rest`;
+      }
       return out;
+    }
+
+    async function toc(path, start = 0) {
+      const entry = requireCached(path);
+      if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
+      start = Math.max(0, start | 0);
+      const { items, next } = fitToc(entry.toc, start, PAGE_SIZE - 500);
+      return { path, start, next, total: entry.toc.length, toc: items };
     }
 
     function requireCached(path) {
@@ -388,7 +437,10 @@
       return entry;
     }
 
-    async function section(path, iOrId) {
+    // A section can be bigger than PAGE_SIZE (a whole NOU chapter, or a
+    // top-level heading that spans the document). Then the result carries
+    // {offset, next, total}: call section(path, i, next) for the rest.
+    async function section(path, iOrId, offset = 0) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
       if (!entry.toc.length) {
@@ -398,8 +450,16 @@
         ? iOrId
         : entry.toc.findIndex(t => t.id === iOrId);
       if (idx < 0 || idx >= entry.toc.length) return { error: 'not_found', detail: `no section ${iOrId}` };
-      const range = sectionRange(entry.body, entry.toc, idx);
-      return { title: entry.toc[idx].title, text: toText(range) };
+      const title = entry.toc[idx].title;
+      const text = toText(sectionRange(entry.body, entry.toc, idx));
+      offset = Math.max(0, offset | 0);
+      const slice = fitSlice(text, offset, PAGE_SIZE, PAGE_SIZE - 500 - jsonLen(title));
+      const out = { i: idx, title, text: slice };
+      const end = offset + slice.length;
+      if (offset > 0 || end < text.length) {
+        Object.assign(out, { offset, next: end < text.length ? end : null, total: text.length });
+      }
+      return out;
     }
 
     // Heading lines in toText()'s output ("## Title") appear in the same
@@ -416,9 +476,15 @@
     // `term` is matched literally (case-insensitive) unless regex=true —
     // legal search terms are full of regex metacharacters ("§ 4-6 (2)",
     // "art. 8(1)").
+    //
+    // Returns {matches, hits}: matches counts every occurrence in the
+    // document, hits holds the first `max` of them as far as they fit in
+    // PAGE_SIZE (truncated:true when they did not). Each hit's `offset` is
+    // where the match starts in the text page() reads.
     async function grep(path, term, ctx = 600, max = 20, regex = false) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
+      ctx = Math.min(Math.max(0, ctx | 0), 5000);
       let re;
       try {
         const source = regex ? term : String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
@@ -436,19 +502,33 @@
         return idx;
       };
       const hits = [];
+      const budget = PAGE_SIZE - 500;
+      let used = 2, matches = 0, full = false;
       let m;
-      while ((m = re.exec(text)) && hits.length < max) {
-        const start = Math.max(0, m.index - ctx);
-        const end = Math.min(text.length, m.index + m[0].length + ctx);
-        const idx = sectionAt(m.index);
-        hits.push({
-          i: idx >= 0 ? idx : null,
-          sectionTitle: idx >= 0 ? entry.toc[idx].title : null,
-          snippet: text.slice(start, end),
-        });
+      while ((m = re.exec(text))) {
+        matches++;
+        if (hits.length < max && !full) {
+          const start = Math.max(0, m.index - ctx);
+          const end = Math.min(text.length, m.index + m[0].length + ctx);
+          const idx = sectionAt(m.index);
+          const hit = {
+            i: idx >= 0 ? idx : null,
+            sectionTitle: idx >= 0 ? entry.toc[idx].title : null,
+            offset: m.index,
+            snippet: text.slice(start, end),
+          };
+          const len = jsonLen(hit) + 1;
+          if (used + len > budget) full = true;
+          else { hits.push(hit); used += len; }
+        }
         if (m.index === re.lastIndex) re.lastIndex += 1; // avoid infinite loop on zero-length match
       }
-      return hits;
+      const out = { matches, hits };
+      if (full) {
+        out.truncated = true;
+        out.detail = `only ${hits.length} hits fit in one reply — lower ctx or max, or narrow the term`;
+      }
+      return out;
     }
 
     async function page(path, offset = 0, size = PAGE_SIZE) {
@@ -458,8 +538,9 @@
       size = Math.min(Math.max(1, size | 0), PAGE_SIZE);
       offset = Math.max(0, offset | 0);
       const text = entry.fullText;
-      const slice = text.slice(offset, offset + size);
-      const next = offset + size < text.length ? offset + size : null;
+      const slice = fitSlice(text, offset, size, PAGE_SIZE - 200);
+      const end = offset + slice.length;
+      const next = end < text.length ? end : null;
       return { offset, next, total: text.length, text: slice };
     }
 
@@ -487,6 +568,14 @@
         return { error: 'no_search_field',
                  detail: `no ${SEARCH_INPUT} in this tab — the Hurtigsøk field is on https://lovdata.no/pro/ (hash routing keeps window.__lp alive, a full navigation does not)` };
       }
+      // Waiting for the hash to change is not enough: the hash can change
+      // before the new list renders (the old hits are still in the DOM), and
+      // it may not change at all when the same query is run twice. So stamp
+      // every result link now and accept only links that are new or whose
+      // href changed — those come from this search.
+      const RESULT_LINKS = "a[href^='#document/']";
+      for (const a of document.querySelectorAll(RESULT_LINKS)) a.dataset.lpHref = a.getAttribute('href');
+      const isFresh = (a) => a.dataset.lpHref !== a.getAttribute('href');
       const before = location.hash;
       input.focus();
       setInputValue(input, query);
@@ -498,9 +587,10 @@
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 250));
-        if (location.hash !== before && /^#result/.test(location.hash)) {
-          await new Promise(r => setTimeout(r, 400)); // let the list render
-          const results = await readSearchResults(n);
+        if (!/^#result/.test(location.hash)) continue;
+        if (Array.from(document.querySelectorAll(RESULT_LINKS)).some(isFresh)) {
+          await new Promise(r => setTimeout(r, 400)); // let the rest of the list render
+          const results = collectResults(n, isFresh);
           if (results.length) {
             // Pro rewrites what you typed: it lower-cases and appends a
             // truncation wildcard, so hash `q=` never equals `query`.
@@ -508,16 +598,33 @@
           }
         }
       }
+      // Nothing re-rendered. If the tab was already showing the results of
+      // this very query (same hash, and its q= is the query as Pro rewrites
+      // it), the hits on screen are the right ones.
+      const q = (location.hash.match(/[&?]q=([^&]*)/) || [])[1];
+      let shown = null;
+      try { shown = q == null ? null : decodeURIComponent(q.replace(/\+/g, ' ')); } catch (e) { shown = q; }
+      const norm = (s) => String(s).toLowerCase().replace(/\*+$/, '').replace(/\s+/g, ' ').trim();
+      if (location.hash === before && shown != null && norm(shown) === norm(query)) {
+        const results = collectResults(n);
+        if (results.length) {
+          return { query, hash: location.hash, submitted: input.value, results, reused: true };
+        }
+      }
       return {
         error: 'search_timeout', query, hash: location.hash,
-        detail: `no results within ${timeoutMs} ms — fall back to the computer.type + click flow in SKILL.md Steg 3`,
+        detail: `no new results within ${timeoutMs} ms — fall back to the computer.type + click flow in SKILL.md Steg 3`,
       };
     }
 
     // Reads the result anchors already rendered in the DOM. search() calls
     // it; call it directly after submitting a query by hand (type + click).
     async function readSearchResults(n = 10) {
-      const anchors = Array.from(document.querySelectorAll("a[href^='#document/']"));
+      return collectResults(n);
+    }
+
+    function collectResults(n, keep = () => true) {
+      const anchors = Array.from(document.querySelectorAll("a[href^='#document/']")).filter(keep);
       const seen = new Set();
       const out = [];
       for (const a of anchors) {
@@ -539,6 +646,7 @@
       cache,
       isLoggedIn,
       load,
+      toc,
       section,
       grep,
       page,
@@ -547,7 +655,7 @@
       docUrl,
       PAGE_SIZE,
       // exposed for unit testing / debugging only:
-      _internal: { toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
+      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
     };
   })();
 })();

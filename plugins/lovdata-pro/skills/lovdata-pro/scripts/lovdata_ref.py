@@ -68,6 +68,18 @@ workflow, driving the built-in browser) handles those.
 >>> r.candidates[0], r.pinpoint
 ('HRSIV/avgjorelse/hr-2016-2554-p', 'avsnitt 77')
 
+>>> # English pinpoints work the same way.
+>>> r = parse_reference("HR-2016-2554-P, paras. 77-80")
+>>> r.candidates[0], r.pinpoint
+('HRSIV/avgjorelse/hr-2016-2554-p', 'paras. 77-80')
+
+>>> search_hint("Rt. 2000 p. 1811 at p. 1827")
+'Rt-2000-1811'
+
+>>> # Trygderetten (TRR-) is not a tingrett and needs a search.
+>>> parse_reference("TRR-2019-1234") is None
+True
+
 >>> parse_reference("Innst. O. nr. 45 (2004-2005)").candidates
 ['INNST/forarbeid/inns-o-45-200405']
 
@@ -108,11 +120,15 @@ _YEAR_PAIR = re.compile(r"\(?\s*(\d{4})\s*[-–/]\s*(\d{2,4})\s*\)?")
 
 # Trailing pinpoint: "avsnitt 77", "avsn. 77", "premiss 12", "s. 1827",
 # "på s. 1827", "side 12", "punkt 3.4", "pkt. 3.4", "kapittel 4", "kap. 4",
-# possibly several ("... avsnitt 77 flg.").
+# possibly several ("... avsnitt 77 flg."). English manuscripts cite the same
+# places as "para. 77", "paras 77-80", "at p. 1827", "pp. 12-14",
+# "section 3.4", "chapter 4", "para 77 et seq.". The keyword must start a
+# word, so the "p." at the end of "Ot.prp." is never taken for a page.
 _PINPOINT = re.compile(
-    r"\s*(?:,|på|jf\.?)?\s*"
-    r"((?:avsnitt|avsn\.?|premiss(?:ene)?|side|s\.|punkt|pkt\.?|kapittel|kap\.?|§)"
-    r"\s*[\d][\d.\-–]*[a-z]?(?:\s*(?:flg\.?|ff\.?))?)\s*$",
+    r"\s*(?:,|\bpå\b|\bjf\.?|\bat\b)?\s*"
+    r"(?<!\w)((?:avsnitt|avsn\.?|premiss(?:ene)?|side|s\.|punkt|pkt\.?|kapittel|kap\.?|§"
+    r"|paragraphs?|paras?\.?|¶|pp?\.|pages?|sections?|sec\.|chapter|ch\.)"
+    r"\s*[\d][\d.\-–]*[a-z]?(?:\s*(?:flg\.?|ff\.?|et\s+seq\.?))?)\s*$",
     re.I,
 )
 
@@ -157,6 +173,7 @@ def split_pinpoint(s):
         rest = s[:m.start()].rstrip(" ,")
         # "Rt. 2000 s. 1811" / "RG 2010 s. 100": the page IS the citation,
         # not a pinpoint — stop when only the reporter + year would remain.
+        # ("Rt. 2000 p. 1811" in English text is the same citation.)
         if re.fullmatch(r"(Rt|RG)\.?\s*[-–]?\s*\d{4}", rest.strip(), re.I):
             break
         pins.insert(0, re.sub(r"\s+", " ", m.group(1)).strip())
@@ -173,7 +190,7 @@ def search_hint(ref):
     """
     s, _ = split_pinpoint(ref.strip())
     s = re.sub(r"\s*\((?![\d–\-]+\))[^)]*\)\s*$", "", s).strip()
-    m = re.match(r"(Rt|RG)\.?\s*[-–]?\s*(\d{4})\s*(?:s\.?|side|[-–])\s*(\d+)", s, re.I)
+    m = re.match(r"(Rt|RG)\.?\s*[-–]?\s*(\d{4})\s*(?:s\.?|side|p\.?|page|[-–])\s*(\d+)", s, re.I)
     if m:
         return f"{m.group(1).capitalize() if m.group(1).lower() == 'rt' else 'RG'}-{m.group(2)}-{m.group(3)}"
     return s
@@ -217,7 +234,9 @@ def parse_reference(ref):
     # Tingrett: court-prefixed references such as TOSLO-2019-12345 (Oslo
     # tingrett before the 2021 reform), TOSL-2022-123456 (after it),
     # TBERG-, TSTAV-, THOD- ... The generic TR-YYYY-N form is accepted too.
-    m = re.fullmatch(r"(T[A-Z]{1,5})-(\d{4})-(\d+)([A-Za-z\-0-9]*)", s_for_parse, re.I)
+    # TRR- is Trygderetten, not a tingrett: its collection is not known, so it
+    # falls through to search (see explain()).
+    m = re.fullmatch(r"(?!TRR-)(T[A-Z]{1,5})-(\d{4})-(\d+)([A-Za-z\-0-9]*)", s_for_parse, re.I)
     if m:
         slug = f"{m.group(1).lower()}-{m.group(2)}-{m.group(3)}{m.group(4).lower()}"
         return ref_("TRSIV", "avgjorelse", slug, alt_collections=("TRSTR",))
@@ -304,6 +323,10 @@ def explain(ref):
                 "(e.g. Meld. St. 17 (2020-2021) is STS/forarbeid/stsg-202021-352). "
                 "The løpenummer is assigned by Lovdata and cannot be derived from the "
                 "citation — search for the search_hint and verify the hit's title")
+        elif re.match(r"TRR-", s, re.I):
+            out["note"] = (
+                "TRR- is Trygderetten, not a tingrett — its Lovdata Pro collection is not "
+                "in the slug table, so search for the search_hint and verify the hit")
         elif re.match(r"St\.?\s*prp\.?", s, re.I):
             out["note"] = (
                 "non-law propositions (St.prp.) are not full-text indexed in Lovdata Pro "

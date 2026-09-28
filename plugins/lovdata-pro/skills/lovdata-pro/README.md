@@ -34,10 +34,12 @@ lovdata-pro/
 ├── README.md                        # you are here
 ├── references/
 │   └── lovdata-pro-mapping.md       # URL patterns, collection codes, DOM notes
-└── scripts/
-    ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
-    └── browser/
-        └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
+├── scripts/
+│   ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
+│   └── browser/
+│       └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
+└── tests/                           # offline tests: python tests/test_ref.py,
+                                     # node tests/test_browser.js
 ```
 
 There is no session/state directory and no stored credentials of any kind.
@@ -110,7 +112,8 @@ LF (Frostating), LG (Gulating), LH (Hålogaland). District-court references
 carry an abbreviation of the court itself (`TOSLO` Oslo, `TBERG` Bergen,
 `TSTAV` Stavanger …), shortened again after the 2021 court reform (`TOSL`);
 the resolver accepts any `T<letters>-YYYY-N` form and maps it to the
-`TRSIV`/`TRSTR` collections.
+`TRSIV`/`TRSTR` collections. `TRR-` (Trygderetten) is not a tingrett and
+goes through search.
 
 Pre-2008 Rt. decisions, RG decisions, stortingsmeldinger (whose slugs carry
 a Lovdata-assigned sequence number) and other irregular citations don't have

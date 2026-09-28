@@ -67,7 +67,9 @@ court reform), `TOSL-2022-123456` (post-reform), `TBERG-`, `TSTAV-`,
 `THOD-`, and so on — the letters after `T` abbreviate the court. The
 collection is `TRSIV`/`TRSTR` for all of them. `lovdata_ref.py` accepts
 any `T<letters>-YYYY-N` form and lower-cases the reference into the slug,
-trailing `-1`/`-2` included.
+trailing `-1`/`-2` included — except `TRR-`, which is Trygderetten, not a
+tingrett. Its collection is not mapped yet, so `TRR-` references come back
+`parsed:false` with the reference itself as `search_hint`.
 **Confirmed live (September 2026):** `TOSLO-2019-108726-2` →
 `TRSIV/avgjorelse/toslo-2019-108726-2`, `TOSL-2022-105703` →
 `TRSTR/avgjorelse/tosl-2022-105703`. As with the other court collections the

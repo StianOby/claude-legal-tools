@@ -103,8 +103,9 @@ Returnerer `{input, parsed, candidates}` pluss disse feltene når de er
 aktuelle:
 
 - **`pinpoint`** — presisering som ble skilt ut av referansen («avsnitt 77»,
-  «s. 1827», «punkt 3.4»). Bruk den som søkeord i `grep`/`section` etter at
-  dokumentet er lastet, og ta den med i sitatet.
+  «s. 1827», «punkt 3.4», og engelske former som «para. 77», «paras 77–80»,
+  «at p. 1827», «section 3.4»). Bruk den som søkeord i `grep`/`section`
+  etter at dokumentet er lastet, og ta den med i sitatet.
 - **`search_hint`** — når `parsed:false`: søkestrengen som fungerer best i
   Pro, i Lovdatas egen referanseform (`Rt-2000-1811`, `RG-2010-100`), ikke
   prosasiteringen.
@@ -116,6 +117,8 @@ aktuelle:
     kan ikke utledes av referansen; søk og verifiser tittelen på treffet.
   - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro.
     Si det til brukeren i stedet for å sitere fra andre kilder.
+  - **TRR-** — Trygderetten, ikke en tingrett. Samlingen er ikke kartlagt;
+    søk på referansen.
 
 Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
@@ -150,6 +153,10 @@ To flagg i svaret styrer hva du kan gjøre videre:
 - **`noHeadings: true`** (`toc` er tom) — dokumentet har ingen `h1`–`h6`.
   Dette er vanlig for dommer: både HR-2016-2554-P og LG-2008-135938 har null
   overskrifter. Da er `section()` ubrukelig; bruk `grep()` og `page()`.
+- **`tocNext`** (med `tocTotal`) — innholdsfortegnelsen var for stor til ett
+  svar, og `toc` inneholder bare de første oppføringene. Hent resten med
+  `await __lp.toc(path, tocNext)`, som svarer `{start, next, total, toc}`;
+  fortsett med `next` til den er `null`.
 
 Velg videre strategi ut fra dokumenttype og størrelse:
 
@@ -186,8 +193,18 @@ await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
 
 `grep(path, term, ctx, max, regex)` tolker `term` **bokstavelig** (og lar
 mellomrom matche linjeskift), så «§ 4-6 (2)» og «art. 8(1)» virker som de
-står. Send `regex: true` som femte argument for et ekte regulært uttrykk.
-`page()` klipper alltid til `PAGE_SIZE` — du kan ikke be om en større bit.
+står. Send `true` som femte argument for et ekte regulært uttrykk. Svaret er
+`{matches, hits}`: `matches` er antall treff i hele dokumentet, `hits` de
+første `max` av dem med `{i, sectionTitle, offset, snippet}`. `offset` er
+der treffet står i teksten `page()` leser, så `page(path, offset - 2000)`
+gir sammenhengen rundt. Får du `truncated: true`, fikk ikke alle `max` treff
+plass i ett svar — senk `ctx`/`max` eller snevre inn søket.
+
+Ingen funksjon svarer med mer enn `PAGE_SIZE` tegn, regnet som JSON (der
+linjeskift og anførselstegn teller dobbelt). `page()` gir derfor ofte litt
+under 45 000 tegn tekst; gå videre med `next`, ikke `offset + 45000`.
+`section()` gjør det samme for store seksjoner: svaret har da `{offset, next,
+total}`, og resten hentes med `section(path, i, next)`.
 
 ---
 
@@ -206,7 +223,10 @@ await __lp.search("Rt-2000-1811", 10)
 syntetisk `keyup` med Enter, som er hendelsen GWT-søket faktisk lytter på
 (målt: `input` alene, syntetisk `keydown`, syntetisk `keypress` og et *ekte*
 Enter-tastetrykk gjør ingenting — `keyup` submitter). Deretter venter den på
-at hash-en blir `#result…` og returnerer `{query, hash, submitted, results}`.
+at hash-en blir `#result…` og at trefflisten fra *dette* søket er tegnet opp
+(treff som sto på skjermen fra før, telles ikke), og returnerer `{query,
+hash, submitted, results}`. Kjører du samme søk to ganger og Pro ikke tegner
+listen på nytt, får du treffene som står der, med `reused: true`.
 Hash-navigering laster ikke siden på nytt, så `window.__lp.cache` overlever
 et søk i samme fane.
 
