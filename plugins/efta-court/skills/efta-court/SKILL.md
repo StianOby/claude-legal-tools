@@ -23,7 +23,7 @@ states inside the EEA (Iceland, Liechtenstein, Norway).
 
 You have a single self-contained CLI at `scripts/efta_court.py`. Run it with
 `python3` from this skill's directory. It caches everything locally so a
-second lookup of the same case is instant.
+second lookup of the same case is instant. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/efta-court/SKILL.md' 2>/dev/null | head -1` and use that file's directory.
 
 ---
 

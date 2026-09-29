@@ -56,7 +56,7 @@ try to get around the check.
 
 Your one script is `scripts/browser/consilium.js` (see `Base directory for
 this skill:` at the top of your context — replace `{SKILL_DIR}` below with
-that path). It is pasted into the browser tab and does all fetching and
+that path; if that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/eu-agreements-treaties/SKILL.md' 2>/dev/null | head -1` and use that file's directory.). It is pasted into the browser tab and does all fetching and
 parsing in-page.
 
 ## Step 0 — session (every new conversation)

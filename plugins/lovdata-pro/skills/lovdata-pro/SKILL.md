@@ -36,7 +36,7 @@ Du har tilgang til to hjelpescript:
   `javascript_tool`. Gjør selve hentingen, seksjoneringen og søket.
 
 (se `Base directory for this skill:` i starten av konteksten din for stien —
-erstatt `{SKILL_DIR}` nedenfor med den.)
+erstatt `{SKILL_DIR}` nedenfor med den. Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/lovdata-pro/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.)
 
 For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
 `references/lovdata-pro-mapping.md`.

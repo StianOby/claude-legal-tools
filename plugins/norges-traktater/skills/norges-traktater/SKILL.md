@@ -26,7 +26,7 @@ anførselstegn.
 
 Du har et hjelpescript i `scripts/traktater.py` (se «Base directory for this
 skill:» øverst i meldingen — det er samme katalog som scriptet ligger i).
-Erstatt `{SKILL_DIR}` nedenfor med den banen.
+Erstatt `{SKILL_DIR}` nedenfor med den banen. Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/norges-traktater/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.
 
 ---
 

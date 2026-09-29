@@ -35,7 +35,7 @@ Pleadings, written observations, and verbatim records of hearings are deliberate
 
 ## Setup
 
-All scripts live in `scripts/`. They are plain Python 3 (3.9+) using only the standard library — no packages to install.
+All scripts live in `scripts/`. They are plain Python 3 (3.9+) using only the standard library — no packages to install. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/icj/SKILL.md' 2>/dev/null | head -1` and use that file's directory.
 
 The CLI entry point is `scripts/icj.py`. Run `python3 scripts/icj.py --help` for the subcommand list. Cached data lives in `~/.cache/icj/` (override with `$ICJ_CACHE_DIR`) and is created on first use; the cache is never written inside the skill folder.
 

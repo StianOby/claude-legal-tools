@@ -50,7 +50,7 @@ below). No
 third-party packages for the normal DOCX path — only the standard library
 (`urllib`, `zipfile`, `xml.etree`); `pypdf` or poppler's `pdftotext` is
 needed only for the rare PDF-only documents. Run it from this skill's
-directory. The cache is *not* in the skill folder: it lives in
+directory. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/hudoc/SKILL.md' 2>/dev/null | head -1` and use that file's directory. The cache is *not* in the skill folder: it lives in
 `$HUDOC_CACHE_DIR` if set, otherwise `~/.cache/hudoc/items/<itemid>/`.
 Every `fetch` prints the absolute `path` of the file it wrote — use that
 rather than guessing.

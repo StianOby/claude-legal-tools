@@ -83,7 +83,7 @@ once `index.json` is cached every download is one HTTP hop on
 ## How to use
 
 The skill is a single self-contained CLI: `scripts/coe.py`. Run it
-via `python3` from this skill directory. Every command prints the
+via `python3` from this skill directory. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/ets/SKILL.md' 2>/dev/null | head -1` and use that file's directory. Every command prints the
 absolute paths of the files it wrote — read those rather than
 guessing the cache location.
 

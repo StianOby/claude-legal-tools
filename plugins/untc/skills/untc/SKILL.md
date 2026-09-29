@@ -61,7 +61,7 @@ Volume rule for MTDSG: **chapters I–XII → Volume I, chapters XIII–XXIX →
 
 The skill is a single self-contained CLI: `scripts/untc.py` (Python
 3.8+, needs `pypdf`; `pdftotext` is only a fallback). Run it with
-`python3` from anywhere. Everything it downloads goes to
+`python3` from anywhere. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/untc/SKILL.md' 2>/dev/null | head -1` and use that file's directory. Everything it downloads goes to
 `~/.cache/untc/` (or `$UNTC_CACHE_DIR`), never into the skill folder.
 
 Concrete invocations Claude should use:

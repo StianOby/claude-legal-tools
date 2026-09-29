@@ -69,7 +69,7 @@ lagrede pakker i `state.json`. Hvis oppdateringer finnes, lastes de ned og
 ekstraheres automatisk (~6 MB lover + ~21 MB forskrifter, daglig oppdatert).
 Første gang tar det lenger tid; påfølgende kjøringer er raske hvis intet er endret.
 
-Erstatt `{SKILL_DIR}` med basiskatalogens sti fra "Base directory for this skill:".
+Erstatt `{SKILL_DIR}` med basiskatalogens sti fra "Base directory for this skill:". Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/lovdata-api/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.
 
 ---
 
