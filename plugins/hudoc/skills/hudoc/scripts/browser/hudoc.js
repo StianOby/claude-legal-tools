@@ -31,7 +31,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.2.0';
+  const HELPER_VERSION = '1.2.2';
   if (root.window && root.window.__hd && root.window.__hd.VERSION === HELPER_VERSION) return;
 
   const api = (() => {

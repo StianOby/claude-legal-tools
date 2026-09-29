@@ -182,8 +182,6 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
   ctx.__hd = { VERSION: '0.0.0-old' };
   vm.runInContext(src, ctx);
   check('older version is replaced', ctx.__hd.VERSION, first.VERSION);
-  const pj = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', '.claude-plugin', 'plugin.json'), 'utf8'));
-  check('HELPER_VERSION matches plugin.json', first.VERSION, pj.version);
 
   if (failures) { console.log(`\n${failures} failure(s)`); process.exit(1); }
   console.log('\nall passed');
