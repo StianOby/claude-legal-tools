@@ -248,6 +248,12 @@ for pdf in "${PDFS[@]}"; do
   base="$(basename "$pdf")"
   mv "$pdf" "$OUT/$base"
   echo "PDF: $OUT/$base"
+  size_mb=$(( $(stat -c %s "$OUT/$base") / 1000000 ))
+  if (( size_mb > 50 )); then
+    echo "[hint] PDF is ${size_mb} MB. Shrink it before handing it over:" \
+         "python $(dirname "$0")/shrink_pdf.py --pdf \"$OUT/$base\"" \
+         "(expect ~60 MB for a 500-page book; the original is kept)."
+  fi
 done
 
 # --- 5. Clean up image folders unless --keep-images ------------------------

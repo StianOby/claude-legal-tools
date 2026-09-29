@@ -368,8 +368,8 @@ download_via_iiif(
 > native resolution, so `--resize` / `resize_width` governs only the
 > single-shot path and caps nothing under `--tiles always`. Expect full-size
 > pages — and heterogeneous ones, since canvases within a book differ (1562,
-> 1571 and 2024 px wide in the same volume). To get smaller output, shrink
-> afterwards with `--shrink`, not by asking for a narrower width.
+> 1571 and 2024 px wide in the same volume). Smaller output comes from the
+> shrink step after OCR (Step 4), not from asking for a narrower width.
 
 **Driving the IIIF API by hand?** If `zotero_book.py` is not available (e.g.
 you don't have the skill directory on disk), the full inline recipe lives in
@@ -449,7 +449,7 @@ Useful nbno flags the wrapper passes through:
 | `--title`        | fetch the item's real title and use it as folder name |
 | `--start N`      | first canvas to download (1-based)                    |
 | `--stop N`       | last canvas to download (inclusive)                   |
-| `--resize N`     | percentage of original size — use 50–75 for big books |
+| `--resize N`     | percentage of original size; for small output, `shrink_pdf.py` afterwards works better (see Step 4) |
 | `--cover`        | also download the cover separately                    |
 | `--keep-images`  | keep the per-page images, moved to `<out>/<ID>_images/` |
 | `--cookie auto`  | use saved auth at `~/.nbno/cookie.txt` (Bokhylla)     |
@@ -480,6 +480,18 @@ bloated output.
 
 ## Step 4 — Hand the file back
 
+**Books are handed over shrunk.** `zotero_book.py` shrinks by default
+(800 px wide, JPEG q60: ~60 MB for a 500-page book). Any other PDF over
+~50 MB (`nbno_run.sh` prints a `[hint]` line) gets
+`python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>` before it is handed
+over. Skip the shrink only if the user asked for full resolution; say what
+size the PDF ended up at.
+
+**Never shrink with `--resize` instead.** It scales the pages before OCR,
+which degrades the text layer (35 % gives ~70 DPI pages). The order is
+always download at full resolution → OCR → shrink, which `zotero_book.py`
+does for you.
+
 Copy the PDF from `/tmp/nbno_out` to the user's outputs directory and share
 it with a `computer://` link, e.g.:
 
@@ -502,7 +514,10 @@ The full pipeline (orchestrator script, every flag, sandbox notes, metadata
 customisation, Zotero-specific troubleshooting) lives in
 [`zotero-ready.md`](zotero-ready.md) next to this file. **Read it before
 running** — it covers the access pre-check, the chunked-OCR flow for big
-books, and the `--shrink` post-step. Quick start:
+books, and the shrink step (on by default; `--no-shrink` keeps full
+resolution). **Public-domain books get nb.no's own OCR as their text layer**
+(no Tesseract, seconds instead of minutes); Bokhylla and FEIDE books do not
+serve it and are OCRed with Tesseract. Quick start:
 
 ```bash
 # Public domain, or Bokhylla from a Norwegian IP — no credentials needed.
@@ -563,11 +578,13 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   slowly; if pages are still missing (placeholders, exit status 3), re-run
   with fewer `--workers`. For the `nbno_run.sh` wrapper, retry with a
   smaller page range (`--start`/`--stop`).
-- **Size.** A full novel at full resolution can be 200–500 MB. Use
-  `--shrink` (in `zotero_book.py`) for a smaller file. `--resize 60` only
-  helps where pages are fetched in one piece — the `nbno_run.sh` wrapper
-  and public-domain items — not for tiled pages (`--tiles always`, the
-  normal route for in-copyright items), where it is ignored.
+- **Size.** A full novel at full resolution can be 200–500 MB. Shrink it
+  (Step 4): `zotero_book.py` does so by default, and `shrink_pdf.py` works
+  on any PDF, including `nbno_run.sh` output. `nbno_run.sh --resize N` does
+  work (nbno downloads native tiles and scales each page locally), but it
+  scales *before* OCR. `zotero_book.py --resize` sets only the single-shot
+  width, and tiled pages (`--tiles always`, the normal route for
+  in-copyright items) ignore it.
 - **Content search API does not work for pliktmonografi items.** The nb.no
   content search API (`https://api.nb.no/catalog/v1/contentsearch/{item_id}/search?q=...`)
   returns empty results for `pliktmonografi` items even when the user is
@@ -663,8 +680,8 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   single-call `until … ; do … ; done` loop: the whole loop then has to fit
   one call's timeout, which is exactly what a long book does not do.
 - *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
-  Run `scripts/shrink_pdf.py --pdf book.pdf` (or re-run `zotero_book.py`
-  with `--shrink`) to JPEG-recompress the embedded images in place. The
+  It was probably made with `--no-shrink` or by `nbno_run.sh`. Run
+  `scripts/shrink_pdf.py --pdf book.pdf` to JPEG-recompress the embedded images in place. The
   text layer is untouched, so this is a pure size optimisation — no need
   to re-OCR. **Never re-OCR to shrink** — it wastes minutes per book and
   the OCR text layer doesn't determine file size.

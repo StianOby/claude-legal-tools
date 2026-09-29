@@ -124,7 +124,10 @@ check("page 2 recovered on the second pass", attempts["p2"], 2)
 check("PDF order: C2 skipped, page 4 is a placeholder in its place",
       assembled["paths"], ["page_0001.jpg", "page_0002.jpg", "page_0004.missing.jpg", "page_0005.jpg"])
 check("all files existed when assembled", assembled["exists"], True)
-check("result names the missing PDF page", result, {"pages": 4, "missing": [3]})
+check("result names the missing PDF page",
+      {k: result[k] for k in ("pages", "missing")}, {"pages": 4, "missing": [3]})
+check("result gives each PDF page's canvas, None for the placeholder",
+      [c is None for c in result["canvases"]], [False, False, True, False])
 check("the log warns about it", "placeholder pages in the PDF: [3]" in log, True)
 check("temp folder removed", assembled["dir"].exists(), False)
 

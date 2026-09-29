@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-zotero_book.py — download a book from nb.no, OCR it, and emit a Zotero-ready
-RDF + PDF pair.
+zotero_book.py — download a book from nb.no, give it a text layer, and emit a
+Zotero-ready RDF + PDF pair.
 
 Run from the nbno skill's scripts/ folder (or copy alongside nbno_run.sh):
 
@@ -11,7 +11,7 @@ Run from the nbno skill's scripts/ folder (or copy alongside nbno_run.sh):
         [--cookie auto | --cookie /path/cookie.txt] \\
         [--nbsso "nbsso=<value>"] [--bearer "<token>"] \\
         [--resize 75] \\
-        [--no-ocr]
+        [--ocr auto|nb|tesseract] [--no-ocr]
 
 Auth, in short: `api.nb.no` authenticates by cookie, so `--nbsso` alone is
 enough and `--bearer` is optional (kept for older DevTools captures that
@@ -21,7 +21,10 @@ all — Bokhylla only needs a Norwegian IP. FEIDE-licensed items need `--nbsso`
 
 What it produces:
 
-    <out>/AUTHOR_TITLE_(YEAR).pdf      — OCRed (nor+nno) by default
+    <out>/AUTHOR_TITLE_(YEAR).pdf      — searchable (nb.no's own OCR where
+                                         available, else Tesseract nor+nno)
+                                         and shrunk
+                                         (800 px, JPEG q60) by default
     <out>/AUTHOR_TITLE_(YEAR).rdf      — Zotero RDF, references the PDF
                                          as an imported-file attachment
                                          and the nb.no URL as a Web Link
@@ -41,7 +44,9 @@ Pipeline:
          --tiles and --workers only apply on this path.
        - --cookie <file|auto> selects the nbno_run.sh wrapper instead (the
          cookie-file workflow from auth.md). --downloader overrides both.
-  5. Run ocrmypdf (-l nor+nno) unless --no-ocr.
+  5. Add a text layer unless --no-ocr: nb.no's own OCR (ALTO, see
+     alto_text.py) when the item serves it — public-domain books do —
+     otherwise ocrmypdf (-l nor+nno). --ocr picks one explicitly.
   6. Render the Zotero RDF via build_zotero_rdf.build_rdf.
 
 Designed to stream progress (each step prints a single line) so the user can
@@ -718,9 +723,10 @@ def download_via_iiif(
     that still fail get a second, slower pass. A page that cannot be had at
     all is NOT dropped: it becomes a placeholder page saying so, so every
     later page keeps its page number in the PDF (kildesjekk and citations
-    depend on that). Returns {"pages", "missing"} — `missing` lists the
-    1-based PDF page numbers that are placeholders; the caller must tell
-    the user about them.
+    depend on that). Returns {"pages", "missing", "canvases"} — `missing`
+    lists the 1-based PDF page numbers that are placeholders, which the
+    caller must tell the user about; `canvases` gives each PDF page's canvas
+    name (None for a placeholder), which the ALTO text layer is keyed on.
     """
     import tempfile
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
@@ -904,9 +910,11 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
     # that go into the PDF (the _C2 canvases are skipped).
     ordered: List[str] = []
     missing: List[int] = []
+    page_canvases: List[Optional[str]] = []
     for idx in sorted(results):
         if modes[idx] == "skipped_c2":
             continue
+        page_canvases.append(entries[idx - 1]["canvas"] if results[idx] else None)
         if results[idx]:
             ordered.append(results[idx])
         else:
@@ -921,7 +929,7 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
               "user which pages are missing.")
         for idx in failed:
             print(f"[iiif]   canvas {entries[idx - 1]['canvas']}: {modes[idx]}")
-    return {"pages": len(ordered), "missing": missing}
+    return {"pages": len(ordered), "missing": missing, "canvases": page_canvases}
 
 
 def _placeholder_page(tmpdir: Path, idx: int, canvas: str, like: str, why: str) -> str:
@@ -1125,6 +1133,52 @@ def _which_in_pylib(binary: str) -> Optional[str]:
     return None
 
 
+def add_nb_text_layer(canonical_id: str, pdf_path: Path,
+                      page_canvases: List[Optional[str]],
+                      nbsso: Optional[str], workers: int) -> bool:
+    """Use nb.no's own OCR (ALTO) as the PDF's text layer and give each page
+    its physical size. Returns False, having changed nothing, when the item
+    does not serve ALTO to us — the caller then runs Tesseract."""
+    import alto_text
+    import shrink_pdf
+    headers = {"cookie": nbsso} if nbsso else {}
+    urn = urn_form(canonical_id)
+
+    def read(url: str) -> bytes:
+        return _read_url(url, headers, 30.0)
+
+    try:
+        index = alto_text.alto_index(urn, read)
+    except (OSError, http.client.HTTPException, ValueError) as e:
+        print(f"[text] could not reach nb.no's OCR index ({e}); using Tesseract")
+        return False
+    if index is None:
+        print("[text] nb.no does not serve its OCR for this item (only "
+              "public-domain books do); using Tesseract")
+        return False
+    wanted = [c for c in page_canvases if c and c in index]
+    print(f"[text] fetching nb.no's OCR (ALTO) for {len(wanted)} pages...")
+    altos = alto_text.fetch_alto_pages(urn, wanted, read, workers=min(workers, 8))
+    if not altos:
+        print("[text] no ALTO page could be read; using Tesseract")
+        return False
+    shrink_pdf._ensure_deps()   # pikepdf
+    stats = alto_text.apply_alto(pdf_path, page_canvases, altos)
+    print(f"[text] nb.no's OCR written to {stats['pages_with_text']} pages "
+          f"({stats['words']} words); {stats['resized']} pages set to their "
+          "physical size; Tesseract skipped")
+    # Covers and inserts (C1, I1, C3 …) rarely have text; numbered pages should.
+    lacking = [n for n, c in enumerate(page_canvases, start=1)
+               if c and c.rsplit("_", 1)[-1].isdigit()
+               and not (c in altos and altos[c].lines)]
+    if lacking:
+        shown = lacking[:20]
+        print(f"[text] note: {len(lacking)} numbered page(s) have no nb.no text "
+              f"(PDF pages {shown}{' …' if len(lacking) > 20 else ''}). If any of "
+              "them has text on it, re-run with --ocr tesseract.")
+    return True
+
+
 def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
                  jobs: Optional[int] = None) -> None:
     """Add a searchable text layer in place. Uses --skip-text so pages that
@@ -1211,33 +1265,42 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "always: native-res tiles for every page. never: "
                          "single-shot only, drop failures.")
     ap.add_argument("--no-ocr", action="store_true",
-                    help="Skip the OCR step.")
+                    help="No text layer at all.")
+    ap.add_argument("--ocr", choices=("auto", "nb", "tesseract"), default="auto",
+                    help="Where the text layer comes from. auto (default): "
+                         "nb.no's own OCR when the item serves it (public-"
+                         "domain books), else Tesseract. nb: the same, but "
+                         "say so loudly when it falls back. tesseract: always "
+                         "OCR ourselves.")
     ap.add_argument("--ocr-langs", default="nor+nno",
                     help="Tesseract language string (default: nor+nno).")
     ap.add_argument("--ocr-jobs", type=int, default=None,
                     help="Parallel jobs for ocrmypdf (default: half the "
                          "usable CPUs, at most 4).")
-    ap.add_argument("--shrink", action="store_true",
-                    help="Recompress embedded images (JPEG) after OCR. "
-                         "Lossy. With the default settings (q70 + 900 px) "
-                         "a 350-page book lands around 50 MB. Without this "
-                         "flag, a hint is printed when the output PDF "
-                         "exceeds --shrink-threshold-mb.")
-    ap.add_argument("--shrink-quality", type=int, default=70,
-                    help="JPEG quality for --shrink (default 70 — tuned "
-                         "for ~143 KB/page on text-heavy nb.no scans).")
-    ap.add_argument("--shrink-max-width", type=int, default=900,
+    ap.add_argument("--no-shrink", dest="shrink", action="store_false",
+                    help="Keep the full-resolution page images. By default "
+                         "the images are recompressed (JPEG) after OCR, "
+                         "which is lossy: ~60 MB for a 500-page book.")
+    ap.add_argument("--shrink", dest="shrink", action="store_true",
+                    help=argparse.SUPPRESS)   # the default; kept for old commands
+    ap.set_defaults(shrink=True)
+    ap.add_argument("--shrink-quality", type=int, default=60,
+                    help="JPEG quality for the shrink (default 60 — about "
+                         "120 KB/page on text-heavy nb.no scans).")
+    ap.add_argument("--shrink-max-width", type=int, default=800,
                     help="Resize images wider than this (px) before "
-                         "re-encoding (default 900). 0 disables resizing.")
+                         "re-encoding (default 800). 0 disables resizing.")
+    ap.add_argument("--shrink-keep-master", action="store_true",
+                    help="Also keep the full-resolution OCRed PDF as "
+                         "<basename>.original.pdf, so you can re-shrink "
+                         "with other settings without re-downloading. "
+                         "Off by default: it is often 300-800 MB.")
     ap.add_argument("--shrink-no-keep-master", action="store_true",
-                    help="Do not preserve the OCRed master at "
-                         "<basename>.original.pdf before overwriting. By "
-                         "default the master is kept so you can re-shrink "
-                         "with different settings without compounding "
-                         "JPEG artefacts.")
-    ap.add_argument("--shrink-threshold-mb", type=int, default=500,
-                    help="Suggest --shrink when output PDF exceeds this "
-                         "size in MB (default 500). 0 = never suggest.")
+                    help=argparse.SUPPRESS)   # the default now; kept for old commands
+    ap.add_argument("--shrink-threshold-mb", type=int, default=150,
+                    help="With --no-shrink, print a hint when the output "
+                         "PDF exceeds this size in MB (default 150). "
+                         "0 = never.")
     ap.add_argument("--force-auth", action="store_true",
                     help="Skip the access pre-check and attempt the chosen "
                          "download path regardless of accessInfo.")
@@ -1347,12 +1410,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
     print(f"[dl] PDF: {pdf_path}  ({pdf_path.stat().st_size/1e6:.1f} MB)")
 
-    # ---- OCR ----------------------------------------------------------------
-    if not args.no_ocr:
-        run_ocrmypdf(pdf_path, languages=args.ocr_langs, jobs=args.ocr_jobs)
-        print(f"[ocr] PDF now searchable ({pdf_path.stat().st_size/1e6:.1f} MB)")
-    else:
+    # ---- Text layer ---------------------------------------------------------
+    if args.no_ocr:
         print("[ocr] skipped (--no-ocr)")
+    else:
+        used_nb = False
+        if args.ocr != "tesseract":
+            page_canvases = missing_pages.get("canvases")
+            if page_canvases:
+                used_nb = add_nb_text_layer(canonical, pdf_path, page_canvases,
+                                            args.nbsso, args.workers)
+            else:
+                print("[text] nb.no's OCR needs the IIIF downloader; using Tesseract")
+            if not used_nb and args.ocr == "nb":
+                print("[text] WARNING: --ocr nb was asked for, but nb.no's OCR "
+                      "is not available here; falling back to Tesseract.")
+        if not used_nb:
+            run_ocrmypdf(pdf_path, languages=args.ocr_langs, jobs=args.ocr_jobs)
+            print(f"[ocr] PDF now searchable ({pdf_path.stat().st_size/1e6:.1f} MB)")
 
     # ---- Shrink (lossy image recompression) ---------------------------------
     if args.shrink:
@@ -1376,7 +1451,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         # means experimenting with different settings is non-destructive.
         # User can delete <basename>.original.pdf once happy with the shrink.
         master_path = pdf_path.with_suffix(".original.pdf")
-        if not args.shrink_no_keep_master:
+        if args.shrink_keep_master:
             shutil.copy2(str(pdf_path), str(master_path))
             print(f"[shrink] preserved master at {master_path.name}")
 
@@ -1390,15 +1465,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[shrink] {size_before/1e6:.1f} MB -> "
               f"{stats['bytes_after']/1e6:.1f} MB "
               f"(saved {saved/1e6:.1f} MB, {pct:.0f}%)")
-        if not args.shrink_no_keep_master:
+        if args.shrink_keep_master:
             print(f"[shrink] master kept at {master_path.name} — delete it "
                   "once you're happy with the shrunk version.")
     elif args.shrink_threshold_mb > 0:
         size_mb = pdf_path.stat().st_size / 1e6
         if size_mb > args.shrink_threshold_mb:
-            print(f"[hint] PDF is {size_mb:.0f} MB. Re-run with --shrink to "
-                  "recompress embedded images (default settings target "
-                  "~143 KB/page; expect ~50 MB for a 350-page book).")
+            print(f"[hint] PDF is {size_mb:.0f} MB. Run shrink_pdf.py on it "
+                  "(or re-run without --no-shrink) to recompress the page "
+                  "images: expect ~60 MB for a 500-page book.")
 
     # ---- RDF ----------------------------------------------------------------
     nb_url = items_page_url(canonical)
@@ -1417,7 +1492,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  {rdf_name}   ← import this into Zotero")
     extras = []
     master_path = pdf_path.with_suffix(".original.pdf")
-    if args.shrink and not args.shrink_no_keep_master and master_path.exists():
+    if args.shrink and args.shrink_keep_master and master_path.exists():
         extras.append(
             f"  {master_path.name}   ← OCRed master (delete to free "
             f"{master_path.stat().st_size/1e6:.0f} MB once the shrink is OK)"

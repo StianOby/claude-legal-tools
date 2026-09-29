@@ -33,7 +33,8 @@ nbno/
 │   ├── nbno_run.sh            # download wrapper
 │   ├── nb_search.py           # find an item id from author/title/year (open catalogue)
 │   ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
-│   ├── zotero_book.py         # orchestrator: download → OCR → Zotero RDF
+│   ├── zotero_book.py         # orchestrator: download → text layer → shrink → Zotero RDF
+│   ├── alto_text.py           # nb.no's own OCR (ALTO) as the PDF text layer
 │   ├── build_zotero_rdf.py    # Zotero RDF generation
 │   ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
 │   ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place

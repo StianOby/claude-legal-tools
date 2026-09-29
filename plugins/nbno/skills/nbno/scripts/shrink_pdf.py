@@ -182,8 +182,8 @@ def _iter_images(resources, Name, depth: int = 0):
             yield from _iter_images(inner, Name, depth + 1)
 
 
-def recompress(in_pdf: Path, out_pdf: Path, quality: int = 70,
-               max_width: int = 900, jpeg_min_dim: int = 64) -> dict:
+def recompress(in_pdf: Path, out_pdf: Path, quality: int = 60,
+               max_width: int = 800, jpeg_min_dim: int = 64) -> dict:
     """Recompress raster images in `in_pdf`, write to `out_pdf`.
 
     Returns a stats dict: {pages, images_seen, images_rewritten,
@@ -295,14 +295,16 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "already-shrunk file compounds JPEG artefacts. "
                          "Prefer the default sibling output, then rename "
                          "manually once you've inspected the result.")
-    ap.add_argument("--quality", type=int, default=70,
-                    help="JPEG quality 1-95 (default: 70 — targets ~143 "
-                         "KB/page for text-heavy nb.no scans, i.e. ~50 MB "
-                         "for a 350-page book).")
-    ap.add_argument("--max-width", type=int, default=900,
+    ap.add_argument("--quality", type=int, default=60,
+                    help="JPEG quality 1-95 (default: 60 — about 120 "
+                         "KB/page for text-heavy nb.no scans, i.e. ~60 MB "
+                         "for a 500-page book).")
+    ap.add_argument("--max-width", type=int, default=800,
                     help="Resize images so width <= this value (default: "
-                         "900 px). 0 disables resizing. Default is tuned "
-                         "for legible book text at typical Zotero sizes.")
+                         "800 px). 0 disables resizing. Default keeps book "
+                         "text crisp on screen; use 700 with --quality 50 "
+                         "for ~25 %% less, 900 with --quality 70 for more "
+                         "detail.")
     ap.add_argument("--probe-only", action="store_true",
                     help="Recompress one middle page, print the estimated "
                          "total output size, exit without writing.")

@@ -62,7 +62,22 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      `--nbsso`/`--bearer`, or with `--downloader wrapper`; `--tiles` and
      `--workers` have no effect on the wrapper, and the `[dl]` line says
      which path was chosen.
-6. **OCR with `ocrmypdf`**, language pack `nor+nno` by default.
+6. **Text layer.** Two sources, picked automatically (`--ocr auto`):
+   - **nb.no's own OCR**, when the item serves it. nb.no OCRed its scans
+     with ABBYY and publishes the result as ALTO XML, word by word, at
+     `api.nb.no/catalog/v1/metadata/<URN>/altos`. **Public-domain books serve
+     it to anyone; Bokhylla and FEIDE-licensed books answer 401 even with a
+     logged-in session and an active loan** (verified 2026-09-29). Where it
+     is available, `scripts/alto_text.py` writes every word as invisible text
+     at its ALTO position and sets each page to the physical size ALTO
+     records — the same thing nb.no's own "PDF with text" downloads contain.
+     No Tesseract, so it takes seconds instead of minutes, and old type such
+     as Fraktur comes out better. It is the same OCR nb.no's search uses, so
+     it has the same errors (`§` often reads as `8`). Numbered pages without
+     nb.no text are listed in the log; re-run with `--ocr tesseract` if any
+     of them has text on it.
+   - **Tesseract via `ocrmypdf`** for everything else (and with
+     `--ocr tesseract`), language pack `nor+nno` by default.
    - Auto-installs `ocrmypdf` to a persistent pip --target so the binary
      survives across Cowork bash invocations. By default the target is
      `<--out>/_pylib`; override with `NBNO_PYLIB=/some/path`. `~/.local/`
@@ -150,7 +165,7 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
   --nbsso "nbsso=$NBSSO" \
-  --tiles always --shrink
+  --tiles always
 ```
 
 New flags worth knowing about:
@@ -160,32 +175,28 @@ New flags worth knowing about:
 | `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. **`always` ignores `--resize`** — tiles are fetched at each canvas's native resolution, so pages come out full-size whatever width you asked for. |
 | `--ocr-jobs N`   | parallel jobs for ocrmypdf (default: half the usable CPUs, at most 4) |
 | `--force-auth`   | skip the `accessInfo` pre-check; attempt the chosen path regardless |
-| `--no-ocr`       | skip OCR (use with `ocr_chunked.py` afterwards for big books) |
-| `--shrink`       | recompress embedded images as JPEG after OCR. Defaults target ~50 MB on a 350-page book. Copies the OCRed master to `<basename>.original.pdf` before rewriting in place. |
-| `--shrink-quality N` | JPEG quality for `--shrink` (default 70 — tuned for ~143 KB/page on text-heavy nb.no scans) |
-| `--shrink-max-width N` | resize images wider than N px before re-encoding (default 900). 0 disables resizing. |
-| `--shrink-no-keep-master` | do not copy the OCRed master to `<basename>.original.pdf` before shrinking. Discouraged on first runs — re-shrinking an already-shrunk file compounds JPEG artefacts. |
-| `--shrink-threshold-mb N` | print a hint suggesting `--shrink` when the output exceeds N MB (default 500; 0 disables) |
+| `--ocr {auto,nb,tesseract}` | where the text layer comes from. `auto` (default): nb.no's own OCR when the item serves it (public-domain books), else Tesseract. `nb`: the same, but warn loudly on fallback. `tesseract`: always OCR ourselves. |
+| `--no-ocr`       | no text layer at all (use with `ocr_chunked.py` afterwards for big books) |
+| `--no-shrink`    | keep full-resolution page images. By default they are recompressed as JPEG after OCR (~60 MB for a 500-page book; lossy). Use only when the user asks for full resolution. |
+| `--shrink-quality N` | JPEG quality for the shrink (default 60 — about 120 KB/page on text-heavy nb.no scans) |
+| `--shrink-max-width N` | resize images wider than N px before re-encoding (default 800). 0 disables resizing. `--shrink-max-width 700 --shrink-quality 50` is ~25 % smaller but soft on small print; `900`/`70` gives more detail. |
+| `--shrink-keep-master` | also keep the full-resolution OCRed PDF as `<basename>.original.pdf` (often 300–800 MB), so you can re-shrink with other settings without re-downloading |
+| `--shrink-threshold-mb N` | with `--no-shrink`, print a hint when the output exceeds N MB (default 150; 0 disables) |
 
 Output:
 
 ```
 $OUT_DIR/
-  AUTHOR_TITLE_(YEAR).pdf           # OCRed, searchable (shrunk if --shrink)
+  AUTHOR_TITLE_(YEAR).pdf           # OCRed, searchable, shrunk
+                                    # (unless --no-shrink)
   AUTHOR_TITLE_(YEAR).rdf           # Zotero RDF — drag-and-drop import
-  AUTHOR_TITLE_(YEAR).original.pdf  # only if --shrink: OCRed master,
-                                    # kept so you can re-shrink with
-                                    # different settings without
-                                    # compounding JPEG artefacts.
+  AUTHOR_TITLE_(YEAR).original.pdf  # only with --shrink-keep-master:
+                                    # full-resolution OCRed master
 ```
 
-**Delete the `.original.pdf` once the workflow is fully done.** It is
-the OCRed master from before the lossy shrink — keep it only while you
-might still want to try different `--shrink-quality` / `--shrink-max-width`
-settings. Once you've imported the `.rdf` into Zotero and confirmed the
-shrunk PDF is satisfactory, remove `<basename>.original.pdf` to free disk
-space (typically 300–800 MB per book). It is never referenced by the RDF
-and has no role in the final deliverable.
+The `.original.pdf` exists only if you asked for it. It is never referenced
+by the RDF; once the user is happy with the shrunk PDF, delete it to free
+300–800 MB.
 
 ## Sandbox notes
 

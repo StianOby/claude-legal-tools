@@ -148,15 +148,18 @@ images in place:
 python {SKILL_DIR}/scripts/shrink_pdf.py --pdf book.pdf
 ```
 
-Defaults are tuned for **~50 MB on a 350-page text-heavy book**
-(`--quality 70 --max-width 900`, i.e. ~143 KB/page). Override either
-flag if you want a different quality/size tradeoff.
+Defaults are tuned for **~60 MB on a 500-page text-heavy book**
+(`--quality 60 --max-width 800`, about 120 KB/page; text stays crisp on
+screen). `--quality 50 --max-width 700` is ~25 % smaller but soft on small
+print; `--quality 70 --max-width 900` gives more detail at ~35 % more.
+Grayscale conversion and background whitening were measured and do not
+help (paper texture, not colour, is what costs bytes).
 
 This walks each page's image XObjects, re-encodes as JPEG at the given
 quality, and replaces the streams. The OCR text layer, page tree, and
 bookmarks are untouched. 1-bit monochrome images are skipped (JPEG would
 grow them and degrade them visibly). On a typical IIIF-tile book the
-defaults take ~30 s and produce ~50 MB output.
+defaults take ~30 s per 100 pages.
 
 **Probe-and-extrapolate.** Before each run, `shrink_pdf.py` recompresses
 one middle page and prints the estimated total output size
@@ -166,19 +169,15 @@ than a guess. Pass `--probe-only` to print just the estimate and exit
 without writing.
 
 **Never overwrites the input by default.** Output goes to a sibling
-`<stem>_q70_w900.pdf` (the filename encodes the settings). Re-encoding
+`<stem>_q60_w800.pdf` (the filename encodes the settings). Re-encoding
 an already-shrunk file compounds JPEG artefacts, so leaving the
 high-quality master in place lets you experiment with settings
 non-destructively. Use `--in-place` to overwrite.
 
-`zotero_book.py` also exposes this as `--shrink` with the same defaults
-(`--shrink-quality 70 --shrink-max-width 900`). Because the orchestrator
-keeps the canonical filename for the Zotero RDF, `--shrink` rewrites the
-PDF in place — but **copies the OCRed master to `<basename>.original.pdf`
-first** so re-shrinking with different settings starts from the
-high-quality version, not the already-shrunk one. Pass
-`--shrink-no-keep-master` to skip the copy. Without `--shrink`, the
-orchestrator prints a one-line hint if the output PDF exceeds
-`--shrink-threshold-mb` (default 500). Re-running `zotero_book.py
---shrink` after the fact is also fine — the master copy makes
-experimentation safe.
+`zotero_book.py` runs this step by default, with the same defaults
+(`--shrink-quality 60 --shrink-max-width 800`), after OCR. It rewrites the
+PDF in place because the Zotero RDF points at the canonical filename, and
+keeps no full-resolution copy unless you pass `--shrink-keep-master`
+(saved as `<basename>.original.pdf`). `--no-shrink` skips the step; the
+orchestrator then prints a hint if the PDF exceeds `--shrink-threshold-mb`
+(default 150).
