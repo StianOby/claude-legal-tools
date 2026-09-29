@@ -1,28 +1,49 @@
 name: Release Skills
 
+# Runs only after "Validate plugins" has succeeded for a push to main.
+# workflow_run has no paths filter, so the release is skipped below when
+# nothing under plugins/ changed since the last skills-* tag.
 on:
-  push:
+  workflow_run:
+    workflows: ["Validate plugins"]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'plugins/**'
 
 jobs:
   release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      # Check out the commit that was validated, not the current tip of main.
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
+      - name: Check for plugin changes since last release
+        id: changed
+        run: |
+          PREV_TAG=$(git tag --list 'skills-*' --sort=-creatordate | head -n1)
+          if [ -z "$PREV_TAG" ] || ! git diff --quiet "$PREV_TAG" HEAD -- plugins/; then
+            echo "release=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes under plugins/ since $PREV_TAG; skipping release."
+            echo "release=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build tag
+        if: steps.changed.outputs.release == 'true'
         id: tag
         run: |
           COMMIT_NUM=$(git rev-list --count HEAD)
           echo "value=skills-$(date +'%Y.%m.%d')-${COMMIT_NUM}" >> $GITHUB_OUTPUT
 
       - name: Build changelog
+        if: steps.changed.outputs.release == 'true'
         id: changelog
         run: |
           PREV_TAG=$(git tag --list 'skills-*' --sort=-creatordate | head -n1)
@@ -54,6 +75,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Package skills
+        if: steps.changed.outputs.release == 'true'
         # Zip the skill directory itself (not the plugin wrapper) so the zip
         # layout stays identical to before the marketplace restructure.
         run: |
@@ -64,9 +86,11 @@ jobs:
           done
 
       - name: Create release
+        if: steps.changed.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.value }}
+          target_commitish: ${{ github.event.workflow_run.head_sha }}
           name: ${{ steps.tag.outputs.value }}
           body: ${{ steps.changelog.outputs.body }}
           files: "*.zip"
