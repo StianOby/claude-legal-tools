@@ -12,12 +12,20 @@ Deliberately talks only to nb.no. Do NOT swap in a third-party geo service
 (ipinfo.io and friends) — that would leak the user's IP to an unrelated party
 to learn something nb.no already tells us for free. This script does not map
 the IP to a country; `https://api.nb.no/me/v1` reports the IP and the login
-identity, and whether that IP is Norwegian is a question for the user.
+identity. For a geo-gated item (--id), it instead asks the image resolver for
+one 1024 px tile of the first numbered page — the same request a download
+would make next — and nb.no's answer settles it: 200 means this IP and
+session may read the pages; 403 on a NORWAY (Bokhylla) item means the IP is
+not Norwegian. On an NB item a 403 can also mean no active digital loan or an
+expired nbsso cookie, so it is reported as that, not as "not Norwegian".
 
 Usage:
     python geo_check.py                       # anonymous view
     python geo_check.py --nbsso "nbsso=<v>"   # the user's own session
-    python geo_check.py --id digibok_2008051600041   # + this item's accessInfo
+    python geo_check.py --id digibok_2008051600041   # + accessInfo + tile probe
+
+Exit status: 0 normally; 3 when the tile probe was refused (403); 1 when
+nb.no could not be reached.
 
 Reading the output:
   - loginProvider null                     → not logged in (or cookie expired)
@@ -28,9 +36,9 @@ Reading the output:
                                              Classify on this field, not on
                                              viewability/legalDepositLoginText
                                              — those invert once you log in
-  - accessAllowedFrom NORWAY/NB from a non-Norwegian IP
-                                           → page images will 403 regardless
-                                             of login. Stop before downloading.
+  - image probe: 403 on a NORWAY item     → the IP is not Norwegian; page
+                                             images will 403 regardless of
+                                             login. Stop before downloading.
 """
 from __future__ import annotations
 
@@ -43,6 +51,12 @@ from typing import Optional
 
 ME_URL = "https://api.nb.no/me/v1"
 ITEM_URL = "https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_{id}"
+# Two manifest endpoints with different coverage; the first 404s for many
+# items (see zotero_book._fetch_manifest).
+MANIFEST_URLS = (
+    "https://api.nb.no/catalog/v1/items/{id}/manifest",
+    "https://api.nb.no/catalog/v1/iiif/URN:NBN:no-nb_{id}/manifest",
+)
 
 # accessAllowedFrom values that mean "the resolver will geo-check you".
 GEO_GATED = ("NORWAY", "NB")
@@ -57,6 +71,47 @@ def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+def probe_tile(canonical: str, nbsso: Optional[str],
+               timeout: float = 20.0) -> Optional[int]:
+    """HTTP status for one 1024 px tile of the item's first numbered page
+    (200 = served), or None when no probe could be made. Not smaller: 256 px
+    tiles are served to anyone, like thumbnails; 1024 px is what the
+    downloader fetches and what nb.no gates."""
+    manifest = None
+    for url in MANIFEST_URLS:
+        try:
+            manifest = _get_json(url.format(id=canonical), nbsso, timeout)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                return None
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+    try:
+        canvases = manifest["sequences"][0]["canvases"]
+        names = [c["@id"].split("/")[-1] for c in canvases]
+        pick = next((i for i, n in enumerate(names)
+                     if n.rsplit("_", 1)[-1].isdigit()), None)
+        if pick is None:
+            pick = next(i for i, n in enumerate(names) if not n.endswith("_C2"))
+        base = canvases[pick]["images"][0]["resource"]["service"]["@id"]
+    except (TypeError, KeyError, IndexError, StopIteration):
+        return None
+    headers = {"referer": f"https://www.nb.no/items/URN:NBN:no-nb_{canonical}"}
+    if nbsso:
+        headers["cookie"] = nbsso
+    req = urllib.request.Request(f"{base}/0,0,1024,1024/full/0/default.jpg",
+                                 headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp.read()
+            return resp.status
+    except urllib.error.HTTPError as exc:
+        return exc.code
+    except (urllib.error.URLError, OSError):
+        return None
 
 
 def main(argv: Optional[list] = None) -> int:
@@ -89,10 +144,14 @@ def main(argv: Optional[list] = None) -> int:
             print(f"ERROR: could not fetch item {canonical}: {exc}",
                   file=sys.stderr)
             return 1
+        if (out["accessInfo"] or {}).get("accessAllowedFrom") in GEO_GATED:
+            out["tileProbe"] = probe_tile(canonical, args.nbsso)
+
+    refused = out.get("tileProbe") == 403
 
     if args.json:
         print(json.dumps(out, indent=2, ensure_ascii=False))
-        return 0
+        return 3 if refused else 0
 
     print(f"ip:            {me.get('ip')}")
     print(f"loginProvider: {me.get('loginProvider') or '(anonymous)'}")
@@ -116,16 +175,32 @@ def main(argv: Optional[list] = None) -> int:
         if ai.get("legalDepositLoginText"):
             print(f"  legalDepositLoginText: {ai['legalDepositLoginText']}")
         if ai.get("accessAllowedFrom") in GEO_GATED:
+            probe = out.get("tileProbe")
             print()
-            print(f"  NOTE: this item is served only from {ai['accessAllowedFrom']}."
-                  f" Confirm {me.get('ip')} is a Norwegian address before")
-            print("        downloading — if it is not, every page image will "
-                  "403 no matter who is logged in.")
+            if probe == 200:
+                print("  image probe: OK — nb.no served a page tile to this "
+                      "IP and session.")
+            elif probe == 403 and ai.get("accessAllowedFrom") == "NB":
+                print("  image probe: 403 — either this IP is not Norwegian, "
+                      "or there is no active digital")
+                print("        loan, or the nbsso cookie has expired. Every "
+                      "page will fail until that is fixed.")
+            elif probe == 403:
+                print(f"  image probe: 403 — nb.no will not serve this item's "
+                      f"pages to {me.get('ip')}: the IP")
+                print("        is not Norwegian. Every page image will 403 no "
+                      "matter who is logged in.")
+            else:
+                print(f"  image probe: inconclusive ({probe or 'no response'})."
+                      f" This item is served only from "
+                      f"{ai['accessAllowedFrom']};")
+                print(f"        confirm {me.get('ip')} is a Norwegian address "
+                      "before downloading.")
     elif args.id is None:
         print()
         print("(pass --id <item> to also see that item's accessInfo)")
 
-    return 0
+    return 3 if refused else 0
 
 
 if __name__ == "__main__":

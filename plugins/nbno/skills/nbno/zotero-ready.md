@@ -37,9 +37,12 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    download. Override with `--force-auth` if you have reason to believe
    `accessInfo` is wrong. `accessInfo` is IP- and session-dependent, so the
    pre-check sends `--nbsso` when you supply it and sees what the user's own
-   session sees. It cannot tell you whether your IP is Norwegian — for a
-   geo-gated item (`accessAllowedFrom: NORWAY` / `NB`) run
-   `scripts/geo_check.py` first.
+   session sees. For a geo-gated item (`accessAllowedFrom: NORWAY` / `NB`),
+   the script then asks the image resolver for one 1024 px page tile, the
+   same request the download makes next. A 403 stops the run before
+   anything is downloaded. On `NORWAY` that means the IP is not Norwegian.
+   On `NB` it means the IP is not Norwegian, there is no active loan, or the
+   cookie has expired. `--force-auth` skips the probe as well.
 4. **Compute the basename**: `AUTHOR_TITLE_(YEAR)`, ASCII-folded
    (æ ø å → ae oe aa) and filesystem-safe. The first author's surname wins;
    falls back to the first organisation/contributor; with no creator at all
@@ -77,21 +80,26 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      nb.no text are listed in the log; re-run with `--ocr tesseract` if any
      of them has text on it.
    - **Tesseract via `ocrmypdf`** for everything else (and with
-     `--ocr tesseract`), language pack `nor+nno` by default.
+     `--ocr tesseract`), language `nor` by default. Tesseract has no
+     Nynorsk model; `nor` covers both written forms. When the sandbox lacks
+     `nor`, it is fetched from tessdata_fast into `<--out>/_tessdata/` (see
+     `reading-ocr.md`).
    - Auto-installs `ocrmypdf` to a persistent pip --target so the binary
      survives across Cowork bash invocations. By default the target is
      `<--out>/_pylib`; override with `NBNO_PYLIB=/some/path`. `~/.local/`
      is not used: Cowork wipes it between bash calls.
-   - System packages required: `tesseract-ocr`, `tesseract-ocr-nor`, and
-     ideally `tesseract-ocr-nno`. The `nno` pack is missing in some Cowork
-     sandboxes — `tesseract_preflight()` drops it and warns; if none of the
-     requested packs is installed it falls back to `eng` (see
-     `reading-ocr.md`).
+   - System package required: `tesseract-ocr`. The language model is
+     fetched if missing. If it cannot be fetched, the script falls back to
+     `eng` with a warning.
    - Uses `--skip-text` so already-OCRed pages aren't re-processed.
-   - Pass `--no-ocr` to skip. For books whose OCR does not fit one bash call
-     (even at the 600 s maximum timeout), use
-     `scripts/ocr_chunked.py` separately after the download — same quality,
-     resumable per-page cache.
+   - Pass `--no-ocr` to skip. This **also skips the shrink** unless you add
+     `--shrink`. Shrinking first would leave 800 px pages that OCR badly. A
+     book of more than about 30 pages will not OCR within one Cowork bash
+     call (Tesseract does about 13 pages a minute, and calls die at about
+     178 s). For those, download with `--no-ocr`, run
+     `scripts/ocr_chunked.py` (one call per chunk), then
+     `shrink_pdf.py --in-place`. The quality is the same, and the per-page
+     cache makes it resumable.
 7. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
    references the PDF by its bare filename, so the .rdf and .pdf must sit
    side by side at import time.
@@ -139,17 +147,22 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --out "$OUT_DIR" \
   --no-ocr
 
-# Big book: download with --no-ocr in one call, then OCR in chunks.
+# Big book: download with --no-ocr in one call (full resolution: --no-ocr
+# skips the shrink too), then OCR in chunks.
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
   --nbsso "nbsso=$NBSSO" \
   --no-ocr
 
-# Then ONE of these per bash tool call, re-running while it exits 2:
+# Then ONE of these per bash tool call, re-running while it exits 2
+# (default budget 140 s; do not pipe it — the pipe hides the exit code):
 python {SKILL_DIR}/scripts/ocr_chunked.py \
-    --pdf "$OUT_DIR/Author_Title_(Year).pdf" \
-    --langs nor+nno --time-budget 35
+    --pdf "$OUT_DIR/Author_Title_(Year).pdf"
+
+# After exit 0, shrink in its own call (keeps the filename the RDF uses):
+python {SKILL_DIR}/scripts/shrink_pdf.py \
+    --pdf "$OUT_DIR/Author_Title_(Year).pdf" --in-place
 
 # In-copyright content where the resolver downsamples single-shot requests.
 # --tiles always forces native-res tiles for every page (slower but correct).
@@ -174,9 +187,10 @@ New flags worth knowing about:
 | --- | --- |
 | `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. **`always` ignores `--resize`** — tiles are fetched at each canvas's native resolution, so pages come out full-size whatever width you asked for. |
 | `--ocr-jobs N`   | parallel jobs for ocrmypdf (default: half the usable CPUs, at most 4) |
-| `--force-auth`   | skip the `accessInfo` pre-check; attempt the chosen path regardless |
+| `--force-auth`   | skip the `accessInfo` pre-check and the page-tile probe; attempt the chosen path regardless |
 | `--ocr {auto,nb,tesseract}` | where the text layer comes from. `auto` (default): nb.no's own OCR when the item serves it (public-domain books), else Tesseract. `nb`: the same, but warn loudly on fallback. `tesseract`: always OCR ourselves. |
-| `--no-ocr`       | no text layer at all (use with `ocr_chunked.py` afterwards for big books) |
+| `--no-ocr`       | no text layer at all, and no shrink (unless `--shrink`), so `ocr_chunked.py` gets full-resolution pages afterwards |
+| `--ocr-langs L`  | Tesseract languages (default `nor`; fetched from tessdata_fast when missing) |
 | `--no-shrink`    | keep full-resolution page images. By default they are recompressed as JPEG after OCR (~60 MB for a 500-page book; lossy). Use only when the user asks for full resolution. |
 | `--shrink-quality N` | JPEG quality for the shrink (default 60 — about 120 KB/page on text-heavy nb.no scans) |
 | `--shrink-max-width N` | resize images wider than N px before re-encoding (default 800). 0 disables resizing. `--shrink-max-width 700 --shrink-quality 50` is ~25 % smaller but soft on small print; `900`/`70` gives more detail. |
@@ -200,15 +214,14 @@ by the RDF; once the user is happy with the shrunk PDF, delete it to free
 
 ## Sandbox notes
 
-- **The bash timeout is a default, not a ceiling** (120 s; 45 s in earlier
-  Cowork builds). Pass the bash tool an explicit timeout (up to 600 s) and
-  `zotero_book.py` runs to
-  completion in one call — a 173-canvas tiled book downloaded in ~40 s wall.
-  Reach for splitting only when a job cannot fit even then, which in practice
-  means OCR rather than download: use `--no-ocr` for the download call and
-  `ocr_chunked.py` afterwards. `nohup … &` does **not** survive the call
-  returning — the process is killed and its log stays empty, so never
-  background-and-poll.
+- **Plan for about 170 s per bash call.** The default timeout is 120 s.
+  Request the 600 s maximum anyway, but calls have been cut off at about
+  178 s with 600 s requested. Downloads fit: a 173-canvas tiled book took
+  about 40 s, and a 424-page book about 105 s. Tesseract OCR of a whole
+  book does not fit. Use `--no-ocr` for the download call, then
+  `ocr_chunked.py` (budget ≤ 150 s) and `shrink_pdf.py --in-place`.
+  `nohup … &` does **not** survive the call returning: the process is
+  killed and its log stays empty, so never background-and-poll.
 - **Sandbox timeouts may keep work running in the background.** When a
   bash call reports `Command timed out after 45000ms`, the killed Python
   process can still flush files to disk for several seconds after control
@@ -229,12 +242,13 @@ by the RDF; once the user is happy with the shrunk PDF, delete it to free
   the target with `NBNO_PYLIB=/some/abs/path` if you want a shared install
   across runs. The bin dir (`<target>/bin/`) is prepended to `PATH` and
   the target itself to `PYTHONPATH` automatically.
-- ocrmypdf requires Tesseract + Norwegian language packs at the system
-  level. The Cowork sandbox typically has `tesseract-ocr-nor` but **not**
-  `tesseract-ocr-nno`; `tesseract_preflight()` detects this and degrades
-  `nor+nno` → `nor` with a warning. On the user's own machine, install
-  both: `apt-get install tesseract-ocr tesseract-ocr-nor tesseract-ocr-nno`
-  (Debian/Ubuntu) or `brew install tesseract-lang` (macOS).
+- ocrmypdf requires Tesseract at the system level. The Norwegian model has
+  been missing in Cowork sandboxes, which ship only `eng`/`osd`, and there
+  is no root to install it. `tesseract_preflight()` fetches `nor` into
+  `<--out>/_tessdata/` and sets `TESSDATA_PREFIX`. Keep that dir like
+  `_pylib/`. On the user's own machine, install
+  `apt-get install tesseract-ocr tesseract-ocr-nor` (Debian/Ubuntu) or
+  `brew install tesseract-lang` (macOS).
 - **Windows users: run the orchestrator under WSL2**, not native Windows.
   `zotero_book.py`'s wrapper fallback shells out to `bash`/`nbno_run.sh`,
   the auto-install passes `--break-system-packages` (a PEP 668 flag
@@ -284,11 +298,14 @@ python {SKILL_DIR}/scripts/build_zotero_rdf.py \
 - *Norwegian characters look garbled in author names.* The .rdf is always
   UTF-8; the issue is usually that the metadata source is stale. Re-run with
   `--no-ocr` to refresh from the nb.no API and re-emit the .rdf.
-- *`ocrmypdf` complains about missing Norwegian data.* Install the
-  language packs at the system level.
+- *`ocrmypdf` complains about missing Norwegian data.* The automatic fetch
+  failed; the log says why, for example no network to github.com. Install
+  `tesseract-ocr-nor`, or fetch the model by hand as in `reading-ocr.md`.
 - *Cookies expire mid-download.* Re-read the cookie (`SKILL.md` Step 0 step 7
   with the browser, or re-copy `nbsso` from DevTools) and re-run. If the item is
   FEIDE-licensed, check the digital loan is still active before blaming the
   cookie — loans are time-limited too.
-- *Every page 403s although the login is fine.* Geo, not auth: check
-  `accessAllowedFrom` and the egress IP with `scripts/geo_check.py`.
+- *Every page 403s although the login is fine.* Geo, not auth. For
+  geo-gated items `zotero_book.py` now stops before downloading with `nb.no
+  refused a page tile`, and `scripts/geo_check.py --id <id>` shows the same
+  probe. On a `NORWAY` item the IP is the problem, so don't retry.

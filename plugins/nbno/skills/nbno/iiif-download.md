@@ -140,8 +140,9 @@ with open(pdf, "wb") as fh:
 print(pdf)
 ```
 
-Keep each Python call inside the bash tool's timeout (default 120 s; pass
-up to 600 s for a long book). Do not count on `/tmp` or `~` surviving
+Keep each Python call inside the bash tool's timeout (default 120 s; ask
+for more, but calls have been cut off at about 178 s even with 600 s
+requested). Do not count on `/tmp` or `~` surviving
 to the next call in Cowork; keep anything you need later under the outputs
 directory.
 

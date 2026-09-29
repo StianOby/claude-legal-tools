@@ -22,7 +22,7 @@ all — Bokhylla only needs a Norwegian IP. FEIDE-licensed items need `--nbsso`
 What it produces:
 
     <out>/AUTHOR_TITLE_(YEAR).pdf      — searchable (nb.no's own OCR where
-                                         available, else Tesseract nor+nno)
+                                         available, else Tesseract nor)
                                          and shrunk
                                          (800 px, JPEG q60) by default
     <out>/AUTHOR_TITLE_(YEAR).rdf      — Zotero RDF, references the PDF
@@ -36,7 +36,9 @@ to nb.no lives as a Web Link attachment on the imported item.
 Pipeline:
   1. Resolve --id into a canonical nb.no item ID (digibok_NNN…).
   2. Fetch metadata from https://api.nb.no/catalog/v1/items/<URN>.
-  3. Compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
+  3. For a geo-gated item, ask the image resolver for one small tile and
+     stop on a 403 — every page would fail the same way.
+     Then compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
   4. Download the full book PDF.
        - Default: the fast IIIF downloader in-process. It needs no
          credential for public-domain items or Bokhylla from a Norwegian
@@ -46,7 +48,9 @@ Pipeline:
          cookie-file workflow from auth.md). --downloader overrides both.
   5. Add a text layer unless --no-ocr: nb.no's own OCR (ALTO, see
      alto_text.py) when the item serves it — public-domain books do —
-     otherwise ocrmypdf (-l nor+nno). --ocr picks one explicitly.
+     otherwise ocrmypdf (-l nor; the model is fetched from tessdata_fast
+     when the sandbox lacks it). --ocr picks one explicitly. --no-ocr also
+     skips the shrink, so a later ocr_chunked.py run sees full-size pages.
   6. Render the Zotero RDF via build_zotero_rdf.build_rdf.
 
 Designed to stream progress (each step prints a single line) so the user can
@@ -1028,29 +1032,111 @@ def ocr_env(jobs: int) -> dict:
     return env
 
 
-def tesseract_preflight(requested: str) -> str:
-    """Check which of the requested tesseract languages are installed.
+# Language models come from tessdata_fast, the set Debian/Ubuntu package.
+# Tesseract has no Nynorsk model: `nor` covers Norwegian.
+TESSDATA_URL = ("https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
+                "{code}.traineddata")
 
-    Returns a `+`-joined language string with only available codes. Warns
-    and degrades gracefully — typical Cowork case is `nor` installed but
-    `nno` missing. If *none* are available, falls back to `eng` (with a
-    warning) when that is installed, and otherwise exits with the install
-    hint rather than letting ocrmypdf fail on every page.
+
+def _tessdata_dir() -> Path:
+    """Where fetched language models live: beside _pylib, so they survive
+    across Cowork bash calls the same way the pip installs do."""
+    return _pylib_target().parent / "_tessdata"
+
+
+def _list_langs() -> Tuple[set, Optional[Path]]:
+    """Installed tesseract languages, and the tessdata dir they come from
+    (read from the 'List of available languages in "<dir>"' header)."""
+    out = subprocess.run(["tesseract", "--list-langs"],
+                         capture_output=True, text=True, timeout=10)
+    langs, source = set(), None
+    for ln in (out.stdout + out.stderr).splitlines():
+        ln = ln.strip()
+        if ln.startswith("List of available"):
+            m = re.search(r'"([^"]+)"', ln)
+            if m:
+                source = Path(m.group(1))
+        elif ln and " " not in ln:
+            langs.add(ln)
+    return langs, source
+
+
+def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
+    """Download missing language models into a private tessdata dir and
+    point TESSDATA_PREFIX at it. Returns the codes now present there.
+
+    Cowork sandboxes have shipped with only eng+osd and no root for apt-get,
+    while github.com is reachable. ocrmypdf needs more than .traineddata
+    files, so the system dir's models, configs/, tessconfigs/ and pdf.ttf
+    are copied along — whichever of them exist; tessconfigs/ is missing on
+    some installs.
+    """
+    target = _tessdata_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    if (system_dir and system_dir.is_dir()
+            and system_dir.resolve() != target.resolve()):
+        for item in system_dir.iterdir():
+            dst = target / item.name
+            if dst.exists():
+                continue
+            try:
+                if item.is_dir() and item.name in ("configs", "tessconfigs"):
+                    shutil.copytree(item, dst, copy_function=shutil.copyfile)
+                elif item.suffix == ".traineddata" or item.name == "pdf.ttf":
+                    shutil.copyfile(item, dst)
+            except OSError as exc:
+                print(f"[ocr] could not copy {item} ({exc})")
+    present = []
+    for code in codes:
+        dst = target / f"{code}.traineddata"
+        if not dst.exists():
+            try:
+                with urllib.request.urlopen(TESSDATA_URL.format(code=code),
+                                            timeout=60) as resp:
+                    data = resp.read()
+            except (OSError, http.client.HTTPException) as exc:
+                print(f"[ocr] could not fetch {code}.traineddata ({exc})")
+                continue
+            if len(data) < 100_000:   # an error page, not a model
+                print(f"[ocr] no tessdata_fast model for {code!r}")
+                continue
+            dst.write_bytes(data)
+        present.append(code)
+    if present:
+        os.environ["TESSDATA_PREFIX"] = str(target)
+    return present
+
+
+def tesseract_preflight(requested: str) -> str:
+    """Make the requested language packs available, or degrade.
+
+    A pack that is not installed is fetched from tessdata_fast into
+    _tessdata/ (see _fetch_tessdata); a model fetched by an earlier run —
+    or by ocr_chunked.py — is reused. Codes that still cannot be had are
+    dropped with a warning. If *none* is available, falls back to `eng`
+    (with a warning) when that is installed, and otherwise exits with the
+    install hint rather than letting ocrmypdf fail on every page.
     """
     if shutil.which("tesseract") is None:
         return requested
+    tdir = _tessdata_dir()
+    if not os.environ.get("TESSDATA_PREFIX") and any(tdir.glob("*.traineddata")):
+        os.environ["TESSDATA_PREFIX"] = str(tdir)
     try:
-        out = subprocess.run(
-            ["tesseract", "--list-langs"],
-            capture_output=True, text=True, timeout=10,
-        )
+        available, system_dir = _list_langs()
     except (subprocess.TimeoutExpired, OSError):
         return requested
-    available = {
-        ln.strip() for ln in (out.stdout + out.stderr).splitlines()
-        if ln.strip() and not ln.startswith("List of available")
-    }
     requested_codes = [c for c in requested.split("+") if c]
+    missing = [c for c in requested_codes if c not in available]
+    if missing:
+        got = _fetch_tessdata(missing, system_dir)
+        if got:
+            print(f"[ocr] fetched {'+'.join(got)} from tessdata_fast into "
+                  f"{tdir} (TESSDATA_PREFIX set)")
+            try:
+                available, _ = _list_langs()
+            except (subprocess.TimeoutExpired, OSError):
+                available |= set(got)
     kept = [c for c in requested_codes if c in available]
     missing = [c for c in requested_codes if c not in available]
     if missing:
@@ -1063,17 +1149,15 @@ def tesseract_preflight(requested: str) -> str:
         if "eng" in available:
             print("[ocr] WARNING: no requested language available; falling "
                   "back to eng. Expect worse recognition of Norwegian text "
-                  "— install with: apt-get install tesseract-ocr-nor "
-                  "tesseract-ocr-nno")
+                  "— install with: apt-get install tesseract-ocr-nor")
             return "eng"
         raise SystemExit(
             f"ERROR: none of the requested tesseract pack(s) ({requested}) "
-            "is installed and eng is not available either. Install with: "
-            "apt-get install tesseract-ocr-nor tesseract-ocr-nno, or pass "
-            "--ocr-langs with an installed code."
+            "is installed or could be fetched, and eng is not available "
+            "either. Install with: apt-get install tesseract-ocr-nor, or "
+            "pass --ocr-langs with an installed code."
         )
     return requested
-
 
 def _pylib_target() -> Path:
     """Persistent pip --target directory.
@@ -1179,21 +1263,21 @@ def add_nb_text_layer(canonical_id: str, pdf_path: Path,
     return True
 
 
-def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
+def run_ocrmypdf(pdf_path: Path, languages: str = "nor",
                  jobs: Optional[int] = None) -> None:
     """Add a searchable text layer in place. Uses --skip-text so pages that
     already have text aren't re-OCRed.
 
     Auto-installs ocrmypdf to a persistent pip --target on first use
     (outputs/_pylib when NBNO_OUT_DIR is set; otherwise
-    ~/.local/share/nbno/_pylib). Tesseract and language packs must be at
-    the system level — on Debian/Ubuntu:
-        apt-get install tesseract-ocr tesseract-ocr-nor tesseract-ocr-nno
-    The nno pack is missing in some Cowork sandboxes; tesseract_preflight()
-    will warn and degrade to nor in that case.
+    ~/.local/share/nbno/_pylib). Tesseract itself must be at the system
+    level; a missing language pack is fetched by tesseract_preflight().
 
     For books whose OCR won't fit one bash call, use ocr_chunked.py instead.
     """
+    # Always, not only when installing: an ocrmypdf found in _pylib/bin
+    # cannot import its own package without _pylib on PYTHONPATH.
+    _ensure_pylib_on_path()
     binary = _which_in_pylib("ocrmypdf")
     if binary is None:
         print("[ocr] installing ocrmypdf (one-time)...")
@@ -1222,8 +1306,49 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor+nno",
     if rc != 0:
         raise SystemExit(
             f"ERROR: ocrmypdf exited with status {rc}. "
-            "Make sure tesseract-ocr + Norwegian language packs are installed."
+            "Make sure tesseract-ocr is installed."
         )
+
+
+def probe_page_image(canonical_id: str, nbsso: Optional[str] = None,
+                     timeout: float = 20.0) -> Optional[int]:
+    """Ask the image resolver for one 1024 px tile of the first numbered page.
+
+    Returns the HTTP status — 200 when nb.no serves it to this IP and
+    session — or None when no probe could be made (manifest unreachable,
+    network error). This is the one check that tells a non-Norwegian IP
+    apart before downloading: manifests and accessInfo are served worldwide,
+    and thumbnails are never gated, so only a real page tile answers it. It
+    is the same request the download would make next, to nb.no only. The
+    size matters: 256 px tiles are served to anyone (verified 2026-09-29 on
+    a legal-deposit item, anonymously), 1024 px tiles are not.
+    """
+    hdr_api = {"cookie": nbsso} if nbsso else {}
+    hdr_img = {"referer": f"https://www.nb.no/items/{urn_form(canonical_id)}"}
+    if nbsso:
+        hdr_img["cookie"] = nbsso
+    try:
+        canvases = _fetch_manifest(canonical_id, hdr_api,
+                                   timeout)["sequences"][0]["canvases"]
+    except (SystemExit, OSError, http.client.HTTPException, ValueError,
+            KeyError, IndexError):
+        return None
+    names = [c["@id"].split("/")[-1] for c in canvases]
+    pick = next((i for i, n in enumerate(names)
+                 if n.rsplit("_", 1)[-1].isdigit()), None)
+    if pick is None:
+        pick = next((i for i, n in enumerate(names)
+                     if not n.endswith("_C2")), None)
+    if pick is None:
+        return None
+    try:
+        base = canvases[pick]["images"][0]["resource"]["service"]["@id"]
+        _read_url(f"{base}/0,0,1024,1024/full/0/default.jpg", hdr_img, timeout)
+        return 200
+    except urllib.error.HTTPError as e:
+        return e.code
+    except (OSError, http.client.HTTPException, KeyError, IndexError):
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -1265,15 +1390,18 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "always: native-res tiles for every page. never: "
                          "single-shot only, drop failures.")
     ap.add_argument("--no-ocr", action="store_true",
-                    help="No text layer at all.")
+                    help="No text layer at all. Also skips the shrink (unless "
+                         "--shrink is given), so ocr_chunked.py can OCR the "
+                         "full-resolution pages afterwards.")
     ap.add_argument("--ocr", choices=("auto", "nb", "tesseract"), default="auto",
                     help="Where the text layer comes from. auto (default): "
                          "nb.no's own OCR when the item serves it (public-"
                          "domain books), else Tesseract. nb: the same, but "
                          "say so loudly when it falls back. tesseract: always "
                          "OCR ourselves.")
-    ap.add_argument("--ocr-langs", default="nor+nno",
-                    help="Tesseract language string (default: nor+nno).")
+    ap.add_argument("--ocr-langs", default="nor",
+                    help="Tesseract language string (default: nor; fetched "
+                         "from tessdata_fast when not installed).")
     ap.add_argument("--ocr-jobs", type=int, default=None,
                     help="Parallel jobs for ocrmypdf (default: half the "
                          "usable CPUs, at most 4).")
@@ -1282,8 +1410,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "the images are recompressed (JPEG) after OCR, "
                          "which is lossy: ~60 MB for a 500-page book.")
     ap.add_argument("--shrink", dest="shrink", action="store_true",
-                    help=argparse.SUPPRESS)   # the default; kept for old commands
-    ap.set_defaults(shrink=True)
+                    help="Shrink even with --no-ocr (otherwise the default).")
+    ap.set_defaults(shrink=None)   # resolved after parsing: on unless --no-ocr
     ap.add_argument("--shrink-quality", type=int, default=60,
                     help="JPEG quality for the shrink (default 60 — about "
                          "120 KB/page on text-heavy nb.no scans).")
@@ -1308,6 +1436,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Path to the nbno skill's scripts/ folder "
                          "(used to locate nbno_run.sh).")
     args = ap.parse_args(argv)
+    if args.shrink is None:
+        # Shrinking before OCR leaves 800 px pages that OCR badly, and
+        # --no-ocr exists for "download now, OCR later".
+        args.shrink = not args.no_ocr
 
     canonical = normalise_id(args.id)
     out_dir = Path(args.out).expanduser().resolve()
@@ -1332,9 +1464,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[access] legalDepositLoginText: {access.login_text}")
     if access.geo_gated:
         print(f"[access] GEO-GATED: images are served only from "
-              f"{access.access_allowed_from}. If this machine's IP is not "
-              "Norwegian, every page will 403 regardless of login — run "
-              "geo_check.py to see the IP nb.no sees.")
+              f"{access.access_allowed_from}.")
     have_auth = bool(args.bearer or args.nbsso or args.cookie)
     if access.requires_auth and not have_auth and not args.force_auth:
         raise SystemExit(
@@ -1351,6 +1481,29 @@ def main(argv: Optional[List[str]] = None) -> int:
             "credential helps.\n"
             "       Override with --force-auth if you believe accessInfo is wrong."
         )
+    if access.geo_gated and not args.force_auth:
+        status = probe_page_image(canonical, args.nbsso)
+        if status == 200:
+            print("[access] image probe: nb.no served a page tile to this "
+                  "IP and session")
+        elif status == 403:
+            if access.access_allowed_from == "NB":
+                why = ("either this IP is not Norwegian, or there is no active "
+                       "digital loan, or the nbsso cookie has expired "
+                       "(SKILL.md Step 0)")
+            else:
+                why = ("this IP is not Norwegian — Bokhylla items are served "
+                       "only to Norwegian addresses, whoever is logged in")
+            raise SystemExit(
+                f"ERROR: nb.no refused a page tile (HTTP 403): {why}.\n"
+                "       Every page would fail the same way, so nothing was "
+                "downloaded.\n"
+                "       Override with --force-auth if you believe the probe "
+                "is wrong."
+            )
+        else:
+            print(f"[access] image probe inconclusive "
+                  f"({status or 'no response'}); continuing")
 
     base = compute_basename(book)
     pdf_name = f"{base}.pdf"
@@ -1468,6 +1621,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.shrink_keep_master:
             print(f"[shrink] master kept at {master_path.name} — delete it "
                   "once you're happy with the shrunk version.")
+    elif args.no_ocr:
+        print("[shrink] skipped: --no-ocr keeps full-resolution pages for OCR. "
+              "After ocr_chunked.py finishes, run "
+              f"shrink_pdf.py --pdf {pdf_path} --in-place")
     elif args.shrink_threshold_mb > 0:
         size_mb = pdf_path.stat().st_size / 1e6
         if size_mb > args.shrink_threshold_mb:
@@ -1503,6 +1660,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"  _pylib/   ← persistent pip install target "
             f"(keep; deleting forces a re-install next run)"
         )
+    if (out_dir / "_tessdata").exists():
+        extras.append("  _tessdata/   ← fetched Tesseract language models "
+                      "(keep; deleting forces a re-download)")
     if extras:
         print()
         print("Also present:")

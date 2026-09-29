@@ -32,7 +32,7 @@ nbno/
 ├── scripts/
 │   ├── nbno_run.sh            # download wrapper
 │   ├── nb_search.py           # find an item id from author/title/year (open catalogue)
-│   ├── geo_check.py           # print egress IP + accessInfo as nb.no sees them
+│   ├── geo_check.py           # egress IP + accessInfo + a page-tile probe (is this IP allowed?)
 │   ├── zotero_book.py         # orchestrator: download → text layer → shrink → Zotero RDF
 │   ├── alto_text.py           # nb.no's own OCR (ALTO) as the PDF text layer
 │   ├── build_zotero_rdf.py    # Zotero RDF generation
@@ -192,9 +192,10 @@ The key may itself contain underscores — newspaper issues are
 numbers. On a first run, download canvases 1–7 and inspect the page footer to
 determine the offset between canvas numbers and printed pages.
 
-In a Cowork bash sandbox the bash timeout is a *default* (120 s; 45 s in
-earlier builds): pass an explicit timeout (up to 600 s) and a full book
-downloads in one call. If you
+In a Cowork bash sandbox the bash timeout defaults to 120 s. Pass an
+explicit long timeout, but expect a call to be cut off at about 170 s
+whatever you ask for. A full book still downloads in one call; whole-book
+OCR does not (use `ocr_chunked.py`). If you
 do batch, each batch has ~25 s startup overhead and each page adds ~1–2 s. Always
 write output to `/tmp`, not a mounted workspace directory — files in mounted
 directories cannot be overwritten from bash.

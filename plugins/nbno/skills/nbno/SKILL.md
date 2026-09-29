@@ -36,7 +36,11 @@ The user's preferences for this skill:
 ## Prerequisites
 
 - **`{SKILL_DIR}`** — replace this placeholder with the path printed in
-  "Base directory for this skill:" at the top of your context.
+  "Base directory for this skill:" at the top of your context. If that path
+  does not exist in bash (Cowork may show a host path the sandbox cannot
+  see), locate the skill with
+  `find /sessions -path '*/skills/nbno/SKILL.md' 2>/dev/null | head -1` and
+  use that file's directory.
 - **`nbno` CLI** — the wrapper installs it automatically on first run via
   `pip install --break-system-packages nbno`. If auto-install fails, run
   that command manually before proceeding.
@@ -112,12 +116,16 @@ through the tool channel is not viable for a book.
    > "readable right now", and `legalDepositReservationStatus` tells you
    > whether the loan is active.
 
-5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and
-   `status().ip` is not a Norwegian address, **page images will 403 no matter
-   who is logged in.** Ask the user whether that IP is Norwegian — do not call
-   third-party geo services. Warn and stop unless the user overrides. (In the
-   sandbox, `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints the
-   same thing.)
+5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and the
+   egress IP is not Norwegian, **page images will 403 no matter who is
+   logged in.** Settle it in the sandbox with
+   `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
+   nb.no's image resolver for one 1024 px page tile and prints `image probe:
+   OK` or `403`. On a `NORWAY` item a 403 means the IP is not Norwegian: tell
+   the user and stop. On an `NB` item a 403 can also mean there is no loan
+   yet, so run the probe again after step 6. The script exits 3 on a 403.
+   Never call third-party geo services. `zotero_book.py` runs the same probe
+   itself and stops on a 403.
 6. **Digital loan — FEIDE-licensed items only.** If
    `legalDepositReservationStatus != "TAKENBYCURRENTUSER"`, navigate the pane
    to the item page. A dialog appears: *"Ved å klikke OK vil du foreta et
@@ -218,8 +226,12 @@ There are three common ways the user may give you the item:
    `--year`, not with more words. Each hit prints the id, year, publisher,
    page count and access class. Pick the hit whose **year matches the
    reference** — same title, different years are different editions, and
-   a title beginning "Utdrag av …" is an excerpt, not the book. `--type
-   tidsskrift` / `avis` for journals and newspapers, `--json` for scripts.
+   a title beginning "Utdrag av …" is an excerpt, not the book. Hits are
+   listed newest first and the newest is marked `[NEWEST of the hits
+   shown]`, which answers "the latest edition". When the catalogue reports
+   more hits than it shows, add `--max 30` before relying on that marker.
+   `--type tidsskrift` / `avis` for journals and newspapers, `--json` for
+   scripts.
 
 Supported `type` prefixes: `digibok` (books, sheet music), `digavis`
 (newspapers), `digifoto` (photos, posters), `digitidsskrift` (journals),
@@ -398,14 +410,15 @@ range (≤ 7 pages of `digibok_*`).
 > - A short batch: `--start 10 --stop 16`
 > - Full book: omit both flags
 
-> **The bash tool's timeout is a default, not a ceiling — raise it instead of
-> splitting the work.** The default is 120 s (45 s in earlier Cowork builds),
-> and the tool takes an explicit timeout up to 600 s (verified 2026-09-28: a
-> 120 s job ran to completion with `timeout` 300000 ms);
-> pass it and a long download runs to completion in one call. A full
-> 173-canvas tiled book took ~40 s wall in one foreground call. Only fall back
-> to `--start`/`--stop` batching when a job genuinely cannot fit in the raised
-> timeout, or when you only want part of the book anyway.
+> **Raise the bash tool's timeout, but plan for about 170 s per call.** The
+> default is 120 s, and the tool accepts an explicit timeout up to 600 s.
+> Request it (600000 ms) for long jobs. Calls have still been cut off at
+> about 178 s with 600 s requested, so treat about 170 s as the real ceiling.
+> Downloads fit: a 173-canvas tiled book took about 40 s and a 424-page book
+> about 105 s. OCR does not fit. Use `--no-ocr` for the download and
+> `ocr_chunked.py` afterwards (`reading-ocr.md`). Fall back to
+> `--start`/`--stop` batching only when a download cannot fit, or when you
+> only want part of the book.
 >
 > **Do not use `nohup … &` to background the work.** The process does not
 > survive the bash call returning: it is killed and its log is left empty, so
@@ -515,7 +528,7 @@ customisation, Zotero-specific troubleshooting) lives in
 [`zotero-ready.md`](zotero-ready.md) next to this file. **Read it before
 running** — it covers the access pre-check, the chunked-OCR flow for big
 books, and the shrink step (on by default; `--no-shrink` keeps full
-resolution). **Public-domain books get nb.no's own OCR as their text layer**
+resolution, and `--no-ocr` skips it too so the pages can be OCRed later). **Public-domain books get nb.no's own OCR as their text layer**
 (no Tesseract, seconds instead of minutes); Bokhylla and FEIDE books do not
 serve it and are OCRed with Tesseract. Quick start:
 
@@ -551,9 +564,11 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   The sandbox and the browser pane both egress from the user's own machine IP,
   so a VPN on the user's machine covers both — but that is the user's call,
   not the skill's. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
-  the egress IP and `accessInfo` together; it talks only to nb.no, never a
-  third-party geo service. Thumbnails (`/full/0,200/0/native.jpg`) are never
-  gated, so they are a liveness check, never an auth or geo check.
+  the egress IP and `accessInfo`, and probes one 1024 px page tile. It talks
+  only to nb.no, never a third-party geo service. Thumbnails
+  (`/full/0,200/0/native.jpg`) and small tiles (256 px) are never gated. A
+  legal-deposit item served them anonymously, so they show that nb.no is
+  reachable but say nothing about auth or geo. Only a 1024 px tile does.
 - **The image resolver has four traps that all return plausible-looking
   wrong results**, not errors: it silently downsamples requests above its
   listed sizes (HTTP 200, half-size image); tiling with a cached canvas size
@@ -600,8 +615,9 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   auth.** Check `accessInfo.accessAllowedFrom`: `NORWAY` or `NB` from a
   non-Norwegian IP 403s every page image no matter who is logged in, while
   the manifest and `accessInfo` keep returning 200. Run
-  `python {SKILL_DIR}/scripts/geo_check.py --id <id>` and tell the user;
-  do not re-capture the cookie. The one non-geo case that looks similar is a
+  `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. Its image probe
+  answers the question: a 403 on a `NORWAY` item means the IP is not
+  Norwegian. Tell the user, and do not re-capture the cookie. The one non-geo case that looks similar is a
   FEIDE-licensed item with no active digital loan — there
   `legalDepositReservationStatus` is `AVAILABLE` rather than
   `TAKENBYCURRENTUSER` (Step 0 step 6).
@@ -636,10 +652,10 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   mounted workspace directory for `--out` and a same-named PDF already
   exists there. Switch to `--out /tmp/nbno_out` and copy afterward with
   `shutil.copy2`.
-- *Wrapper times out / PDF not created.* The bash call hit its timeout. The
-  default is not a ceiling — re-run passing an explicit timeout (up to
-  600 s) before narrowing the `--start`/`--stop` range. Backgrounding with
-  `nohup … &` does **not** work: the process dies when the call returns.
+- *Wrapper times out / PDF not created.* The bash call hit its timeout.
+  Re-run with an explicit long timeout. If the call still dies at about
+  170 s, narrow the `--start`/`--stop` range. Backgrounding with `nohup … &`
+  does **not** work: the process dies when the call returns.
 - *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque. Resolve
   it with `__nb.resolveUrn()` as in Step 1; only when the browser tools
   are unavailable, or it answers `ambiguous`, ask for the Referere/Sitere
@@ -661,8 +677,8 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   back to the second on 404.
 - *OCR text looks scrambled / wrong characters.* The page image was
   silently downsampled by the IIIF resolver. Re-download with `--tiles
-  always` and re-OCR. Also confirm `tesseract --list-langs` includes every
-  language you requested — `nno` is missing from many sandboxes. (OCR setup
+  always` and re-OCR. Also check the log for `falling back to eng`: that
+  means the `nor` model could be neither found nor fetched. (OCR setup is
   detailed in [`reading-ocr.md`](reading-ocr.md).)
 - *`ocrmypdf: command not found` between bash calls.* `~/.local/bin` is
   wiped between calls in Cowork (not every time, so never rely on it). The
@@ -672,15 +688,21 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   `pip install --target outputs/_pylib --break-system-packages ocrmypdf`
   and `export PATH="outputs/_pylib/bin:$PATH"
   PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
-- *Single ocrmypdf call times out on a long book* (even with the timeout
-  raised to 600 s). Use
-  `scripts/ocr_chunked.py`, calling the bash tool **repeatedly** (one
-  invocation per call; re-run on exit 2, stop on exit 0) — same OCR quality,
-  per-page cache, makes progress every call. Do **not** wrap it in a
+- *Single ocrmypdf call times out on a long book.* Expected: Tesseract does
+  about 13 pages a minute on a 2-vCPU sandbox. Download with `--no-ocr`
+  (which also skips the shrink), then run `scripts/ocr_chunked.py` with
+  **one invocation per bash call**: re-run on exit 2, stop on exit 0, and
+  finish with `shrink_pdf.py --in-place`. OCR quality is the same, and the
+  per-page cache means every call makes progress. Do **not** wrap it in a
   single-call `until … ; do … ; done` loop: the whole loop then has to fit
-  one call's timeout, which is exactly what a long book does not do.
+  one call's timeout, which is exactly what a long book does not do. Full
+  recipe in [`reading-ocr.md`](reading-ocr.md).
+- *`ocr_chunked.py` exits 1 with "no page could be OCRed".* Every page failed
+  the same way, and the ocrmypdf error is printed above that line.
+  Re-running will not help, so fix the error itself.
 - *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
-  It was probably made with `--no-shrink` or by `nbno_run.sh`. Run
+  It was probably made with `--no-shrink`, `--no-ocr` + `ocr_chunked.py`,
+  or `nbno_run.sh`. Run
   `scripts/shrink_pdf.py --pdf book.pdf` to JPEG-recompress the embedded images in place. The
   text layer is untouched, so this is a pure size optimisation — no need
   to re-OCR. **Never re-OCR to shrink** — it wastes minutes per book and

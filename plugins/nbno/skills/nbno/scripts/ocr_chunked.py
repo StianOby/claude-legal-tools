@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 ocr_chunked.py — OCR a PDF in resumable chunks, each of which fits one Cowork
-bash call (default timeout 120 s, 45 s in earlier builds; at most 600 s).
+bash call. Calls have been cut off at ~180 s even with a 600 s timeout
+requested, so the default --time-budget (140 s) stays under that.
 
 Splits the input PDF into single-page PDFs, OCRs each with ocrmypdf
 (--skip-text, full preprocessing — same quality as a one-shot ocrmypdf run),
@@ -25,22 +26,26 @@ Cache layout (under --cache-dir, default <pdf_dir>/.ocr_cache/<pdf_stem>/):
 
 Exit codes:
     0  every page OCRed and the merged PDF was written.
-    2  partial progress — re-invoke to continue (still inside time budget).
-    1  invalid arguments / unrecoverable error.
+    2  partial progress — re-invoke to continue.
+    1  invalid arguments / unrecoverable error, including a call in which
+       no page could be OCRed at all (the last ocrmypdf error is printed).
 
-Designed for orchestration by an outer loop (`while ! python ocr_chunked.py
-...; do :; done`) or for repeated invocation in a chat sandbox.
+Re-invoke while the exit code is 2; stop on 0 or 1. In a chat sandbox, make
+each invocation its own bash call.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import http.client
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import time
+import urllib.request
 from concurrent.futures import (FIRST_COMPLETED, ThreadPoolExecutor, wait)
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -128,29 +133,115 @@ def ocr_env(jobs: int) -> dict:
     return env
 
 
-def tesseract_preflight(requested: str) -> str:
-    """Drop missing language packs from `requested`; warn if any are missing.
+# Language models come from tessdata_fast, the set Debian/Ubuntu package.
+TESSDATA_URL = ("https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
+                "{code}.traineddata")
 
-    When *none* of the requested packs is installed, fall back to `eng` if
-    that is, with a loud warning — a Norwegian book through the English
-    model is worse than `nor`, but it is a text layer, and the alternative
-    is ocrmypdf failing on every page. With no usable pack at all, exit with
-    the install hint instead of letting tesseract fail per page.
+
+def _tessdata_dir() -> Path:
+    """Where fetched language models live: beside _pylib, so they survive
+    across Cowork bash calls the same way the pip installs do."""
+    return _pylib_target().parent / "_tessdata"
+
+
+def _list_langs() -> Tuple[set, Optional[Path]]:
+    """Installed tesseract languages, and the tessdata dir they come from
+    (read from the 'List of available languages in "<dir>"' header)."""
+    out = subprocess.run(["tesseract", "--list-langs"],
+                         capture_output=True, text=True, timeout=10)
+    langs, source = set(), None
+    for ln in (out.stdout + out.stderr).splitlines():
+        ln = ln.strip()
+        if ln.startswith("List of available"):
+            m = re.search(r'"([^"]+)"', ln)
+            if m:
+                source = Path(m.group(1))
+        elif ln and " " not in ln:
+            langs.add(ln)
+    return langs, source
+
+
+def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
+    """Download missing language models into a private tessdata dir and
+    point TESSDATA_PREFIX at it. Returns the codes now present there.
+
+    Cowork sandboxes have shipped with only eng+osd and no root for apt-get,
+    while github.com is reachable. ocrmypdf needs more than .traineddata
+    files, so the system dir's models, configs/, tessconfigs/ and pdf.ttf
+    are copied along — whichever of them exist; tessconfigs/ is missing on
+    some installs.
+    """
+    target = _tessdata_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    if (system_dir and system_dir.is_dir()
+            and system_dir.resolve() != target.resolve()):
+        for item in system_dir.iterdir():
+            dst = target / item.name
+            if dst.exists():
+                continue
+            try:
+                if item.is_dir() and item.name in ("configs", "tessconfigs"):
+                    shutil.copytree(item, dst, copy_function=shutil.copyfile)
+                elif item.suffix == ".traineddata" or item.name == "pdf.ttf":
+                    shutil.copyfile(item, dst)
+            except OSError as exc:
+                print(f"[ocr] could not copy {item} ({exc})", file=sys.stderr)
+    present = []
+    for code in codes:
+        dst = target / f"{code}.traineddata"
+        if not dst.exists():
+            try:
+                with urllib.request.urlopen(TESSDATA_URL.format(code=code),
+                                            timeout=60) as resp:
+                    data = resp.read()
+            except (OSError, http.client.HTTPException) as exc:
+                print(f"[ocr] could not fetch {code}.traineddata ({exc})",
+                      file=sys.stderr)
+                continue
+            if len(data) < 100_000:   # an error page, not a model
+                print(f"[ocr] no tessdata_fast model for {code!r}",
+                      file=sys.stderr)
+                continue
+            dst.write_bytes(data)
+        present.append(code)
+    if present:
+        os.environ["TESSDATA_PREFIX"] = str(target)
+    return present
+
+
+def tesseract_preflight(requested: str) -> str:
+    """Make the requested language packs available, or degrade.
+
+    A pack that is not installed is fetched from tessdata_fast into
+    _tessdata/ (see _fetch_tessdata); a model fetched by an earlier call —
+    or by zotero_book.py — is reused. Codes that still cannot be had are
+    dropped with a warning. When *none* of the requested packs is
+    available, fall back to `eng` if that is, with a loud warning — a
+    Norwegian book through the English model is worse than `nor`, but it is
+    a text layer, and the alternative is ocrmypdf failing on every page.
+    With no usable pack at all, exit with the install hint instead of
+    letting tesseract fail per page.
     """
     if shutil.which("tesseract") is None:
         return requested
+    tdir = _tessdata_dir()
+    if not os.environ.get("TESSDATA_PREFIX") and any(tdir.glob("*.traineddata")):
+        os.environ["TESSDATA_PREFIX"] = str(tdir)
     try:
-        out = subprocess.run(
-            ["tesseract", "--list-langs"],
-            capture_output=True, text=True, timeout=10,
-        )
+        available, system_dir = _list_langs()
     except (subprocess.TimeoutExpired, OSError):
         return requested
-    available = {
-        ln.strip() for ln in (out.stdout + out.stderr).splitlines()
-        if ln.strip() and not ln.startswith("List of available")
-    }
     codes = [c for c in requested.split("+") if c]
+    missing = [c for c in codes if c not in available]
+    if missing:
+        got = _fetch_tessdata(missing, system_dir)
+        if got:
+            print(f"[ocr] fetched {'+'.join(got)} from tessdata_fast into "
+                  f"{tdir} (TESSDATA_PREFIX set)", file=sys.stderr)
+            try:
+                available, _ = _list_langs()
+            except (subprocess.TimeoutExpired, OSError):
+                available |= set(got)
     kept = [c for c in codes if c in available]
     missing = [c for c in codes if c not in available]
     if not missing:
@@ -162,16 +253,16 @@ def tesseract_preflight(requested: str) -> str:
     installed = ", ".join(sorted(available)) or "(none)"
     if "eng" in available:
         print(f"[ocr] WARNING: none of the requested tesseract pack(s) "
-              f"({requested}) is installed (installed: {installed}); "
-              f"falling back to eng. Expect worse recognition of Norwegian "
-              f"text — install with: apt-get install tesseract-ocr-nor "
-              f"tesseract-ocr-nno", file=sys.stderr)
+              f"({requested}) is installed or could be fetched (installed: "
+              f"{installed}); falling back to eng. Expect worse recognition "
+              f"of Norwegian text — install with: apt-get install "
+              f"tesseract-ocr-nor", file=sys.stderr)
         return "eng"
     raise SystemExit(
         f"ERROR: none of the requested tesseract pack(s) ({requested}) is "
-        f"installed and eng is not available either (installed: {installed}). "
-        f"Install with: apt-get install tesseract-ocr-nor tesseract-ocr-nno, "
-        f"or pass --langs with an installed code."
+        f"installed or could be fetched, and eng is not available either "
+        f"(installed: {installed}). Install with: apt-get install "
+        f"tesseract-ocr-nor, or pass --langs with an installed code."
     )
 
 
@@ -237,14 +328,15 @@ def _split_pages(pikepdf, pdf_path: Path, pages_dir: Path) -> int:
 
 
 def _ocr_page(ocrmypdf_bin: str, src: Path, dst: Path,
-              languages: str, env: dict) -> Tuple[Path, int]:
-    """OCR a single-page PDF. Returns (dst, returncode)."""
-    rc = subprocess.call(
+              languages: str, env: dict) -> Tuple[Path, int, str]:
+    """OCR a single-page PDF. Returns (dst, returncode, tail of stderr)."""
+    proc = subprocess.run(
         [ocrmypdf_bin, "--language", languages, "--skip-text",
          "--optimize", "1", "--jobs", "1", "--quiet", str(src), str(dst)],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env,
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env,
+        text=True, errors="replace",
     )
-    return dst, rc
+    return dst, proc.returncode, "\n".join(proc.stderr.strip().splitlines()[-8:])
 
 
 def _is_valid_pdf(pikepdf, path: Path) -> bool:
@@ -326,15 +418,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--pdf", required=True, help="Input PDF to OCR.")
     ap.add_argument("--out", default=None,
                     help="Output PDF (default: overwrite --pdf in place).")
-    ap.add_argument("--langs", default="nor+nno",
-                    help="Tesseract language string (default: nor+nno).")
+    ap.add_argument("--langs", default="nor",
+                    help="Tesseract language string (default: nor; fetched "
+                         "from tessdata_fast when not installed).")
     ap.add_argument("--cache-dir", default=None,
                     help="Per-page cache root (default: "
                          "<pdf_dir>/.ocr_cache/<pdf_stem>/<hash>).")
-    ap.add_argument("--time-budget", type=float, default=35.0,
+    ap.add_argument("--time-budget", type=float, default=140.0,
                     help="Stop launching new pages after this many seconds "
-                         "(default: 35; leaves headroom under any bash timeout — "
-                         "raise it along with the timeout for fewer calls).")
+                         "(default: 140). Cowork has cut bash calls off at "
+                         "~180 s whatever timeout was requested, so do not "
+                         "go above ~150.")
     ap.add_argument("--jobs", type=int, default=None,
                     help="Parallel ocrmypdf workers (default: half the "
                          "usable CPUs, at most 4 — 1 on a 2-vCPU sandbox).")
@@ -357,6 +451,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Pin pip --target installs to the output directory so they survive
     # across bash invocations in Cowork.
     os.environ.setdefault("NBNO_OUT_DIR", str(out_path.parent))
+    # Always, not only when installing: an ocrmypdf found in _pylib/bin
+    # cannot import its own package without _pylib on PYTHONPATH, and every
+    # page then fails.
+    _ensure_pylib_on_path()
 
     cache_root = (
         Path(args.cache_dir).expanduser().resolve()
@@ -416,6 +514,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     # the budget check then never fires and the call runs until the entire
     # book is OCRed — or, in a sandbox, until it is killed.
     pending_iter = iter(pending)
+    failed_now = 0
+    last_err = ""
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         in_flight = {}
 
@@ -439,14 +539,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             for fut in done:
                 dst = in_flight.pop(fut)
                 try:
-                    dst, rc = fut.result()
+                    dst, rc, err = fut.result()
                 except Exception as exc:      # noqa: BLE001 - report and retry later
-                    print(f"[ocr] {dst.name}: {type(exc).__name__}: {exc}",
-                          file=sys.stderr)
-                    rc = 1
+                    rc, err = 1, f"{type(exc).__name__}: {exc}"
                 if rc == 0 and dst.exists() and _is_valid_pdf(pikepdf, dst):
                     ocred_now += 1
                 else:
+                    failed_now += 1
+                    last_err = (f"{dst.name}: ocrmypdf exit {rc}"
+                                + (f"\n{err}" if err else ""))
                     # Remove partial / structurally-broken output so the next
                     # call retries. Without the _is_valid_pdf gate, sandbox
                     # timeouts that kill us mid-write would leave files that
@@ -465,6 +566,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"[ocr] this call: {ocred_now} pages in {elapsed:.1f}s "
           f"(budget {args.time_budget:.0f}s). "
           f"Total cached: {done_now}/{total}.", file=sys.stderr)
+    if failed_now:
+        print(f"[ocr] {failed_now} page(s) failed this call; last error:\n"
+              f"{last_err}", file=sys.stderr)
+    if ocred_now == 0 and failed_now:
+        print("[ocr] ERROR: no page could be OCRed in this call, so re-running "
+              "will not help. Fix the error above first.", file=sys.stderr)
+        return 1
 
     if done_now < total:
         print("[ocr] PARTIAL — re-invoke to continue.", file=sys.stderr)

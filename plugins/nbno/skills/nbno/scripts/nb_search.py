@@ -25,6 +25,10 @@ query and a full citation with punctuation is not. Narrow with --year
 rather than by adding words.
 
 Reading the output:
+  - Hits are listed newest first, and the newest is marked — useful when
+    the reference asks for the latest edition. The marker only covers the
+    hits shown: with more hits in the catalogue than shown, narrow the
+    search before trusting it.
   - Several hits with the same title and different years are different
     editions. Pick the one whose year matches the reference; never
     substitute another edition.
@@ -37,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -94,6 +99,12 @@ def _hit(item: dict) -> dict:
     }
 
 
+def _year_key(year: str) -> int:
+    """Sortable year: the first four-digit run ("[1971]", "2001-2002"), or 0."""
+    m = re.search(r"\d{4}", str(year))
+    return int(m.group()) if m else 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("query", help="Words that must all match (author, title).")
@@ -116,6 +127,11 @@ def main(argv=None) -> int:
 
     total = (data.get("page") or {}).get("totalElements", 0)
     hits = [_hit(it) for it in (data.get("_embedded") or {}).get("items", [])]
+    # Newest first (stable, so equal years keep the catalogue's order).
+    hits.sort(key=lambda h: _year_key(h["year"]), reverse=True)
+    newest = _year_key(hits[0]["year"]) if hits else 0
+    for h in hits:
+        h["newest"] = bool(newest) and _year_key(h["year"]) == newest
 
     if args.json:
         print(json.dumps({"total": total, "hits": hits}, ensure_ascii=False, indent=1))
@@ -128,6 +144,8 @@ def main(argv=None) -> int:
     for h in hits:
         who = "; ".join(h["creators"]) or "(no creator)"
         flag = "  [EXCERPT — not the full book]" if h["excerpt"] else ""
+        if h["newest"] and len(hits) > 1:
+            flag += "  [NEWEST of the hits shown]"
         print(f"\n{h['id'] or '(no digital copy)'}")
         print(f"  {h['title']}{flag}")
         print(f"  {who}")
