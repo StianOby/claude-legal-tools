@@ -103,8 +103,7 @@ python {SKILL_DIR}/scripts/ocr_chunked.py --pdf "$PDF"
 
 The defaults are `--langs nor` and `--time-budget 140`. **Keep the budget
 at about 150 s or below.** Cowork has cut a bash call off at about 178 s
-even when a 600 s timeout was requested. `--time-budget 150` fits reliably,
-and budgets of 400 or more did not. Still request a long tool timeout (e.g.
+even when a 600 s timeout was requested. Still request a long tool timeout (e.g.
 600000 ms) so the default one does not cut the call off first.
 
 **Do not pipe it through `tail` or `head`.** Its output is a handful of
