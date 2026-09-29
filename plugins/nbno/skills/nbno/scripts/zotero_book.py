@@ -136,7 +136,10 @@ def items_page_url(canonical_id: str) -> str:
 
 # nb.no's MARC "cre" / "aut" role codes that count as primary creators.
 _AUTHOR_ROLES = {"aut", "cre"}
-_EDITOR_ROLES = {"edt"}
+# "red" (redaktør) is nb.no's own code, often alone: Eckhoff, Rettskildelære
+# 4. utg. (digibok_2009010704007) gives Helgesen only "red", the 5. utg.
+# "red" + "edt".
+_EDITOR_ROLES = {"edt", "red"}
 _TRANSLATOR_ROLES = {"trl"}
 
 
@@ -267,6 +270,16 @@ def _split_name(name: str) -> Tuple[str, str]:
     return name.strip(), ""
 
 
+def _edition(value: Optional[str]) -> str:
+    """Zotero Edition from `originInfo.edition`: the leading number when
+    there is one ("5. utg. [redigert av] Jan E. Helgesen" -> "5", "[2.
+    utg.]" -> "2", "6. utgave" -> "6"), else the text verbatim ("Ny utg.",
+    "Rev. utg.") so the user can see it in Zotero and decide whether to
+    replace it with a number, delete it or keep it."""
+    m = re.match(r"\s*\[?\s*(\d{1,3})(?!\d)", value or "")
+    return str(int(m.group(1))) if m else _squash(value)
+
+
 def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
     """Translate the nb.no JSON response into our NormalizedBook."""
     md = api_blob.get("metadata", {}) or {}
@@ -317,6 +330,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
         date = "-".join(m8.groups())
         year = m8.group(1)
     publisher = (origin.get("publisher") or "").strip()
+    edition = _edition(origin.get("edition"))
     place = _pick_place(md.get("geographic") or {})
 
     lang_code = ""
@@ -361,6 +375,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
         place=place,
         year=year,
         date=date,
+        edition=edition,
         language=lang_code,
         isbn=isbn,
         num_pages=num_pages,

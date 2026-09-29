@@ -3,6 +3,7 @@
 network): transient errors are retried, one failing page does not abort
 the book, a page that cannot be had becomes a placeholder in its own place
 (so later pages keep their numbers), and the temp folder is removed.
+Also normalize_metadata()'s edition and editor role codes.
 Needs Pillow. Run: python tests/test_download.py
 """
 
@@ -130,6 +131,20 @@ check("result gives each PDF page's canvas, None for the placeholder",
       [c is None for c in result["canvases"]], [False, False, True, False])
 check("the log warns about it", "placeholder pages in the PDF: [3]" in log, True)
 check("temp folder removed", assembled["dir"].exists(), False)
+
+print("normalize_metadata: edition and editor roles")
+for raw, want in [("5. utg. [redigert av] Jan E. Helgesen", "5"), ("[2. utg.]", "2"),
+                  ("6. utgave", "6"), ("Ny utg.", "Ny utg."), ("Rev.  utg.", "Rev. utg."), (None, "")]:
+    check(f"edition {raw!r}", zb._edition(raw), want)
+# Eckhoff, Rettskildelære, 4. utg. (digibok_2009010704007), trimmed.
+book = zb.normalize_metadata({"metadata": {
+    "title": "Rettskildelære",
+    "originInfo": {"issued": "1997", "edition": "4. utg. [revidert av] Jan E. Helgesen"},
+    "people": [{"name": "Eckhoff, Torstein", "roles": [{"name": "cre"}]},
+               {"name": "Helgesen, Jan E.", "roles": [{"name": "red"}]}],
+}})
+check("edition field", book.edition, "4")
+check("'red' alone is an editor", [c.creator_type for c in book.creators], ["author", "editor"])
 
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)
