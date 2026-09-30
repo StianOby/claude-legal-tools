@@ -208,6 +208,7 @@ Do these once cloud sessions are the default. Record the results in `claude/post
 5. **Reachability audit from the cloud sandbox** for every host the skills call: `hudoc.echr.coe.int`, `icj-cij.org`, `eftacourt.int`, `treaties.un.org`, `rm.coe.int`/`coe.int`, `consilium.europa.eu`, `api.zotero.org` (if used directly). Record the HTTP status and `server` header, so an origin block can be told apart from the sandbox's own network allowlist.
 6. **Script bundle sizes** for every skill's `scripts/`, to confirm the chunking thresholds in WP2.2.
 7. **Re-run the full test plan.**
+8. **norges-traktater: keep the Python script or go JS-only?** Since WP4 it has two routes with identical output: `scripts/traktater.py` in `Bash` (cheaper where lovdata.no answers; disk cache; works without a browser) and the browser helper `norges_traktater.js` (the only route in cloud sessions; ~24 KB paste per tab). Cloud sessions skip the `Bash` attempt. If nearly all runs after the switch go through the browser, drop `traktater.py`, turn `tests/norges-traktater/test_browser_parity.py` into plain fixture tests for the JS, and simplify SKILL.md to one route. Decide with the results of Stian's desktop test on 7 October 2026.
 
 ---
 

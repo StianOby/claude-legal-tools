@@ -37,15 +37,77 @@ Erstatt `{SKILL_DIR}` nedenfor med den stien.
 
 ## Hvor hvert steg kjøres
 
-Alle stegene (`search`, `meta`, `text`, `article`, `countries`, `status`) kjører i **`Bash`**; skillen bruker
-foreløpig ingen browser.
+Alle operasjonene (`search`, `meta`, `text`, `article`, `countries`, `status`) finnes i to utgaver som
+gir **samme utdata** (samme JSON-nøkler og verdier):
 
-I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
+| Rute | Hva | Hvor |
+|---|---|---|
+| **Script** | `scripts/traktater.py` | **`Bash`** |
+| **Browser** | `scripts/browser/norges_traktater.js` → `window.__nt` | **Browser-panelet** (brukerens IP, fane på lovdata.no) |
 
-**Sky-sesjon: `lovdata.no` svarer 405 fra `Bash`.** Får scriptet HTTP 405 eller
-tilsvarende blokkering, si til brukeren: «Lovdata blokkerer Anthropics sky;
-denne skillen trenger foreløpig lokal Cowork.» Stopp deretter — ikke prøv på
-nytt, ikke bytt kilde, ikke foreslå VPN.
+**Sky-sesjon (`mcp__remote-devices__device_bash` står i verktøylisten): gå rett til browser-ruten.** `Bash` kjører
+da i Anthropics sky, og lovdata.no svarer alltid 405 der — ikke bruk et kall på å bekrefte det.
+
+**Ellers: kjør scriptet i `Bash` først.** Svarer lovdata.no med HTTP 405 («Request stopped by Varnish IPS»)
+eller en annen blokkering, bytt til browser-ruten for resten av samtalen: samme operasjoner, samme resultat. Det
+er alltid tilfellet i en sky-Cowork-sesjon, der `Bash` kjører i Anthropics sky og lovdata.no blokkerer den IP-en;
+traktatsidene er offentlige, så browser-panelet trenger ingen innlogging. Ikke prøv nytt, ikke bytt kilde, ikke
+foreslå VPN, og ikke gå rundt scriptet med `curl` e.l. fra `Bash`. I lokal Cowork virker vanligvis scriptet i `Bash`.
+
+**Browserverktøy.** Prefikset til den innebygde browserens verktøy varierer (`mcp__Claude_Browser__…` i lokal Cowork,
+`mcp__remote-devices__Claude_Browser__…` i sky-Cowork). De er ofte utsatt (deferred): kjør ett ToolSearch-kall med
+query `Claude_Browser` og `max_results` 64, og bruk prefikset som kommer tilbake. Denne filen omtaler verktøyene bare
+med suffiks (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, …). `request_access` finnes ikke i alle
+miljøer; mangler det, gå rett til `preview_start`/`navigate`.
+
+Mangler browserverktøyene helt (for eksempel i Claude Code CLI) og lovdata.no er blokkert: si det til brukeren og
+stopp.
+
+### Browser-ruten: oppstart (én gang per samtale)
+
+1. `tabs_context` — finnes det allerede en fane på `lovdata.no`? Gjenbruk den. Ellers:
+   `preview_start {url: "https://lovdata.no/register/traktater"}`.
+2. Hvis `request_access` finnes og et verktøy sier at siden ikke er godkjent ennå:
+   `request_access {url: "https://lovdata.no/register/traktater", scope: "site"}` og prøv igjen.
+3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/norges_traktater.js` via `javascript_tool`
+   (`action: "javascript_exec"`). Idempotent — trygt å lime inn flere ganger; en eldre versjon i fanen byttes ut.
+4. Kjør `await __nt.status()`. Skal gi `reachable: true`, antall traktater, årganger og antall land. Får du
+   `{error: 'http_405' | 'http_403' …}` er lovdata.no blokkert også her: si det til brukeren og stopp.
+
+**Lim inn hjelperen på nytt etter hver navigering.** Cachen og `window.__nt` dør når fanen navigerer eller
+lastes på nytt. Naviger ikke fanen bort fra lovdata.no; skal du se på noe annet, bruk en egen fane.
+
+Hvis et browserkall avvises av en sikkerhetssjekk, si det til brukeren og vent på svar — ikke prøv igjen i løkke.
+
+### Browser-ruten: kall
+
+Alle kall er `async` og returnerer et JSON-objekt (aldri unntak; feil kommer som `{error, detail}`).
+Tabellen viser hvilket kall som tilsvarer hvilken script-kommando; utdataet er det samme som
+`traktater.py … --json`.
+
+| Script | Browser (`javascript_tool`, `await` foran) |
+|---|---|
+| `search "Wien" --year 1969 --country Sverige --context tekst --max 50 --full` | `__nt.search("Wien", {year: 1969, country: "Sverige", context: "tekst", max: 50, full: true})` |
+| `meta ID --json` | `__nt.meta("1948-12-09-1")` |
+| `meta --batch FIL --json` | `__nt.meta(["1948-12-09-1", "1951-07-28-1"])` (liste med resultater) |
+| `text ID` | `__nt.text("1948-12-09-1", {offset: 0})` — i biter, se under |
+| `article ID ART` | `__nt.article("1948-12-09-1", "II")` |
+| `countries [søk]` | `__nt.countries("europ")` → `{count, countries: [...]}` |
+| `status` | `__nt.status()` |
+
+Forskjeller fra scriptet, alle på grunn av grensen på ca. 45 000 tegn per `javascript_tool`-svar:
+
+- **`text` og `article` kommer i biter.** Svaret har i tillegg `total` (tegn i hele teksten), `offset` og `next`
+  (`null` når du har alt). Kall på nytt med `{offset: <next>}` til `next` er `null`, og sett bitene sammen i rekkefølge:
+  `body` er da identisk med det scriptet skriver ut. Korte artikler går i én bit. Ikke sitér fra en bit som slutter
+  midt i et ledd uten å ha hentet neste.
+- **`search` og `meta` med mange ID-er** kan gi `{error: 'result_too_large'}`; kall da med færre treff eller ID-er
+  (sidene ligger i fanens cache, så nytt kall går raskt). Med `full: true` hentes ett dokument per treff.
+- **Feil** kommer som `{error: 'invalid' | 'http_<n>' | 'network' | 'wrong_origin', detail}` der scriptet ville
+  avsluttet med en feilmelding; `detail` er den samme norske meldingen (ukjent land, ukjent traktat-ID, …).
+  `text`/`article` på en traktat uten fri tekst gir som i scriptet `available: false`, se «Når kroppen er tom».
+
+Resten av dette dokumentet beskriver scriptet; alt gjelder likt for browser-ruten.
 
 ---
 

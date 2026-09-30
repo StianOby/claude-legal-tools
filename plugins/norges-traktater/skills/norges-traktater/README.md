@@ -21,10 +21,14 @@ python3 scripts/traktater.py text 1951-07-28-1
 norges-traktater/
 ├── SKILL.md
 ├── README.md
-├── scripts/
-│   └── traktater.py    # single self-contained CLI; stdlib only
-└── tests/              # offline tests: python tests/test_traktater.py
+└── scripts/
+    ├── traktater.py    # single self-contained CLI; stdlib only
+    └── browser/
+        └── norges_traktater.js  # same operations as a paste-in helper (window.__nt)
+                                 # for cloud Cowork, where lovdata.no blocks Bash
 ```
+
+Offline tests live in the repository at `tests/norges-traktater/`, not in the plugin (they do not ship to users): `python tests/norges-traktater/test_traktater.py`, `python tests/norges-traktater/test_browser_parity.py`, `node tests/norges-traktater/test_browser.js`.
 
 ## Requirements
 

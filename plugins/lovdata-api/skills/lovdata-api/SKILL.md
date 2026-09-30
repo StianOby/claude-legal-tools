@@ -28,17 +28,40 @@ katalog som `scripts/lovdata.py` ligger i.
 
 ## Hvor hvert steg kjøres
 
-Alle stegene (`update`, `search`, `find`, `get`) kjører i **`Bash`**; skillen
-bruker ingen browser.
+Alle stegene (`update`, `search`, `find`, `get`) kjører i et shell; skillen
+bruker ingen browser. Hvilket shell avhenger av om Lovdata slipper deg inn:
 
-I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
+| Situasjon | Hvor | Datakatalog |
+|---|---|---|
+| Lokal Cowork (og Claude Code) | **`Bash`** | brukerens cache-katalog (`lovdata.py status` viser hvor) |
+| Sky-Cowork: `api.lovdata.no` svarer 405 fra `Bash` | **lokalt shell** (`device_bash`, lokal rute) | `$HOME/.cache/lovdata` i den lokale VM-en |
 
-**Sky-sesjon: `api.lovdata.no` svarer 405 fra `Bash`.** Får `update` (eller en
-nedlasting) HTTP 405 eller tilsvarende blokkering, si til brukeren: «Lovdata
-blokkerer Anthropics sky; denne skillen trenger foreløpig lokal Cowork.» Stopp
-deretter — ikke prøv på nytt, ikke bytt kilde, ikke foreslå VPN. Finnes det
-allerede lokalt bufrede data (`state.json` og utpakkede pakker), virker
-`search`/`find`/`get` mot dem som vanlig, men si fra at de kan være utdaterte.
+I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin. Du er i en sky-sesjon når `mcp__remote-devices__device_bash` står i verktøylisten.
+
+### Ruting
+
+1. **Prøv `Bash` først:** `python {SKILL_DIR}/scripts/lovdata.py update`.
+   Avslutningskode 0 → gjør resten i `Bash` som beskrevet under.
+   **Kode 6** (`BLOKKERT: … HTTP 405`) → Lovdata avviser Anthropics sky. Det er
+   forventet i en sky-sesjon og ingen feil: bruk lokal rute (punkt 2). Ikke
+   prøv på nytt i `Bash`, ikke bytt kilde, ikke foreslå VPN.
+2. **Lokal rute** — følg [`local-route.md`](local-route.md) (den avgjør om
+   `device_bash` og en tilkoblet mappe finnes, og har de faste meldingene hvis
+   ikke; `device_bash` nekter å kjøre uten tilkoblet mappe). For denne
+   skillen, når `READY <dir>` er skrevet ut:
+   - Kall alltid scriptet med absolutt sti og `PYTHONUTF8=1`, og start hvert
+     kall med `test -f <dir>/.ready || exit 4;`, f.eks.
+     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/lovdata.py get LOV-1967-02-10 §17`.
+   - Første kall i økten: `… lovdata.py update`. Dataene (275 MB, ca. 5 900
+     filer) havner i `$HOME/.cache/lovdata` **i den lokale VM-en — ikke i den
+     tilkoblede mappen**, så de ikke synkroniseres (f.eks. til Dropbox). Er de
+     borte i en ny økt, laster `update` dem ned igjen på ca. 20 sekunder; er de
+     der, sjekker `update` bare om Lovdata har noe nyere.
+   - Deretter `search`/`find`/`get` som vanlig, ett `device_bash`-kall per
+     oppslag. Svar og sitater gis i chatten; bare hvis brukeren vil ha en fil
+     (`--out`), skrives den til `<tilkoblet mappe>/lovdata-api/`.
+   - Til slutt: `rm -rf <dir>` (skriptene), men **la `$HOME/.cache/lovdata`
+     stå** til neste oppslag.
 
 ---
 

@@ -1,0 +1,1858 @@
+
+<!DOCTYPE html
+>
+<html lang="no" class="no-js">
+
+<head>
+	
+	<!-- Le styles -->
+	<link href="/resources/css/bootstrap.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/fonts/ss-symbolicons-block/ss-symbolicons-block.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/fonts/ss-symbolicons-line/ss-symbolicons-line.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/fonts/feed/ss-feed-icons.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/fonts/ss-standard/ss-standard.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/fonts/ss-social-regular/ss-social.css?26-09-25-1605" rel="stylesheet">
+	<link href="/resources/select2/select2.css?26-09-25-1605" rel="stylesheet">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Caveat">
+	<!-- Modaal -->
+	<link rel="stylesheet" href="/resources/css/modaal.min.css">
+
+		<link href="/resources/css/app.css?26-09-25-1605" rel="stylesheet">
+	<!--[if lt IE 9]>
+	<link href="/resources/css/ld-ie.css?26-09-25-1605" rel="stylesheet">
+	<![endif]-->
+
+	<!-- Le scripts -->
+	<script src="/resources/js/jquery-3.7.1.min.js?26-09-25-1605"></script>
+	<script src="/resources/js/mathjax/tex-mml-chtml.js?26-09-25-1605"></script>
+		<script>
+			var dev = false;
+		</script>
+		<!-- Plausible -->
+		<script defer data-domain="lovdata.no" src="https://plausible.io/js/plausible.js"></script>
+		<!-- End Plausible -->
+
+	<script src="/resources/js/modernizr.min.js?26-09-25-1605"></script>
+	<script src="/resources/js/bootstrap.min.js?26-09-25-1605"></script>
+	<script src="/resources/js/jquery.throttle.js?26-09-25-1605"></script>
+	<script src="/resources/js/jquery.form.min.js?26-09-25-1605"></script>
+	<script src="/resources/js/json2.js?26-09-25-1605"></script>
+	<script src="/resources/js/jstorage.js?26-09-25-1605"></script>
+	<script src="/resources/select2/select2.min.js?26-09-25-1605"></script>
+	<script src="/resources/js/app.js?26-09-25-1605"></script>
+		<script src="/resources/js/app-lovdata.js?26-09-25-1605"></script>
+	<script src="/resources/js/highlighter.js?26-09-25-1605"></script>
+	<!-- Modaal -->
+	<script src="/resources/js/modaal.min.js"></script>
+
+	<link rel="icon" href="/resources/img/logo/new/lovdata-logosymbol-stortingsrod.svg" type="image/svg+xml" sizes="16x16 32x32 48x48 64x64">
+	<link rel="apple-touch-icon-precomposed" href="/resources/img/logo/new/lovdata-logosymbol-stortingsrod.svg" type="image/svg+xml" sizes="152x152">
+
+	<meta charset="utf-8">
+	<title>Norges traktater - Lovdata</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+	<meta name="google-site-verification" content="ENJVlOsNC5zBiaC_PChgiRbBrUBjN6P-Owo6nwS9--Q"/>
+	<meta name="application-name" content="Lovdata"/>
+	<meta property="fb:admins" content="711945576, 714678011"/>
+</head>
+
+	<body class="template-list">
+
+	<div aria-hidden="true" class="print-logo">
+		<img src="/resources/img/logo/new/lovdata-logo-primaer.svg" alt="Lovdata-logo"/>
+	</div>
+
+	<div id="skiplinks">
+		<a href="#main-content">Til hovedinnhold</a>
+	</div>
+
+<header>
+	<div class="ld-navbar" id="ld-navbar">
+
+		<a class="logo" href="/" aria-label="Til forsiden"></a>
+
+				<button class="open-search" aria-label="Åpne søk">
+			<i class="ss-icon ss-symbolicons-block" aria-hidden="true">&#x1F50D;</i>
+		</button>
+
+		<div class="middleContainer">
+			<a tabindex="0" role="button" aria-label="Åpne/lukk meny" class="menu_toggler" aria-expanded="false">
+				<span></span>
+			</a>
+
+			<form class="mainSearch" role="search" id="sok" action="/sok" METHOD="get">
+
+
+				<script>
+					document.addEventListener("DOMContentLoaded", function () {
+						const searchInput = document.getElementById("globSearch");
+						const form = document.querySelector("form");
+
+						form.addEventListener("submit", function () {
+							searchInput.classList.add("loading");
+						});
+
+						searchInput.addEventListener('keydown', event => { //Turn textarea into input.
+							if (event.code === 'Enter') {
+								event.preventDefault();
+								form.submit();
+								searchInput.classList.add("loading");
+							}
+						});
+					});
+
+					var searchInDocumentPlaceholder = '';
+					var searchInDocument = '';
+
+					// JavaScript function to monitor input and apply changes
+					document.addEventListener("DOMContentLoaded", function () {
+						const searchInput = document.getElementById("globSearch");
+						const form = document.getElementById("sok");
+						const wordCounter = document.getElementById("word-counter");
+						const freeSearchHelpText = document.getElementById("freesearch-help-text");
+						const bottomInfo = document.getElementById("search-bottom-info");
+
+						searchInput.placeholder = 'Søk med opp til fem søkeord eller skriv lengre for å gjøre et frisøk'
+
+						// Handle changes to the form class and action
+						searchInput.addEventListener("input", function () {
+							var startsWithQuote = (searchInput.value.startsWith("\"") || searchInput.value.startsWith("\'") || searchInput.value.startsWith("«"));
+							var blankSpaceCount = (searchInput.value.match(/ ./g) || []).length;
+							if (blankSpaceCount !== 0) {
+								blankSpaceCount += 1;
+							}
+
+							if (blankSpaceCount > 5 && !startsWithQuote) {
+								wordCounter.style.visibility = "visible"
+								searchInput.classList.add("expanded");
+
+								// Change the form action to "/frisok"
+								form.setAttribute("action", "/frisok");
+								form.setAttribute("method", "POST");
+								wordCounter.innerHTML = searchInput.value.length + "/500";
+								freeSearchHelpText.innerHTML = 'Nå gjør du et frisøk. Du kan stille et spørsmål, forklare en situasjon eller beskrive hva du leter etter.'
+								searchInput.classList.add("frisok-icon")
+							} else {
+								if (blankSpaceCount === 0) {
+									bottomInfo.style.display = "none"
+								} else {
+									bottomInfo.style.display = "flex"
+									wordCounter.innerHTML = blankSpaceCount + "/5";
+									freeSearchHelpText.innerHTML = 'Bruk mer enn fem søkeord for å gjøre et frisøk.'
+								}
+
+								searchInput.classList.remove("expanded");
+								searchInput.classList.remove("frisok-icon")
+
+								form.setAttribute("action", "/sok"); // Set the form action back to "/sok"
+								form.setAttribute("method", "GET");
+							}
+						});
+
+						const updateHeightOfSearchBox = () => {
+							var expandedSearchField = 0
+							searchInput.style.height = 'auto';
+							const newHeightOfInput = expandedSearchField + searchInput.scrollHeight;
+							searchInput.style.height = newHeightOfInput + 'px';
+						};
+						searchInput.addEventListener('input', updateHeightOfSearchBox);
+					});
+				</script>
+
+				<div class="search">
+					<label class="sr-only" for="globSearch">Søketekst</label>
+					<span class="search-box-container">
+						<div class="search-box-container-absolute">
+							<textarea class="search-input" type="text" id="globSearch" name="q"
+							 value="Wien" 
+							placeholder="Søk med opp til fem søkeord eller skriv lengre for å gjøre et frisøk"></textarea>
+							<div class="search-bottom-info" id="search-bottom-info">
+								<div class="freesearch-help-text" id="freesearch-help-text"></div>
+								<div class="word-counter" id="word-counter" title="Dersom du bruker mer enn fem søkeord vil du utføre et frisøk"></div>
+							</div>
+						</div>
+					</span>
+					<input type="submit" class="submit" value="Søk">
+					<div class="close-mobile-search">Avbryt</div>
+				</div>
+			</form>
+		</div>
+		<a class="pro-login" href="/pro" title="Logg inn"><span>Logg inn</span><i class="ss-icon ss-symbolicons-block">&#x1F512;</i></a>
+	</div>
+</header>
+	<nav aria-labelledby="menuHeader">
+		<h1 class="sr-only" id="menuHeader">Hovedmeny</h1>
+		<!-- Menu content -->
+		<div class="leftPanel">
+		<div class="left-menu" aria-hidden="true">
+			<div class="menu-item-container hidden">
+				<ul class="top-level-menu">
+					<li class="resIcon top-level">
+						<div class="gmi-container leftIcon">
+							<button class="gliding-menu-item menuTgl" aria-expanded="false">Rettskilder</button>
+						</div>
+						<ul class="second-level-menu hiddenSubMenu" aria-hidden="true">
+							<li class="lovIcon second-level-icon resources">
+								<div class="gmi-container leftIcon">
+									<a class="gliding-menu-item" href="/register/lover">Lover</a>
+								</div>
+							</li>
+							<li class="sntForIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/forskrifter">Sentrale forskrifter mv.</a></div>
+							</li>
+							<li class="lokForIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/lokaleForskrifter">Lokale forskrifter</a></div>
+							</li>
+							<li class="ltIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/lovtidend">Norsk Lovtidend</a></div>
+							</li>
+							<li class="storVedIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/stortingsvedtak">Stortingsvedtak</a></div>
+							</li>
+							<li class="eosIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/eosAvtalen">EØS-avtalen</a></div>
+							</li>
+							<li class="traIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/traktater">Norges traktater</a></div>
+							</li>
+							<li class="decIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/avgjørelser">Rettsavgjørelser</a></div>
+							</li>
+							<li class="trrIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/trygderetten">Trygderettssaker</a></div>
+							</li>
+							<li class="tarIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/tariffavtaler">Tariffavtaler</a></div>
+							</li>
+							<li class="forarbeidIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/husleietvistutvalget">Husleietvistutvalget</a></div>
+							</li>
+							<li class="forarbeidIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/personvernnemnda">Personvernnemnda</a></div>
+							</li>
+							<li class="sphIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/sph">Statens Personalhåndbok</a></div>
+							</li>
+							<li class="lovIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/loverEngelsk">Translated acts</a></div>
+							</li>
+							<li class="sntForIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/forskrifterEngelsk">Translated regulations</a></div>
+							</li>
+							<li class="decIcon second-level-icon resources">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/register/avgjørelserEngelsk">Translated decisions</a></div>
+							</li>
+						</ul>
+					</li>
+					<li class="servIcon top-level">
+						<div class="gmi-container leftIcon">
+							<button class="gliding-menu-item menuTgl">Tjenester</button>
+						</div>
+						<ul class="second-level-menu hiddenSubMenu" aria-hidden="true">
+							<li class="proIcon second-level-icon">
+								<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="https://pro.lovdata.no">Lovdata Pro</a></div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="https://www.europalov.no">Europalov.no</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/api">API</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/rss">RSS-feed</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/eli">ELI (beta)</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/publikasjoner">E-publikasjoner</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/tjenester/tidsskrift">Tidsskrifter</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="https://hjelp.lovdata.no/article/170-sokeoppdrag-og-utskrifter">Søkeoppdrag</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="http://hjelp.lovdata.no/article/97-kursinformasjon">Kurs</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/eksamen">Eksamen</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/landslov">Landsloven</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/22juli">22. juli-saken</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/advokater">Advokatoversikt</a>
+								</div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container">
+									<a class="gliding-menu-item" href="/info/lenker">Lenker</a>
+								</div>
+							</li>
+						</ul>
+					</li>
+					<li class="infIcon top-level">
+						<div class="gmi-container leftIcon">
+							<button class="gliding-menu-item menuTgl">Om Lovdata</button>
+						</div>
+						<ul class="second-level-menu hiddenSubMenu" aria-hidden="true">
+							<li class="extLink">
+								<div class="gmi-container"><a class="gliding-menu-item" href="/info/om_lovdata">Generell informasjon</a></div>
+							</li>
+							<li>
+								<div class="gmi-container"><a class="gliding-menu-item" href="/info/brukeravtale">Brukeravtale</a></div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container"><a class="gliding-menu-item" href="/info/redaktoransvar">Redaktøransvar</a></div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container"><a class="gliding-menu-item" href="/info/kontakt">Kontakt oss</a></div>
+							</li>
+							<li class="extLink">
+								<div class="gmi-container"><a class="gliding-menu-item" href="/info/milopolicy">Miljøpolicy</a></div>
+							</li>
+						</ul>
+					</li>
+				</ul>
+
+				<ul class="top-level-menu">
+					<li class="menuItm grlIcon top-level btmIcon">
+						<div class="gmi-container leftIcon"><a class="gliding-menu-item grl" href="https://grunnloven.lovdata.no">Grunnloven</a></div>
+					</li>
+					<li class="menuItm cookIcon top-level btmIcon">
+						<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="/info/personvern">Personvern</a></div>
+					</li>
+					<li class="menuItm linkedinIcon top-level btmIcon">
+						<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="https://www.linkedin.com/company/lovdata/">Linkedin</a></div>
+					</li>
+					<li class="menuItm twitIcon top-level btmIcon">
+						<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="https://www.twitter.com/lovdata">Twitter</a></div>
+					</li>
+					<li class="menuItm faceIcon top-level btmIcon">
+						<div class="gmi-container leftIcon"><a class="gliding-menu-item" href="https://www.facebook.com/lovdata">Facebook</a></div>
+					</li>
+				</ul>
+			</div>
+		</div>
+		</div>
+	</nav>
+
+
+	<main id="main-content" class="main-content registryMain ">
+
+		<div class="row">
+
+<div class="col-sm-8">
+	<div class="row headerContainer">
+		<h1 class="header  ">
+				<span class="lovtidend-logo headerIcon" aria-label="Bilde av Norges riksvåpen"></span>Norges traktater
+		</h1>
+		<p class="header-meta header red">
+			<i class="ss-icon ss-symbolicons-line headerIcon" aria-hidden="true">&#xEC00;</i>
+			8 treff </p>
+	</div>
+	<section aria-labelledby="aboutDocs">
+		<h2 id="aboutDocs" class="sr-only">Om rettskilden</h2>
+		<div class="col-sm-10">
+			<div class="row">
+<p class="medium gray">
+	Traktatregisteret gir informasjon om bilaterale og multilaterale overenskomster som Norge er part i. Registret gir
+	imidlertid ikke oppdatert informasjon om andre lands partsforhold. Ansvaret for å underrette Utenriksdepartementet
+	om inngåtte folkerettslig bindende avtaler påhviler fagdepartementene/-kontorene. Bistandsavtaler vil
+	normalt ikke være omfattet av dette registeret, vennligst kontakt NORAD direkte.
+</p>
+<p class="medium gray">
+	Avtaletekster finnes i databasen for avtaler trådt i kraft for Norge fra og med november 1992.
+</p>
+<p class="medium gray">
+	Har du spørsmål vedrørende registeret, kan du ta kontakt med Traktat- og dokumentasjonsenheten i
+	Utenriksdepartementet <a href="mailto:traktat.og.dokumentasjonsenenheten@mfa.no">traktat.og.dokumentasjonsenenheten@mfa.no</a>.
+</p>			</div>
+		</div>
+	</section>
+</div>
+
+<nav aria-labelledby="registryMenu">
+    <div class="col-sm-5 col-lg-3 registryMenu">
+        <h2 class="sr-only" id="registryMenu">Lenker og snarveier</h2>
+        
+    <div class="row">
+        <div class="col-sm-4 col-lg-4">
+            <a href="https://www.regjeringen.no/no/dokumenter/folkerettslige-avtaler/id754268/" class="btn btn-default large btn-pro filter registryMenuBtn">
+                Om folkerettslige avtaler
+                <i class="ss-icon ss-symbolicons-block icon-left" aria-hidden="true">&nbsp;&nbsp;&nbsp;redirect</i>
+            </a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-4 col-lg-4">
+            <a href="/traktater/lenker" class="btn btn-default btn-pro filter registryMenuBtn">
+                Relaterte nettsteder
+            </a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-4 col-lg-4">
+            <a href="/traktater/hefter" class="btn btn-default btn-pro tiny filter registryMenuBtn">
+                Hefter
+            </a>
+        </div>
+    </div>
+
+    </div>
+</nav>
+		</div>
+
+<form aria-labelledby="filterHeader" method="get">
+	<h2 id="filterHeader">Filtrering av dokumenter</h2>
+	<div class="margin-20"></div>
+
+	<div class="filters">
+      
+
+
+
+
+
+
+	<div class="selector-positioning">
+		<label class="selector-label gray" for="yearSelect">Årstall</label>
+		<select id="yearSelect" name="year" class="dropdown selector-small overflow">
+			<option value="*">Alle år</option>
+				<option >
+					2026
+				</option>
+				<option >
+					2025
+				</option>
+				<option >
+					2024
+				</option>
+				<option >
+					2023
+				</option>
+				<option >
+					2022
+				</option>
+				<option >
+					2021
+				</option>
+				<option >
+					2020
+				</option>
+				<option >
+					2019
+				</option>
+				<option >
+					2018
+				</option>
+				<option >
+					2017
+				</option>
+				<option >
+					2016
+				</option>
+				<option >
+					2015
+				</option>
+				<option >
+					2014
+				</option>
+				<option >
+					2013
+				</option>
+				<option >
+					2012
+				</option>
+				<option >
+					2011
+				</option>
+				<option >
+					2010
+				</option>
+				<option >
+					2009
+				</option>
+				<option >
+					2008
+				</option>
+				<option >
+					2007
+				</option>
+				<option >
+					2006
+				</option>
+				<option >
+					2005
+				</option>
+				<option >
+					2004
+				</option>
+				<option >
+					2003
+				</option>
+				<option >
+					2002
+				</option>
+				<option >
+					2001
+				</option>
+				<option >
+					2000
+				</option>
+				<option >
+					1999
+				</option>
+				<option >
+					1998
+				</option>
+				<option >
+					1997
+				</option>
+				<option >
+					1996
+				</option>
+				<option >
+					1995
+				</option>
+				<option >
+					1994
+				</option>
+				<option >
+					1993
+				</option>
+				<option >
+					1992
+				</option>
+				<option >
+					1991
+				</option>
+				<option >
+					1990
+				</option>
+				<option >
+					1989
+				</option>
+				<option >
+					1988
+				</option>
+				<option >
+					1987
+				</option>
+				<option >
+					1986
+				</option>
+				<option >
+					1985
+				</option>
+				<option >
+					1984
+				</option>
+				<option >
+					1983
+				</option>
+				<option >
+					1982
+				</option>
+				<option >
+					1981
+				</option>
+				<option >
+					1980
+				</option>
+				<option >
+					1979
+				</option>
+				<option >
+					1978
+				</option>
+				<option >
+					1977
+				</option>
+				<option >
+					1976
+				</option>
+				<option >
+					1975
+				</option>
+				<option >
+					1974
+				</option>
+				<option >
+					1973
+				</option>
+				<option >
+					1972
+				</option>
+				<option >
+					1971
+				</option>
+				<option >
+					1970
+				</option>
+				<option >
+					1969
+				</option>
+				<option >
+					1968
+				</option>
+				<option >
+					1967
+				</option>
+				<option >
+					1966
+				</option>
+				<option >
+					1965
+				</option>
+				<option >
+					1964
+				</option>
+				<option >
+					1963
+				</option>
+				<option >
+					1962
+				</option>
+				<option >
+					1961
+				</option>
+				<option >
+					1960
+				</option>
+				<option >
+					1959
+				</option>
+				<option >
+					1958
+				</option>
+				<option >
+					1957
+				</option>
+				<option >
+					1956
+				</option>
+				<option >
+					1955
+				</option>
+				<option >
+					1954
+				</option>
+				<option >
+					1953
+				</option>
+				<option >
+					1952
+				</option>
+				<option >
+					1951
+				</option>
+				<option >
+					1950
+				</option>
+				<option >
+					1949
+				</option>
+				<option >
+					1948
+				</option>
+				<option >
+					1947
+				</option>
+				<option >
+					1946
+				</option>
+				<option >
+					1945
+				</option>
+				<option >
+					1944
+				</option>
+				<option >
+					1943
+				</option>
+				<option >
+					1940
+				</option>
+				<option >
+					1939
+				</option>
+				<option >
+					1938
+				</option>
+				<option >
+					1937
+				</option>
+				<option >
+					1936
+				</option>
+				<option >
+					1935
+				</option>
+				<option >
+					1934
+				</option>
+				<option >
+					1933
+				</option>
+				<option >
+					1932
+				</option>
+				<option >
+					1931
+				</option>
+				<option >
+					1930
+				</option>
+				<option >
+					1929
+				</option>
+				<option >
+					1928
+				</option>
+				<option >
+					1927
+				</option>
+				<option >
+					1926
+				</option>
+				<option >
+					1925
+				</option>
+				<option >
+					1924
+				</option>
+				<option >
+					1923
+				</option>
+				<option >
+					1922
+				</option>
+				<option >
+					1921
+				</option>
+				<option >
+					1920
+				</option>
+				<option >
+					1919
+				</option>
+				<option >
+					1915
+				</option>
+				<option >
+					1914
+				</option>
+				<option >
+					1913
+				</option>
+				<option >
+					1912
+				</option>
+				<option >
+					1911
+				</option>
+				<option >
+					1910
+				</option>
+				<option >
+					1909
+				</option>
+				<option >
+					1908
+				</option>
+				<option >
+					1907
+				</option>
+				<option >
+					1906
+				</option>
+				<option >
+					1905
+				</option>
+				<option >
+					1904
+				</option>
+				<option >
+					1903
+				</option>
+				<option >
+					1902
+				</option>
+				<option >
+					1901
+				</option>
+				<option >
+					1900
+				</option>
+				<option >
+					1899
+				</option>
+				<option >
+					1897
+				</option>
+				<option >
+					1895
+				</option>
+				<option >
+					1894
+				</option>
+				<option >
+					1889
+				</option>
+				<option >
+					1886
+				</option>
+				<option >
+					1885
+				</option>
+				<option >
+					1884
+				</option>
+				<option >
+					1883
+				</option>
+				<option >
+					1881
+				</option>
+				<option >
+					1879
+				</option>
+				<option >
+					1878
+				</option>
+				<option >
+					1876
+				</option>
+				<option >
+					1875
+				</option>
+				<option >
+					1863
+				</option>
+				<option >
+					1862
+				</option>
+				<option >
+					1858
+				</option>
+				<option >
+					1855
+				</option>
+				<option >
+					1854
+				</option>
+				<option >
+					1851
+				</option>
+				<option >
+					1848
+				</option>
+				<option >
+					1847
+				</option>
+				<option >
+					1846
+				</option>
+				<option >
+					1842
+				</option>
+				<option >
+					1841
+				</option>
+				<option >
+					1827
+				</option>
+				<option >
+					1826
+				</option>
+				<option >
+					1824
+				</option>
+				<option >
+					1819
+				</option>
+				<option >
+					1767
+				</option>
+				<option >
+					1751
+				</option>
+				<option >
+					1670
+				</option>
+				<option >
+					1661
+				</option>
+		</select>
+	</div>
+
+
+
+
+<div class="selector-positioning">
+	<label class="selector-label gray" for="countrySelect">Land/parter</label>
+	<select id="countrySelect" name="country" class="dropdown selector-medium overflow">
+		<option selected value="*">Alle land/parter</option>
+			<option >
+				Afghanistan
+			</option>
+			<option >
+				Albania
+			</option>
+			<option >
+				Algerie
+			</option>
+			<option >
+				Andorra
+			</option>
+			<option >
+				Angola
+			</option>
+			<option >
+				Anguilla
+			</option>
+			<option >
+				Antigua og Barbuda
+			</option>
+			<option >
+				Argentina
+			</option>
+			<option >
+				Armenia
+			</option>
+			<option >
+				Aruba
+			</option>
+			<option >
+				Aserbajdsjan
+			</option>
+			<option >
+				Australia
+			</option>
+			<option >
+				Bahamas
+			</option>
+			<option >
+				Bahrain
+			</option>
+			<option >
+				Bangladesh
+			</option>
+			<option >
+				Barbados
+			</option>
+			<option >
+				Belarus
+			</option>
+			<option >
+				Belgia
+			</option>
+			<option >
+				Belize
+			</option>
+			<option >
+				Benin
+			</option>
+			<option >
+				Bermuda
+			</option>
+			<option >
+				Bhutan
+			</option>
+			<option >
+				Bolivia
+			</option>
+			<option >
+				Bosnia-Hercegovina
+			</option>
+			<option >
+				Botswana
+			</option>
+			<option >
+				Brasil
+			</option>
+			<option >
+				Brunei
+			</option>
+			<option >
+				Bulgaria
+			</option>
+			<option >
+				Burkina Faso
+			</option>
+			<option >
+				Burundi
+			</option>
+			<option >
+				Canada
+			</option>
+			<option >
+				Chile
+			</option>
+			<option >
+				Colombia
+			</option>
+			<option >
+				Cookøyene
+			</option>
+			<option >
+				Costa Rica
+			</option>
+			<option >
+				Cuba
+			</option>
+			<option >
+				Danmark
+			</option>
+			<option >
+				De forente arabiske emirater
+			</option>
+			<option >
+				Den europeiske union
+			</option>
+			<option >
+				Den Sentralafrikanske republikk
+			</option>
+			<option >
+				Det europeiske økonomiske fellesskap
+			</option>
+			<option >
+				Djibouti
+			</option>
+			<option >
+				Dominica
+			</option>
+			<option >
+				Dominikanske republikk
+			</option>
+			<option >
+				Ecuador
+			</option>
+			<option >
+				Egypt
+			</option>
+			<option >
+				Ekvatorial-Guinea
+			</option>
+			<option >
+				El Salvador
+			</option>
+			<option >
+				Elfenbenskysten
+			</option>
+			<option >
+				Eritrea
+			</option>
+			<option >
+				Estland
+			</option>
+			<option >
+				Eswatini
+			</option>
+			<option >
+				Etiopia
+			</option>
+			<option >
+				Fiji
+			</option>
+			<option >
+				Filippinene
+			</option>
+			<option >
+				Finland
+			</option>
+			<option >
+				Frankrike
+			</option>
+			<option >
+				Færøyene
+			</option>
+			<option >
+				Gabon
+			</option>
+			<option >
+				Gambia
+			</option>
+			<option >
+				Georgia
+			</option>
+			<option >
+				Ghana
+			</option>
+			<option >
+				Gibraltar
+			</option>
+			<option >
+				Grenada
+			</option>
+			<option >
+				Grønland
+			</option>
+			<option >
+				Guatemala
+			</option>
+			<option >
+				Guernsey
+			</option>
+			<option >
+				Guinea
+			</option>
+			<option >
+				Guinea-Bissau
+			</option>
+			<option >
+				Guyana
+			</option>
+			<option >
+				Haiti
+			</option>
+			<option >
+				Hellas
+			</option>
+			<option >
+				Honduras
+			</option>
+			<option >
+				Hongkong
+			</option>
+			<option >
+				India
+			</option>
+			<option >
+				Indonesia
+			</option>
+			<option >
+				Irak
+			</option>
+			<option >
+				Iran
+			</option>
+			<option >
+				Irland
+			</option>
+			<option >
+				Island
+			</option>
+			<option >
+				Isle of Man
+			</option>
+			<option >
+				Israel
+			</option>
+			<option >
+				Italia
+			</option>
+			<option >
+				Jamaica
+			</option>
+			<option >
+				Japan
+			</option>
+			<option >
+				Jemen
+			</option>
+			<option >
+				Jersey
+			</option>
+			<option >
+				Jordan
+			</option>
+			<option >
+				Jugoslavia
+			</option>
+			<option >
+				Kambodsja
+			</option>
+			<option >
+				Kamerun
+			</option>
+			<option >
+				Kapp Verde
+			</option>
+			<option >
+				Kasakhstan
+			</option>
+			<option >
+				Kenya
+			</option>
+			<option >
+				Kina
+			</option>
+			<option >
+				Kirgisistan
+			</option>
+			<option >
+				Kiribati
+			</option>
+			<option >
+				Komorene
+			</option>
+			<option >
+				Kongo
+			</option>
+			<option >
+				Kongo-Brazzaville
+			</option>
+			<option >
+				Kosovo
+			</option>
+			<option >
+				Kroatia
+			</option>
+			<option >
+				Kuwait
+			</option>
+			<option >
+				Kypros
+			</option>
+			<option >
+				Laos
+			</option>
+			<option >
+				Latvia
+			</option>
+			<option >
+				Lesotho
+			</option>
+			<option >
+				Libanon
+			</option>
+			<option >
+				Liberia
+			</option>
+			<option >
+				Libya
+			</option>
+			<option >
+				Liechtenstein
+			</option>
+			<option >
+				Litauen
+			</option>
+			<option >
+				Luxembourg
+			</option>
+			<option >
+				Macao
+			</option>
+			<option >
+				Madagaskar
+			</option>
+			<option >
+				Malawi
+			</option>
+			<option >
+				Malaysia
+			</option>
+			<option >
+				Maldivene
+			</option>
+			<option >
+				Mali
+			</option>
+			<option >
+				Malta
+			</option>
+			<option >
+				Marokko
+			</option>
+			<option >
+				Marshalløyene
+			</option>
+			<option >
+				Martinique
+			</option>
+			<option >
+				Mauritania
+			</option>
+			<option >
+				Mauritius
+			</option>
+			<option >
+				Mexico
+			</option>
+			<option >
+				Mikronesiaføderasjonen
+			</option>
+			<option >
+				Moldova
+			</option>
+			<option >
+				Monaco
+			</option>
+			<option >
+				Mongolia
+			</option>
+			<option >
+				Montenegro
+			</option>
+			<option >
+				Montserrat
+			</option>
+			<option >
+				Mosambik
+			</option>
+			<option >
+				Myanmar
+			</option>
+			<option >
+				Namibia
+			</option>
+			<option >
+				Nauru
+			</option>
+			<option >
+				Nederland
+			</option>
+			<option >
+				Nepal
+			</option>
+			<option >
+				New Zealand
+			</option>
+			<option >
+				Nicaragua
+			</option>
+			<option >
+				Niger
+			</option>
+			<option >
+				Nigeria
+			</option>
+			<option >
+				Niue
+			</option>
+			<option >
+				Nord-Korea
+			</option>
+			<option >
+				Nord-Makedonia
+			</option>
+			<option >
+				Oman
+			</option>
+			<option >
+				Pakistan
+			</option>
+			<option >
+				Palau
+			</option>
+			<option >
+				Palestina
+			</option>
+			<option >
+				Panama
+			</option>
+			<option >
+				Papua Ny-Guinea
+			</option>
+			<option >
+				Paraguay
+			</option>
+			<option >
+				Peru
+			</option>
+			<option >
+				Polen
+			</option>
+			<option >
+				Portugal
+			</option>
+			<option >
+				Qatar
+			</option>
+			<option >
+				Romania
+			</option>
+			<option >
+				Russland
+			</option>
+			<option >
+				Rwanda
+			</option>
+			<option >
+				Saint Kitts og Nevis
+			</option>
+			<option >
+				Saint Lucia
+			</option>
+			<option >
+				Saint Vincent og Grenadinene
+			</option>
+			<option >
+				Salomonøyene
+			</option>
+			<option >
+				Samoa
+			</option>
+			<option >
+				San Marino
+			</option>
+			<option >
+				Sao Tome og Principe
+			</option>
+			<option >
+				Saudi-Arabia
+			</option>
+			<option >
+				Senegal
+			</option>
+			<option >
+				Serbia
+			</option>
+			<option >
+				Seychellene
+			</option>
+			<option >
+				Sierra Leone
+			</option>
+			<option >
+				Singapore
+			</option>
+			<option >
+				Slovakia
+			</option>
+			<option >
+				Slovenia
+			</option>
+			<option >
+				Somalia
+			</option>
+			<option >
+				Sovjetunionen
+			</option>
+			<option >
+				Spania
+			</option>
+			<option >
+				Sri Lanka
+			</option>
+			<option >
+				Storbritannia
+			</option>
+			<option >
+				Sudan
+			</option>
+			<option >
+				Surinam
+			</option>
+			<option >
+				Sveits
+			</option>
+			<option >
+				Sverige
+			</option>
+			<option >
+				Syria
+			</option>
+			<option >
+				Sør-Afrika
+			</option>
+			<option >
+				Sør-Korea
+			</option>
+			<option >
+				Sør-Sudan
+			</option>
+			<option >
+				Tadsjikistan
+			</option>
+			<option >
+				Tanzania
+			</option>
+			<option >
+				Thailand
+			</option>
+			<option >
+				Togo
+			</option>
+			<option >
+				Tonga
+			</option>
+			<option >
+				Trinidad og Tobago
+			</option>
+			<option >
+				Tsjad
+			</option>
+			<option >
+				Tsjekkia
+			</option>
+			<option >
+				Tsjekkoslovakia
+			</option>
+			<option >
+				Tunisia
+			</option>
+			<option >
+				Turkmenistan
+			</option>
+			<option >
+				Turks og Caicosøyene
+			</option>
+			<option >
+				Tuvalu
+			</option>
+			<option >
+				Tyrkia
+			</option>
+			<option >
+				Tyskland
+			</option>
+			<option >
+				Uganda
+			</option>
+			<option >
+				Ukraina
+			</option>
+			<option >
+				Ungarn
+			</option>
+			<option >
+				Uruguay
+			</option>
+			<option >
+				USA
+			</option>
+			<option >
+				Usbekistan
+			</option>
+			<option >
+				Vanuatu
+			</option>
+			<option >
+				Vatikanstaten
+			</option>
+			<option >
+				Venezuela
+			</option>
+			<option >
+				Vietnam
+			</option>
+			<option >
+				Zambia
+			</option>
+			<option >
+				Zimbabwe
+			</option>
+			<option >
+				Øst-Timor
+			</option>
+			<option >
+				Østerrike
+			</option>
+	</select>
+</div>
+
+ 
+    <div class="selector-positioning">
+        <label class="selector-label gray" for="searchContext">Søkekontekst</label>
+            <select name="searchContext" id="searchContext" class="dropdown selector-small">
+                <option selected="selected" value="I teksten">I teksten</option>
+                <option selected="selected" value="I tittel">I tittel</option>
+            </select>
+    </div>
+
+<div class="selector-positioning">
+    <label class="selector-label gray" for="searchField">Søk i Norges traktater</label>
+    <input type="search" id="searchField" class="selectorInputField" name="search" placeholder="Skriv søketekst her ...">
+    <script>
+        $('#searchField').keydown(function (event) {
+            // keyCode 10 to prevent enter on iOS
+            if (event.keyCode === 10 || event.keyCode === 13) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</div>
+
+
+<div class="selBtnCntr">
+	<div class="selector-button">
+		<a href="/register/traktater#filterHeader" role="button" class="btn btn-default filter clear-btn">
+			Nullstill filter
+		</a>
+	</div>
+	<div class="selector-button">
+		<button type="submit" class="btn btn-default filter submit-btn">
+			Utfør filtrering
+		</button>
+	</div>
+</div>	</div>
+</form>
+    <section aria-labelledby="sortHeader">
+        <h2 class="sr-only" id="sortHeader">Sortering av dokumenter</h2>
+        <p class="sr-only">Nå: kronologisk, synkende</p>
+            <p class="sortering">Sortering:&nbsp;&nbsp;
+                <a role="button"
+                   href="?searchContext=I+tittel&search=Wien&dir=asc#sortHeader"
+                   class="active desc">Kronologisk<span aria-hidden="true" class="asc">↓</span><span aria-hidden="true" class="desc">↑</span>
+                </a>
+            </p>
+    </section>
+
+		<div class="registryResultSeparator"></div>
+
+<section aria-labelledby="doclistheader">
+	<h1 class="sr-only" id="doclistheader">Dokumentliste</h1>
+	<p class="sr-only">8 treff</p>
+	<div class="list-items">
+
+
+
+				<div class="documentList">
+			<section aria-labelledby="1988">
+				<h2 id="1988" class="devider">1988</h2>
+
+				<article aria-labelledby="TRAKTAT/traktat/1988-09-21-1">
+					<h3 id="TRAKTAT/traktat/1988-09-21-1">
+						<a href="/dokument/TRAKTAT/traktat/1988-09-21-1?q=Wien">
+							<strong>
+                  Fellesprotokoll i tilknytning til Wien- og Paris-konvensjonene om erstatningsansvar ved nukleære ulykker
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">21-09-1988 nr 1 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+			</section>
+			<section aria-labelledby="1985">
+				<h2 id="1985" class="devider">1985</h2>
+
+				<article aria-labelledby="TRAKTAT/traktat/1985-03-22-1">
+					<h3 id="TRAKTAT/traktat/1985-03-22-1">
+						<a href="/dokument/TRAKTAT/traktat/1985-03-22-1?q=Wien">
+							<strong>
+                  Wien-konvensjonen for beskyttelse av ozonlaget
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">22-03-1985 nr 1 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+			</section>
+			<section aria-labelledby="1963">
+				<h2 id="1963" class="devider">1963</h2>
+
+				<article aria-labelledby="TRAKTAT/traktat/1963-04-24-3">
+					<h3 id="TRAKTAT/traktat/1963-04-24-3">
+						<a href="/dokument/TRAKTAT/traktat/1963-04-24-3?q=Wien">
+							<strong>
+                  Fakultativ protokoll om tvungen bileggelse av tvister
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">24-04-1963 nr 3 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+
+				<article aria-labelledby="TRAKTAT/traktat/1963-04-24-2">
+					<h3 id="TRAKTAT/traktat/1963-04-24-2">
+						<a href="/dokument/TRAKTAT/traktat/1963-04-24-2?q=Wien">
+							<strong>
+                  Fakultativ protokoll om immunitet mot erverv av statsborgerskap
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">24-04-1963 nr 2 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+
+				<article aria-labelledby="TRAKTAT/traktat/1963-04-24-1">
+					<h3 id="TRAKTAT/traktat/1963-04-24-1">
+						<a href="/dokument/TRAKTAT/traktat/1963-04-24-1?q=Wien">
+							<strong>
+                  Wien-konvensjonen om konsulært samkvem
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">24-04-1963 nr 1 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+			</section>
+			<section aria-labelledby="1961">
+				<h2 id="1961" class="devider">1961</h2>
+
+				<article aria-labelledby="TRAKTAT/traktat/1961-04-18-3">
+					<h3 id="TRAKTAT/traktat/1961-04-18-3">
+						<a href="/dokument/TRAKTAT/traktat/1961-04-18-3?q=Wien">
+							<strong>
+                  Fakultativ protokoll om tvungen bileggelse av tvister
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">18-04-1961 nr 3 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+
+				<article aria-labelledby="TRAKTAT/traktat/1961-04-18-2">
+					<h3 id="TRAKTAT/traktat/1961-04-18-2">
+						<a href="/dokument/TRAKTAT/traktat/1961-04-18-2?q=Wien">
+							<strong>
+                  Fakultativ protokoll om immunitet mot erverv av statsborgerskap
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">18-04-1961 nr 2 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+
+				<article aria-labelledby="TRAKTAT/traktat/1961-04-18-1">
+					<h3 id="TRAKTAT/traktat/1961-04-18-1">
+						<a href="/dokument/TRAKTAT/traktat/1961-04-18-1?q=Wien">
+							<strong>
+                  Wien-konvensjonen om diplomatisk samkvem
+							</strong>
+						</a>
+					</h3>
+          
+
+					<p>
+					<span class="red">18-04-1961 nr 1 Multilateral</span>
+
+						<span class="blueLight">
+						</span>
+					</p>
+
+
+				</article>
+				<hr/>
+
+
+
+	</div>
+
+
+</div>
+
+			<p class="center-align">Viser 1 - 8 av 8 treff</p>
+
+		</section>
+	</main>
+
+<aside role="region" aria-labelledby="faq" class="help closed hidden-xs">
+	<h1 class="sr-only" id="faq">Brukerveiledning</h1>
+	<div class="open-help">
+		<button aria-label="Åpne informasjon om brukerveiledning" aria-expanded="false">
+			<span aria-hidden="true" class="toggle-open ss-icon ss-symbolicons-block">&#x2753;</span>
+			<span aria-hidden="true" class="toggle-close ss-icon ss-symbolicons-block">&#x2421;</span>
+		</button>
+		<noscript>
+			<a aria-label="Gå til hjelpeside" class="open-help-noscript" href="/info/faq"></a>
+		</noscript>
+	</div>
+	<div class="help-container hiddenSidePanel" aria-hidden="true">
+		<h2>Trenger du brukerveiledning?</h2>
+		<p><a class="infolink" href="/info/faq">Få svar på ofte stilte spørsmål her (FAQ)</a></p>
+		<p>Lovdata kan dessverre ikke svare på spørsmål angående juridiske problemer. Lovdata kan heller ikke bidra med å tolke regelverket eller finne frem til rettsregler som passer i et bestemt tilfelle. Kontakt den offentlige etaten spørsmålet gjelder, eventuelt advokat eller rettshjelper hvis du har behov for slik bistand.</p>
+
+		<h2>Fant du ikke det du lette etter?</h2>
+		<p>Send en e-post til <a class="infolink" href="mailto:support@lovdata.no">support@lovdata.no</a></p>
+	</div>
+</aside>
+<footer class="footer">
+	<a href="/info/personvern#cookies" class="cookieInfo" aria-hidden="true"><i class="ss-icon ss-symbolicons-line">&#x1F36A;</i><span class="cookie-label">Om informasjonskapsler</span></a>
+	<ul class="footer-nav">
+		<li><a lang="en" href="/info/information_in_english">Information in English</a></li>
+		<li class="ld-hidden-xs"><p tabindex="0" class="popover-parent" data-placement="top" data-toggle="popover" data-trigger="focus hover" title="" data-content="Hold inne Ctrl-tasten (Cmd-tasten på Mac). Trykk samtidig på + for å forstørre eller - for å forminske.">Juster tekststørrelse<span class="sr-only">Hold inne Ctrl-tasten (Cmd-tasten på Mac). Trykk samtidig på + for å forstørre eller - for å forminske.</span></p></li>
+		<li class="visible-xs"><a href="/info/faq">Hjelp</a></li>
+		<li><a href="/info/kontakt">Kontakt</a></li>
+		<li><a href="/info/brukeravtale">Brukeravtale</a></li>
+	</ul>
+</footer>
+
+	</body>
+</html>
+

@@ -24,6 +24,9 @@ Bruk:
 <dokid> kan også være LOV-2005-06-17-62, FOR-…, en lovdata.no-URL eller en
 entydig korttittel/forkortelse (aml, Grunnloven).
 
+Avslutningskoder: 0 ok; 1 feil; 6 api.lovdata.no avviste maskinen (HTTP
+403/405 — slik svarer Lovdata Anthropics sky; bruk lokal rute, se SKILL.md).
+
 Tilstand og nedlastede data lagres i en skrivbar brukerkatalog (ikke i selve
 ferdighetskatalogen, som ofte er skrivebeskyttet når skillet er installert).
 Stien velges slik:
@@ -44,6 +47,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -376,7 +380,7 @@ def _list_marker(m: re.Match) -> str:
 
 
 # Fotnotehenvisning og -etikett. Markøren hindrer at fotnotetallet smelter
-# sammen med et tall foran (se tests/test_html_to_text.py).
+# sammen med et tall foran (se tests/lovdata-api/test_html_to_text.py i repoet).
 _FN_REF = re.compile(r'<sup[^>]*\bclass="footnotereference"[^>]*>(.*?)</sup>', re.I | re.S)
 _FN_LABEL = re.compile(r'<span[^>]*\bclass="footnoteLabel"[^>]*>(.*?)</span>', re.I | re.S)
 # Øvrige <sup> er eksponenter (m<sup>2</sup>, cm<sup>3</sup>).
@@ -691,12 +695,18 @@ def cmd_update(args, state: dict) -> dict:
         available = get_package_list(api_key)
     except Exception as e:
         print(f"FEIL: Kunne ikke hente pakkeoversikt: {e}", file=sys.stderr)
+        blocked = isinstance(e, urllib.error.HTTPError) and e.code in (403, 405)
+        if blocked:
+            # Lovdata avviser Anthropics sky (HTTP 405 «Varnish IPS»). Det er
+            # ikke en feil å prøve på nytt: kjør via lokal rute (SKILL.md).
+            print(f"BLOKKERT: api.lovdata.no avviser denne maskinen (HTTP {e.code}).",
+                  file=sys.stderr)
         if INDEX_FILE.exists():
             # Lokale data fra forrige vellykkede update er fortsatt brukbare.
             # Ikke oppdater last_checked: sjekken ble ikke gjort.
             print(_stale_data_warning(state), file=sys.stderr)
             return state
-        sys.exit(1)
+        sys.exit(6 if blocked else 1)
 
     pkg_map = {p["filename"]: p for p in available}
     state.setdefault("packages", {})

@@ -1,0 +1,1339 @@
+[
+ {
+  "name": "search Wien (title, one page)",
+  "result": {
+   "total": 8,
+   "shown": 8,
+   "results": [
+    {
+     "id": "1988-09-21-1",
+     "title": "Fellesprotokoll i tilknytning til Wien- og Paris-konvensjonene om erstatningsansvar ved nukleære ulykker",
+     "year": "1988"
+    },
+    {
+     "id": "1985-03-22-1",
+     "title": "Wien-konvensjonen for beskyttelse av ozonlaget",
+     "year": "1985"
+    },
+    {
+     "id": "1963-04-24-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-1",
+     "title": "Wien-konvensjonen om konsulært samkvem",
+     "year": "1963"
+    },
+    {
+     "id": "1961-04-18-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-1",
+     "title": "Wien-konvensjonen om diplomatisk samkvem",
+     "year": "1961"
+    }
+   ]
+  },
+  "requests": [
+   "/register/traktater?search=Wien&searchContext=I+tittel"
+  ]
+ },
+ {
+  "name": "search menneskerett, max 25 (two pages)",
+  "result": {
+   "total": 26,
+   "shown": 25,
+   "results": [
+    {
+     "id": "2024-09-05-19",
+     "title": "Europarådets rammekonvensjon om kunstig intelligens, menneskerettigheter, demokrati og rettsstatsprinsipper - CETS 225",
+     "year": "2024"
+    },
+    {
+     "id": "2013-10-02-22",
+     "title": "Protokoll nr. 16 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter - CETS 214",
+     "year": "2013"
+    },
+    {
+     "id": "2013-06-24-10",
+     "title": "Protokoll nr. 15 om endring av Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter - CETS 213",
+     "year": "2013"
+    },
+    {
+     "id": "2009-05-27-10",
+     "title": "Protokoll nr. 14bis til konvensjonen om beskyttelse av menneskerettighetene og de grunnleggende friheter - CETS 204",
+     "year": "2009"
+    },
+    {
+     "id": "2008-11-27-81",
+     "title": "Tilleggsprotokoll til konvensjonen om menneskerettigheter og biomedisin om genetiske undersøkelser for helseformål - CETS 203",
+     "year": "2008"
+    },
+    {
+     "id": "2008-09-16-23",
+     "title": "Avtale mellom Norge og Europarådet om et europeisk ressurssenter for opplæring i interkulturell forståelse, menneskerettigheter og demokratisk medborgerskap",
+     "year": "2008"
+    },
+    {
+     "id": "2005-01-25-4",
+     "title": "Tilleggsprotokoll til konvensjonen om menneskerettighetene og biomedisin, om biomedisinsk forskning - ETS nr. 195",
+     "year": "2005"
+    },
+    {
+     "id": "2004-05-13-29",
+     "title": "Protokoll nr. 14 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter om endring av Konvensjonens kontrollsystem - CETS nr. 194",
+     "year": "2004"
+    },
+    {
+     "id": "2002-05-03-1",
+     "title": "Protokoll nr. 13 om avskaffelse av dødsstraff under enhver omstendighet til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 187",
+     "year": "2002"
+    },
+    {
+     "id": "2000-11-04-1",
+     "title": "Protokoll nr. 12 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 177",
+     "year": "2000"
+    },
+    {
+     "id": "1998-01-12-1",
+     "title": "Tilleggsprotokoll til Konvensjon om beskyttelse av menneskerettighetene og menneskets verdighet i forbindelse med anvendelsen av biologi og medisin, om forbud mot kloning av mennesker - ETS nr. 168",
+     "year": "1998"
+    },
+    {
+     "id": "1997-04-04-1",
+     "title": "Konvensjon om beskyttelse av menneskerettighetene og menneskets verdighet i forbindelse med anvendelsen av biologi og medisin: Konvensjon om menneskerettigheter og biomedisin - ETS nr. 164",
+     "year": "1997"
+    },
+    {
+     "id": "1996-03-05-3",
+     "title": "Europeisk overenskomst om personer som deltar i rettergang ved Den europeiske menneskerettighetsdomstol - ETS nr. 161",
+     "year": "1996"
+    },
+    {
+     "id": "1995-06-02-1",
+     "title": "Avtale mellom Danmark og Estland, Finland, Latvia, Litauen, Norge, Polen, Russland, Sverige, Tyskland, samt Kommisjonen for De europeiske fellesskap om Sekretariat i København for Østersjørådets kommi...",
+     "year": "1995"
+    },
+    {
+     "id": "1994-05-11-1",
+     "title": "Protokoll nr. 11 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, med endring av kontrollsystemet som er opprettet i Konvensjonen ETS nr. 155",
+     "year": "1994"
+    },
+    {
+     "id": "1992-03-25-1",
+     "title": "Protokoll nr. 10 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 146",
+     "year": "1992"
+    },
+    {
+     "id": "1990-11-06-2",
+     "title": "Protokoll nr. 9 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 140",
+     "year": "1990"
+    },
+    {
+     "id": "1985-03-19-1",
+     "title": "Protokoll nr. 8 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 118",
+     "year": "1985"
+    },
+    {
+     "id": "1984-11-22-1",
+     "title": "Protokoll nr. 7 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 117",
+     "year": "1984"
+    },
+    {
+     "id": "1983-04-28-1",
+     "title": "Protokoll nr. 6 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, om opphevelse av dødsstraff ETS nr. 114",
+     "year": "1983"
+    },
+    {
+     "id": "1966-01-20-1",
+     "title": "Protokoll nr. 5 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, om endringer i konvensjonens artikler 22 og 40 ETS nr. 55 - ETS nr. 55",
+     "year": "1966"
+    },
+    {
+     "id": "1963-09-16-1",
+     "title": "Protokoll nr. 4 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, om beskyttelse av visse rettigheter og friheter som ikke allerede omfattes av konvensjonen og av før...",
+     "year": "1963"
+    },
+    {
+     "id": "1963-05-06-2",
+     "title": "Protokoll nr. 3 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, om endringer i konvensjonens artikler 29, 30 og 34 ETS nr. 45 - ETS nr. 45",
+     "year": "1963"
+    },
+    {
+     "id": "1963-05-06-1",
+     "title": "Protokoll nr. 2 til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter, om kompetanse for Den europeiske menneskerettighetsdomstol til å avgi rådgivende uttalelser ETS nr. ...",
+     "year": "1963"
+    },
+    {
+     "id": "1952-03-20-1",
+     "title": "Protokoll til Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter ETS nr. 9",
+     "year": "1952"
+    }
+   ]
+  },
+  "requests": [
+   "/register/traktater?offset=20&search=menneskerett&searchContext=I+tittel",
+   "/register/traktater?search=menneskerett&searchContext=I+tittel"
+  ]
+ },
+ {
+  "name": "search context tekst",
+  "result": {
+   "total": 8,
+   "shown": 8,
+   "results": [
+    {
+     "id": "1988-09-21-1",
+     "title": "Fellesprotokoll i tilknytning til Wien- og Paris-konvensjonene om erstatningsansvar ved nukleære ulykker",
+     "year": "1988"
+    },
+    {
+     "id": "1985-03-22-1",
+     "title": "Wien-konvensjonen for beskyttelse av ozonlaget",
+     "year": "1985"
+    },
+    {
+     "id": "1963-04-24-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-1",
+     "title": "Wien-konvensjonen om konsulært samkvem",
+     "year": "1963"
+    },
+    {
+     "id": "1961-04-18-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-1",
+     "title": "Wien-konvensjonen om diplomatisk samkvem",
+     "year": "1961"
+    }
+   ]
+  },
+  "requests": [
+   "/register/traktater?search=Wien&searchContext=I+teksten"
+  ]
+ },
+ {
+  "name": "search year+country resolved case-insensitively",
+  "result": {
+   "total": 8,
+   "shown": 8,
+   "results": [
+    {
+     "id": "1988-09-21-1",
+     "title": "Fellesprotokoll i tilknytning til Wien- og Paris-konvensjonene om erstatningsansvar ved nukleære ulykker",
+     "year": "1988"
+    },
+    {
+     "id": "1985-03-22-1",
+     "title": "Wien-konvensjonen for beskyttelse av ozonlaget",
+     "year": "1985"
+    },
+    {
+     "id": "1963-04-24-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-1",
+     "title": "Wien-konvensjonen om konsulært samkvem",
+     "year": "1963"
+    },
+    {
+     "id": "1961-04-18-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-1",
+     "title": "Wien-konvensjonen om diplomatisk samkvem",
+     "year": "1961"
+    }
+   ]
+  },
+  "requests": [
+   "/register/traktater",
+   "/register/traktater?country=Sverige&year=1969"
+  ]
+ },
+ {
+  "name": "search --full titles (aliased docs, others 404)",
+  "result": {
+   "total": 8,
+   "shown": 8,
+   "results": [
+    {
+     "id": "1988-09-21-1",
+     "title": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+     "year": "1988"
+    },
+    {
+     "id": "1985-03-22-1",
+     "title": "Konvensjon om flyktningers stilling",
+     "year": "1985"
+    },
+    {
+     "id": "1963-04-24-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1963"
+    },
+    {
+     "id": "1963-04-24-1",
+     "title": "Wien-konvensjonen om konsulært samkvem",
+     "year": "1963"
+    },
+    {
+     "id": "1961-04-18-3",
+     "title": "Fakultativ protokoll om tvungen bileggelse av tvister",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-2",
+     "title": "Fakultativ protokoll om immunitet mot erverv av statsborgerskap",
+     "year": "1961"
+    },
+    {
+     "id": "1961-04-18-1",
+     "title": "Wien-konvensjonen om diplomatisk samkvem",
+     "year": "1961"
+    }
+   ],
+   "full_titles": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1961-04-18-1",
+   "/dokument/TRAKTAT/traktat/1961-04-18-2",
+   "/dokument/TRAKTAT/traktat/1961-04-18-3",
+   "/dokument/TRAKTAT/traktat/1963-04-24-1",
+   "/dokument/TRAKTAT/traktat/1963-04-24-2",
+   "/dokument/TRAKTAT/traktat/1963-04-24-3",
+   "/dokument/TRAKTAT/traktat/1985-03-22-1",
+   "/dokument/TRAKTAT/traktat/1988-09-21-1",
+   "/register/traktater?search=Wien&searchContext=I+tittel"
+  ]
+ },
+ {
+  "name": "search unknown country",
+  "result": {
+   "__error": "Ukjent country: 'Storbritania'. Lovdata ville ha ignorert filteret og returnert hele registeret. Mente du: Storbritannia, Mauritania?"
+  },
+  "requests": [
+   "/register/traktater"
+  ]
+ },
+ {
+  "name": "search unknown year",
+  "result": {
+   "__error": "Ukjent year: '3000'. Lovdata ville ha ignorert filteret og returnert hele registeret. Mente du: 2000?"
+  },
+  "requests": [
+   "/register/traktater"
+  ]
+ },
+ {
+  "name": "meta EMK (no text)",
+  "result": {
+   "title": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+   "metadata": {
+    "Original tekst": "http://lovdata.no/lov/1999-05-21-30",
+    "Ident": "04-11-1950 nr 1 Multilateral",
+    "Tittel (norsk)": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+    "Korttittel (norsk)": "EMK – Den europeiske menneskerettskonvensjonen",
+    "Tittel (originalspråk)": "Convention for the protection of human rights and fundamental freedoms",
+    "Emne": "MR",
+    "Avtalens undertegningsdato": "04-11-1950",
+    "Avtalens undertegningssted": "Roma",
+    "Avtalens ikrafttredelsesdato": "03-09-1953",
+    "Undertegningsdato Norge": "04-11-1950",
+    "Ikrafttredelsesdato Norge": "03-09-1953",
+    "Depositar": "Europarådet http://conventions.coe.int",
+    "Stortinget": "St.prp.nr.83 (1951–1952)\nInnst.S.nr.289 (1951–1952)",
+    "Ratifikasjon, godkjennelse, godtakelse": "21-12-1951 kgl.res.",
+    "Dato for dep av rat.dok el.likn": "15-01-1952",
+    "Publisert": "NT II s 1004, Overenskomster 1954 s 51",
+    "FN-registrering": "11-08-1955 2889",
+    "Endret/tillegg": "Protokoll av 20-03-1952 nr 1\nProtokoll nr. 2 av 06-05-1963 nr 1\nProtokoll nr. 3 av 06-05-1963 nr 2\nProtokoll nr. 4 av 16-09-1963 nr 1\nProtokoll nr. 5 av 20-01-1966 nr 1\nProtokoll nr. 6 av 28-04-1983 nr 1\nProtokoll nr. 7 av 22-11-1984 nr 1\nProtokoll nr. 8 av 19-03-1985 nr 1\nProtokoll nr. 9 av 06-11-1990 nr 2\nProtokoll nr. 10 av 25-03-1992 nr 1\nProtokoll nr. 11 av 11-05-1994 nr 1\nProtokoll nr. 12 av 04-11-2000 nr 1\nProtokoll nr. 13 av 03-05-2002 nr 1\nProtokoll nr. 14 av 13-05-2004 nr 29\nProtokoll nr. 14bis av 27-05-2009 nr 10\nProtokoll nr. 15 av 24-06-2013 nr 10\nProtokoll nr. 16 av 02-10-2013 nr 22",
+    "Merknad": "Nye parter i Konvensjonen blir automatisk part i protokoll nr. 3, 5 og 8. Erklæringer avgitt iht. konvensjonens art. 25 og art. 46 se internett-adressen ovenfor. For oppdatert liste over partsforhold se internett-adressen ovenfor. Norge har ikke undertegnet protokoll nr. 12 av 04-11-2000 (ETS nr. 177). Det vises til Konvensjon om menneskerettigheter og biomedisin av 04-04-1997 (ETS nr. 164) med Tilleggsprotokoll om kloning av 12-01-1998 (ETS nr. 168) – ikke i kraft for Norge. For traktatens norske tekst se menneskerettsloven: http://lovdata.no/lov/1999-05-21-30",
+    "Parter": "Part: Norge\nUndertegningsdato: 04-11-1950\nRatifisert/tiltrådt/godkjent etc.: 15-01-1952\nIkrafttredelsesdato: 03-09-1953\nFratredelsesdato:\nMerknad:"
+   },
+   "fields": {
+    "orginalURL": "http://lovdata.no/lov/1999-05-21-30",
+    "dato": "04-11-1950 nr 1 Multilateral",
+    "tittel": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+    "korttittel": "EMK – Den europeiske menneskerettskonvensjonen",
+    "tittelOrginal": "Convention for the protection of human rights and fundamental freedoms",
+    "stikkord": "MR",
+    "undertegningsdato": "04-11-1950",
+    "undertegningssted": "Roma",
+    "ikraft": "03-09-1953",
+    "undertegningsDatoNorge": "04-11-1950",
+    "ikraftNorge": "03-09-1953",
+    "depositar": "Europarådet http://conventions.coe.int",
+    "saksgang": "St.prp.nr.83 (1951–1952)\nInnst.S.nr.289 (1951–1952)",
+    "ratifikasjonDato": "21-12-1951 kgl.res.",
+    "deponeringsDato": "15-01-1952",
+    "publisert": "NT II s 1004, Overenskomster 1954 s 51",
+    "fnregistrering": "11-08-1955 2889",
+    "endret": "Protokoll av 20-03-1952 nr 1\nProtokoll nr. 2 av 06-05-1963 nr 1\nProtokoll nr. 3 av 06-05-1963 nr 2\nProtokoll nr. 4 av 16-09-1963 nr 1\nProtokoll nr. 5 av 20-01-1966 nr 1\nProtokoll nr. 6 av 28-04-1983 nr 1\nProtokoll nr. 7 av 22-11-1984 nr 1\nProtokoll nr. 8 av 19-03-1985 nr 1\nProtokoll nr. 9 av 06-11-1990 nr 2\nProtokoll nr. 10 av 25-03-1992 nr 1\nProtokoll nr. 11 av 11-05-1994 nr 1\nProtokoll nr. 12 av 04-11-2000 nr 1\nProtokoll nr. 13 av 03-05-2002 nr 1\nProtokoll nr. 14 av 13-05-2004 nr 29\nProtokoll nr. 14bis av 27-05-2009 nr 10\nProtokoll nr. 15 av 24-06-2013 nr 10\nProtokoll nr. 16 av 02-10-2013 nr 22",
+    "merknad": "Nye parter i Konvensjonen blir automatisk part i protokoll nr. 3, 5 og 8. Erklæringer avgitt iht. konvensjonens art. 25 og art. 46 se internett-adressen ovenfor. For oppdatert liste over partsforhold se internett-adressen ovenfor. Norge har ikke undertegnet protokoll nr. 12 av 04-11-2000 (ETS nr. 177). Det vises til Konvensjon om menneskerettigheter og biomedisin av 04-04-1997 (ETS nr. 164) med Tilleggsprotokoll om kloning av 12-01-1998 (ETS nr. 168) – ikke i kraft for Norge. For traktatens norske tekst se menneskerettsloven: http://lovdata.no/lov/1999-05-21-30",
+    "parter": "Part: Norge\nUndertegningsdato: 04-11-1950\nRatifisert/tiltrådt/godkjent etc.: 15-01-1952\nIkrafttredelsesdato: 03-09-1953\nFratredelsesdato:\nMerknad:"
+   },
+   "id": "1950-11-04-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1950-11-04-1",
+   "has_text": false
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1950-11-04-1"
+  ]
+ },
+ {
+  "name": "meta folkemord, URL form",
+  "result": {
+   "title": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+   "metadata": {
+    "Ident": "09-12-1948 nr 1 Multilateral",
+    "Tittel (norsk)": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+    "Tittel (originalspråk)": "Convention on the prevention and punishment of the crime of genocide",
+    "Avtalens undertegningsdato": "09-12-1948",
+    "Avtalens undertegningssted": "Paris",
+    "Avtalens ikrafttredelsesdato": "12-01-1951",
+    "Undertegningsdato Norge": "11-12-1948",
+    "Ikrafttredelsesdato Norge": "12-01-1951",
+    "Depositar": "FN\nhttp://treaties.un.org",
+    "Fullmakt til undertegning": "03-12-1948 kgl.res.",
+    "Stortinget": "St.prp.nr.56 (1949)\nInnst.S.nr.138 (1949)\nStortingsvedtak 24. juni 1949",
+    "Ratifikasjon, godkjennelse, godtakelse": "30-06-1949 kgl.res.",
+    "Dato for dep av rat.dok el.likn": "22-07-1949",
+    "Publisert": "NT II s 489, Overenskomster 1950 s 108",
+    "FN-registrering": "12-01-1951 1021 78 s 277",
+    "Merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.",
+    "Parter": "Part: Norge\nUndertegningsdato: 11-12-1948\nRatifisert/tiltrådt/godkjent etc.: 22-07-1949\nIkrafttredelsesdato: 12-01-1951\nFratredelsesdato:\nMerknad:"
+   },
+   "fields": {
+    "dato": "09-12-1948 nr 1 Multilateral",
+    "tittel": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+    "tittelOrginal": "Convention on the prevention and punishment of the crime of genocide",
+    "undertegningsdato": "09-12-1948",
+    "undertegningssted": "Paris",
+    "ikraft": "12-01-1951",
+    "undertegningsDatoNorge": "11-12-1948",
+    "ikraftNorge": "12-01-1951",
+    "depositar": "FN\nhttp://treaties.un.org",
+    "undertegningsfullmakt": "03-12-1948 kgl.res.",
+    "saksgang": "St.prp.nr.56 (1949)\nInnst.S.nr.138 (1949)\nStortingsvedtak 24. juni 1949",
+    "ratifikasjonDato": "30-06-1949 kgl.res.",
+    "deponeringsDato": "22-07-1949",
+    "publisert": "NT II s 489, Overenskomster 1950 s 108",
+    "fnregistrering": "12-01-1951 1021 78 s 277",
+    "merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.",
+    "parter": "Part: Norge\nUndertegningsdato: 11-12-1948\nRatifisert/tiltrådt/godkjent etc.: 22-07-1949\nIkrafttredelsesdato: 12-01-1951\nFratredelsesdato:\nMerknad:"
+   },
+   "id": "1948-12-09-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1",
+   "has_text": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "meta flyktning",
+  "result": {
+   "title": "Konvensjon om flyktningers stilling",
+   "metadata": {
+    "Ident": "28-07-1951 nr 1 Multilateral",
+    "Tittel (norsk)": "Konvensjon om flyktningers stilling",
+    "Tittel (originalspråk)": "Convention relating to the status of refugees",
+    "Avtalens undertegningsdato": "28-07-1951",
+    "Avtalens undertegningssted": "Geneve",
+    "Avtalens ikrafttredelsesdato": "22-04-1954",
+    "Undertegningsdato Norge": "28-07-1951",
+    "Ikrafttredelsesdato Norge": "22-04-1954",
+    "Depositar": "FN\nhttp://treaties.un.org",
+    "Fullmakt til undertegning": "11-05-1951 kgl.res.",
+    "Stortinget": "St.prp.nr.135 (1952)\nInnst.S.nr.268 (1952)",
+    "Ratifikasjon, godkjennelse, godtakelse": "07-11-1952 kgl.res.",
+    "Dato for dep av rat.dok el.likn": "23-03-1953",
+    "Publisert": "NT II s 1223, Overenskomster 1954 s 487",
+    "FN-registrering": "22-04-1954 2545 189 s 137",
+    "Endret/tillegg": "Protokoll av 31-01-1967 nr 1",
+    "Merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.\nNorge har tatt forbehold vedr. art. 17 (1).\nSe også Konvensjon om flyktningesjømenn av 23-11-1957 nr 1 .",
+    "Parter": "Part: Norge\nUndertegningsdato: 28-07-1951\nRatifisert/tiltrådt/godkjent etc.: 23-03-1953\nIkrafttredelsesdato: 22-04-1954\nFratredelsesdato:\nMerknad:"
+   },
+   "fields": {
+    "dato": "28-07-1951 nr 1 Multilateral",
+    "tittel": "Konvensjon om flyktningers stilling",
+    "tittelOrginal": "Convention relating to the status of refugees",
+    "undertegningsdato": "28-07-1951",
+    "undertegningssted": "Geneve",
+    "ikraft": "22-04-1954",
+    "undertegningsDatoNorge": "28-07-1951",
+    "ikraftNorge": "22-04-1954",
+    "depositar": "FN\nhttp://treaties.un.org",
+    "undertegningsfullmakt": "11-05-1951 kgl.res.",
+    "saksgang": "St.prp.nr.135 (1952)\nInnst.S.nr.268 (1952)",
+    "ratifikasjonDato": "07-11-1952 kgl.res.",
+    "deponeringsDato": "23-03-1953",
+    "publisert": "NT II s 1223, Overenskomster 1954 s 487",
+    "fnregistrering": "22-04-1954 2545 189 s 137",
+    "endret": "Protokoll av 31-01-1967 nr 1",
+    "merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.\nNorge har tatt forbehold vedr. art. 17 (1).\nSe også Konvensjon om flyktningesjømenn av 23-11-1957 nr 1 .",
+    "parter": "Part: Norge\nUndertegningsdato: 28-07-1951\nRatifisert/tiltrådt/godkjent etc.: 23-03-1953\nIkrafttredelsesdato: 22-04-1954\nFratredelsesdato:\nMerknad:"
+   },
+   "id": "1951-07-28-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1951-07-28-1",
+   "has_text": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1951-07-28-1"
+  ]
+ },
+ {
+  "name": "meta EEA (long partsliste)",
+  "result": {
+   "title": "Avtale om Det europeiske økonomiske samarbeidsområde",
+   "metadata": {
+    "Ident": "02-05-1992 nr 1 Multilateral",
+    "Tittel (norsk)": "Avtale om Det europeiske økonomiske samarbeidsområde",
+    "Korttittel (norsk)": "EØS",
+    "Tittel (originalspråk)": "Agreement on the European Economic Area",
+    "Emne": "EFTA",
+    "Avtalens undertegningsdato": "02-05-1992",
+    "Avtalens undertegningssted": "Oporto",
+    "Avtalens ikrafttredelsesdato": "01-01-1994",
+    "Undertegningsdato Norge": "02-05-1992",
+    "Ikrafttredelsesdato Norge": "01-01-1994",
+    "Depositar": "Rådssekretariatet for De europeiske fellesskap",
+    "Fullmakt til undertegning": "30-04-1992 kgl.res.",
+    "Stortinget": "St.prp.nr.100 (1991–1992)\nInnst.S.nr.248 (1991–1992)\nStortingsvedtak 16. oktober 1992",
+    "Fagdepartement": "Nærings- og handelsdepartementet",
+    "Ratifikasjon, godkjennelse, godtakelse": "06-11-1992 kgl.res.",
+    "Dato for dep av rat.dok el.likn": "19-11-1992",
+    "Publisert": "Overenskomster 1994 s 2",
+    "FN-registrering": "01-08-1994 31121",
+    "Endret/tillegg": "Protokoll av 17-03-1993 nr 3\n20-06-2003 nr 22\n14-10-2003 nr 187\n25-07-2007 nr 20\n15-04-2011 nr 11",
+    "Merknad": "Norge har tatt følgende forbehold:\n«Under henvisning til avtalens Protokoll 40 om Svalbard, skal Svalbard unntas fra anvendelse av avtalen.»\nSe også Avtale vedr. landbrukssektoren av 17-03-1993 nr 2.\nLenke til stortingsproposisjon: www.regjeringen.no/no/dokumenter/stprp100_1991",
+    "Parter": "Part: Det europeiske kull- og stålfellesskap\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 13-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Norge\nUndertegningsdato: 02-05-1992\nRatifisert/tiltrådt/godkjent etc.: 19-11-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Spania\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 03-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Island\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 04-02-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Portugal\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 09-03-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Belgia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 09-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Hellas\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 10-09-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Frankrike\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 10-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: EF\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 13-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Østerrike\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-10-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Italia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Storbritannia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Finland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 17-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Sverige\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 18-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Luxembourg\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 21-10-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Tyskland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 23-06-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Liechtenstein\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 25-04-1995\nIkrafttredelsesdato: 01-05-1995\nFratredelsesdato:\nMerknad:\n\nPart: Irland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 29-07-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Danmark\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 30-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\n\nPart: Nederland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 31-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:"
+   },
+   "fields": {
+    "dato": "02-05-1992 nr 1 Multilateral",
+    "tittel": "Avtale om Det europeiske økonomiske samarbeidsområde",
+    "korttittel": "EØS",
+    "tittelOrginal": "Agreement on the European Economic Area",
+    "stikkord": "EFTA",
+    "undertegningsdato": "02-05-1992",
+    "undertegningssted": "Oporto",
+    "ikraft": "01-01-1994",
+    "undertegningsDatoNorge": "02-05-1992",
+    "ikraftNorge": "01-01-1994",
+    "depositar": "Rådssekretariatet for De europeiske fellesskap",
+    "undertegningsfullmakt": "30-04-1992 kgl.res.",
+    "saksgang": "St.prp.nr.100 (1991–1992)\nInnst.S.nr.248 (1991–1992)\nStortingsvedtak 16. oktober 1992",
+    "departement": "Nærings- og handelsdepartementet",
+    "ratifikasjonDato": "06-11-1992 kgl.res.",
+    "deponeringsDato": "19-11-1992",
+    "publisert": "Overenskomster 1994 s 2",
+    "fnregistrering": "01-08-1994 31121",
+    "endret": "Protokoll av 17-03-1993 nr 3\n20-06-2003 nr 22\n14-10-2003 nr 187\n25-07-2007 nr 20\n15-04-2011 nr 11",
+    "merknad": "Norge har tatt følgende forbehold:\n«Under henvisning til avtalens Protokoll 40 om Svalbard, skal Svalbard unntas fra anvendelse av avtalen.»\nSe også Avtale vedr. landbrukssektoren av 17-03-1993 nr 2.\nLenke til stortingsproposisjon: www.regjeringen.no/no/dokumenter/stprp100_1991",
+    "parter": "Part: Det europeiske kull- og stålfellesskap\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 13-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Norge\nUndertegningsdato: 02-05-1992\nRatifisert/tiltrådt/godkjent etc.: 19-11-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Spania\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 03-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Island\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 04-02-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Portugal\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 09-03-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Belgia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 09-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Hellas\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 10-09-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Frankrike\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 10-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: EF\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 13-12-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Østerrike\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-10-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Italia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Storbritannia\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 15-11-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Finland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 17-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Sverige\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 18-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Luxembourg\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 21-10-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Tyskland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 23-06-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Liechtenstein\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 25-04-1995\nIkrafttredelsesdato: 01-05-1995\nFratredelsesdato:\nMerknad:\nPart: Irland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 29-07-1993\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Danmark\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 30-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:\nPart: Nederland\nUndertegningsdato:\nRatifisert/tiltrådt/godkjent etc.: 31-12-1992\nIkrafttredelsesdato: 01-01-1994\nFratredelsesdato:\nMerknad:"
+   },
+   "id": "1992-05-02-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1992-05-02-1",
+   "has_text": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1992-05-02-1"
+  ]
+ },
+ {
+  "name": "meta 404",
+  "result": {
+   "__error": "Traktat 1999-01-01-1 ikke funnet på https://lovdata.no/dokument/TRAKTAT/traktat/1999-01-01-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1999-01-01-1"
+  ]
+ },
+ {
+  "name": "meta bad id",
+  "result": {
+   "__error": "Kjente ikke igjen traktat-ID: '1948'. Formatet er YYYY-MM-DD-N (f.eks. 1948-12-09-1), eventuelt hele DokID-en eller URL-en."
+  },
+  "requests": []
+ },
+ {
+  "name": "meta batch with duplicate, 404 and comment",
+  "result": [
+   {
+    "title": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+    "metadata": {
+     "Ident": "09-12-1948 nr 1 Multilateral",
+     "Tittel (norsk)": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+     "Tittel (originalspråk)": "Convention on the prevention and punishment of the crime of genocide",
+     "Avtalens undertegningsdato": "09-12-1948",
+     "Avtalens undertegningssted": "Paris",
+     "Avtalens ikrafttredelsesdato": "12-01-1951",
+     "Undertegningsdato Norge": "11-12-1948",
+     "Ikrafttredelsesdato Norge": "12-01-1951",
+     "Depositar": "FN\nhttp://treaties.un.org",
+     "Fullmakt til undertegning": "03-12-1948 kgl.res.",
+     "Stortinget": "St.prp.nr.56 (1949)\nInnst.S.nr.138 (1949)\nStortingsvedtak 24. juni 1949",
+     "Ratifikasjon, godkjennelse, godtakelse": "30-06-1949 kgl.res.",
+     "Dato for dep av rat.dok el.likn": "22-07-1949",
+     "Publisert": "NT II s 489, Overenskomster 1950 s 108",
+     "FN-registrering": "12-01-1951 1021 78 s 277",
+     "Merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.",
+     "Parter": "Part: Norge\nUndertegningsdato: 11-12-1948\nRatifisert/tiltrådt/godkjent etc.: 22-07-1949\nIkrafttredelsesdato: 12-01-1951\nFratredelsesdato:\nMerknad:"
+    },
+    "fields": {
+     "dato": "09-12-1948 nr 1 Multilateral",
+     "tittel": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord",
+     "tittelOrginal": "Convention on the prevention and punishment of the crime of genocide",
+     "undertegningsdato": "09-12-1948",
+     "undertegningssted": "Paris",
+     "ikraft": "12-01-1951",
+     "undertegningsDatoNorge": "11-12-1948",
+     "ikraftNorge": "12-01-1951",
+     "depositar": "FN\nhttp://treaties.un.org",
+     "undertegningsfullmakt": "03-12-1948 kgl.res.",
+     "saksgang": "St.prp.nr.56 (1949)\nInnst.S.nr.138 (1949)\nStortingsvedtak 24. juni 1949",
+     "ratifikasjonDato": "30-06-1949 kgl.res.",
+     "deponeringsDato": "22-07-1949",
+     "publisert": "NT II s 489, Overenskomster 1950 s 108",
+     "fnregistrering": "12-01-1951 1021 78 s 277",
+     "merknad": "For oppdatert liste over partsforhold se internett-adressen ovenfor.",
+     "parter": "Part: Norge\nUndertegningsdato: 11-12-1948\nRatifisert/tiltrådt/godkjent etc.: 22-07-1949\nIkrafttredelsesdato: 12-01-1951\nFratredelsesdato:\nMerknad:"
+    },
+    "id": "1948-12-09-1",
+    "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1",
+    "has_text": true
+   },
+   {
+    "title": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+    "metadata": {
+     "Original tekst": "http://lovdata.no/lov/1999-05-21-30",
+     "Ident": "04-11-1950 nr 1 Multilateral",
+     "Tittel (norsk)": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+     "Korttittel (norsk)": "EMK – Den europeiske menneskerettskonvensjonen",
+     "Tittel (originalspråk)": "Convention for the protection of human rights and fundamental freedoms",
+     "Emne": "MR",
+     "Avtalens undertegningsdato": "04-11-1950",
+     "Avtalens undertegningssted": "Roma",
+     "Avtalens ikrafttredelsesdato": "03-09-1953",
+     "Undertegningsdato Norge": "04-11-1950",
+     "Ikrafttredelsesdato Norge": "03-09-1953",
+     "Depositar": "Europarådet http://conventions.coe.int",
+     "Stortinget": "St.prp.nr.83 (1951–1952)\nInnst.S.nr.289 (1951–1952)",
+     "Ratifikasjon, godkjennelse, godtakelse": "21-12-1951 kgl.res.",
+     "Dato for dep av rat.dok el.likn": "15-01-1952",
+     "Publisert": "NT II s 1004, Overenskomster 1954 s 51",
+     "FN-registrering": "11-08-1955 2889",
+     "Endret/tillegg": "Protokoll av 20-03-1952 nr 1\nProtokoll nr. 2 av 06-05-1963 nr 1\nProtokoll nr. 3 av 06-05-1963 nr 2\nProtokoll nr. 4 av 16-09-1963 nr 1\nProtokoll nr. 5 av 20-01-1966 nr 1\nProtokoll nr. 6 av 28-04-1983 nr 1\nProtokoll nr. 7 av 22-11-1984 nr 1\nProtokoll nr. 8 av 19-03-1985 nr 1\nProtokoll nr. 9 av 06-11-1990 nr 2\nProtokoll nr. 10 av 25-03-1992 nr 1\nProtokoll nr. 11 av 11-05-1994 nr 1\nProtokoll nr. 12 av 04-11-2000 nr 1\nProtokoll nr. 13 av 03-05-2002 nr 1\nProtokoll nr. 14 av 13-05-2004 nr 29\nProtokoll nr. 14bis av 27-05-2009 nr 10\nProtokoll nr. 15 av 24-06-2013 nr 10\nProtokoll nr. 16 av 02-10-2013 nr 22",
+     "Merknad": "Nye parter i Konvensjonen blir automatisk part i protokoll nr. 3, 5 og 8. Erklæringer avgitt iht. konvensjonens art. 25 og art. 46 se internett-adressen ovenfor. For oppdatert liste over partsforhold se internett-adressen ovenfor. Norge har ikke undertegnet protokoll nr. 12 av 04-11-2000 (ETS nr. 177). Det vises til Konvensjon om menneskerettigheter og biomedisin av 04-04-1997 (ETS nr. 164) med Tilleggsprotokoll om kloning av 12-01-1998 (ETS nr. 168) – ikke i kraft for Norge. For traktatens norske tekst se menneskerettsloven: http://lovdata.no/lov/1999-05-21-30",
+     "Parter": "Part: Norge\nUndertegningsdato: 04-11-1950\nRatifisert/tiltrådt/godkjent etc.: 15-01-1952\nIkrafttredelsesdato: 03-09-1953\nFratredelsesdato:\nMerknad:"
+    },
+    "fields": {
+     "orginalURL": "http://lovdata.no/lov/1999-05-21-30",
+     "dato": "04-11-1950 nr 1 Multilateral",
+     "tittel": "Konvensjon om beskyttelse av menneskerettighetene og de grunnleggende friheter – ETS nr. 5",
+     "korttittel": "EMK – Den europeiske menneskerettskonvensjonen",
+     "tittelOrginal": "Convention for the protection of human rights and fundamental freedoms",
+     "stikkord": "MR",
+     "undertegningsdato": "04-11-1950",
+     "undertegningssted": "Roma",
+     "ikraft": "03-09-1953",
+     "undertegningsDatoNorge": "04-11-1950",
+     "ikraftNorge": "03-09-1953",
+     "depositar": "Europarådet http://conventions.coe.int",
+     "saksgang": "St.prp.nr.83 (1951–1952)\nInnst.S.nr.289 (1951–1952)",
+     "ratifikasjonDato": "21-12-1951 kgl.res.",
+     "deponeringsDato": "15-01-1952",
+     "publisert": "NT II s 1004, Overenskomster 1954 s 51",
+     "fnregistrering": "11-08-1955 2889",
+     "endret": "Protokoll av 20-03-1952 nr 1\nProtokoll nr. 2 av 06-05-1963 nr 1\nProtokoll nr. 3 av 06-05-1963 nr 2\nProtokoll nr. 4 av 16-09-1963 nr 1\nProtokoll nr. 5 av 20-01-1966 nr 1\nProtokoll nr. 6 av 28-04-1983 nr 1\nProtokoll nr. 7 av 22-11-1984 nr 1\nProtokoll nr. 8 av 19-03-1985 nr 1\nProtokoll nr. 9 av 06-11-1990 nr 2\nProtokoll nr. 10 av 25-03-1992 nr 1\nProtokoll nr. 11 av 11-05-1994 nr 1\nProtokoll nr. 12 av 04-11-2000 nr 1\nProtokoll nr. 13 av 03-05-2002 nr 1\nProtokoll nr. 14 av 13-05-2004 nr 29\nProtokoll nr. 14bis av 27-05-2009 nr 10\nProtokoll nr. 15 av 24-06-2013 nr 10\nProtokoll nr. 16 av 02-10-2013 nr 22",
+     "merknad": "Nye parter i Konvensjonen blir automatisk part i protokoll nr. 3, 5 og 8. Erklæringer avgitt iht. konvensjonens art. 25 og art. 46 se internett-adressen ovenfor. For oppdatert liste over partsforhold se internett-adressen ovenfor. Norge har ikke undertegnet protokoll nr. 12 av 04-11-2000 (ETS nr. 177). Det vises til Konvensjon om menneskerettigheter og biomedisin av 04-04-1997 (ETS nr. 164) med Tilleggsprotokoll om kloning av 12-01-1998 (ETS nr. 168) – ikke i kraft for Norge. For traktatens norske tekst se menneskerettsloven: http://lovdata.no/lov/1999-05-21-30",
+     "parter": "Part: Norge\nUndertegningsdato: 04-11-1950\nRatifisert/tiltrådt/godkjent etc.: 15-01-1952\nIkrafttredelsesdato: 03-09-1953\nFratredelsesdato:\nMerknad:"
+    },
+    "id": "1950-11-04-1",
+    "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1950-11-04-1",
+    "has_text": false
+   },
+   {
+    "id": "1999-01-01-1",
+    "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1999-01-01-1",
+    "error": "Traktat 1999-01-01-1 ikke funnet på https://lovdata.no/dokument/TRAKTAT/traktat/1999-01-01-1"
+   }
+  ],
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1",
+   "/dokument/TRAKTAT/traktat/1950-11-04-1",
+   "/dokument/TRAKTAT/traktat/1999-01-01-1"
+  ]
+ },
+ {
+  "name": "text folkemord",
+  "result": {
+   "id": "1948-12-09-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1",
+   "body": "Overenskomst om forhindring og avstraffelse av forbrytelsen folkemord\n\nDe kontraherende parter,\nsom har overveiet den erklæring som de Forente Nasjoners generalforsamling vedtok i sin resolusjon 96 (I) datert 11. desember 1946 om at folkemord er en forbrytelse etter folkeretten, som er imot de Forente Nasjoners ånd og formål og fordømt av den siviliserte verden;\nsom erkjenner at folkemord til alle tider i historien har medført store tap for menneskeheten; og\nsom er overbevist om at internasjonalt samarbeid er nødvendig for å befri menneskeheten fra en så fryktelig svøpe;\ner herved blitt enige om følgende:\n\nArtikkel I.\n\nDe kontraherende parter bekrefter at folkemord, hva enten begått i fredstid eller i krigstid, er en forbrytelse etter folkeretten som de påtar seg å forhindre og straffe.\n\nArtikkel II.\n\nI nærværende konvensjon betyr folkemord en hvilken som helst av følgende handlinger som er begått i den hensikt å ødelegge helt, eller delvis, en nasjonal, etnisk, rasemessig eller religiøs gruppe som sådan:\na. å drepe medlemmer av gruppen;\nb. å forårsake alvorlig legemlig eller sjelelig skade på medlemmer av gruppen;\nc. bevisst å la gruppen utsettes for levevilkår som tar sikte på å bevirke dens fysiske ødeleggelse helt eller delvis;\nd. å påtvinge tiltak som tar sikte på å forhindre fødsler innen gruppen;\ne. med makt å overføre barn fra gruppen til en annen gruppe.\n\nArtikkel III.\n\nFølgende handlinger skal være straffbare:\na. folkemord;\nb. sammensvergelse om begå folkemord;\nc. direkte og offentlig oppfordring til begå folkemord;\nd. forsøk på begå folkemord;\ne. medvirkning til folkemord.\n\nArtikkel IV.\n\nPersoner som begår folkemord eller noen av de andre handlinger som er oppregnet i artikkel III skal straffes hva enten de er konstitusjonelt ansvarlige statsoverhoder, offentlige tjenestemenn eller privatpersoner.\n\nArtikkel V.\n\nDe kontraherende parter påtar seg å vedta i samsvar med sine respektive konstitusjoner, den nødvendige lovgivning for å sette i verk bestemmelsene i nærværende konvensjon og særlig å fastsette effektive straffer for personer skyldige i folkemord eller noen av de andre handlinger som er oppregnet i artikkel III.\n\nArtikkel VI.\n\nPersoner anklaget for folkemord eller noen av de andre handlinger som er oppregnet i artikkel III skal dømmes av de kompetente domstoler i den stat på hvis territorium handlingen ble begått, eller av en slik internasjonal straffedomstol som måtte ha jurisdiksjon når det gjelder de kontraherende parter som måtte ha godtatt denne domstols jurisdiksjon.\n\nArtikkel VII.\n\nFolkemord og de andre handlinger som er oppregnet i artikkel III, skal ikke anses som politiske forbrytelser når det gjelder spørsmålet om utlevering.\nDe kontraherende parter forplikter seg til i slike tilfelle å foreta utlevering i samsvar med sine gjeldende lover og traktater.\n\nArtikkel VIII.\n\nEnhver av de kontraherende parter kan henstille til de Forente Nasjoners kompetente organer treffe slike tiltak etter de Forente Nasjoners Pakt som de finner passende for å forhindre og undertrykke folkemordshandlinger eller noen av de andre handlinger som er oppregnet i artikkel III.\n\nArtikkel IX.\n\nTvist mellom de kontraherende parter om fortolkningen, anvendelsen eller gjennomføringen av nærværende konvensjon innbefattet spørsmål vedrørende en stats ansvar for mord eller noen av de andre handlinger som er oppregnet i artikkel III, skal forelegges for den Internasjonale Domstol etter anmodning av en av partene i tvisten.\n\nArtikkel X.\n\nNærværende konvensjon hvis kinesiske, engelske, franske, russiske og spanske tekster er like autentiske, skal bære datoen 9. desember 1948.\n\nArtikkel XI.\n\nNærværende konvensjon skal stå åpen inntil 31. desember 1949 for undertegning på vegne av et medlem av de Forente Nasjoner eller av en ikke-medlemsstat som av generalforsamlingen har mottatt en oppfordring til å undertegne.\nNærværende konvensjon skal ratifiseres og ratifikasjonsdokumentene skal deponeres hos de Forente Nasjoners generalsekretær.\nEtter 1. januar 1950 kan nærværende konvensjon tiltres på vegne av et hvilket som helst medlem av de Forente Nasjoner og en hvilken som helst ikke-medlemsstat som har fått en oppfordring som foran nevnt.\nTiltredelsesdokumenter skal deponeres hos de Forente Nasjoners generalsekretær.\n\nArtikkel XII.\n\nEnhver av de kontraherende parter kan når som helst ved notifikasjon stilet til de Forente Nasjoners generalsekretær utvide området for anvendelsen av nærværende konvensjon til alle eller noen av de territorier hvis utenrikske forbindelser vedkommende kontraherende part er ansvarlig for.\n\nArtikkel XIII.\n\nPå den dag da de første 20 ratifikasjonsdokumenter er blitt deponert skal generalsekretæren sette opp en protokoll herom og sende en kopi av den til ethvert medlem av de Forente Nasjoner og til enhver av de ikke-medlemsstater som omhandles i artikkel XI.\nNærværende konvensjon skal tre i kraft på den nittiende dag etter dagen for deponeringen av det tjuende ratifikasjons- eller tiltredelsesdokument.\nEnhver ratifikasjon eller tiltredelse som er foretatt etter den sistnevnte dag, skal tre i kraft på den nittiende dag etter deponeringen av ratifikasjons- eller tiltredelsesdokumentet.\n\nArtikkel XIV.\n\nNærværende konvensjon forblir i kraft i et tidsrom av 10 år å regne fra dens ikrafttreden. Den skal deretter forbli i kraft for etterfølgende perioder på 5 år for de kontraherende parter som ikke har oppsagt den minst 6 måneder for utløpet av den løpende periode.\nEn oppsigelse skal skje ved skriftlig notifikasjon stilet til de Forente Nasjoners generalsekretær.\n\nArtikkel XV.\n\nHvis, som følge av oppsigelse, antallet av parter i nærværende konvensjon skulle bli mindre enn 16, skal konvensjonen opphøre å være i kraft fra den dag på hvilken den siste av disse oppsigelser blir effektiv.\n\nArtikkel XVI.\n\nEn anmodning om revisjon av nærværende konvensjon kan når som helst framsettes av en hvilken som helst av de kontraherende parter ved en skriftlig notifikasjon stilet til generalsekretæren.\nGeneralsekretæren skal avgjøre hvilke skritt, hvis noen, som skal tas på grunnlag av en slik anmodning.\n\nArtikkel XVII.\n\nDe Forente Nasjoners generalsekretær skal notifisere alle medlemmer av de Forente Nasjoner og de ikke-medlemsstater som omhandles i artikkel XI om følgende:\na. undertegninger, ratifikasjoner og tiltredelser som er mottatt i henhold til artikkel XI;\nb. notifikasjoner mottatt i henhold til artikkel XII.\nc. dagen for nærværende konvensjons ikrafttreden i henhold til artikkel XIII;\nd. oppsigelser mottatt i henhold til artikkel XIV;\ne. opphør av konvensjonen i henhold til artikkel XV;\nf. notifikasjoner mottatt i henhold til artikkel XVI.\n\nArtikkel XVIII.\n\nOriginalen til nærværende konvensjon skal deponeres i de Forente Nasjoners arkiver.\nEn bekreftet kopi av konvensjonen skal sendes til alle medlemmer av de Forente Nasjoner og til de ikke-medlemsstater som omhandles i artikkel XI.\n\nArtikkel XIX.\n\nNærværende konvensjon skal registreres av de Forente Nasjoners generalsekretær på dagen for dens ikrafttreden.",
+   "available": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "text EMK (empty body)",
+  "result": {
+   "id": "1950-11-04-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1950-11-04-1",
+   "body": "",
+   "available": false
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1950-11-04-1"
+  ]
+ },
+ {
+  "name": "text EEA (long, chunked)",
+  "result": {
+   "id": "1992-05-02-1",
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1992-05-02-1",
+   "body": "Innholdsfortegnelse\n\nInnledning\nDel I Formål og prinsipper\nDel II Det frie varebytte\nKapittel 1 Grunnleggende prinsipper\nKapittel 2 Landbruks- og fiskerivarer\nKapittel 3 Samarbeid i tollsaker og om handelslettelser\nKapittel 4 Andre regler om det frie varebytte\nKapittel 5 Kull- og stålprodukter\nDel III Fri bevegelighet for personer, tjenester og kapital\nKapittel 1 Arbeidstagere og selvstendig næringsdrivende\nKapittel 2 Etableringsrett\nKapittel 3 Tjenester\nKapittel 4 Kapital\nKapittel 5 Samarbeid om økonomisk politikk og pengepolitikk\nKapittel 6 Transportvirksomhet\nDel IV Konkurranseregler og andre felles regler\nKapittel 1 Bestemmelser for foretak\nKapittel 2 Statsstøtte\nKapittel 3 Andre felles regler\nDel V Bestemmelser som gjelder alle de fire friheter\nKapittel 1 Sosialpolitikk\nKapittel 2 Forbrukervern\nKapittel 3 Miljø\nKapittel 4 Statistikk\nKapittel 5 Selskapsrett\nDel VI Samarbeid utenfor de fire friheter\nDel VII Bestemmelser om organene\nKapittel 1 Organiseringen av samarbeidet\nKapittel 2 Beslutningsprosessen\nKapittel 3 Ensartethet, overvåkningsordning og tvisteløsning\nKapittel 4 Beskyttelsestiltak\nDel VIII Låne- og tilskuddsordningen\nDel IX Alminnelige bestemmelser og sluttbestemmelser\n\nFortale\n\nDet Europeiske Økonomiske Fellesskap, Det europeiske kull- og stålfellesskap, Kongeriket Belgia, Kongeriket Danmark, Forbundsrepublikken Tyskland, Republikken Hellas, Kongeriket Spania, Den franske republikk, Irland, Den italienske republikk, Storhertugdømmet Luxembourg, Kongeriket Nederland, Republikken Portugal, Det forente kongerike Storbritannia og Nord-Irland, og Republikken Østerrike, Republikken Finland, Republikken Island, Fyrstedømmet Liechtenstein, Kongeriket Norge, Kongeriket Sverige, Det sveitsiske edsforbund, heretter kalt avtalepartene –\nSom er overbevist om det bidrag et Europeisk Økonomisk Samarbeidsområde vil gi til oppbyggingen av et Europa grunnlagt på fred, demokrati og menneskerettigheter,\nSom bekrefter den betydelige vekt de tillegger de særlige forbindelser mellom De europeiske fellesskap, deres medlemsstater og EFTA-statene, forbindelser som har sitt grunnlag i nærhet, tradisjonelle felles verdier og europeisk identitet,\nSom er bestemt på å bidra til verdensomspennende handelsliberalisering og samarbeid, på grunnlag av markedsøkonomi, særlig i samsvar med bestemmelsene i Generalavtalen om tolltariffer og handel og Konvensjonen om Organisasjonen for økonomisk samarbeid og utvikling,\nSom tar i betraktning at formålet er å opprette et dynamisk og ensartet Europeisk Økonomisk Samarbeidsområde, som er grunnlagt på felles regler og like konkurransevilkår, som har tilstrekkelige håndhevelsesmidler, også på domstolsplan, og som er oppnådd på grunnlag av likhet og gjensidighet og en samlet balanse av fordeler, rettigheter og forpliktelser for avtalepartene,\nSom er bestemt på å sørge for den størst mulige gjennomføring av fritt varebytte og fri bevegelighet for personer, tjenester og kapital innen hele Det europeiske økonomiske samarbeidsområde samt et styrket og utvidet samarbeid om politikk som gjelder alle disse frihetene, og på tilgrensende områder,\nSom tilstreber å fremme en harmonisk utvikling av det europeiske økonomiske samarbeidsområde, og som er overbevist om nødvendigheten av å bidra til, ved gjennomføringen av denne avtale, å minske de økonomiske og sosiale forskjeller mellom regionene,\nSom ønsker å bidra til å styrke samarbeidet mellom medlemmene av Europaparlamentet og EFTA-statenes nasjonalforsamlinger samt mellom arbeidslivets parter i De europeiske fellesskap og i EFTA-statene,\nSom er overbevist om den viktige rolle individene vil spille i Det europeiske økonomiske samarbeidsområde ved at de utøver de rettigheter som er gitt dem i avtalen, og ved domstolenes forsvar av disse rettigheter,\nSom er bestemt på å bevare, verne og forbedre miljøets kvalitet og sikre en forsiktig og fornuftig utnyttelse av naturressursene, særlig på grunnlag av prinsippet om en bærekraftig utvikling samt føre var-prinsippet og prinsippet om forebyggende tiltak,\nSom er bestemt på å legge til grunn et høyt beskyttelsesnivå med hensyn til helse, sikkerhet og miljø i den videre utviklingen av lovregler,\nSom merker seg betydningen av utviklingen av den sosiale dimensjon, herunder lik behandling av kvinner og menn, i Det europeiske økonomiske samarbeidsområde, og som ønsker å sikre økonomisk og sosialt fremskritt og legge forholdene til rette for full sysselsetting, en bedret levestandard og bedrede arbeidsvilkår innen Det europeiske økonomiske samarbeidsområde,\nSom er bestemt på å fremme forbrukernes interesser og å styrke deres stilling på markedet, med sikte på et høyt nivå for forbrukervern,\nSom legger vekt på det felles formål å styrke det vitenskapelige og teknologiske grunnlag for europeisk industri og å oppmuntre den til å bli mer konkurransedyktig på internasjonalt nivå,\nSom tar i betraktning at inngåelsen av denne avtale ikke på noen måte skal berøre muligheten for noen EFTA-stat til å tiltre De europeiske fellesskap,\nSom tar i betraktning at avtalepartenes formål, med full respekt for domstolenes uavhengighet, er å nå frem til og opprettholde en lik fortolkning og anvendelse av denne avtale og de bestemmelser i Fellesskapets regelverk som i det vesentlige er gjengitt i denne avtale, og å nå frem til lik behandling av enkeltpersoner og markedsdeltagere med hensyn til de fire friheter og konkurransevilkårene,\nSom tar i betraktning at denne avtale ikke begrenser avtalepartenes selvstendige beslutningsmyndighet eller deres kompetanse til å inngå traktater, med forbehold for bestemmelsene i denne avtale og de begrensninger som følger av folkeretten –\nHar besluttet å inngå denne avtale:\n\nDel I. Formål og prinsipper.\n\nArtikkel 1.\n\n1. Formålet med denne assosieringsavtale er å fremme en vedvarende og balansert styrking av handel og økonomiske forbindelser mellom avtalepartene, med like konkurransevilkår og overholdelse av de samme regler, med sikte på å opprette et ensartet Europeisk Økonomisk Samarbeidsområde, heretter kalt EØS.\n\n2. For å nå de mål som er satt i nr. 1, skal samarbeidet i samsvar med bestemmelsene i avtalen omfatte:\n\na. fritt varebytte,\nb. fri bevegelighet for personer,\nc. fri bevegelighet for tjenester,\nd. fri bevegelighet for kapital,\ne. opprettelse av et system som sikrer at konkurransen ikke vris, og at reglene overholdes på samme måte, og\nf. nærmere samarbeid på andre områder, slik som forskning og utvikling, miljø, utdannelse og sosialpolitikk.\n\nArtikkel 2.\n\nI denne avtale menes med\na. «avtale»: avtalens hoveddel, dens protokoller og vedlegg samt de rettsakter som er omhandlet i dem,\nb. «EFTA-stater»: de avtaleparter som er medlem av Det europeiske frihandelsforbund (EFTA),\nc. «avtaleparter», når det gjelder Fellesskapet og EFs medlemsstater: Fellesskapet og EFs medlemsstater, eller Fellesskapet eller EFs medlemsstater. Betydningen som skal legges i betegnelsen i det enkelte tilfelle, må utledes fra de aktuelle bestemmelser i denne avtale og fra den myndighet som er tillagt henholdsvis Fellesskapet og EFs medlemsstater slik den fremgår av Traktaten om opprettelse av Det europeiske økonomiske fellesskap og Traktaten om opprettelse av Det europeiske kull- og stålfellesskap.\n\nArtikkel 3.\n\nAvtalepartene skal treffe alle generelle eller særlige tiltak som er egnet til å oppfylle de forpliktelser som følger av denne avtale.\nDe skal avholde seg fra alle tiltak som kan sette virkeliggjøringen av denne avtales mål i fare.\nDe skal videre lette samarbeidet innen rammen av denne avtale.\n\nArtikkel 4.\n\nEnhver forskjellsbehandling på grunnlag av nasjonalitet skal være forbudt innenfor denne avtales virkeområde, med forbehold for de særbestemmelser den selv gir.\n\nArtikkel 5.\n\nEn avtalepart kan til enhver tid ta opp en sak av viktighet i EØS-komiteen eller EØS-rådet i samsvar med de nærmere regler i henholdsvis artikkel 92 nr. 2 og artikkel 89 nr. 2.\n\nArtikkel 6.\n\nVed gjennomføringen og anvendelsen av bestemmelsene i denne avtale, og med forbehold for den fremtidige utvikling av rettspraksis, skal bestemmelsene, så langt de i sitt materielle innhold er identiske med de tilsvarende regler i Traktaten om opprettelse av Det europeiske økonomiske fellesskap og Traktaten om opprettelse av Det europeiske kull- og stålfellesskap og med rettsakter som er vedtatt i henhold til de to traktatene, fortolkes i samsvar med de relevante rettsavgjørelser som De europeiske fellesskaps domstol har truffet før undertegningen av denne avtale.\n\nArtikkel 7.\n\nRettsakter som er omhandlet i eller inntatt i vedlegg til denne avtale eller i EØS-komiteens vedtak, skal være bindende for avtalepartene og skal være eller gjøres til del av deres interne rettsorden som følger:\na. en rettsakt som tilsvarer en EØF-forordning skal som sådan gjøres til del av avtalepartenes interne rettsorden;\nb. en rettsakt som tilsvarer et EØF-direktiv skal overlate til avtalepartenes myndigheter å bestemme formen og midlene for gjennomføringen.\n\nDel II. Det frie varebytte.\n\nKapittel 1. Grunnleggende prinsipper.\n\nArtikkel 8.\n\n1. I samsvar med bestemmelsene i denne avtale skal det innføres fritt varebytte mellom avtalepartene.\n\n2. Med mindre annet er særskilt angitt, får artikkel 10 til 15, 19, 20 og 25 til 27 anvendelse bare for produkter med opprinnelse i avtalepartene.\n\n3. Med mindre annet er særskilt angitt, får bestemmelsene i denne avtale anvendelse bare for\n\na. varer som hører inn under kapittel 25 til 97 i det harmoniserte system for beskrivelse og koding av varer, med unntak av varer oppført i protokoll 2;\nb. varer oppført i protokoll 3 i samsvar med de særlige bestemmelser som er fastsatt i protokollen.\n\nArtikkel 9.\n\n1. Opprinnelsesreglene er inntatt i protokoll 4. De gjelder med forbehold for internasjonale forpliktelser som er eller måtte bli inngått av avtalepartene i henhold til Generalavtalen om tolltariffer og handel.\n\n2. Med sikte på å videreføre det som er oppnådd i denne avtale, vil avtalepartene fortsette sine bestrebelser på ytterligere å forbedre og forenkle alle sider ved opprinnelsesreglene og å utvide tollsamarbeidet.\n\n3. En første gjennomgåelse vil finne sted innen utgangen av 1993. Senere gjennomgåelser vil finne sted med to års mellomrom. På grunnlag av gjennomgåelsene skal avtalepartene avgjøre hvilke tiltak det vil være hensiktsmessig å ta inn i denne avtale.\n\nArtikkel 10.\n\nToll på import og eksport og avgifter med tilsvarende virkning skal være forbudt mellom avtalepartene. Med forbehold for de bestemmelser som er fastsatt i protokoll 5, skal dette gjelde også fiskaltoll.\n\nArtikkel 11.\n\nKvantitative importrestriksjoner og alle tiltak med tilsvarende virkning skal være forbudt mellom avtalepartene.\n\nArtikkel 12.\n\nKvantitative eksportrestriksjoner og alle tiltak med tilsvarende virkning skal være forbudt mellom avtalepartene.\n\nArtikkel 13.\n\nBestemmelsene i artikkel 11 og 12 skal ikke være til hinder for forbud eller restriksjoner på import, eksport eller transitt som er begrunnet ut fra hensynet til offentlig moral, orden og sikkerhet, vernet om menneskers og dyrs liv og helse, plantelivet, nasjonale skatter av kunstnerisk, historisk eller arkeologisk verdi eller den industrielle eller kommersielle eiendomsrett. Slike forbud eller restriksjoner må dog ikke kunne brukes til vilkårlig forskjellsbehandling eller være en skjult hindring på handelen mellom avtalepartene.\n\nArtikkel 14.\n\nIngen avtalepart skal på varer fra andre avtaleparter hverken direkte eller indirekte legge interne avgifter av noen art som er høyere enn de som direkte eller indirekte pålegges tilsvarende innenlandske varer.\nVidere skal avtalepartene avholde seg fra å pålegge varer fra andre avtaleparter interne avgifter av en slik art at de indirekte beskytter produksjonen av andre varer.\n\nArtikkel 15.\n\nFor varer utført til en annen avtaleparts territorium kan refusjon av interne avgifter ikke overstige de avgifter som disse varer direkte eller indirekte har vært pålagt.\n\nArtikkel 16.\n\n1. Avtalepartene skal sikre at statlige handelsmonopoler blir tilpasset slik at det ikke vil forekomme noen forskjellsbehandling av statsborgere fra EFs medlemsstater og EFTA-statene når det gjelder vilkårene for forsyning og avsetning.\n\n2. Bestemmelsene i denne artikkel skal anvendes på ethvert organ som avtalepartenes myndigheter rettslig eller faktisk, direkte eller indirekte, bruker til å kontrollere, styre eller merkbart påvirke importen eller eksporten mellom avtalepartene. Bestemmelsene skal også anvendes på monopoler som er delegert rettigheter av staten.\n\nKapittel 2. Landbruks- og fiskerivarer.\n\nArtikkel 17.\n\nVedlegg I inneholder særlige bestemmelser og ordninger om veterinære og plantesanitære forhold.\n\nArtikkel 18.\n\nMed forbehold for de særlige ordninger som gjelder handelen med landbruksvarer, skal avtalepartene sikre at ordningene etter artikkel 17 og 23 bokstav a) og b), når de anvendes for andre varer enn dem som går inn under artikkel 8 nr. 3, ikke motvirkes av andre tekniske handelshindringer. Artikkel 13 får anvendelse.\n\nArtikkel 19.\n\n1. Avtalepartene skal undersøke de vanskeligheter som måtte oppstå i handelen med landbruksvarer, og skal bestrebe seg på å finne egnede løsninger.\n\n2. Avtalepartene skal fortsette sine bestrebelser med sikte på en gradvis liberalisering av handelen med landbruksvarer.\n\n3. For dette formål vil avtalepartene innen utgangen av 1993 og senere med to års mellomrom gjennomgå vilkårene for handelen med landbruksvarer.\n\n4. I lys av resultatene av gjennomgåelsene, innenfor rammen av dens enkeltes landbrukspolitikk og under hensyntagen til resultatene av Uruguay-runden vil avtalepartene innenfor rammen av denne avtale avgjøre videre reduksjoner av enhver form for handelshindringer innen landbrukssektoren, på preferansebasis, bilateral eller multilateral basis og på gjensidig fordelaktig basis, herunder handelshindringer som følger av statlige handelsmonopoler i landbrukssektoren.\n\nArtikkel 20.\n\nBestemmelser og ordninger som får anvendelse på fisk og andre produkter fra havet er fastsatt i protokoll 9.\n\nKapittel 3. Samarbeid i tollsaker og om handelslettelser.\n\nArtikkel 21.\n\n1. Avtalepartene skal forenkle grensekontroll og formaliteter med sikte på å lette handelen mellom dem. Bestemmelser om dette er inntatt i protokoll 10.\n\n2. Avtalepartene skal bistå hverandre i tollsaker slik at tollovgivningen kan bli riktig anvendt. Bestemmelser om dette er inntatt i protokoll 11.\n\n3. Avtalepartene skal styrke og utvide samarbeidet med henblikk på å forenkle prosedyrer for varehandelen, særlig i sammenheng med Fellesskapets programmer, prosjekter og tiltak med sikte på å tilrettelegge handelen, i samsvar med reglene inntatt i del VI.\n\n4. Uten hensyn til artikkel 8 nr. 3 gjelder denne artikkel alle varer.\n\nArtikkel 22.\n\nEn avtalepart som overveier å redusere det effektive nivå av sine tollsatser eller avgifter med tilsvarende virkning som anvendes overfor tredjestat som nyter godt av mestbegunstigelsesbehandling, eller som vurderer å suspendere anvendelsen av dem, skal så vidt mulig senest tredve dager før iverksettelsen av reduksjonen eller suspensjonen meddele dette til EØS-komiteen. Avtaleparten skal ta til etterretning enhver merknad fra andre avtaleparter med hensyn til skjevheter som måtte oppstå av dette.\n\nKapittel 4. Andre regler om det frie varebytte.\n\nArtikkel 23.\n\nSærlige bestemmelser og ordninger er fastlagt i:\na. protokoll 12 og vedlegg II med hensyn til tekniske forskrifter, standarder, prøving og sertifisering,\nb. protokoll 47 med hensyn til avskaffelse av tekniske handelshindringer for vin,\nc. vedlegg III med hensyn til produktansvar.\nBestemmelsene får anvendelse på alle varer, med mindre annet er særskilt angitt.\n\nArtikkel 24.\n\nVedlegg IV inneholder særlige bestemmelser og ordninger om energi.\n\nArtikkel 25.\n\nNår overholdelse av bestemmelsene i artikkel 10 og 12 fører til\na. gjenutførsel til en tredjestat overfor hvilken den eksporterende avtalepart opprettholder kvantitative eksportrestriksjoner, toll eller tiltak eller avgifter med tilsvarende virkning for vedkommende vare, eller\nb. en alvorlig mangel på eller fare for alvorlig mangel på en vare som har avgjørende betydning for den eksporterende avtalepart,\nog når de situasjoner som er nevnt ovenfor, fører til eller sannsynligvis vil føre til betydelige vanskeligheter for den eksporterende avtalepart, kan denne avtalepart treffe egnede tiltak i samsvar med de fremgangsmåter som er fastsatt i artikkel 113.\n\nArtikkel 26.\n\nAnti-dumping-tiltak, beskyttelsestoll og tiltak mot ulovlig handelspraksis som kan tilskrives tredjestat, skal ikke anvendes mellom avtalepartene, med mindre annet er særskilt angitt i denne avtale.\n\nKapittel 5. Kull- og stålprodukter.\n\nArtikkel 27.\n\nBestemmelser og ordninger om kull- og stålprodukter er fastsatt i protokoll 14 og 25.\n\nDel III. Fri bevegelighet for personer, tjenester og kapital.\n\nKapittel 1. Arbeidstagere og selvstendig næringsdrivende.\n\nArtikkel 28.\n\n1. Fri bevegelighet for arbeidstagere skal gjennomføres mellom EFs medlemsstater og EFTA-statene.\n\n2. Den frie bevegelighet innebærer at all forskjellsbehandling av arbeidstagere fra EFs medlemsstater og EFTA-statene på grunnlag av statsborgerskap skal avskaffes når det gjelder sysselsetting, lønn og andre arbeidsvilkår.\n\n3. Med forbehold for de begrensninger som er begrunnet ut fra hensynet til den offentlige orden, sikkerhet og folkehelsen, skal den frie bevegelighet gi rett til\n\na. å ta faktisk tilbudt arbeid,\nb. å flytte fritt innen territoriet til EFs medlemsstater og EFTA-statene i dette øyemed,\nc. å oppholde seg på territoriet til en av EFs medlemsstater eller en EFTA-stat for å arbeide der i samsvar med de lover og forskrifter som gjelder for innenlandske arbeidstagere,\nd. å bli boende på territoriet til en av EFs medlemsstater eller en EFTA-stat etter å ha hatt arbeid der.\n4. Bestemmelsene i denne artikkel skal ikke anvendes på stillinger i den offentlige administrasjon.\n\n5. Vedlegg V inneholder særlige bestemmelser om den frie bevegelighet for arbeidstagere.\n\nArtikkel 29.\n\nFor å gjennomføre den frie bevegelighet for arbeidstagere og selvstendig næringsdrivende skal avtalepartene, i samsvar med bestemmelsene i vedlegg VI, med hensyn til sosial trygghet særlig sikre arbeidstagere og selvstendig næringsdrivende og deres pårørende:\na. at alle tidsrom som de enkelte nasjonale lovgivninger tillegger betydning for å oppnå og beholde retten til ytelser og for beregningen av dem, blir lagt sammen, og\nb. at ytelser som tilkommer personer bosatt på avtalepartenes territorium, blir utbetalt.\n\nArtikkel 30.\n\nFor å lette adgangen til å starte og utøve virksomhet som arbeidstager og selvstendig næringsdrivende skal avtalepartene treffe de nødvendige tiltak, som fastsatt i vedlegg VII, for gjensidig godkjennelse av diplomer, eksamensbevis og andre kvalifikasjonsbevis og samordning av de bestemmelser som avtalepartene har gitt ved lov eller forskrift om adgangen til å starte og utøve virksomhet som arbeidstager og selvstendig næringsdrivende.\n\nKapittel 2. Etableringsrett.\n\nArtikkel 31.\n\n1. I samsvar med bestemmelsene i denne avtale skal det ikke være noen restriksjoner på etableringsadgangen for statsborgere fra en av EFs medlemsstater eller en EFTA-stat på en annen av disse staters territorium. Dette skal gjelde også adgangen til å opprette agenturer, filialer eller datterselskaper for så vidt angår borgere fra en av EFs medlemsstater eller en EFTA-stat som har etablert seg på en av disse staters territorium.\n\nEtableringsadgangen skal omfatte adgang til å starte og utøve selvstendig næringsvirksomhet og til å opprette og lede foretak, særlig selskaper som definert i artikkel 34 annet ledd, på de vilkår som lovgivningen i etaberingsstaten fastsetter for egne borgere, med forbehold for bestemmelsene i kapitlet om kapital.\n2. Vedlegg VIII til XI inneholder særlige bestemmelser om etableringsrett.\n\nArtikkel 32.\n\nVirksomhet som for en avtalepart innebærer, om enn bare leilighetsvis, utøvelse av offentlig myndighet, skal for denne avtaleparts vedkommende ikke omfattes av bestemmelsene i dette kapittel.\n\nArtikkel 33.\n\nBestemmelsene i dette kapittel og tiltak truffet med hjemmel i disse bestemmelsene, skal ikke hindre at bestemmelser om særbehandling av fremmede statsborgere får anvendelse når de er fastsatt ved lov eller forskrift og begrunnet med hensynet til offentlig orden, sikkerhet og folkehelsen.\n\nArtikkel 34.\n\nNår det gjelder anvendelsen av bestemmelsene i dette kapittel, skal selskaper som er opprettet i samsvar med lovgivningen i en av EFs medlemsstater eller en EFTA-stat, og som har sitt vedtektsbestemte sete, sin hovedadministrasjon eller sitt hovedforetak innen avtalepartenes territorium, likestilles med fysiske personer som er statsborgere i EFs medlemsstater eller EFTA-statene.\nVed selskaper skal forstås selskaper i sivil- eller handelsrettslig forstand, herunder også kooperative selskaper, samt andre juridiske personer i offentlig- eller privatrettslig forstand, unntatt dem som ikke driver ervervsmessig virksomhet.\n\nArtikkel 35.\n\nBestemmelsene i artikkel 30 skal anvendes på det saksområde som dette kapittel omhandler.\n\nKapittel 3. Tjenester.\n\nArtikkel 36.\n\n1. Innen rammen av bestemmelsene i denne avtale skal det ikke være noen restriksjoner på adgangen til å yte tjenester innen avtalepartenes territorium for statsborgere i en av EFs medlemsstater eller en EFTA-stat som har etablert seg i en annen av EFs medlemsstater eller EFTA-stat enn tjenesteytelsens mottager.\n\n2. Vedlegg IX til XI inneholder særlige bestemmelser om adgangen til å yte tjenester.\n\nArtikkel 37.\n\nVed tjenester skal i denne avtale forstås tjenester som vanligvis ytes mot betaling, i den utstrekning de ikke kommer inn under bestemmelser om det frie varebytte og den frie bevegelighet for kapital og personer.\nTjenester omfatter fremfor alt\na. industriell virksomhet,\nb. handelsvirksomhet,\nc. håndverksvirksomhet,\nd. virksomhet innen de frie yrker.\nTjenesteyteren kan, i den hensikt å yte tjenesten i en stat, midlertidig utøve sin virksomhet der på samme vilkår som vedkommende stat fastsetter for sine egne statsborgere, med forbehold for bestemmelsene i kapittel 2.\n\nArtikkel 38.\n\nAdgangen til å yte tjenester på transportområdet skal reguleres av bestemmelsene i kapittel 6.\n\nArtikkel 39.\n\nBestemmelsene i artikkel 30 og artikkel 32 til 34 skal anvendes på det saksområde som dette kapittel omhandler.\n\nKapittel 4. Kapital.\n\nArtikkel 40.\n\nInnen rammen av bestemmelsene i denne avtale skal det mellom avtalepartene ikke være noen restriksjoner på overføring av kapital tilhørende personer bosatt i EFs medlemsstater eller EFTA-statene og ingen forskjellsbehandling på grunn av partenes nasjonalitet, bosted eller stedet for kapitalanbringelsen. Vedlegg XII inneholder de bestemmelser som er nødvendige for å gjennomføre denne artikkel.\n\nArtikkel 41.\n\nLøpende betalinger som står i forbindelse med varebyttet og bevegeligheten for personer, tjenester eller kapital mellom avtalepartene innen rammen av bestemmelsene i denne avtale, skal være fritatt for alle restriksjoner.\n\nArtikkel 42.\n\n1. Enhver forskjellsbehandling skal unngås ved anvendelse av interne regler for regulering av kapital- og kredittmarkedet på de kapitalbevegelser som er liberalisert i samsvar med bestemmelsene i denne avtale.\n\n2. Lån til direkte eller indirekte finansiering av en av EFs medlemsstater eller en EFTA-stat eller dens lokale administrative enheter kan ikke legges ut eller plasseres i andre av EFs medlemsstater eller EFTA-stater uten etter avtale mellom vedkommende stater.\n\nArtikkel 43.\n\n1. Dersom ulikheter i valutabestemmelsene i EFs medlemsstater og EFTA-statene skulle lede personer bosatt i en av disse stater til å benytte seg av de lettelser for valutaoverføringer innen avtalepartenes territorium som er nevnt i artikkel 40, til å omgå de bestemmelser vedkommende stat opprettholder for kapitalbevegelser overfor tredjeland, kan vedkommende avtalepart treffe egnede tiltak for å løse disse vansker.\n\n2. Dersom kapitalbevegelser fører til forstyrrelser i virkemåten for kapitalmarkedet i en av EFs medlemsstater eller en EFTA-stat, kan vedkommende avtalepart treffe beskyttelsestiltak som regulerer kapitalbevegelsene.\n\n3. Dersom en avtaleparts myndigheter endrer valutakursen på en måte som i alvorlig grad vrir konkurransevilkårene, kan de andre avtaleparter for et strengt begrenset tidsrom treffe de nødvendige tiltak for å avverge følgene av dette skritt.\n\n4. Når en av EFs medlemsstater eller en EFTA-stat støter på vansker eller når det er alvorlig fare for at det kan oppstå vansker i samband med dens betalingsbalanse, enten på grunn av mangel på likevekt i den totale betalingsbalanse eller som følge av arten av den disponible valuta, og særlig dersom disse vansker vil medføre fare for at denne avtale ikke virker, kan vedkommende avtalepart treffe beskyttelsestiltak.\n\nArtikkel 44.\n\nFellesskapet på den ene side og EFTA-statene på den annen side skal anvende sine interne fremgangsmåter, som fastsatt i protokoll 18, for å gjennomføre bestemmelsene i artikkel 43.\n\nArtikkel 45.\n\n1. EØS-komiteen skal meddeles de beslutninger, uttalelser og anbefalinger som gjelder tiltakene fastsatt i artikkel 43.\n\n2. Alle tiltak skal på forhånd være gjenstand for rådslagninger og utveksling av opplysninger innen EØS-komiteen.\n\n3. I en situasjon som nevnt i artikkel 43 nr. 2 kan imidlertid vedkommende avtalepart, ut fra behov for fortrolighet eller rask behandling, om nødvendig treffe tiltakene uten forutgående rådslagninger og utveksling av opplysninger.\n\n4. I en situasjon som nevnt i artikkel 43 nr. 4 der det plutselig oppstår en krise i betalingsbalansen og fremgangsmåten i nr. 2 ikke kan følges, kan vedkommende avtalepart som en forholdsregel treffe de nødvendige beskyttelsestiltak. Tiltakene må forårsake minst mulig forstyrrelser for denne avtales virkemåte og må ikke gå lenger enn strengt nødvendig for å avhjelpe de vansker som plutselig er oppstått.\n\n5. Når det treffes tiltak i samsvar med nr. 3 og 4, skal det gis underretning om dem senest den dag de trer i kraft, og utveksling av opplysninger og rådslagninger samt meddelelser etter nr. 1 skal finne sted snarest mulig deretter.\n\nKapittel 5. Samarbeid om økonomisk politikk og pengepolitikk.\n\nArtikkel 46.\n\nAvtalepartene skal utveksle synspunkter på og opplysninger om gjennomføringen av denne avtale og om integrasjonens virkning på økonomisk aktivitet og for økonomisk politikk, herunder pengepolitikk. De kan videre diskutere den makro-økonomiske situasjon, økonomisk politikk og økonomiske utsikter. Utvekslingen av synspunkter og opplysninger skal skje på et uforpliktende grunnlag.\n\nKapittel 6. Transportvirksomhet.\n\nArtikkel 47.\n\n1. Artikkel 48 til 52 skal anvendes på transport med jernbane, på vei og innlands vannvei.\n\n2. Vedlegg XIII inneholder særlige bestemmelser om alle transportgrener.\n\nArtikkel 48.\n\n1. De bestemmelser en av EFs medlemsstater eller en EFTA-stat har fastsatt for transport med jernbane, på vei og innlands vannvei, og som ikke kommer inn under vedlegg XIII, må ikke endres i slik retning at de direkte eller indirekte blir mindre gunstige for utøvere av transportvirksomhet fra de andre stater enn for innenlandske utøvere av transportvirksomhet.\n\n2. En avtalepart som fraviker prinsippet i nr. 1, skal meddele dette til EØS-komiteen. De andre avtaleparter som ikke godtar fraviket, kan treffe tilsvarende mottiltak.\n\nArtikkel 49.\n\nStøtte som motsvarer behovet for en samordning av transportvirksomheten eller utgjør godtgjøring for visse forpliktelser som har sammenheng med begrepet offentlig tjeneste, skal være forenlig med denne avtale.\n\nArtikkel 50.\n\n1. Når det gjelder transport innen avtalepartenes territorium, skal det ikke forekomme forskjellsbehandling som består i at en utøver av transportvirksomhet, på grunnlag av de transporterte varers opprinnelsesland eller bestemmelsessted, gjør gjeldende forskjellige priser og vilkår for samme varer for samme transportforbindelser.\n\n2. Den myndighet som har kompetanse etter del VII, skal av eget tiltak eller etter anmodning fra en av EFs medlemsstater eller en EFTA-stat undersøke slike tilfeller av forskjellsbehandling som er omtalt i denne artikkel, og treffe de nødvendige beslutninger innen rammen av sine interne regler.\n\nArtikkel 51.\n\n1. Dersom vedkommende myndighet omhandlet i artikkel 50 nr. 2 ikke gir samtykke, skal det for transport innen avtalepartenes territorium være forbudt å fastsette priser og vilkår som kan tjene til å støtte eller beskytte ett eller flere bestemte foretak eller en eller flere bestemte industrier.\n\n2. Vedkommende myndighet skal, av eget tiltak eller etter anmodning fra en av EFs medlemsstater eller en EFTA-stat, undersøke de priser og vilkår som nr. 1 omtaler; herunder skal det særlig tas hensyn til, på den ene side, de krav som en formålstjenlig regional økonomisk politikk stiller, de underutviklede områders behov og problemene i områder som i alvorlig grad lider under forhold som er politisk betinget, og på den annen side hvordan disse priser og vilkår virker inn på konkurransen mellom de forskjellige transportgrener. Vedkommende myndighet skal treffe de nødvendige beslutninger innen rammen av sine interne regler.\n\n3. Forbudet i nr. 1 skal ikke ramme konkurransetariffer.\n\nArtikkel 52.\n\nBeløp som en utøver av transportvirksomhet fører opp, uavhengig av transportprisene, for avgift eller gebyr i samband med grensepassering, må ikke overstige et rimelig nivå, hensyn tatt til de reelle utgifter forbundet med passeringen. Avtalepartene skal søke å redusere disse utgiftene gradvis.\n\nDel IV. Konkurranseregler og andre felles regler.\n\nKapittel 1. Bestemmelser for foretak.\n\nArtikkel 53.\n\n1. Enhver avtale mellom foretak, enhver beslutning truffet av sammenslutninger av foretak og enhver form for samordnet opptreden som kan påvirke handelen mellom avtalepartene, og som har til formål eller virkning å hindre, innskrenke eller vri konkurransen innen det territorium som er omfattet av denne avtale, skal være uforenlige med denne avtales funksjon og forbudt, særlig slike som består i\n\na. å fastsette på direkte eller indirekte måte innkjøps- eller utsalgspriser eller andre forretningsvilkår,\nb. å begrense eller kontrollere produksjon, avsetning, teknisk utvikling eller investeringer,\nc. å dele opp markeder eller forsyningskilder,\nd. å anvende overfor handelspartnere ulike vilkår for likeverdige ytelser og derved stille dem ugunstigere i konkurransen,\ne. å gjøre inngåelsen av kontrakter avhengig av at medkontrahentene godtar tilleggsytelser som etter sin art eller etter vanlig forretningspraksis ikke har noen sammenheng med kontraktsgjenstanden.\n2. Avtaler eller beslutninger som er forbudt i henhold til denne artikkel, skal ikke ha noen rettsvirkning.\n\n3. Det kan imidlertid erklæres at bestemmelsene i nr. 1 ikke skal anvendes på\n\n- avtaler eller grupper av avtaler mellom foretak,\n- beslutninger eller grupper av beslutninger truffet av sammenslutninger av foretak, og\n- samordnet opptreden eller grupper av slik opptreden,\nsom bidrar til å bedre produksjonen eller fordelingen av varene eller til å fremme den tekniske eller økonomiske utvikling, samtidig som de sikrer forbrukerne en rimelig andel av de fordeler som er oppnådd, og uten\na. å pålegge vedkommende foretak restriksjoner som ikke er absolutt nødvendige for å nå disse mål, eller\nb. å gi disse foretak mulighet til å utelukke konkurranse for en vesentlig del av de varer det gjelder.\n\nArtikkel 54.\n\nEt eller flere foretaks utilbørlige utnyttelse av sin dominerende stilling innen det territorium som er omfattet av denne avtale, eller i en vesentlig del av det, skal være forbudt og uforenlig med denne avtales funksjon i den utstrekning den kan påvirke handelen mellom avtalepartene.\nSlik utilbørlig utnyttelse kan særlig bestå i\na. å påtvinge, direkte eller indirekte, urimelige innkjøps- eller utsalgspriser eller andre urimelige forretningsvilkår,\nb. å begrense produksjon, avsetning eller teknisk utvikling til skade for forbrukerne,\nc. å anvende overfor handelspartnere ulike vilkår for likeverdige ytelser og derved stille dem ugunstigere i konkurransen,\nd. å gjøre inngåelsen av kontrakter avhengig av at medkontrahentene godtar tilleggsytelser som etter sin art eller etter vanlig forretningspraksis ikke har noen sammenheng med kontraktsgjenstanden.\n\nArtikkel 55.\n\n1. Med forbehold for bestemmelsene i protokoll 21 og vedlegg XIV til denne avtale til gjennomføring av artikkel 53 og 54 skal EF-kommisjonen og EFTAs overvåkingsorgan jfr. artikkel 108 nr. 1, sikre anvendelse av de prinsipper som er fastlagt i artikkel 53 og 54.\n\nDet kompetente overvåkingsorgan etter artikkel 56 skal på eget initiativ eller etter anmodning fra en stat innen dens område eller fra det annet overvåkingsorgan undersøke tilfeller av antatt overtredelse av disse prinsippene. Det kompetente overvåkingsorgan skal gjøre disse undersøkelsene sammen med vedkommende nasjonale myndigheter innen sitt område og i samarbeid med det annet overvåkingsorgan, som skal yte bistand i samsvar med sine interne regler.\nDersom overvåkingsorganet fastslår at det foreligger overtredelse, skal den foreslå egnede tiltak for å bringe den til opphør.\n2. Dersom overtredelsen ikke bringes til opphør, skal det kompetente overvåkingsorgan i et grunngitt vedtak fastslå at det foreligger overtredelse av prinsippene.\n\nDet kompetente overvåkingsorgan kan offentliggjøre sitt vedtak og gi statene innen sitt område tillatelse til å treffe de nødvendige mottiltak på de vilkår og etter de regler den fastsetter. Det kan også anmode det annet overvåkingsorgan om å gi statene innen dets område tillatelse til å treffe mottiltak.\n\nArtikkel 56.\n\n1. Enkeltsaker som kommer inn under artikkel 53 i denne avtale, skal behandles av overvåkingsorganene i samsvar med følgende bestemmelser:\n\na. Enkeltsaker som påvirker handel bare mellom EFTA-statene, skal behandles av EFTAs overvåkingsorgan.\nb. Med forbehold for bokstav c) skal EFTAs overvåkingsorgan, i henhold til artikkel 58, protokoll 21 og dens gjennomføringsregler, protokoll 23 og vedlegg XIV, behandle de saker der de berørte foretaks omsetning innen EFTA-statenes territorium utgjør 33 prosent eller mer av foretakenes omsetning innen det territorium som omfattes av denne avtale.\nc. EF-kommisjonen skal behandle de øvrige saker, herunder også de saker under bokstav b) hvor handelen mellom EF-stater påvirkes, under hensyntagen til bestemmelsene i artikkel 58, protokoll 21, protokoll 23 og vedlegg XIV.\n2. Enkeltsaker som kommer inn under artikkel 54, skal behandles av overvåkingsorganet innen hvis område det konstateres at et foretak har en dominerende stilling. Bestemmelsene i nr. 1 bokstav b) og c) får anvendelse bare når slik dominans konstateres innen begge overvåkingsorganers område.\n\n3. Enkeltsaker som kommer inn under nr. 1 bokstav c), og hvor virkningen på handelen mellom EFs medlemsstater eller på konkurranse innen Fellesskapet ikke er nevneverdig, skal behandles av EFTAs overvåkingsorgan.\n\n4. Betegnelsene foretak og omsetning er for denne artikkels formål definert i protokoll 22.\n\nArtikkel 57.\n\n1. Foretakssammenslutninger som er undergitt tilsyn i henhold til nr. 2, og som skaper eller styrker en dominerende stilling som fører til at effektiv konkurranse i betydelig grad hindres innen det territorium som er omfattet av denne avtale, eller i en vesentlig del av det, skal erklæres uforenlig med avtalen om Det europeiske samarbeidsområde.\n\n2. Tilsyn med de foretakssammenslutninger som kommer inn under nr. 1, skal føres av\n\na. EF-kommisjonen i tilfeller som kommer inn under forordning (EØF) nr. 4064/89, i samsvar med forordningen og i samsvar med protokoll 21 og 24 og vedlegg XIV. Med forbehold for EF-domstolens overprøving skal Kommisjonen alene ha myndighet til å gjøre vedtak i disse sakene,\nb. EFTAs overvåkingsorgan, i tilfeller som ikke kommer inn under bokstav a), når de aktuelle terskelverdier fastsatt i vedlegg XIV til denne avtale er oppfylt innen EFTA-statenes territorium i samsvar med protokoll 21 og 24 og vedlegg XIV. Dette berører ikke den myndighet EFs medlemsstater har.\n\nArtikkel 58.\n\nDe kompetente organer skal samarbeide i samsvar med bestemmelsene i protokoll 23 og 24 med sikte på å utvikle og opprettholde i hele Det europeiske økonomiske samarbeidsområde en lik overvåking for konkurranse og å fremme en ensartet gjennomføring, anvendelse og fortolkning av avtalens bestemmelser for dette formål.\n\nArtikkel 59.\n\n1. Når det gjelder offentlige foretak, eller foretak som EFs medlemsstater eller EFTA-statene gir særlige eller eksklusive rettigheter, skal avtalepartene avholde seg fra å treffe eller opprettholde tiltak som strider mot reglene i denne avtale, særlig reglene i artikkel 4 og i artikkel 53 til 63.\n\n2. Foretak som er blitt tillagt oppgaven å utføre tjenester av almen økonomisk betydning, eller som har karakter av et fiskalt monopol, skal være undergitt reglene i denne avtale, fremfor alt konkurransereglene, i den utstrekning anvendelsen av disse regler ikke rettslig eller faktisk hindrer dem i å utføre de særlige oppgaver som er tillagt dem. Utviklingen av samhandelen må ikke påvirkes i et omfang som strider mot avtalepartenes interesser.\n\n3. EF-kommisjonen og EFTAs overvåkingsorgan skal innen det myndighetsområde som er tillagt hver av dem, påse at bestemmelsene i denne artikkel blir overholdt, og skal i nødvendig utstrekning vedta tiltak om dette overfor de stater som hører til deres område.\n\nArtikkel 60.\n\nVedlegg XIV inneholder særlige bestemmelser til gjennomføring av prinsippene i artikkel 53, 54, 57 og 59.\n\nKapittel 2. Statsstøtte.\n\nArtikkel 61.\n\n1. Med de unntak som er fastsatt i denne avtale, skal støtte gitt av EFs medlemsstater eller EFTA-statene eller støtte gitt av statsmidler i enhver form, som vrir eller truer med å vri konkurransen ved å begunstige enkelte foretak eller produksjonen av enkelte varer, være uforenlig med denne avtales funksjon i den utstrekning støtten påvirker samhandelen mellom avtalepartene.\n\n2. Forenlig med denne avtales funksjon skal være:\n\na. støtte av sosial karakter som gis de enkelte forbrukere, forutsatt at den ytes uten forskjellsbehandling på grunnlag av varenes opprinnelse,\nb. støtte som har til formål å bøte på skader som skyldes naturkatastrofer eller andre eksepsjonelle hendelser,\nc. støtte til økonomien i visse områder i Forbundsrepublikken Tyskland som er påvirket av Tysklands deling, i den utstrekning støtten er nødvendig for å oppveie de økonomiske ulemper forårsaket av delingen.\n3. Som forenlig med denne avtales funksjon kan anses:\n\na. støtte som har til formål å fremme den økonomiske utvikling i områder der levestandarden er unormalt lav, eller der det er alvorlig underbeskjeftigelse,\nb. støtte som har til formål å sikre at et viktig prosjekt av felles europeisk betydning kan realiseres, eller å bøte på en alvorlig forstyrrelse av økonomien i en av EFs medlemsstater eller en EFTA-stat,\nc. støtte som har til formål å lette utviklingen av enkelte næringsgrener eller på enkelte økonomiske områder, forutsatt at støtten ikke endrer vilkårene for samhandelen i et omfang som strider mot felles interesser,\nd. andre former for støtte angitt av EØS-komiteen i samsvar med del VII.\n\nArtikkel 62.\n\n1. Alle bestående statsstøtteordninger på avtalepartenes territorium og alle planer om å innføre eller endre statsstøtte skal kontinuerlig granskes for å fastslå om de er forenlige med artikkel 61. Denne gransking skal utføres\n\na. med hensyn til EFs medlemsstater, av EF-kommisjonen i samsvar med reglene fastsatt i artikkel 93 i Traktaten om opprettelse av Det europeiske økonomiske fellesskap,\nb. med hensyn til EFTA-statene, av EFTAs overvåkingsorgan i samsvar med reglene fastlagt i en avtale mellom EFTA-statene om opprettelse av EFTAs overvåkingsorgan, som har den myndighet og de oppgaver som er fastsatt i protokoll 26.\n2. Med henblikk på å sikre lik overvåking av statsstøtte innen det territorium som er omfattet av denne avtale, skal EF-kommisjonen og EFTAs overvåkingsorgan samarbeide i samsvar med bestemmelsene i protokoll 27.\n\nArtikkel 63.\n\nVedlegg XV inneholder særlige bestemmelser om statsstøtte.\n\nArtikkel 64.\n\n1. Dersom ett av overvåkingsorganene mener at det annet overvåkingsorgan praktiserer artikkel 61 og 62 i denne avtale og protokoll 14 artikkel 5 på en måte som ikke er i samsvar med opprettholdelse av like konkurransevilkår innen det territorium som omfattes av denne avtale, skal en utveksling av synspunkter finne sted innen to uker i samsvar med fremgangsmåten i protokoll 27 bokstav f).\n\nDersom en alminnelig godtagbar løsning ikke er funnet ved utløpet av toukers-perioden, kan den berørte avtaleparts myndigheter straks vedta passende midlertidige tiltak for å rette opp den konkurransevridning som er oppstått.\nDet skal deretter holdes rådslagninger i EØS-komiteen med sikte på å finne en alminnelig godtagbar løsning.\nDersom EØS-komiteen innen tre måneder ikke har vært i stand til å finne en slik løsning, og dersom den praksis det gjelder, vrir eller truer med å vri konkurransen og derved påvirker handelen mellom avtalepartene, kan de midlertidige tiltak avløses av endelige tiltak som er strengt nødvendige for å oppveie virkningen av denne konkurransevridningen. Det skal gis fortrinn til tiltak som minst mulig forstyrrer EØS-områdets virkemåte.\n2. Bestemmelsene i denne artikkel får anvendelse også for statsmonopoler som er opprettet etter at denne avtale er undertegnet.\n\nKapittel 3. Andre felles regler.\n\nArtikkel 65.\n\n1. Vedlegg XVI inneholder særlige bestemmelser og ordninger for innkjøp og skal gjelde for alle varer og de oppførte tjenester, med mindre annet er særskilt angitt.\n\n2. Protokoll 28 og vedlegg XVII inneholder særlige bestemmelser og ordninger for opphavsrett og industriell og kommersiell eiendomsrett og skal gjelde for alle varer og tjenester, med mindre annet er særskilt angitt.\n\nDel V. Bestemmelser som gjelder alle de fire friheter.\n\nKapittel 1. Sosialpolitikk.\n\nArtikkel 66.\n\nAvtalepartene er enige om at det er nødvendig å arbeide for en bedring av arbeidstagernes leve- og arbeidsvilkår.\n\nArtikkel 67.\n\n1. Avtalepartene skal særlig bestrebe seg på å forbedre arbeidsmiljøet for å beskytte arbeidstagernes helse og sikkerhet. For å bidra til å virkeliggjøre dette mål skal minimumsforskrifter iverksettes og gjennomføres gradvis, under hensyntagen til vilkårene og de tekniske forskrifter i hver av avtalepartene. Minimumsforskriftene skal ikke være til hinder for at hver avtalepart opprettholder eller innfører strengere beskyttelsestiltak som er forenlige med denne avtale.\n\n2. Vedlegg XVIII angir de bestemmelser som skal gjennomføres som minimumsforskrifter omhandlet i nr. 1.\n\nArtikkel 68.\n\nPå arbeidsrettens område skal avtalepartene gjennomføre de tiltak som er nødvendige for å sikre at denne avtale virker tilfredsstillende. Tiltakene er angitt i vedlegg XVIII.\n\nArtikkel 69.\n\n1. Hver avtalepart skal gjennomføre prinsippet om lik lønn til kvinnelige og mannlige arbeidstagere for samme arbeid og sørge for at dette prinsipp opprettholdes.\n\nVed lønn skal i denne artikkel forstås den alminnelige grunnlønn eller minstelønn og all annen godtgjøring som arbeidsgiveren på grunn av arbeidsforholdet direkte eller indirekte betaler arbeidstageren i penger eller i naturalia.\nLik lønn, uten forskjellsbehandling mellom kjønnene, innebærer\na. at akkordlønn for like arbeidsoppgaver skal fastsettes på grunnlag av de samme måleenheter, og\nb. at tidslønn skal være den samme for like arbeidsoppgaver.\n2. Vedlegg XVIII inneholder særlige bestemmelser for gjennomføring av nr. 1.\n\nArtikkel 70.\n\nAvtalepartene skal fremme prinsippet om lik behandling for kvinner og menn ved å gjennomføre de bestemmelser som er angitt i vedlegg XVIII.\n\nArtikkel 71.\n\nAvtalepartene skal bestrebe seg på å fremme dialogen mellom arbeidsgivere og arbeidstagere på europeisk nivå.\n\nKapittel 2. Forbrukervern.\n\nArtikkel 72.\n\nVedlegg XIX inneholder bestemmelser om forbrukervern.\n\nKapittel 3. Miljø.\n\nArtikkel 73.\n\n1. Avtalepartenes virksomhet på miljøområdet har til formål:\n\na. å bevare, verne og forbedre miljøets kvalitet,\nb. å bidra til vern av menneskets helse,\nc. å sikre en forsiktig og fornuftig utnyttelse av naturressursene.\n2. Avtalepartenes virksomhet på miljøområdet skal bygge på prinsippene om at forebyggende tiltak bør iverksettes, om at skade på miljøet fortrinnsvis rettes opp ved kilden, og om at forurenseren betaler. Krav til vern av miljøet skal være en del av avtalepartenes politikk på andre områder.\n\nArtikkel 74.\n\nVedlegg XX inneholder de særlige bestemmelser om vernetiltak som skal gjelde i henhold til artikkel 73.\n\nArtikkel 75.\n\nVernetiltakene omhandlet i artikkel 74 skal ikke være til hinder for at den enkelte avtalepart opprettholder eller innfører strengere vernetiltak som er forenlige med denne avtale.\n\nKapittel 4. Statistikk.\n\nArtikkel 76.\n\n1. Avtalepartene skal påse at det utarbeides og spres sammenhengende og sammenlignbare statistiske opplysninger, med sikte på å beskrive og overvåke alle relevante økonomiske, sosiale og miljømessige sider ved Det europeiske økonomiske samarbeidsområde.\n\n2. For dette formål skal avtalepartene utvikle og benytte harmoniserte metoder, definisjoner og klassifikasjoner samt felles programmer og fremgangsmåter for å organisere det statistiske arbeid på passende administrative nivåer og ta hensyn til behovet for konfidensiell behandling av statistiske data.\n\n3. Vedlegg XXI inneholder særlige bestemmelser om statistikk.\n\n4. Protokoll 30 inneholder særlige bestemmelser om organiseringen av samarbeidet på statistikkområdet.\n\nKapittel 5. Selskapsrett.\n\nArtikkel 77.\n\nVedlegg XXII inneholder særlige bestemmelser om selskapsrett.\n\nDel VI. Samarbeid utenfor de fire friheter.\n\nArtikkel 78.\n\nAvtalepartene skal styrke og utvide samarbeidet innen rammen av Fellesskapets virksomhet på områdene\n- forskning og teknologisk utvikling,\n- informasjonstjenester,\n- miljøet,\n- utdannelse, opplæring og ungdomsspørsmål,\n- sosialpolitikk,\n- forbrukervern,\n- små og mellomstore bedrifter,\n- turisme,\n- den audiovisuelle sektor, og\n- katastrofeberedskap,\ni den utstrekning disse emnene ikke er regulert ved bestemmelser i andre deler i denne avtale.\n\nArtikkel 79.\n\n1. Avtalepartene skal styrke dialogen seg imellom ved alle hensiktsmessige midler, særlig ved bruk av de fremgangsmåter som er omhandlet i del VII, for å finne frem til områder og virksomhet hvor nærmere samarbeid vil kunne bidra til å virkeliggjøre deres felles mål på områdene omhandlet i artikkel 78.\n\n2. De skal særlig utveksle opplysninger og på anmodning av en avtalepart holde rådslagninger innen EØS-komiteen med hensyn til planer eller forslag om utarbeidelse eller endring av rammeprogrammer, særprogrammer, tiltak og prosjekter på områdene omhandlet i artikkel 78.\n\n3. Del VII får tilsvarende anvendelse for denne del når det er uttrykkelig fastsatt i denne del eller i protokoll 31.\n\nArtikkel 80.\n\nSamarbeid etter artikkel 78 skal normalt ha form av\n- EFTA-statenes deltagelse i EFs rammeprogrammer, særprogrammer, prosjekter eller andre tiltak;\n- opprettelse av felles virksomhet på særlige områder, som kan omfatte tilpasning eller samordning av virksomheter, forening av bestående virksomheter og opprettelse av felles virksomhet for det enkelte tilfelle;\n- formell og uformell utveksling eller fremskaffelse av opplysninger;\n- felles innsats for å oppmuntre visse virksomheter på avtalepartenes samlede territorium;\n- parallell lovgivning med identisk eller sammenfallende innhold der dette passer;\n- samordning av innsats og virksomhet i eller gjennom internasjonale organisasjoner og av samarbeid med tredjestat, der dette er i gjensidig interesse.\n\nArtikkel 81.\n\nNår samarbeidet har form av EFTA-staters deltagelse i ett av EFs rammeprogrammer, særprogrammer, prosjekter eller andre tiltak, skal følgende grunnsetninger gjelde:\na. EFTA-statene skal ha adgang til alle deler av et program.\nb. EFTA-statenes status i komiteer som bistår Kommisjonen i ledelse eller utvikling av en fellesskaps-virksomhet hvor EFTA-stater yter økonomiske tilskudd som følge av deltagelsen, skal fullt ut ta hensyn til tilskuddene.\nc. Artikkel 79 nr. 3 skal gjelde for Fellesskapets beslutninger, annet enn i forbindelse med Fellesskapets alminnelige budsjett, som har direkte eller indirekte virkning for et rammeprogram, særprogram, prosjekt eller annet tiltak hvor EFTA-statene deltar etter beslutning i henhold til denne avtale. EØS-komiteen kan gjennomgå vilkårene for fortsatt deltagelse i vedkommende virksomhet i samsvar med artikkel 86.\nd. På prosjektnivå skal institusjoner, foretak, organisasjoner og statsborgere i EFTA-statene ha de samme rettigheter og forpliktelser i vedkommende fellesskaps-program eller annet tiltak som samarbeidende institusjoner, foretak, organisasjoner og statsborgere i EFs medlemsstater. Dette gjelder på tilsvarende måte for deltagere i utvekslinger mellom EFTA-stater og EFs medlemsstater innenfor den virksomhet det gjelder.\ne. EFTA-statene og deres institusjoner, foretak, organisasjoner og statsborgere skal ha de samme rettigheter og forpliktelser når det gjelder spredning, evaluering og utnyttelse av resultatene, som EFs medlemsstater og deres institusjoner, foretak, organisasjoner og statsborgere.\nf. Avtalepartene forplikter seg til å gi deltagere i et program eller et annet tiltak nødvendige lettelser ved innreise og opphold, i samsvar med sine lover og forskrifter.\n\nArtikkel 82.\n\n1. Når samarbeidet etter denne del medfører et finansielt bidrag fra EFTA-statene, skal bidraget ha en av følgende former:\n\na. EFTA-statenes tilskudd som følge av deres deltagelse i fellesskapsvirksomhet skal beregnes i forhold til\n– tilsagnsrammer og\n– de bevilgninger\nsom hvert år er oppført i Fellesskapets alminnelige budsjett for hver budsjettpost som svarer til vedkommende virksomhet.\nForholdstallet som skal bestemme EFTA-statenes bidrag, skal være summen av forholdstallene mellom på den ene side den enkelte EFTA-stats brutto nasjonalprodukt etter markedspris og på den annen side summen av brutto nasjonalprodukt etter markedspris for Fellesskapets medlemsstater og for vedkommende EFTA-stat. Forholdstallet skal beregnes for hvert budsjettår på grunnlag av de nyeste statistiske oppgaver.\nDet beløp EFTA-statenes tilskudd utgjør, skal, for både tilsagnsrammer og bevilgninger, komme i tillegg til de beløp som er oppført i Fellesskapets alminnelige budsjett for hver post som svarer til vedkommende virksomhet.\nDe tilskudd EFTA-statene skal betale hvert år, skal fastsettes på grunnlag av bevilgningene.\nTilsagn gitt av Fellesskapet før EFTA-statenes deltagelse i vedkommende virksomhet blir virksom på grunnlag av denne avtale, samt de utbetalinger som følger av tilsagnene, skal ikke gi opphav til noe tilskudd fra EFTA-statene;\nb. EFTA-statenes tilskudd som følge av deltagelse i visse prosjekter eller annen virksomhet skal bygge på den grunnsetning at hver avtalepart skal dekke sine egne omkostninger samt et passende tilskudd, som skal fastsettes av EØS-komiteen, til Fellesskapets administrasjonsomkostninger;\nc. EØS-komiteen skal treffe de nødvendige beslutninger om avtalepartenes tilskudd til vedkommende virksomhets omkostninger.\n2. De nærmere bestemmelser til gjennomføring av denne artikkel er inntatt i protokoll 32.\n\nArtikkel 83.\n\nNår samarbeidet har form av utveksling av opplysninger mellom offentlige myndigheter, skal EFTA-statene ha samme rett til å motta og forpliktelse til å fremskaffe opplysninger som EFs medlemsstater, med forbehold for bestemmelser om taushetsplikt, som EØS-komiteen skal fastsette.\n\nArtikkel 84.\n\nBestemmelser om samarbeid på særlige områder er inntatt i protokoll 31.\n\nArtikkel 85.\n\nMed mindre annet er bestemt i protokoll 31, skal bestemmelsene i denne del og protokoll 31 for fremtiden gjelde for samarbeid som på den dag denne avtale trer i kraft, allerede er innledet mellom Fellesskapet og individuelle EFTA-stater på områdene omhandlet i artikkel 78.\n\nArtikkel 86.\n\nEØS-komiteen skal i samsvar med del VII treffe alle nødvendige beslutninger for å gjennomføre artikkel 78 til 85 og avledede tiltak, herunder bl.a. utfylle og endre bestemmelsene i protokoll 31 samt vedta nødvendige overgangsordninger ved gjennomføringen av artikkel 85.\n\nArtikkel 87.\n\nAvtalepartene skal ta de nødvendige skritt for å utvikle, styrke eller utvide samarbeidet innen rammen av Fellesskapets virksomhet på områder som ikke er oppført i artikkel 78, når det anses sannsynlig at samarbeidet kan bidra til å oppfylle denne avtales formål, eller på annen måte av avtalepartene anses å være i gjensidig interesse. Slike skritt kan innbefatte endring av artikkel 78 ved å føye nye områder til dem som allerede er oppført der.\n\nArtikkel 88.\n\nMed forbehold for bestemmelsene i andre deler av denne avtale skal bestemmelsene i denne del ikke utelukke adgang for en avtalepart til å forberede, vedta og gjennomføre tiltak på egen hånd.\n\nDel VII. Bestemmelser om organene.\n\nKapittel 1. Organiseringen av samarbeidet.\n\nAvsnitt 1. EØS-rådet.\n\nArtikkel 89.\n\n1. Det skal opprettes et EØS-råd. Det skal særlig ha som oppgave å gi den politiske fremdrift ved gjennomføringen av denne avtale og fastlegge de alminnelige retningslinjer for EØS-komiteen.\n\nEØS-rådet skal for dette formål vurdere hvordan avtalen samlet sett virker og utvikler seg. Det skal ta de politiske avgjørelser som fører til endring av avtalen.\n2. Avtalepartene – med hensyn til Fellesskapet og EFs medlemsstater, hver innen sitt myndighetsområde – kan, etter å ha diskutert saken i EØS-komiteen eller i særlige hastesaker direkte, ta opp i EØS-rådet alle spørsmål som forårsaker vanskeligheter.\n\n3. EØS-rådet skal ved beslutning vedta sin forretningsorden.\n\nArtikkel 90.\n\n1. EØS-rådet skal bestå av medlemmer av Rådet for De europeiske fellesskap og medlemmer av EF-kommisjonen og av ett regjeringsmedlem fra hver av EFTA-statene.\n\nMedlemmene av EØS-rådet kan la seg representere under de vilkår som fastsettes i forretningsordenen.\n2. EØS-rådets beslutninger skal treffes ved enighet mellom Fellesskapet på den ene side og EFTA-statene på den annen side.\n\nArtikkel 91.\n\n1. Et medlem av Rådet for De europeiske fellesskap og et regjeringsmedlem fra en EFTA-stat skal etter tur være formann i EØS-rådet i seks måneder.\n\n2. EØS-rådet skal innkalles av formannen to ganger i året. EØS-rådet skal også møte når omstendighetene krever det, i samsvar med forretningsordenen.\n\nAvsnitt 2. EØS-komiteen.\n\nArtikkel 92.\n\n1. Det skal opprettes en EØS-komité. Den skal sikre en effektiv gjennomføring av denne avtale og se til at avtalen virker. Den skal for dette formål utveksle synspunkter og opplysninger og treffe beslutninger i saker i henhold til avtalen.\n\n2. Avtalepartene – med hensyn til Fellesskapet og EFs medlemsstater, hver innen sitt myndighetsområde – skal holde rådslagninger i EØS-komiteen om alle saker av betydning for avtalen som forårsaker vanskeligheter, og som bringes opp av en av dem.\n\n3. EØS-komiteen skal ved beslutning vedta sin forretningsorden.\n\nArtikkel 93.\n\n1. EØS-komiteen skal bestå av representanter for avtalepartene.\n\n2. EØS-komiteens beslutninger skal treffes ved enighet mellom Fellesskapet på den ene side og EFTA-statene, som opptrer samstemt, på den annen side.\n\nArtikkel 94.\n\n1. Representanten for Fellesskapet, dvs. EF-kommisjonen, og representanten for en av EFTA-statene skal etter tur være formann i EØS-komiteen i seks måneder.\n\n2. For å oppfylle sine oppgaver skal EØS-komiteen som hovedregel møtes minst en gang i måneden. Videre skal den møtes på formannens initiativ eller etter anmodning fra en av avtalepartene i samsvar med forretningsordenen.\n\n3. EØS-komiteen kan beslutte å nedsette underkomiteer eller arbeidsgrupper til å bistå den i å utføre sine oppgaver. EØS-komiteen skal i sin forretningsorden fastlegge sammensetningen og arbeidsmåten for underkomiteene og arbeidsgruppene. Deres oppgaver skal bestemmes av EØS-komiteen i hvert enkelt tilfelle.\n\n4. EØS-komiteen skal utstede en årsberetning om hvordan avtalen virker og utvikler seg.\n\nAvsnitt 3. Parlamentarisk samarbeid.\n\nArtikkel 95.\n\n1. Det skal opprettes en Parlamentariker-komité for EØS. Den skal være sammensatt av et likt antall medlemmer fra Europaparlamentet på den ene side og medlemmer fra nasjonalforsamlingene i EFTA-statene på den annen side. Det samlede antall medlemmer i komiteen er fastsatt i vedtektene inntatt i protokoll 36.\n\n2. Parlamentariker-komiteen for EØS skal holde sesjoner innen Fellesskapet og i en EFTA-stat etter tur i samsvar med bestemmelsene inntatt i protokoll 36.\n\n3. Parlamentariker-komiteen for EØS skal ved dialog og debatt bidra til en bedre forståelse mellom Fellesskapet og EFTA-statene på de områder som omfattes av denne avtale.\n\n4. Parlamentariker-komiteen for EØS kan gi uttrykk for sine synspunkter i form av rapporter eller resolusjoner. Den skal særlig behandle EØS-komiteens årsberetning, utarbeidet i samsvar med artikkel 94 nr. 4, om hvordan avtalen virker og utvikler seg.\n\n5. Formannen for EØS-rådet kan møte i Parlamentariker-komiteen for EØS for å gis anledning til å uttale seg til komiteen.\n\n6. Parlamentariker-komiteen for EØS skal vedta sin forretningsorden.\n\nAvsnitt 4. Samarbeid mellom partene i arbeidslivet.\n\nArtikkel 96.\n\n1. Medlemmer i Den økonomiske og sosiale komité og andre organer som representerer arbeidslivets parter i Fellesskapet, og de tilsvarende organer i EFTA-statene skal bestrebe seg på å styrke kontakten seg imellom og å samarbeide på en organisert og regelmessig måte for å styrke bevisstheten om de økonomiske og sosiale sider ved den økende samhørighet mellom avtalepartenes økonomi og deres interesser i EØS-sammenheng.\n\n2. For dette formål skal det opprettes en Rådgivende komité for EØS. Den skal være sammensatt av et likt antall medlemmer fra Den økonomiske og sosiale komité i Fellesskapet på den ene side og fra EFTAs Rådgivende komité på den annen side. Den rådgivende komité for EØS kan gi uttrykk for sine synspunkter i form av rapporter eller resolusjoner.\n\n3. Den rådgivende komité for EØS skal vedta sin forretningsorden.\n\nKapittel 2. Beslutningsprosessen.\n\nArtikkel 97.\n\nDenne avtale berører ikke den enkelte avtaleparts rett til å endre sin interne lovgivning på de områder som omfattes av denne avtale, med forbehold for prinsippet om ikke-diskriminering og etter å ha underrettet de andre avtaleparter,\n- dersom EØS-komiteen fastslår at den endrede lovgivning ikke medfører at avtalen ikke vil virke tilfredsstillende, eller\n- dersom fremgangsmåten omhandlet i artikkel 98 er fullført.\n\nArtikkel 98.\n\nVedleggene til denne avtale og protokoll 1 til 7, 9 til 11, 19 til 27, 30 til 32, 37, 39, 41 og 47 kan endres ved beslutning av EØS-komiteen i samsvar med artikkel 93 nr. 2, 99, 100, 102 og 103.\n\nArtikkel 99.\n\n1. Straks EF-kommisjonen begynner å utarbeide nytt regelverk på et område som omfattes av denne avtale, skal den uformelt innhente synspunkter fra sakkyndige i EFTA-statene på samme måte som den innhenter synspunkter fra sakkyndige i EFs medlemsstater når den utarbeider sine forslag.\n\n2. Når EF-kommisjonen oversender sitt forslag til Rådet for De europeiske fellesskap, skal den oversende gjenparter av det til EFTA-statene.\n\nPå anmodning fra en av avtalepartene skal en foreløpig meningsutveksling finne sted i EØS-komiteen.\n3. I det tidsrom som går forut for avgjørelsen i Rådet for De europeiske fellesskap, skal avtalepartene i en fortløpende informasjons- og samrådsprosess igjen rådføre seg med hverandre i EØS-komiteen på de viktige trinn i prosessen etter anmodning fra en av dem.\n\n4. Avtalepartene skal samarbeide i god tro i informasjons- og samrådsfasen for å gjøre det lettere til slutt å treffe beslutning i EØS-komiteen.\n\nArtikkel 100.\n\nEF-kommisjonen skal sikre sakkyndige fra EFTA-statene en bredest mulig deltagelse, alt etter hvilket område det gjelder, i det forberedende stadium for å utarbeide utkast til tiltak som senere skal forelegges de komiteer som bistår EF-kommisjonen i utøvelsen av dens myndighet. I denne forbindelse skal EF-kommisjonen når den utarbeider utkast til tiltak, rådspørre sakkyndige fra EFTA-statene på samme måte som den rådspør sakkyndige fra EFs medlemsstater.\nNår en sak forelegges Rådet for De europeiske fellesskap i samsvar med den behandlingsmåte som gjelder for vedkommende komité, skal EF-kommisjonen oversende Rådet for De europeiske fellesskap uttalelsene fra EFTA-statenes sakkyndige.\n\nArtikkel 101.\n\n1. Med hensyn til komiteer som omfattes hverken av artikkel 81 eller av artikkel 100, skal sakkyndige fra EFTA-statene knyttes til deres arbeid når dette er nødvendig for at denne avtale skal virke tilfredsstillende.\n\nKomiteene er oppført i protokoll 37. De nærmere regler om tilknytningen er inntatt i de relevante sektorvise protokoller og vedlegg som omhandler vedkommende saksfelt.\n2. Dersom avtalepartene kommer til at tilknytningen burde utvides til andre komiteer med lignende kjennetegn, kan EØS-komiteen endre protokoll 37.\n\nArtikkel 102.\n\n1. For å sikre rettssikkerhet og ensartethet innen EØS skal EØS-komiteen treffe beslutning om endring i et vedlegg til denne avtale så nær som mulig i tid etter at Fellesskapet har vedtatt tilsvarende nytt regelverk, med sikte på å gjøre det mulig med samtidig iverksettelse av det nye fellesskapsregelverk og endringene i vedleggene til denne avtale. For dette formål skal Fellesskapet så snart som mulig underrette de andre avtaleparter gjennom EØS-komiteen når det vedtar regelverk på et saksfelt som omfattes av denne avtale.\n\n2. Det skal vurderes i EØS-komiteen hvilken del av et vedlegg til denne avtale som ville bli direkte berørt av det nye regelverk.\n\n3. Avtalepartene skal bestrebe seg på å komme til enighet i saker som er relevante for denne avtale.\n\nEØS-komiteen skal særlig bestrebe seg på å finne frem til en gjensidig godtagbar løsning dersom det oppstår et alvorlig problem på et område som i EFTA-statene hører inn under den lovgivende myndighets kompetanse.\n4. Dersom EØS-komiteen, selv etter anvendelse av nr. 3, ikke kan komme til enighet om en endring i et vedlegg, skal den undersøke alle andre muligheter for at denne avtale fortsatt skal kunne virke tilfredsstillende, og treffe enhver beslutning for dette formål, herunder muligheten for å konstatere at lovgivningen skal anses likeverdig. Denne beslutningen skal tas senest seks måneder etter at saken er forelagt EØS-komiteen, eller den dag det tilsvarende fellesskapsregelverk trer i kraft dersom denne dag er senere.\n\n5. Dersom EØS-komiteen ved utløpet av fristen etter nr. 4 ikke har tatt noen beslutning om å endre et vedlegg til denne avtale, skal den berørte del av vedlegget, slik det er fastslått i samsvar med nr. 2, betraktes som midlertidig satt ut av kraft, med mindre EØS-komiteen bestemmer det motsatte. Et slikt midlertidig opphør skal få virkning seks måneder etter utløpet av fristen etter nr. 4, men under ingen omstendigheter tidligere enn den dag det tilsvarende fellesskapsregelverk er gjennomført i Fellesskapet. EØS-komiteen skal fortsette sine bestrebelser på å komme til enighet om en gjensidig godtagbar løsning slik at opphøret kan avbrytes så snart som mulig.\n\n6. De praktiske følger av opphøret etter nr. 5 skal drøftes i EØS-komiteen. Rettigheter og forpliktelser som personer og markedsdeltagere allerede har ervervet i henhold til denne avtale, skal fortsatt bestå. Avtalepartene skal avgjøre de justeringer som måtte være nødvendige som følge av opphøret.\n\nArtikkel 103.\n\n1. Dersom en beslutning i EØS-komiteen kan bli bindende for en avtalepart først etter at forfatningsrettslige krav er oppfylt, skal beslutningen tre i kraft på den dag den måtte ha fastsatt, forutsatt at vedkommende avtalepart har meddelt de andre avtaleparter innen den nevnte dag at de forfatningsrettslige krav er oppfylt.\n\nForeligger ingen meddelelse innen den nevnte dag, skal beslutningen tre i kraft den første dag i den annen måned etter den siste meddelelse.\n2. Dersom en meddelelse ikke har funnet sted innen utløpet av seks måneder etter EØS-komiteens beslutning, skal EØS-komiteens beslutning anvendes midlertidig i påvente av at de forfatningsrettslige krav oppfylles, med mindre en avtalepart meddeler at beslutningen ikke kan anvendes midlertidig. I dette tilfelle eller dersom en avtalepart meddeler at en beslutning i EØS-komiteen ikke er godkjent, skal det midlertidige opphør etter artikkel 102 nr. 5 få virkning en måned etter denne meddelelsen, men under ingen omstendigheter tidligere enn den dag det tilsvarende fellesskapsregelverk er gjennomført i Fellesskapet.\n\nArtikkel 104.\n\nBeslutninger truffet av EØS-komiteen i de tilfelle som er nevnt i denne avtale, skal bli bindende for avtalepartene ved ikrafttredelsen, med mindre beslutningene selv bestemmer noe annet, og avtalepartene skal ta de nødvendige skritt for å sikre at de blir gjennomført og anvendt.\n\nKapittel 3. Ensartethet, overvåkingsordning og tvisteløsning.\n\nAvsnitt 1. Ensartethet.\n\nArtikkel 105.\n\n1. For å nå avtalepartenes mål om å nå frem til en mest mulig lik fortolkning av bestemmelsene i denne avtale og de bestemmelser i Fellesskapets regelverk som i det vesentlige er gjengitt i avtalen, skal EØS-komiteen gå frem i samsvar med denne artikkel.\n\n2. EØS-komiteen skal holde kontinuerlig oppsyn med utviklingen i rettspraksis, jfr. artikkel 108 nr. 2, i De europeiske fellesskaps domstol og EFTA-domstolen. Dommer fra disse domstolene skal for dette formål oversendes EØS-komiteen, som skal arbeide for å bevare den ensartede fortolkning av avtalen.\n\n3. Dersom EØS-komiteen innen to måneder etter at en forskjell i rettspraksis i de to domstoler er blitt brakt inn for den, ikke har lykkes i å bevare den ensartede fortolkning av avtalen, kan fremgangsmåten fastsatt i artikkel 111 komme til anvendelse.\n\nArtikkel 106.\n\nMed henblikk på å sikre en mest mulig lik fortolkning av denne avtale, og med full respekt for domstolenes uavhengighet, skal EØS-komiteen opprette en ordning for utveksling av opplysninger om dommer avsagt av EFTA-domstolen, De europeiske fellesskaps domstol og De europeiske fellesskaps domstol i første instans og EFTA-statenes domstoler i siste instans. Ordningen skal omfatte:\na. oversendelse til justissekretæren for De europeiske fellesskaps domstol av dommer om fortolkning og anvendelse av på den ene side denne avtale og på den annen side Traktaten om opprettelse av Det europeiske økonomiske fellesskap og Traktaten om opprettelse av Det europeiske kull- og stålfellesskap, slik de er endret eller utfylt, samt de rettsakter som er tatt i henhold til dem, i den utstrekning de gjelder bestemmelser som i sitt materielle innhold er identiske med bestemmelser i denne avtale;\nb. systematisering av dommene hos justissekretæren for De europeiske fellesskaps domstol, herunder i nødvendig utstrekning utarbeidelse og offentliggjøring av oversettelser og resymeer;\nc. oversendelse av dokumenter av betydning fra justissekretæren for De europeiske fellesskaps domstol til vedkommende nasjonale myndigheter, som utpekes av hver avtalepart.\n\nArtikkel 107.\n\nBestemmelser om muligheten for en EFTA-stat til å samtykke i at en domstol ber De europeiske fellesskaps domstol om å avgjøre fortolkningen av en EØS-regel, er fastsatt i protokoll 34.\n\nAvsnitt 2. Overvåkingsordning.\n\nArtikkel 108.\n\n1. EFTA-statene skal opprette et uavhengig overvåkingsorgan (EFTAs overvåkingsorgan) samt fastsette saksbehandlingsregler tilsvarende dem som finnes i Fellesskapet, herunder fremgangsmåter for å sikre at forpliktelser etter denne avtale oppfylles, og for kontroll med lovligheten av avgjørelser i EFTAs overvåkingsorgan i konkurransesaker.\n\n2. EFTA-statene skal opprette en domstol (EFTA-domstolen). I samsvar med en særskilt avtale mellom EFTA-statene skal EFTA-domstolen med hensyn til anvendelsen av denne avtale særlig ha myndighet til\n\na. å behandle saker som gjelder overvåkingsbestemmelsene i forhold til EFTA-statene,\nb. å behandle klager over vedtak av EFTAs overvåkingsorgan i konkurransesaker,\nc. å avgjøre tvister mellom to eller flere EFTA-stater.\n\nArtikkel 109.\n\n1. Oppfyllelse av forpliktelsene etter denne avtale skal overvåkes av på den ene side EFTAs overvåkingsorgan og på den annen side av EF-kommisjonen i henhold til Traktaten om opprettelse av Det europeiske økonomiske fellesskap, Traktaten om opprettelse av Det europeiske kull- og stålfellesskap og denne avtale.\n\n2. For å sikre lik overvåking innen hele EØS skal EFTAs overvåkingsorgan og EF-kommisjonen samarbeide, utveksle opplysninger og rådføre seg med hverandre om retningslinjer for overvåkingen og om enkeltsaker.\n\n3. EF-kommisjonen og EFTAs overvåkingsorgan skal motta alle klager angående anvendelsen av denne avtale. De skal informere hverandre om mottatte klager.\n\n4. Hvert organ skal undersøke alle klager som hører inn under dets kompetanse, og skal oversende til det annet organ klager som hører inn under dettes kompetanse.\n\n5. Ved uenighet mellom de to organene om hva som må foretas på grunnlag av klagen, eller om utfallet av undersøkelsen kan hvert av organene forelegge saken for EØS-komiteen, som skal behandle den i samsvar med artikkel 111.\n\nArtikkel 110.\n\nVedtak som er truffet i henhold til denne avtale av EFTAs overvåkingsorgan og EF-kommisjonen, og som pålegger andre enn stater en pengeforpliktelse, skal i seg selv utgjøre tvangsgrunnlag. Det samme gjelder dommer i henhold til denne avtale avsagt av De europeiske fellesskaps domstol, De europeiske fellesskaps domstol i første instans og EFTA-domstolen.\nFor tvangsfullbyrdelse skal gjelde de sivile rettergangsregler i den stat på hvis territorium den finner sted. Attestasjon om at tvangsfullbyrdelse kan finne sted, skal gis uten annen prøving enn en kontroll av tvangsgrunnlagets ekthet av den myndighet som av hver av avtalepartene blir utpekt til det og anmeldt til de andre avtaleparter, EFTAs overvåkingsorgan, EF-kommisjonen, De europeiske fellesskaps domstol, De europeiske fellesskaps domstol i første instans og EFTA-domstolen.\nNår disse formkrav er blitt oppfylt etter anmodning fra den interesserte part, kan tvangsfullbyrdelsen gjennomføres ved at parten direkte henvender seg til den instans som er kompetent etter lovgivningen i den stat på hvis territorium tvangsfullbyrdelsen skal finne sted.\nTvangsfullbyrdelsen kan utsettes bare i henhold til vedtak av De europeiske fellesskaps domstol for så vidt gjelder beslutninger av EF-kommisjonen, De europeiske fellesskaps domstol i første instans eller De europeiske fellesskaps domstol, eller vedtak av EFTA-domstolen for så vidt gjelder beslutninger av EFTAs overvåkingsorgan eller EFTA-domstolen. Domstolene i de berørte stater skal imidlertid ha myndighet til å kontrollere at de vanlige regler for tvangsfullbyrdelse er blitt overholdt.\n\nAvsnitt 3. Tvisteløsning.\n\nArtikkel 111.\n\n1. Fellesskapet eller en EFTA-stat kan bringe en tvist om en sak som gjelder fortolkningen eller anvendelsen av denne avtale, inn for EØS-komiteen i samsvar med bestemmelsene nedenfor.\n\n2. EØS-komiteen kan avgjøre tvisten. Den skal gis alle opplysninger som kan bidra til å muliggjøre en grundig undersøkelse av situasjonen med sikte på å finne en godtagbar løsning. For dette formål skal EØS-komiteen undersøke alle muligheter for at avtalen fortsatt skal kunne virke tilfredsstillende.\n\n3. Dersom en tvist gjelder tolkningen av bestemmelser i denne avtale som i sitt materielle innhold er identiske med tilsvarende regler i Traktaten om opprettelse av Det europeiske økonomiske fellesskap og Traktaten om opprettelse av Det europeiske kull- og stålfellesskap og med rettsakter som er tatt i henhold til disse traktatene, og dersom tvisten ikke er avgjort innen tre måneder etter at den ble brakt inn for EØS-komiteen, kan avtalepartene i tvisten bli enige om å be De europeiske fellesskaps domstol om en avgjørelse i spørsmålet om fortolkning av de relevante regler.\n\nDersom EØS-komiteen i en slik tvist ikke er kommet til enighet om en løsning innen seks måneder fra det tidspunkt denne prosessen ble påbegynt, eller dersom avtalepartene i tvisten på det tidspunkt ikke har besluttet å be De europeiske fellesskaps domstol om en avgjørelse, kan en avtalepart for å gjenopprette mulig manglende likevekt\n- enten treffe beskyttelsestiltak i samsvar med artikkel 112 nr. 2 og i henhold til fremgangsmåten i artikkel 113,\n- eller gi artikkel 102 tilsvarende anvendelse.\n4. Dersom en tvist gjelder omfang og varighet av beskyttelsestiltak truffet i samsvar med nr. 3 eller artikkel 112 eller forholdsmessigheten av tiltak for å gjenopprette likevekten truffet i samsvar med artikkel 114, og dersom EØS-komiteen ikke har lykkes i å løse tvisten innen tre måneder fra det tidspunkt saken ble brakt inn for den, kan enhver avtalepart henvise tvisten til voldgift i henhold til behandlingsreglene fastsatt i protokoll 33. Spørsmål om fortolkning av de bestemmelser i denne avtale som er omhandlet i nr. 3, kan ikke behandles etter disse reglene. Voldgiftsavgjørelsen er bindende for partene i tvisten.\n\nKapittel 4. Beskyttelsestiltak.\n\nArtikkel 112.\n\n1. Dersom alvorlige økonomiske, samfunnsmessige eller miljømessige vanskeligheter som kan vedvare, er i ferd med å oppstå i en sektor eller innen et distrikt, kan en avtalepart ensidig treffe egnede tiltak på de vilkår og etter den fremgangsmåte som er fastsatt i artikkel 113.\n\n2. Slike beskyttelsestiltak skal med hensyn til omfang og varighet begrenses til det som er strengt nødvendig for å rette opp situasjonen. Det skal fortrinnsvis velges tiltak som forårsaker minst mulig forstyrrelser for denne avtales funksjon.\n\n3. Beskyttelsestiltakene skal gjelde overfor alle avtaleparter.\n\nArtikkel 113.\n\n1. En avtalepart som overveier å treffe beskyttelsestiltak etter artikkel 112, skal uten opphold meddele dette til de andre avtaleparter gjennom EØS-komiteen og gi alle relevante opplysninger.\n\n2. Avtalepartene skal straks innlede rådslagninger i EØS-komiteen med sikte på å finne en løsning som kan godtas av alle parter.\n\n3. Avtaleparten kan ikke treffe beskyttelsestiltak før en måned etter tidspunktet for meddelelsen etter nr. 1, med mindre rådslagningene etter nr. 2 er avsluttet før utløpet av den nevnte frist. Når spesielle omstendigheter nødvendiggjør et øyeblikkelig inngrep som utelukker en forutgående undersøkelse, kan vedkommende avtalepart uten opphold iverksette de beskyttelsestiltak som er strengt nødvendige for å rette opp situasjonen.\n\nFor Fellesskapets vedkommende skal det være EF-kommisjonen som treffer beskyttelsestiltak.\n4. Avtaleparten skal uten opphold meddele EØS-komiteen de tiltak den har truffet, og skal gi alle relevante opplysninger.\n\n5. Iverksatte beskyttelsestiltak skal være gjenstand for rådslagninger i EØS-komiteen hver tredje måned fra det tidspunkt de ble vedtatt, med sikte på å avvikle dem før den fastsatte opphørsdag eller å innskrenke deres virkeområde.\n\nHver avtalepart kan til enhver tid be EØS-komiteen om å gjennomgå tiltakene påny.\n\nArtikkel 114.\n\n1. Dersom et beskyttelsestiltak iverksatt av en avtalepart fører til manglende likevekt mellom rettigheter og forpliktelser etter denne avtale, kan enhver avtalepart overfor den førstnevnte avtalepart treffe slike mottiltak som er strengt nødvendige for å gjenopprette likevekten, og som står i forhold til beskyttelsestiltaket. Det skal fortrinnsvis velges tiltak som forårsaker minst mulig forstyrrelser for hvordan EØS virker.\n\n2. Fremgangsmåten i artikkel 113 får anvendelse.\n\nDel VIII. Låne- og tilskuddsordningen.\n\nArtikkel 115.\n\nMed sikte på å fremme en vedvarende og balansert styrking av handel og økonomiske forbindelser mellom avtalepartene, i samsvar med artikkel 1, er avtalepartene enige om behovet for å minske de økonomiske og sosiale forskjeller mellom sine regioner. De merker seg i denne forbindelse de relevante bestemmelser som er fastsatt ellers i denne avtale og dens protokoller, herunder enkelte av ordningene for landbruk og fiske.\n\nArtikkel 116.\n\nEFTA-statene skal opprette en låne- og tilskuddsordning som skal bidra, i EØS-sammenheng og i tillegg til de bestrebelser Fellesskapet allerede gjør i denne henseende, til det formål som er fastlagt i artikkel 115.\n\nArtikkel 117.\n\nBestemmelser om låne- og tilskuddsordningen er inntatt i protokoll 38.\n\nDel IX. Alminnelige bestemmelser og sluttbestemmelser.\n\nArtikkel 118.\n\n1. Når en avtalepart anser at det ville være av felles nytte og interesse for avtalepartene å utvikle forbindelsene som er opprettet ved denne avtale, til å omfatte områder som ikke dekkes av den, skal den rette en begrunnet anmodning om dette til de andre avtaleparter gjennom EØS-rådet. EØS-rådet kan be EØS-komiteen om å undersøke alle sider ved anmodningen og utarbeide en rapport.\n\nEØS-rådet kan, når det er hensiktsmessig, ta den politiske beslutning med sikte på å innlede forhandlinger mellom avtalepartene.\n2. Avtaler som er resultat av forhandlingene omhandlet i nr. 1, skal ratifiseres eller godkjennes av avtalepartene i samsvar med deres fremgangsmåter.\n\nArtikkel 119.\n\nVedleggene og de rettsakter som er omhandlet i dem, slik de er tilpasset for denne avtales formål, samt protokollene skal utgjøre en integrerende del av denne avtale.\n\nArtikkel 120.\n\nMed mindre annet er bestemt i denne avtale og særlig i protokoll 41, 43 og 44, skal bestemmelsene i denne avtale gå foran bestemmelsene i bestående bilaterale eller multilaterale avtaler som forplikter Det europeiske økonomiske fellesskap på den ene side og en eller flere EFTA-stater på den annen side, i den utstrekning det samme saksområde er regulert av denne avtale.\n\nArtikkel 121.\n\nBestemmelsene i denne avtale skal ikke være til hinder for samarbeid:\na. innen rammen av det nordiske samarbeid i den utstrekning dette samarbeidet ikke svekker muligheten for at denne avtale kan virke tilfredsstillende;\nb. innen rammen av den regionale union mellom Sveits og Liechtenstein i den utstrekning formålet med unionen ikke blir nådd gjennom anvendelse av denne avtale og muligheten for at denne avtale kan virke tilfredsstillende, ikke svekkes;\nc. innen rammen av samarbeidet mellom Østerrike og Italia om Tyrol, Vorarlberg og Trentino-Sør-Tyrol/Alto Adige i den utstrekning dette samarbeidet ikke svekker muligheten for at denne avtale kan virke tilfredsstillende.\n\nArtikkel 122.\n\nRepresentanter, delegater og sakkyndige fra avtalepartene, samt tjenestemenn og andre ansatte som gjør tjeneste i henhold til denne avtale, skal, selv etter at deres funksjoner har opphørt, være forpliktet til ikke å røpe opplysninger som etter sin art er å betrakte som tjenestehemmeligheter, særlig opplysninger om foretak og om deres forretningsforbindelser eller data om deres produksjonskostnader.\n\nArtikkel 123.\n\nBestemmelsene i denne avtale skal ikke hindre en avtalepart i å treffe tiltak:\na. som den anser nødvendig for å hindre spredning av opplysninger som er i strid med dens vesentlige sikkerhetsinteresser;\nb. som angår produksjon av eller handel med våpen, ammunisjon og krigsmateriell eller andre varer som er uunnværlige for forsvarsformål, eller forskning, utvikling eller produksjon som er uunnværlig for forsvarsformål, såfremt disse tiltak ikke endrer konkurransevilkårene for varer som ikke er bestemt for direkte militære formål;\nc. som den anser vesentlig for sin sikkerhet i tilfelle av alvorlig indre uro som truer den offentlige orden, i krigstid eller ved alvorlig internasjonal spenning som innebærer en fare for krig, eller for å oppfylle forpliktelser den har påtatt seg med sikte på å opprettholde fred og internasjonal sikkerhet.\n\nArtikkel 124.\n\nAvtalepartene skal gi statsborgere fra EFs medlemsstater og EFTA-statene den samme behandling som sine egne statsborgere med hensyn til adgangen til å plassere kapital i selskaper som definert i artikkel 34, med forbehold for anvendelsen av de øvrige bestemmelser i denne avtale.\n\nArtikkel 125.\n\nDenne avtale skal ikke på noen måte berøre avtalepartenes regler om eiendomsretten.\n\nArtikkel 126.\n\n1. Denne avtale skal anvendes på de territorier hvor Traktaten om opprettelse av Det europeiske økonomiske fellesskap og Traktaten om opprettelse av Det europeiske kull- og stålfellesskap anvendes på de vilkår som er fastsatt i de nevnte traktater, og på Republikken Østerrikes, Republikken Finlands, Republikken Islands, Fyrstedømmet Liechtensteins, Kongeriket Norges, Kongeriket Sveriges og Det sveitsiske edsforbunds territorium.\n\n2. Uten hensyn til nr. 1 skal denne avtale ikke gjelde for Åland. Ved en erklæring som – samtidig med at denne avtale ratifiseres – deponeres hos depositaren, som skal oversende en bekreftet kopi til avtalepartene, kan Finlands regjering meddele at denne avtale skal gjelde for Åland på de samme vilkår som den anvendes på andre deler av Finland, med forbehold for følgende bestemmelser:\n\na. Bestemmelsene i denne avtale skal ikke være til hinder for å anvende de bestemmelser som til enhver tid måtte være i kraft på Åland med hensyn til:\ni. begrensninger i retten for fysiske personer som ikke har «hembygdsrett» på Åland, og for juridiske personer til å erverve og eie fast eiendom på Åland uten tillatelse fra vedkommende myndigheter på øygruppen,\nii. begrensninger i etableringsretten og retten til å yte tjenester for fysiske personer som ikke har «hembygdsrett» på Åland, og for juridiske personer, uten tillatelse fra vedkommende myndigheter på Åland.\nb. De rettigheter Ålands innbyggere har i Finland, berøres ikke av denne avtale.\nc. Myndighetene på Åland skal gi avtalepartenes fysiske og juridiske personer samme behandling.\n\nArtikkel 127.\n\nHver avtalepart kan trekke seg fra denne avtale ved å gi minst tolv måneders skriftlig varsel til de andre avtaleparter.\nStraks etter varselet om at en avtalepart akter å trekke seg fra avtalen, skal de andre avtalepartene sammenkalle en diplomatisk konferanse for å vurdere de endringer det måtte være nødvendig å gjøre i avtalen.\n\nArtikkel 128.\n\n1. Enhver europeisk stat som blir medlem av Fellesskapet, skal, eller som blir medlem av EFTA, kan søke om å bli part i denne avtale. Den retter sin søknad til EØS-rådet.\n\n2. Vilkårene for tiltredelse skal fastsettes i en avtale mellom avtalepartene og søkerstaten. Avtalen skal forelegges alle avtaleparter for ratifikasjon eller godkjennelse i samsvar med deres fremgangsmåter.\n\nArtikkel 129.\n\n1. Denne avtale er utarbeidet i ett eksemplar på dansk, engelsk, finsk, fransk, gresk, islandsk, italiensk, nederlandsk, norsk, portugisisk, spansk, svensk og tysk, med samme gyldighet for hver av tekstene.\n\nTekstene til de rettsakter som er omhandlet i vedleggene, har samme gyldighet på dansk, engelsk, fransk, gresk, italiensk, nederlandsk, portugisisk, spansk og tysk slik de er kunngjort i De Europeiske Fellesskaps Tidende, og det skal utarbeides tekster på finsk, islandsk, norsk og svensk som skal gis samme gyldighet.\n2. Denne avtale skal ratifiseres eller godkjennes av avtalepartene i samsvar med deres forfatningsregler.\n\nDen skal deponeres i Rådssekretariatet for De europeiske fellesskap, som skal sende bekreftede kopier til de øvrige avtaleparter.\nRatifikasjons- og godkjennelsesdokumentene skal deponeres i Rådssekretariatet for De europeiske fellesskap, som skal underrette de øvrige avtaleparter.\n3. Denne avtale trer i kraft 1. januar 1993, forutsatt at alle avtaleparter har deponert sitt ratifikasjons- eller godkjennelsesdokument før den dag. Etter den dag skal denne avtale tre i kraft på den første dag i den annen måned etter den siste underretning. Den siste dag for underretning skal være 30. juni 1993. Etter denne dag skal avtalepartene sammenkalle en diplomatisk konferanse for å vurdere situasjonen.\n\nTil bekreftelse på dette har de befullmektigede undertegnet denne avtale.\nUtferdiget i Oporto 2. mai 1992.",
+   "available": true
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1992-05-02-1"
+  ]
+ },
+ {
+  "name": "text 404",
+  "result": {
+   "__error": "Traktat 1999-01-01-1 ikke funnet"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1999-01-01-1"
+  ]
+ },
+ {
+  "name": "article II",
+  "result": {
+   "id": "1948-12-09-1",
+   "article": "II",
+   "body": "Artikkel II.\n\nI nærværende konvensjon betyr folkemord en hvilken som helst av følgende handlinger som er begått i den hensikt å ødelegge helt, eller delvis, en nasjonal, etnisk, rasemessig eller religiøs gruppe som sådan:\na. å drepe medlemmer av gruppen;\nb. å forårsake alvorlig legemlig eller sjelelig skade på medlemmer av gruppen;\nc. bevisst å la gruppen utsettes for levevilkår som tar sikte på å bevirke dens fysiske ødeleggelse helt eller delvis;\nd. å påtvinge tiltak som tar sikte på å forhindre fødsler innen gruppen;\ne. med makt å overføre barn fra gruppen til en annen gruppe.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "article 'Artikkel II'",
+  "result": {
+   "id": "1948-12-09-1",
+   "article": "Artikkel II",
+   "body": "Artikkel II.\n\nI nærværende konvensjon betyr folkemord en hvilken som helst av følgende handlinger som er begått i den hensikt å ødelegge helt, eller delvis, en nasjonal, etnisk, rasemessig eller religiøs gruppe som sådan:\na. å drepe medlemmer av gruppen;\nb. å forårsake alvorlig legemlig eller sjelelig skade på medlemmer av gruppen;\nc. bevisst å la gruppen utsettes for levevilkår som tar sikte på å bevirke dens fysiske ødeleggelse helt eller delvis;\nd. å påtvinge tiltak som tar sikte på å forhindre fødsler innen gruppen;\ne. med makt å overføre barn fra gruppen til en annen gruppe.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "article arabic 2 -> II",
+  "result": {
+   "id": "1948-12-09-1",
+   "article": "2",
+   "body": "Artikkel II.\n\nI nærværende konvensjon betyr folkemord en hvilken som helst av følgende handlinger som er begått i den hensikt å ødelegge helt, eller delvis, en nasjonal, etnisk, rasemessig eller religiøs gruppe som sådan:\na. å drepe medlemmer av gruppen;\nb. å forårsake alvorlig legemlig eller sjelelig skade på medlemmer av gruppen;\nc. bevisst å la gruppen utsettes for levevilkår som tar sikte på å bevirke dens fysiske ødeleggelse helt eller delvis;\nd. å påtvinge tiltak som tar sikte på å forhindre fødsler innen gruppen;\ne. med makt å overføre barn fra gruppen til en annen gruppe.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "article 33",
+  "result": {
+   "id": "1951-07-28-1",
+   "article": "33",
+   "body": "Artikkel 33. Forbud mot utvisning eller avvisning\n\n1. Ingen kontraherende stat må på noen som helst måte utvise eller avvise en flyktning over grensen til områder hvor hans liv eller frihet ville være truet på grunn av hans rase, religion, nasjonalitet, politiske oppfatning eller det forhold at han tilhører en spesiell sosial gruppe.\n\n2. Denne bestemmelse skal dog ikke kunne påberopes av en flyktning som med rimelig grunn anses for en fare for det lands sikkerhet hvor han befinner seg, eller som har fått endelig dom for en særlig alvorlig forbrytelse og av den grunn utgjør en fare for samfunnet i vedkommende land.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1951-07-28-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1951-07-28-1"
+  ]
+ },
+ {
+  "name": "article 1 A (sub-article fallback + note)",
+  "result": {
+   "id": "1951-07-28-1",
+   "article": "1 A",
+   "body": "Artikkel 1. Definisjon av betegnelsen «flyktning»\n\nA.\nFor denne konvensjons formål skal betegnelsen «flyktning» få anvendelse på enhver person som:\n(1) Har vært betraktet som flyktning i henhold til avtalene av 12. mai 1926 og 30. juni 1928, eller etter konvensjonene av 28. oktober 1933 og 10. februar 1938, protokollen av 14. september 1939 eller den Internasjonale Flyktningsorganisasjons vedtekter.\nVedtak om ikke å godkjenne en person som flyktning, truffet av den Internasjonale Flyktningsorganisasjon under dens virksomhet skal ikke være til hinder for at status som flyktning blir innrømmet personer som tilfredsstiller betingelsene i dette avsnitts punkt 2;\n(2) som følge av begivenheter som har funnet sted før 1. januar 1951 og på grunn av at han med rette frykter for forfølgelse på grunn av rase, religion, nasjonalitet, medlemsskap i en spesiell sosial gruppe eller på grunn av politisk oppfatning, befinner seg utenfor det land han er borger av, og er ute av stand til, eller, på grunn av slik frykt, er uvillig til å påberope seg dette lands beskyttelse; eller som er statsløs og på grunn av slike begivenheter befinner seg utenfor det land hvor han har sin vanlige bopel, og som er ute av stand til eller, på grunn av slik frykt, er uvillig til, å vende tilbake dit.\nNår det gjelder en person som har statsborgerrett i mer enn ett land, skal med betegnelsen «det land som han er borger av» forstås hvert av de land han er borger av, og en person skal ikke anses for å være uten beskyttelse av det land han er borger av, hvis han uten gyldig grunn som skyldes berettiget frykt, har forsømt å påberope seg beskyttelse hos et av de land han er borger av.\nB.\n(1) Med ordene «begivenheter som har funnet sted før 1. januar 1951», i artikkel 1, avsnitt A, skal, for denne konvensjons formål, forstås enten\n(a) «Begivenheter som har funnet sted i Europa før 1. januar 1951»; eller\n(b) «Begivenheter som har funnet sted i Europa eller andre steder før 1. januar 1951»;\nog hver kontraherende stat skal ved undertegningen, ratifikasjonen eller tiltredelsen av konvensjonen, avgi en erklæring om hvilken av disse betydninger skal være bestemmende for dens forpliktelser i henhold til denne konvensjon;\n(2) Enhver kontraherende stat som har valgt alternativ (a), kan når som helst utvide sine forpliktelser ved å godta alternativ (b) ved notifikasjon til de Forente Nasjoners generalsekretær.\nC.\nDenne konvensjon skal ikke lenger ha anvendelse på en person som omfattes av bestemmelsene i avsnitt A, hvis:\n(1) han frivillig på nytt har søkt det lands beskyttelse som han er borger av; eller\n(2) han etter å ha mistet sitt borgerskap, frivillig har gjenervervet det; eller\n(3) han har ervervet nytt statsborgerskap og nyter beskyttelse av det land han er blitt borger av; eller\n(4) han frivillig på nytt har bosatt seg i det land han forlot, eller som han oppholdt seg utenfor på grunn av frykt for forfølgelse; eller\n(5) han ikke lenger kan nekte å nyte godt av det lands beskyttelse, i hvilket han har statsborgerrett, fordi de forhold som førte til at han ble anerkjent som flyktning ikke lenger er tilstede.\nBestemmelsene i dette punkt skal dog ikke ha anvendelse på flyktninger som omfattes av denne artikkels avsnitt A, punkt 1, og som kan påberope seg tvingende grunner, i forbindelse med tidligere forfølgelse, for å avvise beskyttelse fra det land i hvilket han har statsborgerrett;\n(6) han ikke er borger av noe land, og, på grunn av at de forhold som førte til at han ble anerkjent som flyktning ikke lenger er til stede, er i stand til å vende tilbake til det land hvor han tidligere hadde sin vanlige bopel.\nBestemmelsene i dette punkt skal dog ikke ha anvendelse på flyktning som omfattes av denne artikkels avsnitt A, punkt 1, og som kan påberope seg tvingende grunner i forbindelse med tidligere forfølgelse for å nekte å vende tilbake til det land hvor han tidligere hadde sin vanlige bopel.\nD.\nDenne konvensjon skal ikke ha anvendelse på personer som for nærværende nyter beskyttelse eller bistand fra andre organer eller institusjoner under de Forente Nasjoner enn de Forente Nasjoners Høykommissær for Flyktninger.\nNår slik beskyttelse eller bistand av en hvilken som helst grunn er bortfalt uten at vedkommende personers forhold er blitt endelig ordnet i henhold til de vedtak som er truffet av de Forente Nasjoners Generalforsamling om disse spørsmål, skal de uten videre ha krav på å nyte godt av denne konvensjons bestemmelser.\nE.\nDenne konvensjon skal ikke ha anvendelse på personer som av de kompetente myndigheter i det land hvor de har bosatt seg, er innrømmet de rettigheter og plikter som er knyttet til statsborgerskap i vedkommende land.\nF.\nBestemmelsene i denne konvensjon skal ikke ha anvendelse på personer om hvem det er alvorlig grunn til å anta at de:\n(a) har gjort seg skyldig i en forbrytelse mot freden, en krigsforbrytelse eller en forbrytelse mot menneskeheten, således som disse forbrytelser er definert i de mellomfolkelige avtaler som tar sikte på å gi bestemmelser om slike forbrytelser;\n(b) har gjort seg skyldig i en alvorlig ikke-politisk forbrytelse utenfor tilfluktslandet, før han fikk adgang til dette land som flyktning;\n(c) har gjort seg skyldig i handlinger som er i strid med de Forente Nasjoners formål og prinsipper.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1951-07-28-1",
+   "note": "Lovdata har ikke '1 A' som egen artikkel; dette er hele artikkel 1. Finn ledd/bokstav A i teksten."
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1951-07-28-1"
+  ]
+ },
+ {
+  "name": "article English 'Article 4'",
+  "result": {
+   "id": "1951-07-28-1",
+   "article": "Article 4",
+   "body": "Artikkel 4. Religion\n\nDe kontraherende stater skal innen sitt territorium innrømme flyktninger minst like gunstig behandling som den de gir sine egne borgere med hensyn til fri religionsutøvelse og frihet i spørsmålet om religionsundervisning for deres barn.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1951-07-28-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1951-07-28-1"
+  ]
+ },
+ {
+  "name": "article not found",
+  "result": {
+   "id": "1951-07-28-1",
+   "article": "999",
+   "body": "",
+   "available": false,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1951-07-28-1",
+   "available_articles": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "46"
+   ],
+   "error": "Artikkel '999' ble ikke funnet. Tilgjengelige artikler (i dokumentets rekkefølge; _1, _2 … er samme nummer i neste del, f.eks. en protokoll): 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46."
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1951-07-28-1"
+  ]
+ },
+ {
+  "name": "article EEA 1_1",
+  "result": {
+   "id": "1992-05-02-1",
+   "article": "1_1",
+   "body": "",
+   "available": false,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1992-05-02-1",
+   "available_articles": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32",
+    "33",
+    "34",
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51",
+    "52",
+    "53",
+    "54",
+    "55",
+    "56",
+    "57",
+    "58",
+    "59",
+    "60",
+    "61",
+    "62",
+    "63",
+    "64",
+    "65",
+    "66",
+    "67",
+    "68",
+    "69",
+    "70",
+    "71",
+    "72",
+    "73",
+    "74",
+    "75",
+    "76",
+    "77",
+    "78",
+    "79",
+    "80",
+    "81",
+    "82",
+    "83",
+    "84",
+    "85",
+    "86",
+    "87",
+    "88",
+    "89",
+    "90",
+    "91",
+    "92",
+    "93",
+    "94",
+    "95",
+    "96",
+    "97",
+    "98",
+    "99",
+    "100",
+    "101",
+    "102",
+    "103",
+    "104",
+    "105",
+    "106",
+    "107",
+    "108",
+    "109",
+    "110",
+    "111",
+    "112",
+    "113",
+    "114",
+    "115",
+    "116",
+    "117",
+    "118",
+    "119",
+    "120",
+    "121",
+    "122",
+    "123",
+    "124",
+    "125",
+    "126",
+    "127",
+    "128",
+    "129"
+   ],
+   "error": "Artikkel '1_1' ble ikke funnet. Tilgjengelige artikler (i dokumentets rekkefølge; _1, _2 … er samme nummer i neste del, f.eks. en protokoll): 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129."
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1992-05-02-1"
+  ]
+ },
+ {
+  "name": "article EEA art. 3",
+  "result": {
+   "id": "1992-05-02-1",
+   "article": "art. 3",
+   "body": "Artikkel 3.\n\nAvtalepartene skal treffe alle generelle eller særlige tiltak som er egnet til å oppfylle de forpliktelser som følger av denne avtale.\nDe skal avholde seg fra alle tiltak som kan sette virkeliggjøringen av denne avtales mål i fare.\nDe skal videre lette samarbeidet innen rammen av denne avtale.",
+   "available": true,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1992-05-02-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1992-05-02-1"
+  ]
+ },
+ {
+  "name": "article on treaty without text",
+  "result": {
+   "id": "1950-11-04-1",
+   "article": "8",
+   "body": "",
+   "available": false,
+   "url": "https://lovdata.no/dokument/TRAKTAT/traktat/1950-11-04-1"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1950-11-04-1"
+  ]
+ },
+ {
+  "name": "article unreadable number",
+  "result": {
+   "__error": "Kunne ikke tolke artikkelnummer: '.'"
+  },
+  "requests": [
+   "/dokument/TRAKTAT/traktat/1948-12-09-1"
+  ]
+ },
+ {
+  "name": "countries (all)",
+  "result": {
+   "count": 216,
+   "countries": [
+    "Afghanistan",
+    "Albania",
+    "Algerie",
+    "Andorra",
+    "Angola",
+    "Anguilla",
+    "Antigua og Barbuda",
+    "Argentina",
+    "Armenia",
+    "Aruba",
+    "Aserbajdsjan",
+    "Australia",
+    "Bahamas",
+    "Bahrain",
+    "Bangladesh",
+    "Barbados",
+    "Belarus",
+    "Belgia",
+    "Belize",
+    "Benin",
+    "Bermuda",
+    "Bhutan",
+    "Bolivia",
+    "Bosnia-Hercegovina",
+    "Botswana",
+    "Brasil",
+    "Brunei",
+    "Bulgaria",
+    "Burkina Faso",
+    "Burundi",
+    "Canada",
+    "Chile",
+    "Colombia",
+    "Cookøyene",
+    "Costa Rica",
+    "Cuba",
+    "Danmark",
+    "De forente arabiske emirater",
+    "Den europeiske union",
+    "Den Sentralafrikanske republikk",
+    "Det europeiske økonomiske fellesskap",
+    "Djibouti",
+    "Dominica",
+    "Dominikanske republikk",
+    "Ecuador",
+    "Egypt",
+    "Ekvatorial-Guinea",
+    "El Salvador",
+    "Elfenbenskysten",
+    "Eritrea",
+    "Estland",
+    "Eswatini",
+    "Etiopia",
+    "Fiji",
+    "Filippinene",
+    "Finland",
+    "Frankrike",
+    "Færøyene",
+    "Gabon",
+    "Gambia",
+    "Georgia",
+    "Ghana",
+    "Gibraltar",
+    "Grenada",
+    "Grønland",
+    "Guatemala",
+    "Guernsey",
+    "Guinea",
+    "Guinea-Bissau",
+    "Guyana",
+    "Haiti",
+    "Hellas",
+    "Honduras",
+    "Hongkong",
+    "India",
+    "Indonesia",
+    "Irak",
+    "Iran",
+    "Irland",
+    "Island",
+    "Isle of Man",
+    "Israel",
+    "Italia",
+    "Jamaica",
+    "Japan",
+    "Jemen",
+    "Jersey",
+    "Jordan",
+    "Jugoslavia",
+    "Kambodsja",
+    "Kamerun",
+    "Kapp Verde",
+    "Kasakhstan",
+    "Kenya",
+    "Kina",
+    "Kirgisistan",
+    "Kiribati",
+    "Komorene",
+    "Kongo",
+    "Kongo-Brazzaville",
+    "Kosovo",
+    "Kroatia",
+    "Kuwait",
+    "Kypros",
+    "Laos",
+    "Latvia",
+    "Lesotho",
+    "Libanon",
+    "Liberia",
+    "Libya",
+    "Liechtenstein",
+    "Litauen",
+    "Luxembourg",
+    "Macao",
+    "Madagaskar",
+    "Malawi",
+    "Malaysia",
+    "Maldivene",
+    "Mali",
+    "Malta",
+    "Marokko",
+    "Marshalløyene",
+    "Martinique",
+    "Mauritania",
+    "Mauritius",
+    "Mexico",
+    "Mikronesiaføderasjonen",
+    "Moldova",
+    "Monaco",
+    "Mongolia",
+    "Montenegro",
+    "Montserrat",
+    "Mosambik",
+    "Myanmar",
+    "Namibia",
+    "Nauru",
+    "Nederland",
+    "Nepal",
+    "New Zealand",
+    "Nicaragua",
+    "Niger",
+    "Nigeria",
+    "Niue",
+    "Nord-Korea",
+    "Nord-Makedonia",
+    "Oman",
+    "Pakistan",
+    "Palau",
+    "Palestina",
+    "Panama",
+    "Papua Ny-Guinea",
+    "Paraguay",
+    "Peru",
+    "Polen",
+    "Portugal",
+    "Qatar",
+    "Romania",
+    "Russland",
+    "Rwanda",
+    "Saint Kitts og Nevis",
+    "Saint Lucia",
+    "Saint Vincent og Grenadinene",
+    "Salomonøyene",
+    "Samoa",
+    "San Marino",
+    "Sao Tome og Principe",
+    "Saudi-Arabia",
+    "Senegal",
+    "Serbia",
+    "Seychellene",
+    "Sierra Leone",
+    "Singapore",
+    "Slovakia",
+    "Slovenia",
+    "Somalia",
+    "Sovjetunionen",
+    "Spania",
+    "Sri Lanka",
+    "Storbritannia",
+    "Sudan",
+    "Surinam",
+    "Sveits",
+    "Sverige",
+    "Syria",
+    "Sør-Afrika",
+    "Sør-Korea",
+    "Sør-Sudan",
+    "Tadsjikistan",
+    "Tanzania",
+    "Thailand",
+    "Togo",
+    "Tonga",
+    "Trinidad og Tobago",
+    "Tsjad",
+    "Tsjekkia",
+    "Tsjekkoslovakia",
+    "Tunisia",
+    "Turkmenistan",
+    "Turks og Caicosøyene",
+    "Tuvalu",
+    "Tyrkia",
+    "Tyskland",
+    "Uganda",
+    "Ukraina",
+    "Ungarn",
+    "Uruguay",
+    "USA",
+    "Usbekistan",
+    "Vanuatu",
+    "Vatikanstaten",
+    "Venezuela",
+    "Vietnam",
+    "Zambia",
+    "Zimbabwe",
+    "Øst-Timor",
+    "Østerrike"
+   ]
+  },
+  "requests": [
+   "/register/traktater"
+  ]
+ },
+ {
+  "name": "countries filter",
+  "result": {
+   "count": 2,
+   "countries": [
+    "Den europeiske union",
+    "Det europeiske økonomiske fellesskap"
+   ]
+  },
+  "requests": [
+   "/register/traktater"
+  ]
+ },
+ {
+  "name": "status counts",
+  "result": {
+   "reachable": true,
+   "total": 3458,
+   "years": {
+    "first": "1661",
+    "last": "2026",
+    "count": 155
+   },
+   "countries": 216
+  },
+  "requests": [
+   "/register/traktater"
+  ]
+ }
+]
