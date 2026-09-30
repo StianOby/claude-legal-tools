@@ -78,6 +78,13 @@ Rules:
   layout stays identical to the pre-marketplace releases.
 - Validate locally with `npx -y @anthropic-ai/claude-code plugin validate .`
   and `… plugin validate plugins/<name> --strict`.
+- **Shared files** (`shared/`, e.g. `shared/local-route/`) are the canonical
+  copies of files several plugins carry — a plugin cannot reference anything
+  outside its own folder. Edit only the canonical copy, then run
+  `.github/scripts/check-shared.py --fix` and bump every plugin whose copy
+  changed. The mapping lives in that script; CI fails if a copy differs.
+  Keep `pack_for_local.sh` in step with the repo URL: the local route
+  downloads scripts from `main` on GitHub and checks them by sha256.
 
 ## Cached data snapshots
 

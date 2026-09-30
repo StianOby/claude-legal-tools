@@ -35,6 +35,11 @@ jobs:
             echo "== $t"
             python3 "$t"
           done
+          echo "== shared/local-route/test_pack.py"
+          python3 shared/local-route/test_pack.py
+
+      - name: Check shared files are identical in every plugin that carries them
+        run: python3 .github/scripts/check-shared.py
 
       - name: Check SKILL.md description length (≤ 1024 chars after YAML parsing)
         run: |

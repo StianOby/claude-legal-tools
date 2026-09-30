@@ -102,7 +102,9 @@ Detection (don't assume the environment):
 
 ### 2.2 Getting scripts into the local VM
 
-The skill files only exist in the cloud sandbox, so each run copies them over:
+> **As built (2026-09-30):** the default is not a base64 copy. The model would have to type the whole bundle into the command (~74,000 characters for nbno), which is slow, costly and easy to corrupt. Instead `pack_for_local.sh` prints a ~1 KB sha256 manifest of the synced scripts; the local shell downloads the same files from the public repo on GitHub (`main`) and checks each hash, so the version is still exact. On a mismatch (exit 3) the skill falls back to `--bundle`, the base64 copy described below. Canonical files are in `shared/local-route/`, copied into each plugin that uses them; `.github/scripts/check-shared.py` keeps the copies identical.
+
+The skill files only exist in the cloud sandbox, so each run copies them over (the `--bundle` fallback):
 
 - In the cloud sandbox: `tar czf - -C "$SKILL_DIR" scripts | base64 -w0`. Also print the sha256 of the tarball.
 - In the local shell: decode into a fresh `mktemp -d` under `$HOME` (not the connected folder), verify the sha256, and extract.
@@ -112,7 +114,7 @@ The skill files only exist in the cloud sandbox, so each run copies them over:
 
 ### 2.3 Running and handing back
 
-- Python dependencies: install into a venv under the per-run temp dir, with pinned versions from a `requirements.lock` in the skill. Don't install globally. If `venv` is unavailable, fall back to `pip install --target` into the temp dir.
+- Python dependencies: install into a venv under the per-run temp dir, with `--upgrade` and bare package names (no pinned versions or `requirements.lock`; decided 2026-09-30 to avoid stale packages). Don't install globally. If `venv` is unavailable, fall back to `pip install --target` into the temp dir.
 - Set `PYTHONUTF8=1`.
 - Outputs: write final files to `<connected folder>/<skill>/<item-id>/`. Intermediate files (tiles, cookies) stay in the VM's temp dir and are deleted at the end.
 - Until V2 is verified, don't hand files back to the cloud sandbox for further processing. Finish the pipeline in the local VM (see the working assumptions) and present the result from the connected folder.

@@ -1,2 +1,6 @@
-# Shell scripts must keep LF even in a Windows checkout (bash chokes on ).
+# Shell scripts must keep LF even in a Windows checkout (bash chokes on CR).
 *.sh text eol=lf
+# Shared files and their copies inside plugins must be byte-identical on
+# every platform (.github/scripts/check-shared.py compares bytes).
+shared/** text eol=lf
+plugins/*/skills/*/local-route.md text eol=lf
