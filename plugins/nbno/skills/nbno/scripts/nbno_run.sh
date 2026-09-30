@@ -247,6 +247,20 @@ fi
 for pdf in "${PDFS[@]}"; do
   base="$(basename "$pdf")"
   mv "$pdf" "$OUT/$base"
+  # nbno embeds page images at 72 DPI, so pages come out poster-size (~1 m).
+  # Rescale them to book size (same rule as zotero_book.py); failure is
+  # non-fatal — the PDF is still valid, just oversized.
+  PYBIN="$(command -v python3 || command -v python)"
+  if [[ -n "$PYBIN" ]]; then
+    "$PYBIN" - "$(dirname "$0")" "$OUT/$base" <<'PYEOF' || echo "WARNING: could not rescale PDF page size (left as nbno produced it)." >&2
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import zotero_book
+n = zotero_book.rescale_pdf_pages(Path(sys.argv[2]))
+print(f"[pdf] rescaled {n} poster-size page(s) to book size" if n else "[pdf] page size already OK")
+PYEOF
+  fi
   echo "PDF: $OUT/$base"
   size_mb=$(( $(stat -c %s "$OUT/$base") / 1000000 ))
   if (( size_mb > 50 )); then

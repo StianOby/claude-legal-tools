@@ -65,18 +65,52 @@ The user's preferences for this skill:
 | Step | Runs in |
 |---|---|
 | Session check, `accessInfo`, URN resolution, digital-loan dialog, cookie read (Step 0) | **browser pane** (the user's IP and logins) |
-| Catalogue search (`nb_search.py`), manifests, `geo_check.py` | **cloud sandbox (`Bash`)** |
-| Page-image download for `EVERYWHERE` items, OCR, shrink, Zotero RDF | **cloud sandbox (`Bash`)** |
-| Page-image download for `NORWAY` (Bokhylla) and `NB` (FEIDE) items | needs a Norwegian IP; blocked from Anthropic's cloud (see below) |
+| Catalogue search (`nb_search.py`), manifests, first `geo_check.py` probe | **`Bash`** |
+| Download, OCR, shrink, Zotero RDF — `EVERYWHERE` items, or any item when `Bash` is on the user's computer | **`Bash`** |
+| Download, OCR, shrink, Zotero RDF — `NORWAY` / `NB` items in a cloud session | **local shell** (`device_bash`, the local route) |
 
 In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer.
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. You are in a cloud session
+when `mcp__remote-devices__device_bash` is in your tool list.
 
-`EVERYWHERE` items download fine from the cloud sandbox. `NORWAY` and `NB` page images answer 403 from a non-Norwegian IP,
-and Anthropic's cloud is not one. Run `geo_check.py --id <id>` first. If it reports 403 in a cloud session, say plainly:
-"This item is blocked from Anthropic's cloud; for now it needs local Cowork." Do not retry, do not debug auth, and never
-suggest a VPN. (A proper route for this case is planned; it is not part of this skill yet.) In local Cowork `Bash` has the
-user's own IP, so the probe decides.
+### Routing
+
+nb.no serves `NORWAY` (Bokhylla) and `NB` (legal deposit) page images only to Norwegian IPs, and Anthropic's cloud is
+not one. So:
+
+| `accessAllowedFrom` | Where the download runs in a cloud session | Credential |
+|---|---|---|
+| `EVERYWHERE` | cloud sandbox (`Bash`), as always | none |
+| `NORWAY` | local shell (local route) | none |
+| `NB` | local shell (local route) | `nbsso` from the browser pane (Step 0.7) + an active loan (Step 0.6) |
+
+1. **Probe in `Bash`:** `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The last line is `route: …`.
+   - `route: here` → download in `Bash` (Step 3). This is every `EVERYWHERE` item, and every item in local Cowork
+     from a Norwegian IP.
+   - `route: norwegian-ip` or `norwegian-ip+loan` **in a cloud session** → expected, not an error: use the local route
+     (step 2). For `norwegian-ip+loan` do Step 0.6–0.7 first (loan, cookie).
+   - `route: norwegian-ip` **in local Cowork** → the user's own IP is not Norwegian: tell them and stop.
+     `norwegian-ip+loan` there → no active loan or an expired cookie: Step 0.6–0.7, then probe again once.
+   - `route: unknown` → report the probe line and ask before downloading.
+2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
+   are available and has the fixed messages if not). For nbno, once `READY <dir>` is printed:
+   - Probe again from the user's machine, in `device_bash`:
+     `test -f <dir>/.ready || exit 4; cd <dir> && PYTHONUTF8=1 python3 scripts/geo_check.py --id <id>` (add
+     `--nbsso "nbsso=<v>"` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
+     them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
+     the cookie, retry **once**, then stop.
+   - `NB` only: put the cookie in a mode-600 file inside `<dir>`, never in the connected folder:
+     `umask 077; printf 'authorization=\ncookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
+   - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), using `<dir>/…` paths
+     and `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or `--nbsso "nbsso=<v>"` for
+     `zotero_book.py`). Keep each call to a modest page range; timeouts in `device_bash` are not known yet.
+   - OCR / Zotero-ready: first `command -v tesseract`. Missing → run `zotero_book.py` with `--no-ocr`, deliver the
+     PDF and use message **C** from `local-route.md`.
+   - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/`, tell the user where it is, then
+     `rm -rf <dir>` (this also removes the cookie).
+
+Never fall back silently to the cloud sandbox for a `NORWAY`/`NB` item, never debug headers after a geo 403, and never
+suggest a VPN.
 
 ---
 
@@ -146,10 +180,10 @@ through the tool channel is not viable for a book.
    logged in.** Settle it in bash with
    `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
    nb.no's image resolver for one 1024 px page tile and prints `image probe:
-   OK` or `403`. On a `NORWAY` item a 403 means the IP is not Norwegian: tell
-   the user (in a cloud session: "blocked from Anthropic's cloud; needs local
-   Cowork for now") and stop. On an `NB` item a 403 can also mean there is no loan
-   yet, so run the probe again after step 6. The script exits 3 on a 403.
+   OK` or `403`, then a `route:` line. On a `NORWAY` item a 403 means the IP
+   is not Norwegian — in a cloud session that is expected: use the local
+   route (**Routing** above). On an `NB` item a 403 can also mean there is no
+   loan yet, so run the probe again after step 6. The script exits 3 on a 403.
    Never call third-party geo services. `zotero_book.py` runs the same probe
    itself and stops on a 403.
 6. **Digital loan — FEIDE-licensed items only.** If
@@ -172,6 +206,9 @@ through the tool channel is not viable for a book.
      blocked, ask for the sentence rather than trying again.
    - Then `await __nb.cookies()` → `{nbsso, nblb, cookieHeader}` and nothing
      else. Never return the whole `document.cookie`.
+   - **Cloud session:** the cookie goes straight to the local shell, into
+     `<dir>/cookie.txt` (see **Routing**, step 2) — never to a file in the
+     cloud sandbox, which cannot use it anyway. Otherwise (local Cowork):
    - Write the cookie to a **fresh per-run path**, mode 600:
      ```bash
      CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"

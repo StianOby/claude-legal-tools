@@ -79,10 +79,12 @@ logged in** — stop before downloading rather than debugging headers.
 
 Where the download runs matters: in a cloud Cowork session `Bash` egresses
 from Anthropic's cloud, which is never a Norwegian IP, so `NORWAY`/`NB` page
-images 403 there even though the user's browser pane is Norwegian. Tell the
-user plainly that this item is blocked from Anthropic's cloud and, for now,
-needs local Cowork (where `Bash` runs on the user's own machine). Never
-suggest a VPN. Thumbnails (`/full/0,200/0/native.jpg`) are never gated — they are a
+images 403 there even though the user's browser pane is Norwegian. That 403
+is expected: download through the local shell on the user's machine instead
+(SKILL.md **Routing**, and [`local-route.md`](local-route.md)). For an `NB`
+item the `nbsso` cookie read in the browser pane goes straight into a
+mode-600 file in the local shell's run directory — never into the cloud
+sandbox or the connected folder — and is deleted with it. Never suggest a VPN. Thumbnails (`/full/0,200/0/native.jpg`) are never gated — they are a
 liveness check, never an auth check.
 
 ```bash

@@ -132,6 +132,61 @@ check("result gives each PDF page's canvas, None for the placeholder",
 check("the log warns about it", "placeholder pages in the PDF: [3]" in log, True)
 check("temp folder removed", assembled["dir"].exists(), False)
 
+print("download_via_iiif: start/stop range")
+recorded = {}
+
+
+def assemble_rec(paths, out):
+    recorded["paths"] = [Path(p).name for p in paths]
+
+
+zb._assemble_pages_to_pdf = assemble_rec
+BROKEN.clear()
+BROKEN["p4"] = 99  # p4 still never works
+attempts.clear()
+with redirect_stdout(io.StringIO()):
+    r = zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2,
+                             start=2, stop=99)  # stop clamped to 5 canvases
+check("range 2..end: only those canvases fetched", sorted(attempts), ["p2", "p4", "p5"])
+check("pages are renumbered within the range, placeholder keeps its place",
+      (r["pages"], r["missing"], [c is None for c in r["canvases"]]), (3, [2], [False, True, False]))
+check("canvas names come from the selected range", r["canvases"][0], "p2")
+attempts.clear()
+with redirect_stdout(io.StringIO()):
+    r = zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=2)
+check("stop only", (sorted(attempts), r["pages"]), (["p1", "p2"], 2))
+for kw in ({"start": 0}, {"start": 3, "stop": 2}):
+    try:
+        zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", **kw)
+        check(f"rejects {kw}", "no error", "ValueError")
+    except ValueError:
+        check(f"rejects {kw}", True, True)
+try:
+    with redirect_stdout(io.StringIO()):
+        zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", start=9)
+    check("start beyond the manifest", "no error", "SystemExit")
+except SystemExit:
+    check("start beyond the manifest", True, True)
+
+print("rescale_pdf_pages: poster PDF -> book size")
+try:
+    import pypdf  # noqa: F401
+except ImportError:
+    print("  skip (pypdf not installed)")
+else:
+    pdf = Path(tempfile.mkdtemp()) / "poster.pdf"
+    ims = [Image.new("RGB", (1500, 2200), "white"), Image.new("RGB", (1500, 2200), "gray"),
+           Image.new("RGB", (1500, 842), "white")]
+    ims[0].save(str(pdf), save_all=True, append_images=ims[1:], resolution=72.0)
+    heights = lambda: [round(float(pg.mediabox.height)) for pg in pypdf.PdfReader(str(pdf)).pages]
+    check("starts poster-size", heights(), [2200, 2200, 842])
+    check("two pages rescaled", zb.rescale_pdf_pages(pdf), 2)
+    check("pages now A4 height (~842 pt), small page untouched",
+          [abs(h - 842) <= 1 for h in heights()], [True, True, True])
+    check("width scaled in proportion", round(float(pypdf.PdfReader(str(pdf)).pages[0].mediabox.width)),
+          round(1500 * 842 / 2200))
+    check("idempotent", zb.rescale_pdf_pages(pdf), 0)
+
 print("normalize_metadata: edition and editor roles")
 for raw, want in [("5. utg. [redigert av] Jan E. Helgesen", "5"), ("[2. utg.]", "2"),
                   ("6. utgave", "6"), ("Ny utg.", "Ny utg."), ("Rev.  utg.", "Rev. utg."), (None, "")]:

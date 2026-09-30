@@ -709,6 +709,43 @@ def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
                    resolution=float(median_dpi))
 
 
+def rescale_pdf_pages(pdf_path: Path) -> int:
+    """Shrink poster-size pages of an existing PDF to book size, in place.
+
+    The third-party `nbno` CLI embeds each page image at 72 DPI, so a
+    2000-3000 px page becomes a ~0.7-1 m page. Treating the MediaBox height
+    (in points) as the image's pixel height, each page is scaled by
+    72 / _page_dpi(height) — the same rule _assemble_pages_to_pdf applies —
+    which puts it at A4 height. Content, boxes and annotations scale
+    together (pypdf scale_by), so the image keeps its full resolution and
+    pages already at or below A4 height are untouched (idempotent).
+    Returns the number of pages rescaled; the file is rewritten only if > 0.
+    """
+    try:
+        import pypdf
+    except ImportError:
+        print("[pdf] installing pypdf (one-time)...")
+        _pip_install_to_pylib(["pypdf"])
+        import pypdf  # type: ignore  # noqa: F811
+
+    reader = pypdf.PdfReader(str(pdf_path))
+    writer = pypdf.PdfWriter()
+    changed = 0
+    for page in reader.pages:
+        h = float(page.mediabox.height)
+        scale = 72.0 / _page_dpi(round(h)) if h > 0 else 1.0
+        if scale < 0.99:
+            page.scale_by(scale)
+            changed += 1
+        writer.add_page(page)
+    if changed:
+        tmp = pdf_path.with_suffix(".rescaled.tmp")
+        with open(tmp, "wb") as fh:
+            writer.write(fh)
+        os.replace(tmp, pdf_path)
+    return changed
+
+
 def download_via_iiif(
     canonical_id: str,
     out_pdf: Path,
@@ -717,6 +754,8 @@ def download_via_iiif(
     resize_width: int = 1024,
     workers: int = 12,
     tiles: str = "auto",
+    start: Optional[int] = None,
+    stop: Optional[int] = None,
 ) -> dict:
     """Fast in-process downloader.
 
@@ -724,6 +763,11 @@ def download_via_iiif(
     width ≤ resize_width, verifies the returned image actually has that
     width (the resolver silently downsamples otherwise), and falls back to
     native-resolution tiles when single-shot is refused.
+
+    start/stop select a 1-based, inclusive range of manifest canvases (same
+    meaning as nbno_run.sh --start/--stop); stop is clamped to the number of
+    canvases. Page numbers, placeholders and the returned "canvases" are
+    relative to the selected range (page 1 = canvas `start`).
 
     Auth is optional. `api.nb.no` serves manifests and metadata without any
     credential and otherwise authenticates by cookie, so `bearer` is never
@@ -748,16 +792,23 @@ def download_via_iiif(
     name (None for a placeholder), which the ALTO text layer is keyed on.
     """
     import tempfile
+    if start is not None and start < 1:
+        raise ValueError(f"start must be >= 1 (got {start})")
+    if stop is not None and stop < (start or 1):
+        raise ValueError(f"stop must be >= start (got start={start}, stop={stop})")
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
     try:
         return _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
-                                  resize_width, workers, tiles, tmpdir)
+                                  resize_width, workers, tiles, tmpdir,
+                                  start, stop)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
-                       workers, tiles, tmpdir: Path) -> dict:
+                       workers, tiles, tmpdir: Path,
+                       start: Optional[int] = None,
+                       stop: Optional[int] = None) -> dict:
     from concurrent.futures import ThreadPoolExecutor
 
     referer = f"https://www.nb.no/items/{urn_form(canonical_id)}"
@@ -772,6 +823,15 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
 
     manifest = _fetch_manifest(canonical_id, hdr_api)
     canvases = manifest["sequences"][0]["canvases"]
+    if start is not None or stop is not None:
+        total = len(canvases)
+        lo = start or 1
+        hi = min(stop, total) if stop is not None else total
+        if lo > total:
+            raise SystemExit(f"ERROR: --start {lo} is beyond the {total} canvases "
+                             "in the manifest.")
+        canvases = canvases[lo - 1:hi]
+        print(f"[iiif] page range: canvases {lo}-{hi} of {total}")
 
     entries: List[Dict[str, str]] = []
     for c in canvases:
@@ -1200,12 +1260,12 @@ def _ensure_pylib_on_path() -> Path:
     bin_dir = target / "bin"
     bin_dir.mkdir(exist_ok=True)
     current_path = os.environ.get("PATH", "")
-    if str(bin_dir) not in current_path.split(":"):
-        os.environ["PATH"] = f"{bin_dir}:{current_path}"
+    if str(bin_dir) not in current_path.split(os.pathsep):
+        os.environ["PATH"] = f"{bin_dir}{os.pathsep}{current_path}"
     cur_pp = os.environ.get("PYTHONPATH", "")
-    if sys_path_entry not in cur_pp.split(":"):
+    if sys_path_entry not in cur_pp.split(os.pathsep):
         os.environ["PYTHONPATH"] = (
-            f"{sys_path_entry}:{cur_pp}" if cur_pp else sys_path_entry
+            f"{sys_path_entry}{os.pathsep}{cur_pp}" if cur_pp else sys_path_entry
         )
     return target
 
@@ -1226,9 +1286,11 @@ def _which_in_pylib(binary: str) -> Optional[str]:
     found = shutil.which(binary)
     if found:
         return found
-    candidate = _pylib_target() / "bin" / binary
-    if candidate.exists() and os.access(candidate, os.X_OK):
-        return str(candidate)
+    for sub in ("bin", "Scripts"):  # Scripts/ is pip's layout on Windows
+        for name in (binary, binary + ".exe"):
+            candidate = _pylib_target() / sub / name
+            if candidate.exists() and os.access(candidate, os.X_OK):
+                return str(candidate)
     return None
 
 

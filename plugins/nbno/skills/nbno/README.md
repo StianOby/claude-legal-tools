@@ -229,8 +229,10 @@ skill automatically.
 - **Geo-restriction.** Items with `accessAllowedFrom: NORWAY` or `NB` serve
   page images only to Norwegian IPs, and no cookie changes that. The skill
   cannot bypass it. In a cloud Cowork session the shell runs in Anthropic's
-  cloud (not a Norwegian IP), so such items are blocked there and, for now,
-  need local Cowork; only the browser pane has your own IP.
+  cloud (not a Norwegian IP), so the skill downloads such items through the
+  sandboxed local shell on your own computer instead (the Claude desktop app
+  must be open, with a folder connected); results land in
+  `<connected folder>/nbno/<id>/`. See `local-route.md`.
 - **Copyright.** Access to Bokhylla is granted to individuals under a
   specific agreement and does not permit redistribution. The built-in
   browser keeps a persistent profile, so a later session can download under

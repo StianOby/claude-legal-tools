@@ -12,7 +12,7 @@ shows the call.
 ## Auth recap
 
 `api.nb.no` authenticates by cookie — there is no bearer token. Public-domain
-and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP, so not from Anthropic's cloud);
+and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP, so in a cloud session run this in the local shell — SKILL.md **Routing**);
 FEIDE-licensed items need `nbsso` plus an active digital loan. Anything that
 is not public domain is **tiles-only** — single-shot `/full/<w>,/` returns 403
 at every width. See [`auth.md`](auth.md) for the full table.

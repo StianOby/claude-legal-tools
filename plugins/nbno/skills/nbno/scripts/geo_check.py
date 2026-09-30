@@ -28,6 +28,10 @@ Usage:
 Exit status: 0 normally; 3 when the tile probe was refused (403); 1 when
 nb.no could not be reached.
 
+With --id the last line is `route: <here | norwegian-ip | norwegian-ip+loan |
+unknown>` (also "route" in --json): what the item needs from the shell that
+ran the probe. SKILL.md maps it to where the download runs.
+
 Reading the output:
   - loginProvider null                     → not logged in (or cookie expired)
   - accessAllowedFrom EVERYWHERE           → no cookie needed, single-shot OK
@@ -61,6 +65,30 @@ MANIFEST_URLS = (
 
 # accessAllowedFrom values that mean "the resolver will geo-check you".
 GEO_GATED = ("NORWAY", "NB")
+
+# What the item needs, as far as this shell can tell. SKILL.md ("Where each
+# step runs") maps it to a place: `norwegian-ip*` from the cloud sandbox means
+# the local route; from the user's own machine it means the user is abroad
+# (NORWAY) or has no loan / an expired cookie (NB).
+ROUTES = {
+    "here": "this shell can download the pages now",
+    "norwegian-ip": "Bokhylla item: needs a Norwegian IP (no cookie)",
+    "norwegian-ip+loan": "legal-deposit item: needs a Norwegian IP, the nbsso "
+                         "cookie and an active digital loan",
+    "unknown": "could not tell; see the probe line above",
+}
+
+
+def decide_route(access_allowed_from: Optional[str], probe: Optional[int]) -> str:
+    if access_allowed_from == "EVERYWHERE":
+        return "here"
+    if access_allowed_from not in GEO_GATED:
+        return "unknown"
+    if probe == 200:
+        return "here"
+    if probe == 403:
+        return "norwegian-ip" if access_allowed_from == "NORWAY" else "norwegian-ip+loan"
+    return "unknown"
 
 
 def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
@@ -145,8 +173,10 @@ def main(argv: Optional[list] = None) -> int:
             print(f"ERROR: could not fetch item {canonical}: {exc}",
                   file=sys.stderr)
             return 1
-        if (out["accessInfo"] or {}).get("accessAllowedFrom") in GEO_GATED:
+        allowed = (out["accessInfo"] or {}).get("accessAllowedFrom")
+        if allowed in GEO_GATED:
             out["tileProbe"] = probe_tile(canonical, args.nbsso)
+        out["route"] = decide_route(allowed, out.get("tileProbe"))
 
     refused = out.get("tileProbe") == 403
 
@@ -197,6 +227,9 @@ def main(argv: Optional[list] = None) -> int:
                       f"{ai['accessAllowedFrom']};")
                 print(f"        confirm {me.get('ip')} is a Norwegian address "
                       "before downloading.")
+    if "route" in out:
+        print()
+        print(f"route: {out['route']} — {ROUTES[out['route']]}")
     elif args.id is None:
         print()
         print("(pass --id <item> to also see that item's accessInfo)")

@@ -105,6 +105,20 @@ def _year_key(year: str) -> int:
     return int(m.group()) if m else 0
 
 
+def _mark_newest(hits: list) -> None:
+    """Set h["newest"] on hits already sorted newest-first.
+
+    The flag points at the newest *edition* among several, so it is only
+    meaningful when the hits span more than one year; with a single year
+    (typical under --year) it would label every hit and tell nothing.
+    """
+    years = {_year_key(h["year"]) for h in hits}
+    newest = _year_key(hits[0]["year"]) if hits else 0
+    distinguishes = len(years) > 1
+    for h in hits:
+        h["newest"] = distinguishes and bool(newest) and _year_key(h["year"]) == newest
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("query", help="Words that must all match (author, title).")
@@ -129,9 +143,7 @@ def main(argv=None) -> int:
     hits = [_hit(it) for it in (data.get("_embedded") or {}).get("items", [])]
     # Newest first (stable, so equal years keep the catalogue's order).
     hits.sort(key=lambda h: _year_key(h["year"]), reverse=True)
-    newest = _year_key(hits[0]["year"]) if hits else 0
-    for h in hits:
-        h["newest"] = bool(newest) and _year_key(h["year"]) == newest
+    _mark_newest(hits)
 
     if args.json:
         print(json.dumps({"total": total, "hits": hits}, ensure_ascii=False, indent=1))
@@ -144,7 +156,7 @@ def main(argv=None) -> int:
     for h in hits:
         who = "; ".join(h["creators"]) or "(no creator)"
         flag = "  [EXCERPT — not the full book]" if h["excerpt"] else ""
-        if h["newest"] and len(hits) > 1:
+        if h["newest"]:
             flag += "  [NEWEST of the hits shown]"
         print(f"\n{h['id'] or '(no digital copy)'}")
         print(f"  {h['title']}{flag}")
