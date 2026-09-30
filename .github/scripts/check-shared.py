@@ -18,7 +18,8 @@ SHARED = {
     "shared/local-route/local-route.md": (["nbno", "lovdata-api"], "local-route.md"),
     "shared/local-route/pack_for_local.sh": (["nbno", "lovdata-api"], "scripts/pack_for_local.sh"),
     "shared/browser-loader/load.sh": (
-        ["eu-agreements-treaties", "hudoc", "lovdata-pro", "nbno", "norges-traktater"],
+        # not hudoc: its page CSP (connect-src *.coe.int) blocks the fetch
+        ["eu-agreements-treaties", "lovdata-pro", "nbno", "norges-traktater"],
         "scripts/browser/load.sh",
     ),
 }

@@ -13,7 +13,9 @@
 # main branch, checks its sha256 against the copy synced into this session,
 # runs it and returns one word plus detail:
 #   LOADED <global> <version>   helper installed
-#   ALREADY <global> <version>  that version was already in the tab
+#   ALREADY <global> <version>  this exact file was already loaded by the loader
+#                               (a pasted or trimmed copy with the same VERSION
+#                               is replaced, not accepted)
 #   MISMATCH <sha>              GitHub main differs from the synced copy
 #   FETCH_FAILED <why>          the site blocked the request (CSP, network)
 #   EVAL_FAILED <why>           the site blocked running it
@@ -36,5 +38,5 @@ version=$(grep -oE "const HELPER_VERSION = '[^']+'" "$f" | head -1 | sed -E "s/.
 
 # No backslashes in the output: javascript_tool decodes escapes (CLAUDE.md).
 cat <<EOF
-await (async () => { const u = '$url', want = '$sha', g = '$global', v = '$version'; if (window[g] && window[g].VERSION === v) return 'ALREADY ' + g + ' ' + v; let b; try { const r = await fetch(u, { cache: 'no-store', credentials: 'omit' }); if (!r.ok) return 'FETCH_FAILED HTTP ' + r.status; b = await r.arrayBuffer(); } catch (e) { return 'FETCH_FAILED ' + e.message; } const h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', b)), (x) => x.toString(16).padStart(2, '0')).join(''); if (h !== want) return 'MISMATCH ' + h; try { (0, eval)(new TextDecoder().decode(b)); } catch (e) { return 'EVAL_FAILED ' + e.message; } return window[g] && window[g].VERSION === v ? 'LOADED ' + g + ' ' + v : 'EVAL_FAILED ' + g + ' not set'; })()
+await (async () => { const u = '$url', want = '$sha', g = '$global', v = '$version'; if (window[g] && window[g].VERSION === v && window[g].LOADER_SHA === want) return 'ALREADY ' + g + ' ' + v; let b; try { const r = await fetch(u, { cache: 'no-store', credentials: 'omit' }); if (!r.ok) return 'FETCH_FAILED HTTP ' + r.status; b = await r.arrayBuffer(); } catch (e) { return 'FETCH_FAILED ' + e.message; } const h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', b)), (x) => x.toString(16).padStart(2, '0')).join(''); if (h !== want) return 'MISMATCH ' + h; try { delete window[g]; (0, eval)(new TextDecoder().decode(b)); } catch (e) { return 'EVAL_FAILED ' + e.message; } if (!window[g] || window[g].VERSION !== v) return 'EVAL_FAILED ' + g + ' not set'; window[g].LOADER_SHA = want; return 'LOADED ' + g + ' ' + v; })()
 EOF

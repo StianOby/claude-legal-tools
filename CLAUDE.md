@@ -68,7 +68,7 @@ Rules:
   older helper gets it replaced. When you change a helper, set its
   `HELPER_VERSION` to the plugin's new version by hand; CI fails a changed
   helper whose `HELPER_VERSION` differs from its plugin's version.
-  The skills load helpers with `scripts/browser/load.sh` (shared from
+  The skills (all but hudoc, whose page CSP blocks the fetch) load helpers with `scripts/browser/load.sh` (shared from
   `shared/browser-loader/`): it prints a one-line loader that fetches the
   helper from `main` on GitHub, checks it by sha256 against the synced copy
   and runs it, instead of pasting 30–45 KB. The helper must keep one

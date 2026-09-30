@@ -67,8 +67,16 @@ const server = http.createServer((req, res) => {
     check(`${name}: ALREADY on re-run`, second.startsWith('ALREADY '), second);
   }
 
-  // A different file on GitHub than in the session: refuse, don't run it.
   const nt = helpers.find((h) => h.endsWith('norges_traktater.js'));
+
+  // A hand-pasted or trimmed copy with the same VERSION is replaced, not ALREADY.
+  const version = globalThis.__nt.VERSION;
+  globalThis.__nt = { VERSION: version, trimmed: true };
+  const re = await run(printLoader(nt, base));
+  check('same-version pasted copy: LOADED', re.startsWith('LOADED __nt '), re);
+  check('same-version pasted copy: replaced', !globalThis.__nt.trimmed && typeof globalThis.__nt.meta === 'function', 'still the trimmed copy');
+
+  // A different file on GitHub than in the session: refuse, don't run it.
   delete globalThis.__nt;
   tamper = nt;
   const mm = await run(printLoader(nt, base));
