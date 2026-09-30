@@ -74,6 +74,11 @@ Rules:
   `Path(__file__).resolve().parents[2] / "plugins" / "<name>" / "skills" / "<name>"`
   (Python) or `path.join(__dirname, '..', '..', 'plugins', '<name>', 'skills', '<name>')`
   (Node). CI runs `tests/*/test_*.py` and `tests/*/test_*.js`.
+- **No `\uXXXX` escapes in browser helpers.** `javascript_tool` decodes them
+  before running the pasted code, so a decoded U+2028/U+2029 in a regex
+  literal is a SyntaxError (norges-traktater, 2026-09-30). Use
+  `String.fromCharCode(...)` or `\xNN`. `tests/browser-helpers/test_paste_safe.js`
+  checks every helper.
 - Never put `version` in the marketplace.json entries — it belongs in
   `plugin.json` only.
 - Add new plugins to `.claude-plugin/marketplace.json` with

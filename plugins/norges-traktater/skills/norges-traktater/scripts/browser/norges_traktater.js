@@ -27,7 +27,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.2.0';
+  const HELPER_VERSION = '1.2.1';
   if (root.window && root.window.__nt && root.window.__nt.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -131,8 +131,15 @@
     }
 
     // str.splitlines()
+    // Built from char codes, not escapes: the javascript_tool channel decodes
+    // backslash-u escapes before running the code, and a decoded U+2028/U+2029
+    // inside a regex literal is a line break, i.e. a SyntaxError (cloud
+    // Cowork, 2026-09-30). CI rejects backslash-u escapes in browser helpers.
+    const SPLITLINES_RE = new RegExp(
+      String.fromCharCode(13, 10) + '|[' +
+      String.fromCharCode(10, 13, 11, 12, 0x1c, 0x1d, 0x1e, 0x85, 0x2028, 0x2029) + ']');
     const splitlines = (s) => {
-      const parts = s.split(/\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]/);
+      const parts = s.split(SPLITLINES_RE);
       if (parts.length && parts[parts.length - 1] === '') parts.pop();
       return parts;
     };

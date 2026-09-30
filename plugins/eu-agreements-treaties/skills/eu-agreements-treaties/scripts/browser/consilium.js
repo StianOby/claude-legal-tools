@@ -27,7 +27,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '0.1.6';
+  const HELPER_VERSION = '0.1.7';
   if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -332,7 +332,7 @@
     function parseResultCount(doc) {
       const el = doc.querySelector('.gsc-u-results-count');
       const text = el ? norm(el.textContent) : ((doc.body && norm(doc.body.textContent)) || norm(doc.documentElement.textContent));
-      const m = text.match(/(\d[\d.,\s\u00a0]*)\s*results?/i);
+      const m = text.match(/(\d[\d.,\s\xa0]*)\s*results?/i);
       if (!m) return null;
       const n = parseInt(m[1].replace(/[^\d]/g, ''), 10);
       return Number.isFinite(n) ? n : null;
