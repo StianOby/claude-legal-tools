@@ -86,8 +86,12 @@ I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke b
 2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
    godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
    og prøv igjen.
-3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/lovdata_pro.js` via
-   `javascript_tool` (`action: "javascript_exec"`). Idempotent — trygt å lime
+3. Last inn hjelperen. Kjør `bash {SKILL_DIR}/scripts/browser/load.sh
+   {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash og send den ene linjen
+   den skriver ut via `javascript_tool` (`action: "javascript_exec"`); ta vare
+   på linjen til senere innlasting. `LOADED …` eller `ALREADY …` → ferdig.
+   Ethvert annet svar (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → lim inn
+   hele filen i stedet. Kort aldri ned hjelperen. Idempotent — trygt å lime
    inn flere ganger i samme fane. En eldre versjon av hjelperen fra før en
    skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION` viser hvilken
    som kjører.

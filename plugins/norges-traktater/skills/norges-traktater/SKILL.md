@@ -69,12 +69,15 @@ stopp.
    `preview_start {url: "https://lovdata.no/register/traktater"}`.
 2. Hvis `request_access` finnes og et verktøy sier at siden ikke er godkjent ennå:
    `request_access {url: "https://lovdata.no/register/traktater", scope: "site"}` og prøv igjen.
-3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/norges_traktater.js` via `javascript_tool`
-   (`action: "javascript_exec"`). Idempotent — trygt å lime inn flere ganger; en eldre versjon i fanen byttes ut.
+3. Last inn hjelperen. Kjør `bash {SKILL_DIR}/scripts/browser/load.sh {SKILL_DIR}/scripts/browser/norges_traktater.js`
+   i Bash og send den ene linjen den skriver ut via `javascript_tool` (`action: "javascript_exec"`); ta vare på
+   linjen. `LOADED …` eller `ALREADY …` → ferdig. Ethvert annet svar (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) →
+   lim inn hele `norges_traktater.js` i stedet. Kort aldri ned hjelperen. Idempotent — trygt å kjøre flere ganger;
+   en eldre versjon i fanen byttes ut.
 4. Kjør `await __nt.status()`. Skal gi `reachable: true`, antall traktater, årganger og antall land. Får du
    `{error: 'http_405' | 'http_403' …}` er lovdata.no blokkert også her: si det til brukeren og stopp.
 
-**Lim inn hjelperen på nytt etter hver navigering.** Cachen og `window.__nt` dør når fanen navigerer eller
+**Last inn hjelperen på nytt (samme linje) etter hver navigering.** Cachen og `window.__nt` dør når fanen navigerer eller
 lastes på nytt. Naviger ikke fanen bort fra lovdata.no; skal du se på noe annet, bruk en egen fane.
 
 Hvis et browserkall avvises av en sikkerhetssjekk, si det til brukeren og vent på svar — ikke prøv igjen i løkke.

@@ -384,10 +384,14 @@ the same text the script would have cached — same paragraph breaks, same
 1. `tabs_context` — reuse a tab on `hudoc.echr.coe.int`, or `preview_start
    {url: "https://hudoc.echr.coe.int/eng"}`. If `request_access` exists and the site is not approved,
    `request_access {url: "https://hudoc.echr.coe.int/", scope: "site"}`.
-2. Paste the whole of `scripts/browser/hudoc.js` via `javascript_tool`.
+2. Load the helper. Run `bash {SKILL_DIR}/scripts/browser/load.sh
+   {SKILL_DIR}/scripts/browser/hudoc.js` in Bash and send the one line it
+   prints via `javascript_tool`. `LOADED …` or `ALREADY …` → done. Any other
+   answer (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → paste the whole of
+   `scripts/browser/hudoc.js` instead. Never trim or shorten the helper.
    Idempotent; an older helper from before a skill update is replaced
    (`__hd.VERSION` shows which one runs). Navigating the tab wipes it —
-   re-paste after any navigation.
+   send the same line again after any navigation.
 3. `await __hd.ready()` → `{ok: true}`. `{error: "challenge"}` means the tab
    itself is on the Cloudflare page: wait a few seconds, retry, and ask the
    user to reload the tab if it persists.

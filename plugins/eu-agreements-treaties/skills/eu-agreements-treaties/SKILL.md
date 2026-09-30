@@ -90,8 +90,12 @@ cloud" and use the browser pane. Never suggest a VPN.
 2. If a tool says the site is not approved and `request_access` exists: `request_access {url:
    "https://www.consilium.europa.eu/", scope: "site"}` and retry. If the user
    declines, stop.
-3. Paste the whole of `{SKILL_DIR}/scripts/browser/consilium.js` via
-   `javascript_tool` (`action: "javascript_exec"`). Idempotent; an older
+3. Load the helper. Run `bash {SKILL_DIR}/scripts/browser/load.sh
+   {SKILL_DIR}/scripts/browser/consilium.js` in Bash and send the one line
+   it prints via `javascript_tool` (`action: "javascript_exec"`); keep that
+   line for re-loading later. `LOADED …` or `ALREADY …` → done. Any other
+   answer (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → paste the whole file
+   instead. Never trim or shorten the helper. Idempotent; an older
    helper left in the tab from before a skill update is replaced
    (`__cs.VERSION` shows which one runs).
 4. `await __cs.ready()` →
@@ -236,7 +240,7 @@ All functions return `{error, detail}` rather than throwing:
 
 - `challenge` → Cloudflare page. Wait, retry `ready()` up to three times,
   then ask the user to reload the tab. Never work around it.
-- `wrong_origin` → the tab left the site; navigate back and re-paste.
+- `wrong_origin` → the tab left the site; navigate back and load the helper again (step 3).
 - `unknown_party` → show the `suggestions` to the user; do not search.
 - `ambiguous_code` → the code means something else on the site (`EC` =
   Ecuador). Show both `options`; rerun with the intended code or

@@ -68,6 +68,12 @@ Rules:
   older helper gets it replaced. When you change a helper, set its
   `HELPER_VERSION` to the plugin's new version by hand; CI fails a changed
   helper whose `HELPER_VERSION` differs from its plugin's version.
+  The skills load helpers with `scripts/browser/load.sh` (shared from
+  `shared/browser-loader/`): it prints a one-line loader that fetches the
+  helper from `main` on GitHub, checks it by sha256 against the synced copy
+  and runs it, instead of pasting 30–45 KB. The helper must keep one
+  `window.__x = ` assignment and its `HELPER_VERSION`, and must not need its
+  own file name (tests/browser-helpers/test_loader.js).
 - **Tests live in `tests/<name>/` at the repo root, never inside a plugin.**
   Installing a plugin copies its whole folder (there is no ignore file), so
   anything under `plugins/` ships to every user. Tests find the skill via

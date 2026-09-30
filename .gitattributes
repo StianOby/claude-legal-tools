@@ -4,3 +4,6 @@
 # every platform (.github/scripts/check-shared.py compares bytes).
 shared/** text eol=lf
 plugins/*/skills/*/local-route.md text eol=lf
+# Browser helpers are loaded from GitHub and checked by sha256 against the
+# synced copy (shared/browser-loader/load.sh); keep the bytes identical.
+plugins/*/skills/*/scripts/browser/*.js text eol=lf

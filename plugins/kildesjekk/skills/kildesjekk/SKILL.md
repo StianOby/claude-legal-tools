@@ -98,6 +98,8 @@ For the purposes of this source check, a "reference" is any pointer in the text 
 
 Short forms are often used in the notes, particularly for literature references. They may e.g. look like this: Smith (1962). For such short references, cross-check against the bibliography at the end of the text to find the full bibliographic information for all literature references. If the short form is ambiguous against the bibliography, set discrepancy = yes, use the label "Ambiguous reference" in the type-of-discrepancy column, and explain in the description column rather than guessing.
 
+**Every bibliography entry gets a row of its own**, keyed by the page it is on (`text p. 31a`, `text p. 31b` … under the letter rule in §2), even when it only serves to resolve short forms. For these rows, look the work up like any other literature reference and check the bibliographic details against the source itself: the title page and its verso, not only the Zotero record. Check author, title, edition, year, publisher, and for articles the journal, volume and page span. A mismatch is a "Citation format error". A scanned copy that is a later reprint of the cited edition is not a mismatch. Also flag, as "Uncited entry", any entry that no note or passage in the text cites, and any work cited in short form that is missing from the bibliography, as "Missing from bibliography" on the note's row.
+
 For chain references (ibid./op.cit./same work p. X), follow the chain back to the full reference in order to identify the source you are to look up. Write both what is actually stated in the reference (e.g. ibid.) and the full reference (e.g. Smith 1962 p. 149) in the "reference" column, separated by |. If the chain cannot be resolved unambiguously (e.g. multiple preceding references could be the antecedent of ibid.), record both candidates in the reference column separated by |, set discrepancy = yes, use the "Ambiguous reference" label, and flag this in the description column.
 
 # 2) Worklist and output initialization
@@ -212,6 +214,8 @@ Suggested labels:
 - Ambiguous reference (e.g. unresolved short form or chain reference)
 - Wrong source (the reference points to the wrong work entirely)
 - Citation format error (e.g. wrong year, wrong volume, wrong case number)
+- Uncited entry (a bibliography entry that no note or passage cites)
+- Missing from bibliography (a short form with no bibliography entry)
 
 Leave this column blank if discrepancy = no or if checked = source unavailable.
 
@@ -312,14 +316,17 @@ Read the text with `zotero_get_fulltext`. Passing the parent `item_key` resolves
 - `max_chars` — the default cap is 12 000 characters (maximum 100 000). Raise it when you need to read a quotation in context.
 - `precise_pages: true` — with `query`, re-extracts the PDF so each passage carries an exact `page` instead of `pageApprox`. Try it first; the response's `pageSource` says whether you got `"exact"` pages or an estimate.
 - `outline: true` returns the PDF's table of contents only when Zoteus has its optional PDF parser installed. If it errors, skip it.
-- `zotero_pdf_images` (same `item_key`, a page span) renders pages as images. Use it for a scanned PDF whose text layer is missing or garbled — old Norwegian books typically — so the quotation can still be read off the page instead of the row being marked unavailable.
+- `zotero_pdf_images` (same `item_key`, a page span) renders pages as images. Use it for a scanned PDF whose text layer is missing or garbled — old Norwegian books typically — so the quotation can still be read off the page instead of the row being marked unavailable. It refuses PDFs over about 20 MB (see below).
 
 Page numbers: unless that optional parser is installed (or `precise_pages`/`page_range` re-extracted the file — `pageSource: "exact"`), every page number Zoteus reports is an estimate (`pageApprox`) derived from character counts, and the estimate drifts through a document — in testing the gap between PDF page and printed page was 5 at PDF page 30 and 3 at page 60 of the same book. Therefore:
 - Never convert an estimated page to a printed page with a fixed offset for the whole item.
 - To reach a printed pinpoint, read a small `page_range` near the expected position, find the running header or printed page number in the text, and step forward or back until the header shows the cited page. Use the printed pagination in the worklist.
 - To verify a quotation: `query` with a distinctive phrase, note `pageApprox`, read a `page_range` around it, confirm the text verbatim, and take the printed page number from the header.
 
-PDFs larger than about 20 MB are served from Zotero's stored index rather than re-extracted; the response says so in `notice`. `page_range` and `query` still work.
+PDFs larger than about 20 MB are served from Zotero's stored index rather than re-extracted; the response says so in `notice`. `page_range` and `query` still work, but `precise_pages` is skipped and `zotero_pdf_images` refuses the file, so there is no page image to look at. Scanned books are often this large. For them:
+- Settle the printed page from the running headers of the neighbouring pages (e.g. headers 21, 22, ?, 24 around the quotation put it on 23). A page number in the OCR text can itself be misread.
+- A difference the OCR cannot show, such as en dash against em dash or a lost diacritic, is not a "Quotation not verbatim" finding. Say in the description that it could not be checked.
+- If the page image matters and the book is on nb.no, fetch that one page through §14. Otherwise ask the user to look at the page in Zotero.
 
 Note that a single Zotero item may contain multiple attachments (e.g. PDFs). `zotero_get_fulltext` selects one attachment automatically; if it does not contain what you are looking for, take the other attachment keys from the `zotero_get_item` children list and call `zotero_get_fulltext` with that attachment key as `item_key`.
 
