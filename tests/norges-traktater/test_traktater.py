@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline tests for scripts/traktater.py (no network): article-number
 parsing, article lookup on a synthetic document, cache keys and --no-cache
-placement. Run: python tests/test_traktater.py
+placement. Run: python tests/norges-traktater/test_traktater.py
 """
 
 import os
@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 os.environ["NORGES_TRAKTATER_DATA_DIR"] = tempfile.mkdtemp()
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plugins", "norges-traktater", "skills", "norges-traktater", "scripts"))
 import traktater as t  # noqa: E402
 
 failures = 0

@@ -29,9 +29,9 @@ ets/
     trigger_evals.json     # Trigger evaluation test cases
   scripts/
     coe.py                 # Self-contained CLI
-  tests/
-    test_coe.py            # Offline tests: python tests/test_coe.py
 ```
+
+Offline tests live in the repository at `tests/ets/`, not in the plugin (they do not ship to users): `python tests/ets/test_coe.py`.
 
 ## Requirements
 

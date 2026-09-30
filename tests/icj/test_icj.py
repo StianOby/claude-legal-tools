@@ -2,7 +2,7 @@
 """Offline tests for the icj CLI (no network): state resolution, case
 search (word matching, nicknames, accents), the case-page cache TTL, and
 error handling. Case titles are real ones from icj-cij.org.
-Run: python tests/test_icj.py
+Run: python tests/icj/test_icj.py
 """
 
 import io
@@ -13,7 +13,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 os.environ["ICJ_CACHE_DIR"] = tempfile.mkdtemp()
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "icj" / "skills" / "icj" / "scripts"))
 
 import _common  # noqa: E402
 import cases  # noqa: E402

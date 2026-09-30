@@ -9,13 +9,13 @@
 // paging continues where the last reply stopped, and that search() reads
 // only results rendered by its own query.
 //
-// Run with `node plugins/lovdata-pro/skills/lovdata-pro/tests/test_browser.js`.
+// Run with `node tests/lovdata-pro/test_browser.js`.
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'browser', 'lovdata_pro.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'plugins', 'lovdata-pro', 'skills', 'lovdata-pro', 'scripts', 'browser', 'lovdata_pro.js'), 'utf8');
 
 let failures = 0;
 function check(name, got, want) {

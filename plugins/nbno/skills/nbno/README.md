@@ -40,8 +40,9 @@ nbno/
 │   ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
 │   └── browser/
 │       └── nbno_auth.js       # in-page helper for the built-in browser
-└── tests/test_download.py     # offline tests (needs Pillow)
 ```
+
+Offline tests live in the repository at `tests/nbno/`, not in the plugin (they do not ship to users): `python tests/nbno/test_*.py` (needs Pillow; pypdf for the page-size test).
 
 SKILL.md is kept deliberately lean — it routes to `auth.md`,
 `reading-ocr.md`, `iiif-download.md` and `zotero-ready.md` so only the

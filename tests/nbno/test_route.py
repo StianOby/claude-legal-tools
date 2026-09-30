@@ -2,7 +2,7 @@
 """Offline tests for the routing decision in scripts/geo_check.py (no
 network): each access class, with the catalogue and the tile probe mocked,
 gives the right `route` and exit status.
-Run: python tests/test_route.py
+Run: python tests/nbno/test_route.py
 """
 
 import io
@@ -11,7 +11,7 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "nbno" / "skills" / "nbno" / "scripts"))
 import geo_check as gc  # noqa: E402
 
 failures = 0

@@ -50,13 +50,14 @@ eu-agreements-treaties/
 │   └── parties.json                 # the site's 256 party codes with short and long names
 ├── references/
 │   └── party-codes.md               # the non-ISO codes, EU entities, collisions
-├── scripts/
-│   └── browser/
-│       └── consilium.js             # pasted into the browser tab via javascript_tool
-└── tests/
-    ├── run.js                       # parser tests (dev only; npm install && npm test)
-    └── fixtures/                    # pages captured from the live site, 2026-09-16
+└── scripts/
+    └── browser/
+        └── consilium.js             # pasted into the browser tab via javascript_tool
 ```
+
+Parser tests and the captured fixture pages live in the repository at
+`tests/eu-agreements-treaties/` (dev only, not shipped; `npm ci && npm test`
+there).
 
 There is no session/state directory and nothing is stored: the database is
 public, no login is involved, and the helper keeps its cache in the browser
@@ -66,8 +67,8 @@ tab's memory only.
 
 - **Claude Desktop** with **Cowork** enabled (the built-in browser tool
   surface; the tool prefix differs between local and cloud Cowork, and the skill finds it with ToolSearch `Claude_Browser`).
-- Nothing else. No Python, no packages. (`tests/` uses Node and `linkedom`,
-  for maintainers only.)
+- Nothing else. No Python, no packages. (The repository's
+  `tests/eu-agreements-treaties/` uses Node and `linkedom`, for maintainers only.)
 
 ## Quickstart
 

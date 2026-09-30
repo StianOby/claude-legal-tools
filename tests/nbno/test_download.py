@@ -4,7 +4,7 @@ network): transient errors are retried, one failing page does not abort
 the book, a page that cannot be had becomes a placeholder in its own place
 (so later pages keep their numbers), and the temp folder is removed.
 Also normalize_metadata()'s edition and editor role codes.
-Needs Pillow. Run: python tests/test_download.py
+Needs Pillow. Run: python tests/nbno/test_download.py
 """
 
 import io
@@ -15,7 +15,7 @@ import urllib.error
 from contextlib import redirect_stdout
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "nbno" / "skills" / "nbno" / "scripts"))
 try:
     from PIL import Image
 except ImportError:

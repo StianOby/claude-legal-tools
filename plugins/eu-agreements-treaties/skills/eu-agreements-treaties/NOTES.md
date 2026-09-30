@@ -87,9 +87,9 @@ guidance) — see §4.
 ## 3. Fixture capture checklist (run once in Cowork)
 
 The parsers in `scripts/browser/consilium.js` were written from the memo's
-description of the pages, not from the HTML. `tests/run.js` therefore has a
+description of the pages, not from the HTML. `tests/eu-agreements-treaties/run.js` therefore has a
 synthetic layer that always runs and a fixture layer that runs only when
-`tests/fixtures/*.html` exist. Capture them like this, in a Cowork session
+`tests/eu-agreements-treaties/fixtures/*.html` exist. Capture them like this, in a Cowork session
 in this repository:
 
 1. Step 0 of SKILL.md (open tab, paste helper, `await __cs.ready()`).
@@ -101,13 +101,13 @@ in this repository:
 
    | Fixture file | Call |
    |---|---|
-   | `tests/fixtures/search-form.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?Lang=en")` |
-   | `tests/fixtures/search-NO.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?DoSearch=true&Parties=NO&Lang=en")` |
-   | `tests/fixtures/agreement-2011036.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2011036&docLanguage=en")` |
-   | `tests/fixtures/search-NO-IS.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?DoSearch=true&Parties=NO&Parties=IS&Lang=en")` |
-   | `tests/fixtures/agreement-2016032.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2016032&docLanguage=en")` |
-   | `tests/fixtures/agreement-2016032-fr.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2016032&docLanguage=fr")` |
-   | `tests/fixtures/ratification-2011036-A.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/ratification/?id=2011036&partyid=A&doclanguage=en")` |
+   | `tests/eu-agreements-treaties/fixtures/search-form.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?Lang=en")` |
+   | `tests/eu-agreements-treaties/fixtures/search-NO.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?DoSearch=true&Parties=NO&Lang=en")` |
+   | `tests/eu-agreements-treaties/fixtures/agreement-2011036.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2011036&docLanguage=en")` |
+   | `tests/eu-agreements-treaties/fixtures/search-NO-IS.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/?DoSearch=true&Parties=NO&Parties=IS&Lang=en")` |
+   | `tests/eu-agreements-treaties/fixtures/agreement-2016032.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2016032&docLanguage=en")` |
+   | `tests/eu-agreements-treaties/fixtures/agreement-2016032-fr.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=2016032&docLanguage=fr")` |
+   | `tests/eu-agreements-treaties/fixtures/ratification-2011036-A.html` | `await __cs.capture("https://www.consilium.europa.eu/en/documents/treaties-agreements/ratification/?id=2011036&partyid=A&doclanguage=en")` |
 
    In the 2026-09-16 run every page resolved to `selector_used: "main"`
    and the largest (the form, 120 K chars) took three slices. If `capture`
@@ -119,7 +119,7 @@ in this repository:
    `page().text` and compare with the file on disk; re-transfer any page that
    differs (encoding trailing spaces as a marker and restoring them works).
    The seven fixtures shipped here match their browser hashes; see
-   `tests/fixtures/PROBES.md` for the values.
+   `tests/eu-agreements-treaties/fixtures/PROBES.md` for the values.
 4. Note on the shipped fixtures: they were captured while `capture()` still
    collapsed whitespace between elements (`>\s+<` → `><`). That changes
    `textContent` (`"101 results" + "Sorted by"` became `"101 resultsSorted
@@ -131,15 +131,15 @@ in this repository:
 5. Record what the parsers see live — `search({parties: ["NO"]})`,
    `search({all: ["NO", "IS"]})` (42), `detail("2011036")`,
    `detail("2009066")` — and every `null`/wrong field, in
-   `tests/fixtures/PROBES.md`. The 2026-09-16 report is the model.
+   `tests/eu-agreements-treaties/fixtures/PROBES.md`. The 2026-09-16 report is the model.
 6. `cd tests && npm install && npm test`; fix parsers until green; pin the
    expected numbers in `run.js` to the capture date.
 
 ## 4. Generating `data/parties.json`
 
 `data/parties.json` (256 entries, `{code, name, long_name, names}`) is the
-output of `parsePartyList()` over `tests/fixtures/search-form.html`, and
-`tests/run.js` asserts that equality — so regenerating is
+output of `parsePartyList()` over `tests/eu-agreements-treaties/fixtures/search-form.html`, and
+`tests/eu-agreements-treaties/run.js` asserts that equality — so regenerating is
 `node -e` over the fixture, not a browser session:
 
 ```

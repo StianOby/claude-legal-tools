@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offline tests for nb_search.py: the [NEWEST] flag only appears when the hits
-span more than one year. Run: python tests/test_nb_search.py
+span more than one year. Run: python tests/nbno/test_nb_search.py
 """
 
 import io
@@ -9,7 +9,7 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "nbno" / "skills" / "nbno" / "scripts"))
 import nb_search as ns  # noqa: E402
 
 failures = 0

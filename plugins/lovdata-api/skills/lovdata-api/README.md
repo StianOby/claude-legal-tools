@@ -31,10 +31,11 @@ Local regulations (LF) are not included in the free packages.
 lovdata-api/
 ├── SKILL.md          # the skill manifest Claude reads
 ├── README.md         # you are here
-├── scripts/
-│   └── lovdata.py    # the CLI
-└── tests/            # offline regression tests (python tests/test_*.py)
+└── scripts/
+    └── lovdata.py    # the CLI
 ```
+
+Offline tests live in the repository at `tests/lovdata-api/`, not in the plugin (they do not ship to users): `python tests/lovdata-api/test_*.py`.
 
 Data and state are written to a writable user directory outside the skill
 folder (the skill folder is often read-only when installed as a plugin):

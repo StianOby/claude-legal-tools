@@ -7,14 +7,14 @@ trimmed from the public gjeldende-lover package (Grunnloven in bokmål and
 nynorsk, arbeidsmiljøloven, menneskerettsloven's EMK annex) and a
 delegation decision that mentions Grunnloven in its title.
 
-Run with `python plugins/lovdata-api/skills/lovdata-api/tests/test_lookup.py`.
+Run with `python tests/lovdata-api/test_lookup.py`.
 """
 
 import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "lovdata-api" / "skills" / "lovdata-api" / "scripts"))
 
 import lovdata  # noqa: E402
 

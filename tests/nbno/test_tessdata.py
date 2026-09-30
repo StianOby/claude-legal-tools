@@ -3,7 +3,7 @@
 tesseract 4.x prints no directory in `--list-langs`, and the Cowork local VM
 (4.1.1) broke OCR that way on 2026-09-30. Covers zotero_book.py and its
 mirror in ocr_chunked.py.
-Run: python tests/test_tessdata.py
+Run: python tests/nbno/test_tessdata.py
 """
 
 import os
@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "nbno" / "skills" / "nbno" / "scripts"))
 os.environ["NBNO_PYLIB"] = str(Path(tempfile.mkdtemp()) / "_pylib")
 import ocr_chunked  # noqa: E402
 import zotero_book  # noqa: E402

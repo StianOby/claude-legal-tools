@@ -5,14 +5,14 @@ Builds worklists with openpyxl in a temp directory - one well-formed, one
 carrying the faults seen in real runs - and checks what the validator says
 about them.
 
-Run with `python plugins/kildesjekk/skills/kildesjekk/tests/test_worklist.py`.
+Run with `python tests/kildesjekk/test_worklist.py`.
 """
 
 import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "kildesjekk" / "skills" / "kildesjekk" / "scripts"))
 
 try:
     from openpyxl import Workbook

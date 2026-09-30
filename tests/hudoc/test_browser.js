@@ -8,13 +8,13 @@
 // The conversion must match docx_to_text() in scripts/hudoc.py character for
 // character; tests/test_docx.py checks the same fixtures on the Python side.
 //
-// Run with `node plugins/hudoc/skills/hudoc/tests/test_browser.js`.
+// Run with `node tests/hudoc/test_browser.js`.
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const SRC = path.join(__dirname, '..', 'scripts', 'browser', 'hudoc.js');
+const SRC = path.join(__dirname, '..', '..', 'plugins', 'hudoc', 'skills', 'hudoc', 'scripts', 'browser', 'hudoc.js');
 const hd = require(SRC);
 const FIX = path.join(__dirname, 'fixtures');
 

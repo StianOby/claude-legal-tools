@@ -4,13 +4,13 @@
 No network: the fixtures are markup copied from the public gjeldende-lover
 package, trimmed to the elements the conversion depends on.
 
-Run with `python plugins/lovdata-api/skills/lovdata-api/tests/test_html_to_text.py`.
+Run with `python tests/lovdata-api/test_html_to_text.py`.
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "lovdata-api" / "skills" / "lovdata-api" / "scripts"))
 
 import lovdata  # noqa: E402
 

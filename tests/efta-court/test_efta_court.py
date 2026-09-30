@@ -2,7 +2,7 @@
 """Offline tests for scripts/efta_court.py (no network): document-label
 parsing, --type matching, cache file names, and the re-fetch of cached
 pages for cases that were still pending. Labels are real ones from
-eftacourt.int case pages. Run: python tests/test_efta_court.py
+eftacourt.int case pages. Run: python tests/efta-court/test_efta_court.py
 """
 
 import io
@@ -13,7 +13,7 @@ import time
 from contextlib import redirect_stderr
 
 os.environ["EFTA_COURT_CACHE_DIR"] = tempfile.mkdtemp()
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plugins", "efta-court", "skills", "efta-court", "scripts"))
 import efta_court as ec  # noqa: E402
 
 failures = 0

@@ -173,8 +173,7 @@ icj/
 │   ├── declaration-analysis.md   # how to compare two declarations (Norway-Finland worked example)
 │   ├── pcij-series.md            # Series A/B/A/B/C/D/E/F overview
 │   └── data-codes.md             # ISO-2 codes, document-type codes used in PDF filenames
-└── tests/test_icj.py         # offline tests: python tests/test_icj.py
-                               # runtime cache: ~/.cache/icj/ (or $ICJ_CACHE_DIR)
+                                  # runtime cache: ~/.cache/icj/ (or $ICJ_CACHE_DIR)
 ```
 
 When a question maps to one of the reference files, read the relevant file before answering — they encode case-law nuance the SKILL.md keeps short.

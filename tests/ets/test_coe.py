@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Offline tests for scripts/coe.py (no network): aliases, and when a
 cached treaty document or the cached index is fetched again.
-Run: python tests/test_coe.py
+Run: python tests/ets/test_coe.py
 """
 
 import io
@@ -13,7 +13,7 @@ from contextlib import redirect_stderr
 from pathlib import Path
 
 os.environ["ETS_CACHE_DIR"] = tempfile.mkdtemp()
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "ets" / "skills" / "ets" / "scripts"))
 import coe  # noqa: E402
 
 failures = 0

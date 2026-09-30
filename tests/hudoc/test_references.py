@@ -5,7 +5,7 @@ narrowed by respondent state ("Kurt v. Turkey" must not find Kurt v.
 Austria). The table in fixtures/references.json is shared with
 tests/test_browser.js, so the CLI and the in-page helper query alike.
 
-No network. Run with `python plugins/hudoc/skills/hudoc/tests/test_references.py`.
+No network. Run with `python tests/hudoc/test_references.py`.
 """
 
 import json
@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "scripts"))
+SKILL = HERE.parents[1] / "plugins" / "hudoc" / "skills" / "hudoc"
+sys.path.insert(0, str(SKILL / "scripts"))
 
 import hudoc  # noqa: E402
 

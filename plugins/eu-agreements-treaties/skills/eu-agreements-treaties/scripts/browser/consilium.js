@@ -20,14 +20,14 @@
 // challenge page it reports {error: 'challenge'} and stops.
 //
 // Also exported for Node (CommonJS) so the pure parsers can be unit-tested
-// against saved HTML fixtures with a DOM shim — see NOTES.md §3 and tests/run.js.
+// against saved HTML fixtures with a DOM shim — see NOTES.md §3 and the repo's tests/eu-agreements-treaties/run.js.
 
 // HELPER_VERSION follows the plugin version and changes whenever this file
 // does (bump it by hand; CI checks it). A helper of another
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '0.1.3';
+  const HELPER_VERSION = '0.1.6';
   if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {

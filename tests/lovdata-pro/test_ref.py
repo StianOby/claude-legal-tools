@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Offline tests for scripts/lovdata_ref.py: the module's doctests plus a
-table of citation forms, Norwegian and English. Run: python tests/test_ref.py
+table of citation forms, Norwegian and English. Run: python tests/lovdata-pro/test_ref.py
 """
 
 import doctest
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plugins", "lovdata-pro", "skills", "lovdata-pro", "scripts"))
 import lovdata_ref  # noqa: E402
 
 HR = "HRSIV/avgjorelse/hr-2016-2554-p"

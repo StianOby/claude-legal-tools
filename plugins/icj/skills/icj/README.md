@@ -51,4 +51,4 @@ pages to flag changes; `refresh` re-downloads the changed ones (`--all`
 re-downloads every cached page). Jurisdiction and declaration pages are
 cached for 14 days; case lists and case pages for one day.
 
-Tests (offline): `python tests/test_icj.py`.
+Tests (offline) live in the repository, not the plugin: `python tests/icj/test_icj.py`.

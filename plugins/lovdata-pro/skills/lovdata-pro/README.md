@@ -34,13 +34,13 @@ lovdata-pro/
 ├── README.md                        # you are here
 ├── references/
 │   └── lovdata-pro-mapping.md       # URL patterns, collection codes, DOM notes
-├── scripts/
-│   ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
-│   └── browser/
-│       └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
-└── tests/                           # offline tests: python tests/test_ref.py,
-                                     # node tests/test_browser.js
+└── scripts/
+    ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
+    └── browser/
+        └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
 ```
+
+Offline tests live in the repository at `tests/lovdata-pro/`, not in the plugin (they do not ship to users): `python tests/lovdata-pro/test_ref.py`, `node tests/lovdata-pro/test_browser.js`.
 
 There is no session/state directory and no stored credentials of any kind.
 Cowork's built-in browser has its own persistent profile on the user's

@@ -30,7 +30,7 @@ jobs:
       - name: Run script unit tests (no network)
         run: |
           pip install --quiet openpyxl Pillow pypdf
-          for t in plugins/*/skills/*/tests/test_*.py; do
+          for t in tests/*/test_*.py; do
             [ -e "$t" ] || continue
             echo "== $t"
             python3 "$t"
@@ -88,11 +88,15 @@ jobs:
 
       - name: Run browser-helper unit tests (no network, no npm packages)
         run: |
-          for t in plugins/*/skills/*/tests/test_*.js; do
+          for t in tests/*/test_*.js; do
             [ -e "$t" ] || continue
             echo "== $t"
             node "$t"
           done
+
+      - name: Run eu-agreements-treaties parser tests (Node + linkedom)
+        working-directory: tests/eu-agreements-treaties
+        run: npm ci --no-audit --no-fund && node run.js
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code

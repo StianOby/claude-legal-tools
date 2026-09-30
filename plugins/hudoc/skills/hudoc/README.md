@@ -24,11 +24,11 @@ hudoc/
 │   ├── hudoc.py            # single self-contained CLI; stdlib only
 │   └── browser/
 │       └── hudoc.js        # in-page fallback for the Cowork built-in browser
-├── references/
-│   └── query-fields.md     # HUDOC Lucene query syntax + field reference
-└── tests/                  # offline tests: python tests/test_docx.py, tests/test_references.py,
-                            # node tests/test_browser.js
+└── references/
+    └── query-fields.md     # HUDOC Lucene query syntax + field reference
 ```
+
+Offline tests live in the repository at `tests/hudoc/`, not in the plugin (they do not ship to users): `python tests/hudoc/test_docx.py`, `python tests/hudoc/test_references.py`, `node tests/hudoc/test_browser.js`.
 
 HUDOC sits behind Cloudflare, which often answers the CLI with a "Just a
 moment…" challenge — the document download above all — and which requests it

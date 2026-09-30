@@ -68,6 +68,12 @@ Rules:
   older helper gets it replaced. When you change a helper, set its
   `HELPER_VERSION` to the plugin's new version by hand; CI fails a changed
   helper whose `HELPER_VERSION` differs from its plugin's version.
+- **Tests live in `tests/<name>/` at the repo root, never inside a plugin.**
+  Installing a plugin copies its whole folder (there is no ignore file), so
+  anything under `plugins/` ships to every user. Tests find the skill via
+  `Path(__file__).resolve().parents[2] / "plugins" / "<name>" / "skills" / "<name>"`
+  (Python) or `path.join(__dirname, '..', '..', 'plugins', '<name>', 'skills', '<name>')`
+  (Node). CI runs `tests/*/test_*.py` and `tests/*/test_*.js`.
 - Never put `version` in the marketplace.json entries — it belongs in
   `plugin.json` only.
 - Add new plugins to `.claude-plugin/marketplace.json` with

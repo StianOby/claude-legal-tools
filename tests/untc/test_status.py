@@ -2,7 +2,7 @@
 """Offline tests for the MTDSG status cache in scripts/untc.py: the status
 date comes from the PDF itself, fetched_utc is the real download time, and
 an old cached status PDF is downloaded again.
-Run: python tests/test_status.py
+Run: python tests/untc/test_status.py
 """
 
 import io
@@ -14,7 +14,7 @@ from contextlib import redirect_stderr
 from pathlib import Path
 
 os.environ["UNTC_CACHE_DIR"] = tempfile.mkdtemp()
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "untc" / "skills" / "untc" / "scripts"))
 import untc  # noqa: E402
 
 failures = 0

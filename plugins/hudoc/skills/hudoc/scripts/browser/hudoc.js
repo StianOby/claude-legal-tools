@@ -24,14 +24,14 @@
 // text read here and text read from the CLI cache match line for line.
 //
 // Also exported for Node (CommonJS) so the pure parts can be unit-tested —
-// see tests/test_browser.js.
+// see the repo's tests/hudoc/test_browser.js.
 
 // HELPER_VERSION follows the plugin version and changes whenever this file
 // does (set it by hand; CI checks it). A helper of another version already in
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.2.2';
+  const HELPER_VERSION = '1.2.4';
   if (root.window && root.window.__hd && root.window.__hd.VERSION === HELPER_VERSION) return;
 
   const api = (() => {

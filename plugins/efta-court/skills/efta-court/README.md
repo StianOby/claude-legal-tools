@@ -21,10 +21,11 @@ efta-court/
 ├── README.md
 ├── scripts/
 │   └── efta_court.py       # single self-contained CLI; stdlib only
-├── evals/
-│   └── evals.json          # task-eval prompts
-└── tests/                  # offline tests: python tests/test_efta_court.py
+└── evals/
+    └── evals.json          # task-eval prompts
 ```
+
+Offline tests live in the repository at `tests/efta-court/`, not in the plugin (they do not ship to users): `python tests/efta-court/test_efta_court.py`.
 
 The cache (index, case pages, PDFs) is *not* inside the skill folder; it is
 written to a user directory at runtime (see below).

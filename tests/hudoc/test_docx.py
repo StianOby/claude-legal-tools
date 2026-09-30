@@ -4,14 +4,15 @@ tests/test_browser.js runs through the in-page helper — the two must produce
 the same text, so a paragraph number or footnote marker read in the browser
 is the one the CLI cache has.
 
-No network. Run with `python plugins/hudoc/skills/hudoc/tests/test_docx.py`.
+No network. Run with `python tests/hudoc/test_docx.py`.
 """
 
 import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "scripts"))
+SKILL = HERE.parents[1] / "plugins" / "hudoc" / "skills" / "hudoc"
+sys.path.insert(0, str(SKILL / "scripts"))
 
 import hudoc  # noqa: E402
 

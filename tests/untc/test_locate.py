@@ -4,13 +4,13 @@
 No network: the fixtures are the page text pypdf actually extracts from the
 volumes named below, trimmed to the lines the matching depends on.
 
-Run with `python plugins/untc/skills/untc/tests/test_locate.py`.
+Run with `python tests/untc/test_locate.py`.
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "untc" / "skills" / "untc" / "scripts"))
 
 import untc  # noqa: E402
 

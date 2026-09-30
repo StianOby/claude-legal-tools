@@ -20,7 +20,7 @@ const path = require('path');
 const assert = require('assert');
 const { parseHTML } = require('linkedom');
 
-const cs = require('../scripts/browser/consilium.js');
+const cs = require('../../plugins/eu-agreements-treaties/skills/eu-agreements-treaties/scripts/browser/consilium.js');
 const I = cs._internal;
 
 cs._deps.parse = (html) => parseHTML(html).document;
@@ -35,7 +35,7 @@ const fixture = (name) => {
 const doc = (html) => parseHTML(html).document;
 
 // Shipped party list → name index, as detail() builds it at runtime.
-const PARTIES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'parties.json'), 'utf8'));
+const PARTIES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'plugins', 'eu-agreements-treaties', 'skills', 'eu-agreements-treaties', 'data', 'parties.json'), 'utf8'));
 const INDEX = I.partyIndexOf(PARTIES);
 
 let passed = 0, skipped = 0;
