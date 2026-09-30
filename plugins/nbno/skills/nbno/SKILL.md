@@ -122,674 +122,188 @@ suggest a VPN.
 
 ## Step 0 — Session (Cowork built-in browser)
 
-Run this first in every new conversation, before Step 1. Skip it entirely if
-the browser tools are absent (see Prerequisites).
+Run this first in every new conversation, before Step 1. Skip it if the
+browser tools are absent (see Prerequisites). The full procedure, with the
+reasons behind each rule, is in [`auth.md`](auth.md) ("Fallback 1 (primary) —
+built-in browser"); the rules below are the ones you must not break.
 
-**Do all downloading from `Bash`, not the browser.** The browser pane is only for the
-session check, `accessInfo`, URN resolution and — for FEIDE-licensed items
-only — the cookie. Never shuttle page images through the browser; base64
-through the tool channel is not viable for a book.
+**The browser pane never downloads.** It is only for the session check,
+`accessInfo`, URN resolution, the digital-loan dialog and — for `NB` items
+only — the cookie. Never shuttle page images through the browser.
 
-1. **Open or reuse an nb.no tab.** `tabs_context` → reuse an existing nb.no
-   tab if there is one, else `preview_start {url: "https://www.nb.no/"}`. If a
-   tool reports the page is not approved and `request_access` exists:
-   `request_access {url: "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
-   IdP / BankID / Vipps domains may each need separate approval on first login.
-2. **Paste the helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js`
-   via `javascript_tool`. Idempotent — safe to paste again in the same tab;
-   an older helper from before a skill update is replaced. It defines
-   `window.__nb` (`__nb.VERSION` shows which version runs).
-   If a browser call is refused by a safety check ("cannot determine the
-   safety of …"), do not retry in a loop: tell the user, ask them to approve
-   it or say how to proceed, and wait.
-   > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
-   > `navigate` or `preview_start` destroys it. Re-paste after every
-   > navigation — the version guard makes that free when it is
-   > still there. `__nb.access()`, `status()` and `manifest()` fetch
-   > cross-origin and do **not** need the tab parked anywhere in particular;
-   > only `resolveUrn()` reads the current page.
-3. **Check the session.** `await __nb.status()` → `{loggedIn, loginProvider,
-   roles, ip}`.
-   - Not logged in → *"Logg inn på nb.no i browser-panelet (Feide/BankID/
-     Vipps). Si fra når du er inne."* Wait, then re-check. **Never type
-     credentials yourself, and never ask the user to give them to you** —
-     login happens only in the browser pane.
-   - Run this check every session, but only **block on it for `NB` items**
-     (step 4 classifies). An `EVERYWHERE` or `NORWAY` item downloads without
-     a login, so note the status and go on. The pane keeps a persistent
-     profile, but a Cowork restart has been observed to drop the nb.no
-     session.
-4. **Classify the item.** `await __nb.access("<id>")` → `accessInfo`:
-
-   **Classify on `accessAllowedFrom`.** It describes the item and reads the
-   same for everyone. The other access fields describe *your current
-   request* and move under you (see the warning below).
-
-   | `accessAllowedFrom` | class | what to do |
-   |---|---|---|
-   | `EVERYWHERE` | open (`license: publicdomain`) | no cookie; single-shot fine |
-   | `NORWAY` | Bokhylla (`license: bokhylla`) | **no cookie** from a Norwegian IP; tiles only (`--tiles always`) |
-   | `NB` | legal deposit (`license: copyrighted`) | needs `nbsso` **and** a digital loan; tiles only |
-
-   > **Do not classify on `viewability` or `legalDepositLoginText`.** Both are
-   > session-dependent. `legalDepositLoginText` is the *"log in to read this"*
-   > prompt, so it is present anonymously and **absent once you are logged
-   > in**; `viewability` flips NONE → ALL the moment you may read the item.
-   > Reading `digibok_2014050705024` anonymously and as a logged-in FEIDE user
-   > from the same IP gave `NONE` + prompt, then `ALL` + no prompt — while
-   > `accessAllowedFrom: NB` stayed put in both. An `NB` item still needs
-   > `nbsso` when those two fields look reassuring.
-   >
-   > Use them for *status*, not classification: `viewability == "ALL"` means
-   > "readable right now", and `legalDepositReservationStatus` tells you
-   > whether the loan is active.
-
-5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and the
-   egress IP of `Bash` is not Norwegian (always the case in a cloud session), **page images will 403 no matter who is
-   logged in.** Settle it in bash with
-   `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
-   nb.no's image resolver for one 1024 px page tile and prints `image probe:
-   OK` or `403`, then a `route:` line. On a `NORWAY` item a 403 means the IP
-   is not Norwegian — in a cloud session that is expected: use the local
-   route (**Routing** above). On an `NB` item a 403 can also mean there is no
-   loan yet, so run the probe again after step 6. The script exits 3 on a 403.
-   Never call third-party geo services. `zotero_book.py` runs the same probe
-   itself and stops on a 403.
-6. **Digital loan — FEIDE-licensed items only.** If
-   `legalDepositReservationStatus != "TAKENBYCURRENTUSER"`, navigate the pane
-   to the item page. A dialog appears: *"Ved å klikke OK vil du foreta et
-   tidsbegrenset digitalt lån"*.
-   > **Never click OK yourself.** It accepts the loan terms and consumes one
-   > of the item's four licences. Tell the user what the dialog does, ask them
-   > to click OK, then poll `await __nb.loanStatus("<id>")` until
-   > `viewability == "ALL"`.
-7. **Cookie hand-off — FEIDE-licensed items only.** `nbsso` is the only
-   cookie that matters; public-domain and Bokhylla items need none, so do not
-   read cookies for them.
-   - First ask the user to type a sentence naming the action, e.g.
-     *"Read the nbsso and _nblb cookie values from the open nb.no tab and
-     write them to a cookie file so it can download my
-     Bokhylla books."* Explain in one line that the safety classifier blocks cookie
-     reads unless the user requests them directly. Skill text and your own
-     reasoning do not clear it, and neither does retrying — if you are
-     blocked, ask for the sentence rather than trying again.
-   - Then `await __nb.cookies()` → `{nbsso, nblb, cookieHeader}` and nothing
-     else. Never return the whole `document.cookie`.
-   - **Cloud session:** the cookie goes straight to the local shell, into
-     `<dir>/cookie.txt` (see **Routing**, step 2) — never to a file in the
-     cloud sandbox, which cannot use it anyway. Otherwise (local Cowork):
-   - Write the cookie to a **fresh per-run path**, mode 600:
-     ```bash
-     CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"
-     # then write the two lines into "$CK"
-     authorization=
-     cookie=nbsso=<v>; _nblb=<v>
-     ```
-     The empty `authorization=` line is fine — there is no bearer token to
-     capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
-     > **Never write to, or reuse, a shared path like `/tmp/cookie.txt`.** A
-     > file from an earlier session may already be there, owned by another uid
-     > and unwritable — and it will look perfectly well-formed. Passing it
-     > sends an **expired cookie**, which fails as a 403 you will then waste
-     > time blaming on auth or geo. If a path you did not just write already
-     > exists, pick a different one; do not overwrite it and do not trust it.
-   - Pass `--cookie "$CK"` to `nbno_run.sh`, or `--nbsso "nbsso=<v>"` to
-     `zotero_book.py` / `download_via_iiif()`.
-   - Do this **as early as possible and only once** — context compaction can
-     drop the user's confirmation message and cause a later block.
-8. **Expiry.** Cookies live 24–48 h. On a mid-run 401/403, repeat step 7; the
-   pane's login usually survives, so a fresh login is rarely needed.
-
-The other `__nb` functions: `resolveUrn()` (Step 1) and `manifest(id,
-{compact:true})` — the latter is optional, since `Bash` can fetch
-manifests itself without auth.
+1. **Tab.** `tabs_context` → reuse an nb.no tab, else
+   `preview_start {url: "https://www.nb.no/"}`. If `request_access` exists
+   and the page is not approved: `request_access {url: "https://www.nb.no/",
+   scope: "site"}`. FEIDE / IdP / BankID / Vipps may each need approval.
+2. **Helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js` via
+   `javascript_tool` → `window.__nb`. **Navigating the tab wipes it: re-paste
+   after every `navigate`/`preview_start`** (same version = no-op). If a
+   browser call is refused by a safety check, tell the user and wait; do not
+   retry in a loop.
+3. **Session.** `await __nb.status()`. Not logged in → *"Logg inn på nb.no i
+   browser-panelet (Feide/BankID/Vipps). Si fra når du er inne."* Block on
+   this only for `NB` items. **Never type credentials or ask for them.**
+4. **Classify.** `await __nb.access("<id>")` → classify on
+   **`accessAllowedFrom` only** (`EVERYWHERE` open · `NORWAY` Bokhylla, no
+   cookie, tiles only · `NB` legal deposit, `nbsso` + loan, tiles only).
+   `viewability` and `legalDepositLoginText` flip when you log in — status,
+   never classification.
+5. **Geo.** `NORWAY`/`NB` → run the probe and follow **Routing** above.
+6. **Loan (`NB` only).** If `legalDepositReservationStatus !=
+   "TAKENBYCURRENTUSER"`, navigate the pane to the item page. **Never click
+   OK yourself** — it takes one of the item's four licences in the user's
+   name. Ask the user to click it, then poll `await __nb.loanStatus("<id>")`.
+7. **Cookie (`NB` only).** First ask the user to type a sentence naming the
+   action (*"Read the nbsso and _nblb cookie values from the open nb.no tab
+   and write them to a cookie file so it can download my book."*) — the
+   safety classifier blocks cookie reads otherwise, and retrying does not
+   help. Then `await __nb.cookies()` → `{nbsso, nblb}` only, never the whole
+   jar. Do it early and once. Cloud session → the cookie goes straight into
+   `<dir>/cookie.txt` in the local shell (**Routing**). Local Cowork → a fresh
+   `mktemp -d` path, mode 600 (format in `auth.md`); never a shared path like
+   `/tmp/cookie.txt`.
+8. **Expiry.** Cookies live 24–48 h; on a mid-run 401/403 repeat step 7 (and
+   check the loan).
 
 ---
 
 ## Step 1 — Identify the media ID
 
-`nbno --id <ID>` requires an ID of the form `<type>_<key>`, e.g.
-`digibok_2008051600041`. The key is not always digits: newspaper issues look
-like `digavis_aftenposten_morgen_1_20150107_156_7_2` and journal issues like
-`digitidsskrift_2021052683055_001`, so underscores inside the key are normal.
-There are three common ways the user may give you the item:
+nbno needs an ID of the form `<type>_<key>`, e.g. `digibok_2008051600041`
+(keys may contain underscores: `digavis_aftenposten_morgen_1_20150107_156_7_2`).
 
-1. **Citation / URN** — `URN:NBN:no-nb_digibok_2008051600041` → strip
-   `URN:NBN:no-nb_` → `digibok_2008051600041`. The wrapper does this for
-   you automatically; you can paste either form.
-2. **Items URL** — `https://www.nb.no/items/<opaque-hash>?...`. The opaque
-   hash is **not** the ID nbno expects. Resolve it, in this order:
-   - **Preferred, when the browser tools are available:** navigate the pane
-     to the pasted URL, **re-paste `nbno_auth.js`** (navigation wiped it),
-     then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It tries,
-     in order: the URL itself (`via: "url"`), the catalog record for the
-     opaque hash (`"catalog"`), a `urn.nb.no` link on the page
-     (`"urn-link"`), and finally ids embedded in the rendered HTML
-     (`"page"`) — that last one only when the page holds exactly one id.
-     > nb.no is client-rendered, so the page is usually still empty the
-     > instant a navigate returns. **You do not need to sleep first** —
-     > `resolveUrn()` polls the page branches for up to 5 s on its own
-     > (`waitedMs` tells you how long it actually took).
-     > **Item pages embed ids of other editions.** A page for one copy of
-     > *Sult* carried another `digibok_` of the same novel earlier in its
-     > HTML, and the two share title and year, so a title check cannot
-     > tell them apart. That is why the catalog is asked first and why the
-     > page scan answers `{error: "ambiguous", candidates: [...]}` instead
-     > of picking the first hit. On `ambiguous`, ask the user for the URN
-     > — do not choose a candidate yourself.
-   - Otherwise: ask the user to click "Referere/Sitere" on nb.no and paste
-     the URN. **Do not guess a canonical ID from the hash** — there is no
-     derivation.
-   - Sanity-check the result before downloading a whole book on it: the
-     `title` from `__nb.access(id)` should match the item page you were
-     looking at. This catches the wrong *work*, not the wrong *edition* —
-     for that, trust only `via: "url"`, `"catalog"` or `"urn-link"`.
-3. **Already canonical** — the user pastes `digibok_2008051600041` directly
-   → use as-is.
-4. **Only a bibliographic reference** (author, title, year — a footnote or
-   bibliography entry): search the open catalogue with
-   `scripts/nb_search.py`, no credentials needed:
+1. **URN** `URN:NBN:no-nb_digibok_…` → the scripts strip the prefix; pass
+   either form.
+2. **`nb.no/items/<hash>` URL** — the hash is **not** the ID and cannot be
+   converted. With the browser tools: navigate the pane to the URL, re-paste
+   the helper, `await __nb.resolveUrn()` → `{id, urn, via}`. On
+   `{error: "ambiguous"}` (item pages embed other editions' ids) ask the user
+   for the URN; do not pick a candidate. Otherwise ask the user to click
+   "Referere/Sitere" and paste the URN. Check that `__nb.access(id).title`
+   matches the page before downloading a whole book.
+3. **Canonical ID** → use as-is.
+4. **Only a reference** (author, title, year):
+   `python {SKILL_DIR}/scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001`.
+   Use surname + one title word and narrow with `--year`. Pick the hit whose
+   **year matches the reference** (other years are other editions; "Utdrag
+   av …" is an excerpt). `[NEWEST of the hits shown]` marks the latest
+   edition when the hits span several years; add `--max 30` if more hits
+   exist than are shown. `--type tidsskrift` / `avis`, `--json`.
 
-   ```bash
-   python {SKILL_DIR}/scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001
-   ```
-
-   Every word must match, so use surname + a title word and narrow with
-   `--year`, not with more words. Each hit prints the id, year, publisher,
-   page count and access class. Pick the hit whose **year matches the
-   reference** — same title, different years are different editions, and
-   a title beginning "Utdrag av …" is an excerpt, not the book. Hits are
-   listed newest first and the newest is marked `[NEWEST of the hits
-   shown]`, which answers "the latest edition". When the catalogue reports
-   more hits than it shows, add `--max 30` before relying on that marker.
-   `--type tidsskrift` / `avis` for journals and newspapers, `--json` for
-   scripts.
-
-Supported `type` prefixes: `digibok` (books, sheet music), `digavis`
-(newspapers), `digifoto` (photos, posters), `digitidsskrift` (journals),
-`digikart` (maps), `digimanus` (letters, manuscripts, music manuscripts),
-`digiprogramrapport` (programme reports), `pliktmonografi` /
-`pliktperiodika` (legal-deposit material).
-
-> **Canvas ids are not page numbers and are not uniform.** A single book
-> mixes `_C1`, `_I1`, `_0001`…, `_C3`, `_C2`. Always take them from the
-> manifest; never construct them.
+Types: `digibok`, `digavis`, `digifoto`, `digitidsskrift`, `digikart`,
+`digimanus`, `digiprogramrapport`, `pliktmonografi`, `pliktperiodika`.
+**Canvas ids are not page numbers and not uniform** (`_C1`, `_I1`, `_0001`,
+`_C2` …): take them from the manifest, never construct them.
 
 ---
 
-## Step 2 — Decide on authentication
+## Step 2 — Authentication
 
-Most pre-1900 books and out-of-copyright photos/maps work without login.
-**A cookie only ever helps one class of item — FEIDE-licensed legal-deposit
-material.** Everything else is decided by `accessInfo` and the egress IP.
+A cookie only ever helps **`NB` (FEIDE-licensed legal deposit)** items;
+everything else is decided by `accessAllowedFrom` and the egress IP.
+`zotero_book.py` checks `accessInfo` itself and refuses a no-auth download of
+an `NB` item (`--force-auth` overrides).
 
-> **Check `accessInfo` before guessing.**
-> The catalog endpoint
-> `https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_<id>` returns an
-> `accessInfo` block. It needs no auth — but it is **IP- and
-> session-dependent**, so read it with the user's session (`__nb.access()` in
-> the pane, or `--nbsso` in bash), not anonymously.
->
-> - **`accessAllowedFrom` is the one field to classify on** — it describes the
->   item, not your request. `EVERYWHERE` = open, no credential. `NORWAY` =
->   Bokhylla, Norwegian IP but no cookie. `NB` = legal deposit, needs `nbsso`
->   **and** an active digital loan.
-> - `viewability` and `legalDepositLoginText` describe *this request* and
->   invert when you log in — see the warning in Step 0 step 4. Read them for
->   status ("can I read it right now?"), never to decide what to capture.
-> - `legalDepositReservationStatus == "TAKENBYCURRENTUSER"` means the digital
->   loan is active. Anything else on an `NB` item means it is not.
->
-> `zotero_book.py` performs this check automatically and refuses to start a
-> no-auth download in those cases (override with `--force-auth`). This is more
-> reliable than the old "pliktmonografi: try no-auth first" heuristic —
-> some pliktmonografi items are FEIDE-restricted, some aren't, and
-> `accessInfo` tells you which.
+- **Option A — no auth.** Public-domain items, and Bokhylla from a Norwegian
+  IP. The default.
+- **Option B — session capture** (`NB` only): Step 0. Without the built-in
+  browser, `auth.md` has the fallback ladder (Claude in Chrome → manual
+  DevTools cookie). Never ask the user to install browser automation.
+- **Option C — a cookie file** the user already has: `--cookie <path>`.
 
-Auth paths — pick one based on the item:
-
-- **Option A — No auth.** The default, and correct for more than it used to
-  be: public-domain items **and Bokhylla items from a Norwegian IP**, which
-  need no cookie at all. Run `nbno_run.sh` without `--cookie`, or call
-  `download_via_iiif()` with no credentials.
-- **Option B — Session capture.** Only for FEIDE-licensed items
-  (`accessAllowedFrom: NB`). Primary path is **Step 0** above;
-  `auth.md` has the full fallback ladder (built-in browser → Claude in Chrome
-  → manual DevTools cookie). Never ask the user to install browser-automation
-  tooling for this.
-- **Option C — Manual cookie file.** The user already has a cookie text file,
-  or makes one from DevTools; pass it with `--cookie <path>`.
-
-> **Geo pre-check comes before auth debugging.** If `accessAllowedFrom` is
-> `NORWAY` or `NB` and the egress IP is not Norwegian, every page image 403s
-> regardless of login — the manifest and `accessInfo` will still look fine.
-> Check this first; see the Caveats section.
-
-> **⛔ Confirm the session before any authenticated fetch.** With the browser
-> tools, that is `__nb.status()` in **Step 0** — do not ask the user instead.
-> Without them, ask: *"Have you logged in to nb.no recently? If not, please
-> log in now at <https://nb.no> in your browser,"* and wait for confirmation.
-> Skipping this leaves every fetch failing silently with no reliable way to
-> detect it after the fact.
-
-> **📄 Read [`auth.md`](auth.md) before you capture or use any cookie.** It
-> has the verified auth-scope table (which cookie each item class actually
-> needs — the answer is "usually none"), the digital-loan procedure, the
-> fallback ladder, the cookie-file format, and why the user must type the
-> confirmation sentence. Don't improvise auth from memory.
+**Geo comes before auth debugging:** a `NORWAY`/`NB` item 403s from a
+non-Norwegian IP whoever is logged in. Without browser tools, ask the user to
+confirm they are logged in to nb.no before any authenticated fetch. **Read
+[`auth.md`](auth.md) before capturing or using any cookie.**
 
 ---
 
-## Step 3 — Download options
+## Step 3 — Download
 
-### Fast path — direct IIIF downloader (recommended for full Bokhylla books)
+**Fetch only what you need** — ask which pages before downloading a whole
+book. `--start`/`--stop` are 1-based **canvas** numbers, not printed pages:
+download canvases 1–7 first to find the offset.
 
-For full-book `digibok_*` downloads, bypass `nbno_run.sh` entirely and use
-the in-process IIIF downloader. It fetches pages directly via the IIIF API
-with `ThreadPoolExecutor(12)` and is roughly **20× faster** than batching
-through the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page).
-
-**Preferred: use the orchestrator's downloader directly.**
-`scripts/zotero_book.py:download_via_iiif()` already handles every gotcha
-listed in this file:
-
-- tries both `/items/<id>/manifest` *and* `/iiif/URN:NBN:no-nb_<id>/manifest`
-  (the first returns 404 for a substantial share of items — including plain
-  `digibok_*`, e.g. `digibok_2014050705024` — so the fallback is routine, not
-  an edge case; never hand-roll a single-endpoint manifest fetch);
-- fetches `info.json` to pick a width the resolver will actually serve at
-  the requested resolution (the resolver silently downsamples otherwise —
-  asking for `608,` on a book that only lists `[502, 251, …]` returns a
-  502px image which makes OCR unusable);
-- verifies the returned image dimensions with PIL and, on mismatch, falls
-  back to native-resolution `regionByPx` 1024×1024 tiles stitched together;
-- skips the `_C2` back cover automatically;
-- retries timeouts, dropped connections, 429 and 5xx on every request, and
-  gives failed pages a second, slower pass;
-- never drops a page: one that cannot be downloaded becomes a placeholder
-  page saying so, **in its own place**, so every later page keeps its page
-  number. It returns `{"pages": N, "missing": [PDF page numbers]}`, and
-  `zotero_book.py` exits with status 3 and a warning when `missing` is not
-  empty. Tell the user which pages are placeholders and re-run to fill
-  them; never quote or cite from a placeholder page.
-
-**Auth arguments are all optional.** `api.nb.no` authenticates by cookie, so
-there is no bearer token to capture — `bearer=None` is the normal case and
-`nbsso` alone is what FEIDE-licensed items need. Public-domain and Bokhylla
-items need neither.
-
-```python
-import sys
-sys.path.insert(0, "{SKILL_DIR}/scripts")
-from zotero_book import download_via_iiif
-from pathlib import Path
-import tempfile
-
-OUT_DIR = tempfile.mkdtemp()   # scratch; copy the final PDF to outputs (Step 4)
-
-# Public domain, or Bokhylla from a Norwegian IP — no credentials at all.
-result = download_via_iiif(
-    canonical_id="digibok_2008051600041",
-    out_pdf=Path(OUT_DIR) / "book.pdf",
-    resize_width=1024,    # listed sizes will be checked; actual cap may be lower
-    workers=12,
-    tiles="always",       # licensed content is tiles-only; see below
-)
-
-# FEIDE-licensed item, after the user has taken the digital loan (Step 0).
-download_via_iiif(
-    canonical_id="digibok_2014050705024",
-    out_pdf=Path(OUT_DIR) / "book.pdf",
-    nbsso="nbsso=<value>",   # bearer is not needed and defaults to None
-    tiles="always",
-)
-```
-
-> **Anything that is not public domain is tiles-only.** Single-shot
-> `/full/<w>,/` returns 403 at every width for Bokhylla and legal-deposit
-> items. `--tiles auto` recovers per page, but pass `--tiles always` whenever
-> `accessInfo.license != "publicdomain"` to skip one wasted round-trip per
-> page.
->
-> **Tiling ignores the requested width.** Tiles are fetched at each canvas's
-> native resolution, so `--resize` / `resize_width` governs only the
-> single-shot path and caps nothing under `--tiles always`. Expect full-size
-> pages — and heterogeneous ones, since canvases within a book differ (1562,
-> 1571 and 2024 px wide in the same volume). Smaller output comes from the
-> shrink step after OCR (Step 4), not from asking for a narrower width.
-
-**Driving the IIIF API by hand?** If `zotero_book.py` is not available (e.g.
-you don't have the skill directory on disk), the full inline recipe lives in
-[`iiif-download.md`](iiif-download.md), together with the mechanics behind
-the resolver's silent downsampling, per-canvas tiling, per-page PDF DPI, and
-the `_C2` back cover. **Read it before hand-rolling a download** — every one
-of those gotchas yields a plausible-looking but wrong result (HTTP 200 with a
-half-size image, black page bottoms, poster-sized PDF pages).
-
-### Standard path — `nbno_run.sh` wrapper (short ranges / non-Bokhylla)
-
-Use `nbno_run.sh` for non-Bokhylla content or when you only need a short page
-range (≤ 7 pages of `digibok_*`).
-
-> **Fetch only what you need.**
-> Use `--start <int>` and `--stop <int>` to limit the download to a page
-> range. Downloading a full book when you only need a few pages is slow,
-> expensive, and stresses nb.no's servers. Always ask the user which pages
-> they need before running without these flags.
->
-> Each `nbno_run.sh` invocation has a fixed startup overhead of ~25 s
-> (manifest fetch, item resolution, etc.); each additional page adds ~1–2 s.
->
-> Examples:
-> - Single page: `--start 42 --stop 42`
-> - A short batch: `--start 10 --stop 16`
-> - Full book: omit both flags
-
-> **Raise the bash tool's timeout, but plan for about 170 s per call.** The
-> default is 120 s, and the tool accepts an explicit timeout up to 600 s.
-> Request it (600000 ms) for long jobs. Calls have still been cut off at
-> about 178 s with 600 s requested, so treat about 170 s as the real ceiling.
-> Downloads fit: a 173-canvas tiled book took about 40 s and a 424-page book
-> about 105 s. OCR does not fit. Use `--no-ocr` for the download and
-> `ocr_chunked.py` afterwards (`reading-ocr.md`). Fall back to
-> `--start`/`--stop` batching only when a download cannot fit, or when you
-> only want part of the book.
->
-> **Do not use `nohup … &` to background the work.** The process does not
-> survive the bash call returning: it is killed and its log is left empty, so
-> you poll a file that will never fill. Run in the foreground with a raised
-> timeout instead.
-
-> **Use a scratch directory for `--out`, not a mounted workspace directory.**
-> If `--out` points to a mounted workspace folder and a PDF with the same
-> name already exists there, `nbno_run.sh` will fail with
-> `mv: unable to remove target: Operation not permitted` — files written to
-> the mounted workspace cannot be overwritten or deleted from bash. Create a
-> scratch directory with `OUT=$(mktemp -d)` and pass `--out "$OUT"`. After the
-> download, copy the PDF to the outputs directory (`/mnt/user-data/outputs`
-> in cloud Cowork; or the connected folder, if
-> the user asked for that), using a unique name:
-> ```bash
-> cp "$OUT/<item>.pdf" "<outputs dir>/<unique-name>.pdf"
-> ```
-> Shell variables do not survive to the next bash call, and scratch space may
-> be wiped between calls: create `$OUT`, run the wrapper and copy the PDF in
-> **one** call (or print `$OUT` and reuse the literal path at once).
-
-> **Determine the canvas-to-printed-page offset before targeting a range.**
-> `--start`/`--stop` refer to IIIF canvas numbers (1-based sequence), not
-> necessarily printed page numbers. On a first run, download canvases 1–7
-> and inspect the page footer or header text (e.g. an InDesign filename
-> suffix like `...indd 5` on canvas 5 confirms an offset of zero). Once the
-> offset is known, calculate the correct canvas numbers before requesting a
-> specific printed-page range.
+- **Short ranges, non-book material:** the `nbno_run.sh` wrapper (below).
+- **Whole books:** `zotero_book.py` (with `--no-ocr --no-shrink` if the user
+  only wants the images), or its in-process downloader `download_via_iiif()`
+  — about 20× faster than the wrapper. Usage, the resolver's traps and the
+  inline recipe: [`iiif-download.md`](iiif-download.md). Anything not public
+  domain is tiles-only: pass `--tiles always`.
 
 ```bash
-bash {SKILL_DIR}/scripts/nbno_run.sh \
-  --id "digibok_2008051600041" \
-  --out "$OUT" \
-  [--cookie auto | --cookie /path/to/cookie.txt] \
-  [--start 1 --stop 7] \
-  [--resize 75] \
-  [--title]
+OUT=$(mktemp -d)
+bash {SKILL_DIR}/scripts/nbno_run.sh --id "digibok_2008051600041" --out "$OUT" \
+  [--start 1 --stop 7] [--cookie <file>] [--resize 75] [--title]
 ```
-
-Useful nbno flags the wrapper passes through:
 
 | flag | purpose |
 | --- | --- |
-| `--title`        | fetch the item's real title and use it as folder name |
-| `--start N`      | first canvas to download (1-based)                    |
-| `--stop N`       | last canvas to download (inclusive)                   |
-| `--resize N`     | percentage of original size; for small output, `shrink_pdf.py` afterwards works better (see Step 4) |
-| `--cover`        | also download the cover separately                    |
-| `--keep-images`  | keep the per-page images, moved to `<out>/<ID>_images/` |
-| `--cookie auto`  | use saved auth at `~/.nbno/cookie.txt` (Bokhylla)     |
-| `--cookie PATH`  | use saved auth at an explicit path                    |
+| `--start N` / `--stop N` | canvas range (1-based, inclusive) |
+| `--cookie PATH` / `--cookie auto` | cookie file (`auto` = `~/.nbno/cookie.txt`); `NB` items only |
+| `--resize N` | percent of original size — prefer `shrink_pdf.py` afterwards (Step 4) |
+| `--title` · `--cover` · `--keep-images` | title as folder name · cover separately · keep page images in `<out>/<ID>_images/` |
 
-After the wrapper completes you'll have a single `.pdf` in `$OUT`.
-The wrapper has already removed the per-page image folder unless the user
-passed `--keep-images`, in which case it moved the images to
-`<out>/<ID>_images/` and printed `Per-page images kept in: …`.
+The wrapper builds one PDF in `--out` (never pass `--pdf` yourself) and
+rescales nbno's poster-size pages to book size.
 
----
+- **Timeouts:** request a long bash timeout (600000 ms) but plan for ~170 s
+  per call. Downloads fit (424 pages ≈ 105 s); OCR of a long book does not —
+  use `--no-ocr` and `ocr_chunked.py` ([`reading-ocr.md`](reading-ocr.md)).
+  **Never `nohup … &`**: the process dies when the call returns.
+- **Scratch, then copy, in one call:** `--out` must be a scratch dir
+  (`mktemp -d`), not a mounted folder (`mv: unable to remove target`).
+  Shell variables and scratch may not survive to the next call, so create
+  `$OUT`, run and copy the result in the same call.
 
-## Inspecting pages, OCR, and shrinking — see [`reading-ocr.md`](reading-ocr.md)
-
-Once you have the PDF you may need to **read specific pages** (to find the
-canvas offset or verify a passage), **OCR** the whole book, or **shrink** a
-bloated output.
-
-> **📄 Read [`reading-ocr.md`](reading-ocr.md) before doing any of these.**
-> It covers visual page reading (render to PNG + Read tool — preferred over
-> OCR), the `tesseract` / `TESSDATA_PREFIX` setup (`ocrmypdf` needs more than
-> the bare `.traineddata` files), the resumable `ocr_chunked.py` flow (**must
-> be driven by repeated bash calls — never a single-call `until` loop**), and
-> `shrink_pdf.py`. Skipping it leads to scrambled OCR, poster-size pages, or
-> sandbox timeouts.
+For reading pages visually, OCR and shrinking, read
+[`reading-ocr.md`](reading-ocr.md) first.
 
 ---
 
 ## Step 4 — Hand the file back
 
-**Books are handed over shrunk.** `zotero_book.py` shrinks by default
-(800 px wide, JPEG q60: ~60 MB for a 500-page book). Any other PDF over
-~50 MB (`nbno_run.sh` prints a `[hint]` line) gets
-`python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>` before it is handed
-over. Skip the shrink only if the user asked for full resolution; say what
-size the PDF ended up at.
-
-**Never shrink with `--resize` instead.** It scales the pages before OCR,
-which degrades the text layer (35 % gives ~70 DPI pages). The order is
-always download at full resolution → OCR → shrink, which `zotero_book.py`
-does for you.
-
-Copy the PDF from the scratch directory (`$OUT`) to the session's outputs
-directory (`/mnt/user-data/outputs` in cloud Cowork; or the connected folder,
-if the user asked for that) and show it with the file-sharing tool:
-`present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever
-exists.
-
-Do not narrate the contents of the PDF beyond what's needed; let the user
-open it.
+- **Shrink books:** `zotero_book.py` does it by default; any other PDF over
+  ~50 MB (`nbno_run.sh` prints a `[hint]`) →
+  `python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>`. Order is always
+  full resolution → OCR → shrink; never `--resize` to save space. Say what
+  size the PDF ended up.
+- **Deliver:** copy it to the outputs directory (`/mnt/user-data/outputs` in
+  cloud Cowork) and share it with `present_files` (local Cowork) or
+  `SendUserFile` (cloud) — whichever exists. Local-route results are already
+  in `<connected folder>/nbno/<id>/`; say where.
+- **Say what it is, when you deliver it:** a canvas range is an **excerpt**
+  (name the canvases and, if known, the printed pages); placeholder pages
+  (exit 3) are missing pages; exit 5 means no text layer.
+- Don't narrate the contents; let the user open it.
 
 ---
 
-## Zotero-ready book workflow
+## Zotero-ready books
 
-Trigger whenever the user asks for a **Zotero-ready** book from nb.no, an
-**RDF with the PDF attached**, "import this into Zotero with one click",
-"OCR and import this book", or similar phrasing.
-
-The full pipeline (orchestrator script, every flag, sandbox notes, metadata
-customisation, Zotero-specific troubleshooting) lives in
-[`zotero-ready.md`](zotero-ready.md) next to this file. **Read it before
-running** — it covers the access pre-check, the chunked-OCR flow for big
-books, and the shrink step (on by default; `--no-shrink` keeps full
-resolution, and `--no-ocr` skips it too so the pages can be OCRed later). **Public-domain books get nb.no's own OCR as their text layer**
-(no Tesseract, seconds instead of minutes); Bokhylla and FEIDE books do not
-serve it and are OCRed with Tesseract. Quick start:
+For "Zotero-ready", "RDF with the PDF attached", "OCR and import this book":
+read [`zotero-ready.md`](zotero-ready.md) first. `zotero_book.py` downloads,
+adds a text layer (nb.no's own OCR for public-domain books, Tesseract
+otherwise), shrinks and writes a `.pdf` + `.rdf` pair; drag the `.rdf` into
+Zotero. `--start/--stop` make an excerpt (files get a `_c<N>-<M>` suffix).
 
 ```bash
-# Public domain, or Bokhylla from a Norwegian IP — no credentials needed.
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" --tiles always
-
-# FEIDE-licensed item, after Step 0's loan + cookie hand-off.
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2014050705024 \
-  --out "$OUT_DIR" --nbsso "nbsso=$NBSSO" --tiles always
+python {SKILL_DIR}/scripts/zotero_book.py --id URN:NBN:no-nb_digibok_2008051600041 \
+  --out "$OUT_DIR" --tiles always [--nbsso "nbsso=<v>"] [--start 1 --stop 20]
 ```
 
-Output is a `.pdf` + `.rdf` pair in `$OUT_DIR`; drag the `.rdf` into
-Zotero. `--bearer` is optional and no longer captured. For FEIDE-licensed
-content, follow Step 0 to take the digital loan and capture `nbsso` first.
-
 ---
 
-## Important caveats — surface these to the user when relevant
+## Caveats and troubleshooting
 
-- **Geo-restriction is real, and `accessAllowedFrom` decides it.** Check that
-  field *first*, before auth or URL format:
-  - `EVERYWHERE` → downloads work from anywhere with no cookie. A 403 here
-    really is a URL-format or width problem.
-  - `NORWAY` / `NB` → **page images 403 from a non-Norwegian IP no matter who
-    is logged in.** The manifest, `accessInfo` and `/me/v1` all keep working,
-    so nothing looks wrong until the first image fails. Do not debug headers;
-    check the IP.
+Read [`troubleshooting.md`](troubleshooting.md) when something fails or
+looks wrong. The three rules that prevent most wasted time:
 
-  In a cloud session `Bash` egresses from Anthropic's cloud, never from a
-  Norwegian IP, so these items are blocked there (see **Where each step
-  runs**); in local Cowork `Bash` and the browser pane share the user's own
-  IP. Never suggest a VPN. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
-  the egress IP and `accessInfo`, and probes one 1024 px page tile. It talks
-  only to nb.no, never a third-party geo service. Thumbnails
-  (`/full/0,200/0/native.jpg`) and small tiles (256 px) are never gated. A
-  legal-deposit item served them anonymously, so they show that nb.no is
-  reachable but say nothing about auth or geo. Only a 1024 px tile does.
-- **The image resolver has four traps that all return plausible-looking
-  wrong results**, not errors: it silently downsamples requests above its
-  listed sizes (HTTP 200, half-size image); tiling with a cached canvas size
-  leaves page bottoms black; a single fixed DPI makes PDF pages poster-sized;
-  and canvas ids are not uniform. `zotero_book.py` handles all four. If you
-  are driving the API by hand, read
-  [`iiif-download.md`](iiif-download.md) first — these are slow to debug
-  precisely because nothing fails loudly.
-- **Native-resolution tiles work when single-shot doesn't.** When the
-  resolver refuses `/full/<w>,/` for in-copyright/licensed content,
-  `regionByPx` requests up to 1024×1024 are routinely allowed at native
-  resolution. The orchestrator's `--tiles auto` falls back to tiling
-  whenever single-shot returns 403 or is silently downsampled. Use
-  `--tiles always` to force tiling from the start.
-- **Copyright.** Most twentieth-century books are in copyright; access via
-  Bokhylla is granted to individuals under a specific agreement and does
-  not permit redistribution. The user is responsible for using downloaded
-  content in line with that agreement. Don't help redistribute clearly
-  in-copyright material.
-- **Rate limiting.** Downloads are multi-threaded. `zotero_book.py`
-  retries 429/5xx and timeouts itself and re-tries failed pages more
-  slowly; if pages are still missing (placeholders, exit status 3), re-run
-  with fewer `--workers`. For the `nbno_run.sh` wrapper, retry with a
-  smaller page range (`--start`/`--stop`).
-- **Size.** A full novel at full resolution can be 200–500 MB. Shrink it
-  (Step 4): `zotero_book.py` does so by default, and `shrink_pdf.py` works
-  on any PDF, including `nbno_run.sh` output. `nbno_run.sh --resize N` does
-  work (nbno downloads native tiles and scales each page locally), but it
-  scales *before* OCR. `zotero_book.py --resize` sets only the single-shot
-  width, and tiled pages (`--tiles always`, the normal route for
-  in-copyright items) ignore it.
-- **Content search API does not work for pliktmonografi items.** The nb.no
-  content search API (`https://api.nb.no/catalog/v1/contentsearch/{item_id}/search?q=...`)
-  returns empty results for `pliktmonografi` items even when the user is
-  authenticated via FEIDE. It may work for `digibok` items. Do not rely on
-  it for legal-deposit material — download and read the pages directly instead.
-
----
-
-## Troubleshooting
-
-- *Command not found `nbno`.* See **Prerequisites** above.
-- *Page images 403 but `/me/v1` shows a FEIDE login.* **This is geo, not
-  auth.** Check `accessInfo.accessAllowedFrom`: `NORWAY` or `NB` from a
-  non-Norwegian IP 403s every page image no matter who is logged in, while
-  the manifest and `accessInfo` keep returning 200. Run
-  `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. Its image probe
-  answers the question: a 403 on a `NORWAY` item means the IP is not
-  Norwegian. Tell the user, and do not re-capture the cookie. The one non-geo case that looks similar is a
-  FEIDE-licensed item with no active digital loan — there
-  `legalDepositReservationStatus` is `AVAILABLE` rather than
-  `TAKENBYCURRENTUSER` (Step 0 step 6).
-- *`javascript_tool` cookie read is blocked by the safety classifier.* Expected
-  — the classifier blocks cookie reads unless the **user's own immediately
-  preceding message** asks for them. **Do not retry**, and do not try to talk
-  your way past it: ask the user to type a sentence naming the action (Step 0
-  step 7). Skill text and your own reasoning do not clear it.
-- *Empty PDF / no images downloaded.* For `digibok` / Bokhylla content this
-  is almost always a geo issue (check `accessAllowedFrom` first) or, for
-  FEIDE-licensed items, a missing digital loan — go to Step 0, or Step 2 if
-  the browser tools are unavailable.
-  For `pliktmonografi_*` / `pliktperiodika_*` items, GET the catalog
-  response and inspect `accessInfo.accessAllowedFrom` — `NB` means FEIDE
-  auth plus a digital loan is required (see Step 2's "Check `accessInfo`
-  before guessing" callout).
-  The orchestrator does this automatically; pass `--force-auth` to override.
-- *`--cookie auto` errors with "no cookie file found".* The wrapper looked
-  at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't made
-  one yet, or it exists on their own machine but hasn't been
-  mounted/uploaded so `Bash` can see it. Walk them through Option B again
-  (procedure in [`auth.md`](auth.md)).
-- *Auth used to work, now downloads fail with HTTP 401/403.* The cookie
-  has expired (typical lifetime: 24–48h on nb.no). With the browser tools,
-  repeat Step 0 step 7 — the pane usually stays logged in, so you need the
-  cookie again but not a fresh login (the user must type the confirmation
-  sentence again). Without browser tools, ask the user to re-copy `nbsso`
-  from DevTools. A FEIDE digital loan is also time-limited: re-check
-  `__nb.loanStatus()` before
-  assuming the cookie is at fault. All detailed in [`auth.md`](auth.md).
-- *`mv: unable to remove target: Operation not permitted`.* You used a
-  mounted workspace directory for `--out` and a same-named PDF already
-  exists there. Switch to a `mktemp -d` scratch directory for `--out` and copy afterward
-  with `cp`.
-- *Wrapper times out / PDF not created.* The bash call hit its timeout.
-  Re-run with an explicit long timeout. If the call still dies at about
-  170 s, narrow the `--start`/`--stop` range. Backgrounding with `nohup … &`
-  does **not** work: the process dies when the call returns.
-- *User pasted a `nb.no/items/<hash>` URL.* That hash is opaque. Resolve
-  it with `__nb.resolveUrn()` as in Step 1; only when the browser tools
-  are unavailable, or it answers `ambiguous`, ask for the Referere/Sitere
-  string (URN). Don't guess an ID from the hash.
-- *User mentions `pliktavlevering` content.* ID prefix will be
-  `pliktmonografi_...` or `pliktperiodika_...`. **Check `accessInfo` first**
-  rather than guessing — some pliktmonografi items are open, some are FEIDE-
-  licensed (`accessAllowedFrom: NB`). The
-  orchestrator does this automatically. The content search API will not work
-  for these items regardless of auth; download and read pages directly.
-- *Last page (back cover) always returns 403.* The final canvas of Bokhylla
-  books has the ID suffix `_C2` and is systematically restricted at any width.
-  Skip it silently — do not retry. The direct IIIF downloader already handles
-  this automatically.
-- *Manifest URL returns 404 (pliktmonografi item).* nb.no exposes two
-  endpoints — `/items/<id>/manifest` (works for digibok) and
-  `/iiif/URN:NBN:no-nb_<id>/manifest` (required for some pliktmonografi).
-  The orchestrator tries both; if you're driving the API by hand, fall
-  back to the second on 404.
-- *OCR text looks scrambled / wrong characters.* The page image was
-  silently downsampled by the IIIF resolver. Re-download with `--tiles
-  always` and re-OCR. Also check the log for `falling back to eng`: that
-  means the `nor` model could be neither found nor fetched. (OCR setup is
-  detailed in [`reading-ocr.md`](reading-ocr.md).)
-- *`ocrmypdf: command not found` between bash calls.* `~/.local/bin` is
-  wiped between calls in Cowork (not every time, so never rely on it). The
-  orchestrator installs to
-  `<--out>/_pylib/` and prepends `<--out>/_pylib/bin` to `PATH`
-  automatically; if you're running ocrmypdf by hand, install with
-  `pip install --target outputs/_pylib --break-system-packages ocrmypdf`
-  and `export PATH="outputs/_pylib/bin:$PATH"
-  PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
-- *Single ocrmypdf call times out on a long book.* Expected: Tesseract does
-  about 13 pages a minute on a 2-vCPU sandbox. Download with `--no-ocr`
-  (which also skips the shrink), then run `scripts/ocr_chunked.py` with
-  **one invocation per bash call**: re-run on exit 2, stop on exit 0, and
-  finish with `shrink_pdf.py --in-place`. OCR quality is the same, and the
-  per-page cache means every call makes progress. Do **not** wrap it in a
-  single-call `until … ; do … ; done` loop: the whole loop then has to fit
-  one call's timeout, which is exactly what a long book does not do. Full
-  recipe in [`reading-ocr.md`](reading-ocr.md).
-- *`ocr_chunked.py` exits 1 with "no page could be OCRed".* Every page failed
-  the same way, and the ocrmypdf error is printed above that line.
-  Re-running will not help, so fix the error itself.
-- *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
-  It was probably made with `--no-shrink`, `--no-ocr` + `ocr_chunked.py`,
-  or `nbno_run.sh`. Run
-  `scripts/shrink_pdf.py --pdf book.pdf` to JPEG-recompress the embedded images in place. The
-  text layer is untouched, so this is a pure size optimisation — no need
-  to re-OCR. **Never re-OCR to shrink** — it wastes minutes per book and
-  the OCR text layer doesn't determine file size.
-- *Chunked-OCR run silently produces a final PDF with broken pages.* A
-  previous timeout left structurally-corrupt cache files that were
-  skipped as "done". Newer `ocr_chunked.py` validates every cache file
-  with `pikepdf.open` at startup and deletes any that fail; older runs
-  may have shipped before that fix — delete `<pdf_dir>/.ocr_cache/` and
-  re-run.
-  
+- **Geo first.** Page images 403 while the manifest, `accessInfo` and
+  `/me/v1` look fine → it is the IP (`NORWAY`/`NB`), not auth: follow
+  **Routing**. Never suggest a VPN.
+- **Silent wrong results.** The image resolver downsamples, blackens page
+  bottoms and mis-sizes pages without an error; use the scripts rather than
+  hand-rolled requests (`iiif-download.md` if you must).
+- **Copyright.** Bokhylla and FEIDE access is personal and does not permit
+  redistribution; don't help redistribute in-copyright material.

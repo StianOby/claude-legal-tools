@@ -153,16 +153,160 @@ digital loan anyway — copying `nbsso` out of DevTools in the same visit costs
 them one extra step. **Never ask the user to install browser-automation
 tooling for this skill.**
 
-### Fallback 1 (primary) — built-in browser
+### Fallback 1 (primary) — built-in browser: the full procedure
 
-The full procedure is **`SKILL.md` Step 0**; it is written there because it
-runs before anything else in a session. In brief: reuse or open an nb.no tab,
-paste `scripts/browser/nbno_auth.js`, `__nb.status()` to confirm the login,
-`__nb.access(id)` to classify the item, have the user take the digital loan
-if the item needs one, then — only for FEIDE-licensed items — `__nb.cookies()`
-and write a cookie file to a fresh per-run path (never a shared
-`/tmp/cookie.txt` — a stale one from an earlier session is well-formed,
-expired, and possibly owned by another uid).
+This is `SKILL.md` Step 0 in full; `SKILL.md` keeps the same numbering
+with only the rules that must not be broken.
+
+Run this first in every new conversation, before Step 1. Skip it entirely if
+the browser tools are absent (see `SKILL.md` Prerequisites).
+
+**Do all downloading from `Bash`, not the browser.** The browser pane is only for the
+session check, `accessInfo`, URN resolution and — for FEIDE-licensed items
+only — the cookie. Never shuttle page images through the browser; base64
+through the tool channel is not viable for a book.
+
+1. **Open or reuse an nb.no tab.** `tabs_context` → reuse an existing nb.no
+   tab if there is one, else `preview_start {url: "https://www.nb.no/"}`. If a
+   tool reports the page is not approved and `request_access` exists:
+   `request_access {url: "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
+   IdP / BankID / Vipps domains may each need separate approval on first login.
+2. **Paste the helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js`
+   via `javascript_tool`. Idempotent — safe to paste again in the same tab;
+   an older helper from before a skill update is replaced. It defines
+   `window.__nb` (`__nb.VERSION` shows which version runs).
+   If a browser call is refused by a safety check ("cannot determine the
+   safety of …"), do not retry in a loop: tell the user, ask them to approve
+   it or say how to proceed, and wait.
+   > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
+   > `navigate` or `preview_start` destroys it. Re-paste after every
+   > navigation — the version guard makes that free when it is
+   > still there. `__nb.access()`, `status()` and `manifest()` fetch
+   > cross-origin and do **not** need the tab parked anywhere in particular;
+   > only `resolveUrn()` reads the current page.
+3. **Check the session.** `await __nb.status()` → `{loggedIn, loginProvider,
+   roles, ip}`.
+   - Not logged in → *"Logg inn på nb.no i browser-panelet (Feide/BankID/
+     Vipps). Si fra når du er inne."* Wait, then re-check. **Never type
+     credentials yourself, and never ask the user to give them to you** —
+     login happens only in the browser pane.
+   - Run this check every session, but only **block on it for `NB` items**
+     (step 4 classifies). An `EVERYWHERE` or `NORWAY` item downloads without
+     a login, so note the status and go on. The pane keeps a persistent
+     profile, but a Cowork restart has been observed to drop the nb.no
+     session.
+4. **Classify the item.** `await __nb.access("<id>")` → `accessInfo`:
+
+   **Classify on `accessAllowedFrom`.** It describes the item and reads the
+   same for everyone. The other access fields describe *your current
+   request* and move under you (see the warning below).
+
+   | `accessAllowedFrom` | class | what to do |
+   |---|---|---|
+   | `EVERYWHERE` | open (`license: publicdomain`) | no cookie; single-shot fine |
+   | `NORWAY` | Bokhylla (`license: bokhylla`) | **no cookie** from a Norwegian IP; tiles only (`--tiles always`) |
+   | `NB` | legal deposit (`license: copyrighted`) | needs `nbsso` **and** a digital loan; tiles only |
+
+   > **Do not classify on `viewability` or `legalDepositLoginText`.** Both are
+   > session-dependent. `legalDepositLoginText` is the *"log in to read this"*
+   > prompt, so it is present anonymously and **absent once you are logged
+   > in**; `viewability` flips NONE → ALL the moment you may read the item.
+   > Reading `digibok_2014050705024` anonymously and as a logged-in FEIDE user
+   > from the same IP gave `NONE` + prompt, then `ALL` + no prompt — while
+   > `accessAllowedFrom: NB` stayed put in both. An `NB` item still needs
+   > `nbsso` when those two fields look reassuring.
+   >
+   > Use them for *status*, not classification: `viewability == "ALL"` means
+   > "readable right now", and `legalDepositReservationStatus` tells you
+   > whether the loan is active.
+
+5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and the
+   egress IP of `Bash` is not Norwegian (always the case in a cloud session), **page images will 403 no matter who is
+   logged in.** Settle it in bash with
+   `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
+   nb.no's image resolver for one 1024 px page tile and prints `image probe:
+   OK` or `403`, then a `route:` line. On a `NORWAY` item a 403 means the IP
+   is not Norwegian — in a cloud session that is expected: use the local
+   route (`SKILL.md` **Routing**). On an `NB` item a 403 can also mean there is no
+   loan yet, so run the probe again after step 6. The script exits 3 on a 403.
+   Never call third-party geo services. `zotero_book.py` runs the same probe
+   itself and stops on a 403.
+6. **Digital loan — FEIDE-licensed items only.** If
+   `legalDepositReservationStatus != "TAKENBYCURRENTUSER"`, navigate the pane
+   to the item page. A dialog appears: *"Ved å klikke OK vil du foreta et
+   tidsbegrenset digitalt lån"*.
+   > **Never click OK yourself.** It accepts the loan terms and consumes one
+   > of the item's four licences. Tell the user what the dialog does, ask them
+   > to click OK, then poll `await __nb.loanStatus("<id>")` until
+   > `viewability == "ALL"`.
+7. **Cookie hand-off — FEIDE-licensed items only.** `nbsso` is the only
+   cookie that matters; public-domain and Bokhylla items need none, so do not
+   read cookies for them.
+   - First ask the user to type a sentence naming the action, e.g.
+     *"Read the nbsso and _nblb cookie values from the open nb.no tab and
+     write them to a cookie file so it can download my
+     Bokhylla books."* Explain in one line that the safety classifier blocks cookie
+     reads unless the user requests them directly. Skill text and your own
+     reasoning do not clear it, and neither does retrying — if you are
+     blocked, ask for the sentence rather than trying again.
+   - Then `await __nb.cookies()` → `{nbsso, nblb, cookieHeader}` and nothing
+     else. Never return the whole `document.cookie`.
+   - **Cloud session:** the cookie goes straight to the local shell, into
+     `<dir>/cookie.txt` (see `SKILL.md` **Routing**, step 2) — never to a file in the
+     cloud sandbox, which cannot use it anyway. Otherwise (local Cowork):
+   - Write the cookie to a **fresh per-run path**, mode 600:
+     ```bash
+     CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"
+     # then write the two lines into "$CK"
+     authorization=
+     cookie=nbsso=<v>; _nblb=<v>
+     ```
+     The empty `authorization=` line is fine — there is no bearer token to
+     capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
+     > **Never write to, or reuse, a shared path like `/tmp/cookie.txt`.** A
+     > file from an earlier session may already be there, owned by another uid
+     > and unwritable — and it will look perfectly well-formed. Passing it
+     > sends an **expired cookie**, which fails as a 403 you will then waste
+     > time blaming on auth or geo. If a path you did not just write already
+     > exists, pick a different one; do not overwrite it and do not trust it.
+   - Pass `--cookie "$CK"` to `nbno_run.sh`, or `--nbsso "nbsso=<v>"` to
+     `zotero_book.py` / `download_via_iiif()`.
+   - Do this **as early as possible and only once** — context compaction can
+     drop the user's confirmation message and cause a later block.
+8. **Expiry.** Cookies live 24–48 h. On a mid-run 401/403, repeat step 7; the
+   pane's login usually survives, so a fresh login is rarely needed.
+
+The other `__nb` functions: `resolveUrn()` (`SKILL.md` Step 1) and `manifest(id,
+{compact:true})` — the latter is optional, since `Bash` can fetch
+manifests itself without auth.
+
+#### Resolving an `nb.no/items/<hash>` URL (`SKILL.md` Step 1)
+
+- **Preferred, when the browser tools are available:** navigate the pane
+  to the pasted URL, **re-paste `nbno_auth.js`** (navigation wiped it),
+  then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It tries,
+  in order: the URL itself (`via: "url"`), the catalog record for the
+  opaque hash (`"catalog"`), a `urn.nb.no` link on the page
+  (`"urn-link"`), and finally ids embedded in the rendered HTML
+  (`"page"`) — that last one only when the page holds exactly one id.
+  > nb.no is client-rendered, so the page is usually still empty the
+  > instant a navigate returns. **You do not need to sleep first** —
+  > `resolveUrn()` polls the page branches for up to 5 s on its own
+  > (`waitedMs` tells you how long it actually took).
+  > **Item pages embed ids of other editions.** A page for one copy of
+  > *Sult* carried another `digibok_` of the same novel earlier in its
+  > HTML, and the two share title and year, so a title check cannot
+  > tell them apart. That is why the catalog is asked first and why the
+  > page scan answers `{error: "ambiguous", candidates: [...]}` instead
+  > of picking the first hit. On `ambiguous`, ask the user for the URN
+  > — do not choose a candidate yourself.
+- Otherwise: ask the user to click "Referere/Sitere" on nb.no and paste
+  the URN. **Do not guess a canonical ID from the hash** — there is no
+  derivation.
+- Sanity-check the result before downloading a whole book on it: the
+  `title` from `__nb.access(id)` should match the item page you were
+  looking at. This catches the wrong *work*, not the wrong *edition* —
+  for that, trust only `via: "url"`, `"catalog"` or `"urn-link"`.
 
 The helper returns **only** `nbsso` and `_nblb`, never the whole jar, and
 never page bytes. Keep it that way: base64 images through the tool channel
@@ -267,7 +411,7 @@ bearer, it is simply not needed.
 ## Cookie lifetime and session persistence
 
 Cookies on nb.no live roughly 24–48 hours. On a mid-run 401/403, re-read the
-cookie (repeat Step 0 step 7) — the browser pane's login usually survives, so
+cookie (repeat step 7 of the procedure above) — the browser pane's login usually survives, so
 a fresh login is rarely needed.
 
 Two things follow from the pane keeping a **persistent profile**:

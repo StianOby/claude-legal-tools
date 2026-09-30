@@ -27,7 +27,9 @@ nbno/
 ├── auth.md                    # authentication procedures (referenced by SKILL.md)
 ├── reading-ocr.md             # page reading, OCR, and PDF-shrink procedures
 ├── zotero-ready.md            # full Zotero-ready (PDF + OCR + RDF) workflow
-├── iiif-download.md           # inline IIIF recipe + the resolver's gotchas
+├── iiif-download.md           # whole-book downloader, inline IIIF recipe, resolver gotchas
+├── troubleshooting.md         # caveats and troubleshooting
+├── local-route.md             # shared: running steps on the user's computer (cloud Cowork)
 ├── README.md                  # you are here
 ├── scripts/
 │   ├── nbno_run.sh            # download wrapper
@@ -45,7 +47,8 @@ nbno/
 Offline tests live in the repository at `tests/nbno/`, not in the plugin (they do not ship to users): `python tests/nbno/test_*.py` (needs Pillow; pypdf for the page-size test).
 
 SKILL.md is kept deliberately lean — it routes to `auth.md`,
-`reading-ocr.md`, `iiif-download.md` and `zotero-ready.md` so only the
+`reading-ocr.md`, `iiif-download.md`, `zotero-ready.md`, `troubleshooting.md`
+and `local-route.md` so only the
 procedures relevant to a given task are loaded into Claude's context.
 
 ## Requirements

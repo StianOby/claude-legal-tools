@@ -191,3 +191,13 @@ keeps no full-resolution copy unless you pass `--shrink-keep-master`
 (saved as `<basename>.original.pdf`). `--no-shrink` skips the step; the
 orchestrator then prints a hint if the PDF exceeds `--shrink-threshold-mb`
 (default 150).
+
+## Canvas numbers vs printed pages
+
+> **Determine the canvas-to-printed-page offset before targeting a range.**
+> `--start`/`--stop` refer to IIIF canvas numbers (1-based sequence), not
+> necessarily printed page numbers. On a first run, download canvases 1–7
+> and inspect the page footer or header text (e.g. an InDesign filename
+> suffix like `...indd 5` on canvas 5 confirms an offset of zero). Once the
+> offset is known, calculate the correct canvas numbers before requesting a
+> specific printed-page range.

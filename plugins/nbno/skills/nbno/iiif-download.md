@@ -1,13 +1,95 @@
 # nbno — direct IIIF downloading
 
-Supplementary to [`SKILL.md`](SKILL.md) Step 3. Load this file only when you
-need the **inline recipe** (driving nb.no's IIIF API by hand, without the
-skill's scripts on disk) or the **mechanics** behind the four gotchas the
-orchestrator already handles for you.
+Supplementary to [`SKILL.md`](SKILL.md) Step 3. Read it for **whole-book
+downloads** with the fast in-process downloader, for the **inline recipe**
+(driving nb.no's IIIF API by hand, without the skill's scripts on disk), and
+for the **mechanics** behind the resolver's gotchas.
 
-If `{SKILL_DIR}/scripts/zotero_book.py` is available, you do not need this
-file: `download_via_iiif()` handles every gotcha below. Step 3 of `SKILL.md`
-shows the call.
+## Fast path — `download_via_iiif()` (recommended for whole books)
+
+For full-book `digibok_*` downloads, bypass `nbno_run.sh` entirely and use
+the in-process IIIF downloader. It fetches pages directly via the IIIF API
+with `ThreadPoolExecutor(12)` and is roughly **20× faster** than batching
+through the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page).
+
+**Preferred: use the orchestrator's downloader directly.**
+`scripts/zotero_book.py:download_via_iiif()` already handles every gotcha
+listed in this file:
+
+- tries both `/items/<id>/manifest` *and* `/iiif/URN:NBN:no-nb_<id>/manifest`
+  (the first returns 404 for a substantial share of items — including plain
+  `digibok_*`, e.g. `digibok_2014050705024` — so the fallback is routine, not
+  an edge case; never hand-roll a single-endpoint manifest fetch);
+- fetches `info.json` to pick a width the resolver will actually serve at
+  the requested resolution (the resolver silently downsamples otherwise —
+  asking for `608,` on a book that only lists `[502, 251, …]` returns a
+  502px image which makes OCR unusable);
+- verifies the returned image dimensions with PIL and, on mismatch, falls
+  back to native-resolution `regionByPx` 1024×1024 tiles stitched together;
+- skips the `_C2` back cover automatically;
+- retries timeouts, dropped connections, 429 and 5xx on every request, and
+  gives failed pages a second, slower pass;
+- never drops a page: one that cannot be downloaded becomes a placeholder
+  page saying so, **in its own place**, so every later page keeps its page
+  number. It returns `{"pages": N, "missing": [PDF page numbers]}`, and
+  `zotero_book.py` exits with status 3 and a warning when `missing` is not
+  empty. Tell the user which pages are placeholders and re-run to fill
+  them; never quote or cite from a placeholder page.
+
+**Auth arguments are all optional.** `api.nb.no` authenticates by cookie, so
+there is no bearer token to capture — `bearer=None` is the normal case and
+`nbsso` alone is what FEIDE-licensed items need. Public-domain and Bokhylla
+items need neither.
+
+```python
+import sys
+sys.path.insert(0, "{SKILL_DIR}/scripts")
+from zotero_book import download_via_iiif
+from pathlib import Path
+import tempfile
+
+OUT_DIR = tempfile.mkdtemp()   # scratch; copy the final PDF to outputs (`SKILL.md` Step 4)
+
+# Public domain, or Bokhylla from a Norwegian IP — no credentials at all.
+result = download_via_iiif(
+    canonical_id="digibok_2008051600041",
+    out_pdf=Path(OUT_DIR) / "book.pdf",
+    resize_width=1024,    # listed sizes will be checked; actual cap may be lower
+    workers=12,
+    tiles="always",       # licensed content is tiles-only; see below
+)
+
+# FEIDE-licensed item, after the user has taken the digital loan (`SKILL.md` Step 0).
+download_via_iiif(
+    canonical_id="digibok_2014050705024",
+    out_pdf=Path(OUT_DIR) / "book.pdf",
+    nbsso="nbsso=<value>",   # bearer is not needed and defaults to None
+    tiles="always",
+)
+```
+
+> **Anything that is not public domain is tiles-only.** Single-shot
+> `/full/<w>,/` returns 403 at every width for Bokhylla and legal-deposit
+> items. `--tiles auto` recovers per page, but pass `--tiles always` whenever
+> `accessInfo.license != "publicdomain"` to skip one wasted round-trip per
+> page.
+>
+> **Tiling ignores the requested width.** Tiles are fetched at each canvas's
+> native resolution, so `--resize` / `resize_width` governs only the
+> single-shot path and caps nothing under `--tiles always`. Expect full-size
+> pages — and heterogeneous ones, since canvases within a book differ (1562,
+> 1571 and 2024 px wide in the same volume). Smaller output comes from the
+> shrink step after OCR (`SKILL.md` Step 4), not from asking for a narrower width.
+
+**Driving the IIIF API by hand?** If `zotero_book.py` is not available (e.g.
+you don't have the skill directory on disk), the full inline recipe lives in
+[`iiif-download.md`](iiif-download.md), together with the mechanics behind
+the resolver's silent downsampling, per-canvas tiling, per-page PDF DPI, and
+the `_C2` back cover. **Read it before hand-rolling a download** — every one
+of those gotchas yields a plausible-looking but wrong result (HTTP 200 with a
+half-size image, black page bottoms, poster-sized PDF pages).
+
+---
 
 ## Auth recap
 
