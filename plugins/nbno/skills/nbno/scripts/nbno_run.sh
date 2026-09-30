@@ -200,7 +200,7 @@ fi
 
 if [[ -z "$NBNO_BIN" ]]; then
   echo "Installing nbno (one-time, persistent at $PYLIB)..."
-  if ! pip install --break-system-packages --target "$PYLIB" --upgrade --quiet nbno >/dev/null 2>&1; then
+  if ! pip install --break-system-packages --no-cache-dir --target "$PYLIB" --upgrade --quiet nbno >/dev/null 2>&1; then
     echo "ERROR: pip install nbno failed." >&2
     exit 2
   fi

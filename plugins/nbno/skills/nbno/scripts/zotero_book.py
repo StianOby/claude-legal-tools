@@ -1139,7 +1139,36 @@ def _list_langs() -> Tuple[set, Optional[Path]]:
                 source = Path(m.group(1))
         elif ln and " " not in ln:
             langs.add(ln)
+    if source is None or source.resolve() == _tessdata_dir().resolve():
+        # No dir printed, or it is our own fetch dir (TESSDATA_PREFIX from an
+        # earlier run): find the system one so its files get copied along.
+        source = _guess_tessdata_dir() or source
     return langs, source
+
+
+# Tesseract 4.x prints "List of available languages (2):" without the
+# directory (seen on the Cowork local VM, 4.1.1, 2026-09-30). Without it
+# _fetch_tessdata() copied nothing and pointed TESSDATA_PREFIX at a dir with
+# only the fetched model, so tesseract could not even load eng.
+_TESSDATA_GLOBS = (
+    "/usr/share/tesseract-ocr/*/tessdata",
+    "/usr/share/tesseract-ocr/tessdata",
+    "/usr/share/tessdata",
+    "/usr/local/share/tessdata",
+    "/usr/local/share/tesseract-ocr/*/tessdata",
+    "/opt/homebrew/share/tessdata",
+)
+
+
+def _guess_tessdata_dir() -> Optional[Path]:
+    """The system tessdata dir (the first standard location holding any
+    model), for when tesseract did not say where it is."""
+    import glob
+    for pattern in _TESSDATA_GLOBS:
+        for c in sorted(glob.glob(pattern), reverse=True):
+            if any(Path(c).glob("*.traineddata")):
+                return Path(c)
+    return None
 
 
 def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
@@ -1279,7 +1308,7 @@ def _ensure_pylib_on_path() -> Path:
 def _pip_install_to_pylib(packages: List[str]) -> int:
     target = _ensure_pylib_on_path()
     cmd = [
-        sys.executable, "-m", "pip", "install", "--quiet",
+        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
         "--break-system-packages",
         "--target", str(target),
         "--upgrade",
@@ -1628,6 +1657,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         use_iiif = args.downloader == "iiif"
     missing_pages: dict = {"missing": []}
+    ocr_failed = ""
     if use_iiif:
         creds = "+".join(k for k, v in (("nbsso", args.nbsso),
                                         ("bearer", args.bearer)) if v)
@@ -1679,8 +1709,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print("[text] WARNING: --ocr nb was asked for, but nb.no's OCR "
                       "is not available here; falling back to Tesseract.")
         if not used_nb:
-            run_ocrmypdf(pdf_path, languages=args.ocr_langs, jobs=args.ocr_jobs)
-            print(f"[ocr] PDF now searchable ({pdf_path.stat().st_size/1e6:.1f} MB)")
+            try:
+                run_ocrmypdf(pdf_path, languages=args.ocr_langs, jobs=args.ocr_jobs)
+                print(f"[ocr] PDF now searchable ({pdf_path.stat().st_size/1e6:.1f} MB)")
+            except SystemExit as exc:
+                # The pages are downloaded; losing them (and the RDF) over
+                # OCR would be worse than delivering an image-only PDF.
+                ocr_failed = str(exc)
+                print(f"[ocr] FAILED, continuing without a text layer: {exc}")
 
     # ---- Shrink (lossy image recompression) ---------------------------------
     if args.shrink:
@@ -1774,6 +1810,11 @@ def main(argv: Optional[List[str]] = None) -> int:
               "pages could not be downloaded. Re-run the same command to fill them in; "
               "until then, tell the user they are missing.")
         return 3
+    if ocr_failed:
+        print()
+        print("WARNING: OCR failed, so the PDF has no text layer (the PDF and RDF "
+              f"are otherwise complete): {ocr_failed}")
+        return 5
     return 0
 
 

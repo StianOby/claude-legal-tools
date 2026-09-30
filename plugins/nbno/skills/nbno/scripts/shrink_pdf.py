@@ -76,7 +76,7 @@ def _ensure_deps():
         import subprocess
         print(f"[shrink] installing {missing} -> {target}", file=sys.stderr)
         rc = subprocess.call([
-            sys.executable, "-m", "pip", "install", "--quiet",
+            sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
             "--break-system-packages", "--target", target, "--upgrade",
             *missing,
         ])

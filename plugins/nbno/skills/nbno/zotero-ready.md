@@ -119,6 +119,10 @@ In a cloud session, `NORWAY`/`NB` items run all of this in the local shell
 add `--no-ocr` and tell the user the PDF has no text layer. `EVERYWHERE`
 items stay in the cloud sandbox as below.
 
+**Exit codes:** 0 done; 3 some pages are placeholders (re-run to fill them);
+5 OCR failed — the PDF (without a text layer) and the RDF are still written,
+so deliver them and say the PDF is not searchable.
+
 **Part of a book:** `--start N --stop M` (1-based canvas numbers, inclusive,
 as in `nbno_run.sh`; not printed page numbers). The files get a
 `_c<N>-<M>` suffix so a partial copy never overwrites the full book. The

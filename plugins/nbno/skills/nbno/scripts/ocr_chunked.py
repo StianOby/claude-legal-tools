@@ -84,7 +84,7 @@ def _ensure_pylib_on_path() -> Path:
 def _pip_install(packages: List[str]) -> int:
     target = _ensure_pylib_on_path()
     return subprocess.call([
-        sys.executable, "-m", "pip", "install", "--quiet",
+        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
         "--break-system-packages", "--target", str(target), "--upgrade",
         *packages,
     ])
@@ -158,7 +158,36 @@ def _list_langs() -> Tuple[set, Optional[Path]]:
                 source = Path(m.group(1))
         elif ln and " " not in ln:
             langs.add(ln)
+    if source is None or source.resolve() == _tessdata_dir().resolve():
+        # No dir printed, or it is our own fetch dir (TESSDATA_PREFIX from an
+        # earlier run): find the system one so its files get copied along.
+        source = _guess_tessdata_dir() or source
     return langs, source
+
+
+# Tesseract 4.x prints "List of available languages (2):" without the
+# directory (seen on the Cowork local VM, 4.1.1, 2026-09-30). Without it
+# _fetch_tessdata() copied nothing and pointed TESSDATA_PREFIX at a dir with
+# only the fetched model, so tesseract could not even load eng.
+_TESSDATA_GLOBS = (
+    "/usr/share/tesseract-ocr/*/tessdata",
+    "/usr/share/tesseract-ocr/tessdata",
+    "/usr/share/tessdata",
+    "/usr/local/share/tessdata",
+    "/usr/local/share/tesseract-ocr/*/tessdata",
+    "/opt/homebrew/share/tessdata",
+)
+
+
+def _guess_tessdata_dir() -> Optional[Path]:
+    """The system tessdata dir (the first standard location holding any
+    model), for when tesseract did not say where it is."""
+    import glob
+    for pattern in _TESSDATA_GLOBS:
+        for c in sorted(glob.glob(pattern), reverse=True):
+            if any(Path(c).glob("*.traineddata")):
+                return Path(c)
+    return None
 
 
 def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:

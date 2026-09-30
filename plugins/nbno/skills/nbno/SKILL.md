@@ -93,7 +93,9 @@ not one. So:
      `norwegian-ip+loan` there → no active loan or an expired cookie: Step 0.6–0.7, then probe again once.
    - `route: unknown` → report the probe line and ask before downloading.
 2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
-   are available and has the fixed messages if not). For nbno, once `READY <dir>` is printed:
+   are available and has the fixed messages if not). **Check for a connected folder first** (`ls -d "$HOME"/mnt/*/`
+   in `device_bash`; if none, ask for one as `local-route.md` §1 says) — `device_bash` refuses to run without one.
+   For nbno, once `READY <dir>` is printed:
    - Probe again from the user's machine, in `device_bash`:
      `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/geo_check.py --id <id>` (add
      `--nbsso "nbsso=<v>"` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
@@ -106,9 +108,10 @@ not one. So:
      `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or `--nbsso "nbsso=<v>"` for
      `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
      `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
-   - OCR / Zotero-ready: first `command -v tesseract`. Present (it was, with `eng`/`osd` only) → `zotero_book.py`
-     fetches `nor` and pip-installs `ocrmypdf` into the run directory itself. Missing → `--no-ocr`, deliver the PDF
-     and use message **C** from `local-route.md`.
+   - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
+     2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
+     Missing → `--no-ocr`. Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
+     deliver them and use message **C** from `local-route.md`. Do not re-run just to retry OCR.
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/`, tell the user where it is, then
      `rm -rf <dir>` (this also removes the cookie).
 
