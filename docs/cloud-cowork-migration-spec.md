@@ -25,6 +25,8 @@ Key facts:
 | lovdata-pro works unchanged (all fetching happens in the browser) | Holship, avsnitt 77 |
 | Local shell is not logged in anywhere (no browser cookies) | `/pro/` returns 302 to login |
 | `request_access` browser tool is absent in some environments (Claude Code desktop) | Tool listing |
+| Cloud session (WP1 test, 2026-09-30): `$CLAUDE_SKILL_DIR` and `$CLAUDE_PLUGIN_ROOT` are empty in `Bash`; the outputs dir is `/mnt/user-data/outputs`; files are shared with `SendUserFile` (no `present_files`); plugin MCP servers run on the user's device (`mcp__remote-devices__plugin_…`) | Test run |
+| HUDOC answers the cloud sandbox with a Cloudflare 403; the browser fallback works. ICJ PDFs can hit a Turnstile check even in the browser pane | Test run |
 
 The approach: anything that needs the user's IP runs through the local shell, which is sandboxed and runs the existing scripts unchanged. Everything else stays in the cloud sandbox or the browser.
 
@@ -94,7 +96,7 @@ Use the local route when a step needs the user's IP and the cloud sandbox is blo
 Detection (don't assume the environment):
 
 1. Run the network step, or a cheap probe, in the normal `Bash` first. If it works (e.g. `geo_check.py` exit 0 in local Cowork), stay there.
-2. If it's blocked (403/405), look for `device_bash` via ToolSearch `device_bash`.
+2. If it's blocked (403/405), look for `mcp__remote-devices__device_bash` in the tool list. It is loaded up front in cloud sessions, so ToolSearch `device_bash` does **not** return it (test run 2026-09-30); use ToolSearch only as a fallback.
 3. If `device_bash` is present but no folder is connected, ask the user to connect one (suggest a dedicated folder, e.g. `Claude-legal-work`).
 4. If `device_bash` is absent, stop with a clear message (WP2.4).
 

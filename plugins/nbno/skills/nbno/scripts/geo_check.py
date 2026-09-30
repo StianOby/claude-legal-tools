@@ -5,8 +5,9 @@ geo_check.py — report the egress IP and nb.no session as nb.no sees them.
 Why this exists: nb.no enforces geo-restriction at the IIIF *image resolver*,
 not at the API. Manifests and catalog metadata are served worldwide with no
 auth, so a run can look healthy right up until every page image returns 403.
-Both the sandbox and the browser pane egress from the user's own machine IP,
-so this one call describes both.
+This describes the egress IP of the shell it runs in (in a cloud Cowork session
+that is Anthropic's cloud, never a Norwegian IP; in local Cowork it is the
+user's own IP). The browser pane may egress from a different IP.
 
 Deliberately talks only to nb.no. Do NOT swap in a third-party geo service
 (ipinfo.io and friends) — that would leak the user's IP to an unrelated party

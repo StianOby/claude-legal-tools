@@ -65,7 +65,7 @@ tab's memory only.
 ## Requirements
 
 - **Claude Desktop** with **Cowork** enabled (the built-in browser tool
-  surface, `mcp__Claude_Browser__*`).
+  surface; the tool prefix differs between local and cloud Cowork, and the skill finds it with ToolSearch `Claude_Browser`).
 - Nothing else. No Python, no packages. (`tests/` uses Node and `linkedom`,
   for maintainers only.)
 

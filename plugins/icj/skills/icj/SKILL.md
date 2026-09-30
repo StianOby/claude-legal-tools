@@ -33,9 +33,27 @@ Pleadings, written observations, and verbatim records of hearings are deliberate
 
 ---
 
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| Cases, PCIJ, jurisdiction pages, declaration texts (`scripts/icj.py`) | cloud sandbox (`Bash`) |
+| Reading the extracted text, quoting | cloud sandbox (`Bash`) |
+| Judgment/opinion PDFs (Cloudflare blocks every script) | browser pane (see **Fetching PDF text**) |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `icj-cij.org` has worked from the cloud so far; if
+it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+
 ## Setup
 
-All scripts live in `scripts/`. They are plain Python 3 (3.9+) using only the standard library — no packages to install. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/icj/SKILL.md' 2>/dev/null | head -1` and use that file's directory.
+All scripts live in `scripts/`. They are plain Python 3 (3.9+) using only the standard library — no packages to install. Run them from the skill directory (`{SKILL_DIR}`).
+
+**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
+Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/icj}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/icj/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
 
 The CLI entry point is `scripts/icj.py`. Run `python3 scripts/icj.py --help` for the subcommand list. Cached data lives in `~/.cache/icj/` (override with `$ICJ_CACHE_DIR`) and is created on first use; the cache is never written inside the skill folder.
 
@@ -119,7 +137,8 @@ Direct HTTP requests to `icj-cij.org` PDF URLs — via `curl`, `urllib` or any s
      ({ status: r.status, type: blob.type, bytes: blob.size, chunks: Math.ceil(window.__pdf.length / 40000) })
      ```
      `type` must be `application/pdf`; `text/html` means Cloudflare answered instead — open the case page first and try again.
-   - For `i` = 0 … `chunks`−1, get `window.__pdf.slice(i * 40000, (i + 1) * 40000)` and append it to `outputs/<name>.b64` with bash (`printf '%s' '<chunk>' >> …`).
+   - If the pane shows a Cloudflare "Verify you are human" check (Turnstile), you cannot pass it yourself: `navigate` the pane to the PDF URL, ask the user to tick the box in the browser pane and say when it's done, then retry once. If it still answers `text/html`, give the user the PDF URL and stop.
+   - For `i` = 0 … `chunks`−1, get `window.__pdf.slice(i * 40000, (i + 1) * 40000)` and append it to `outputs/<name>.b64` (outputs = `/mnt/user-data/outputs` in cloud Cowork) with bash (`printf '%s' '<chunk>' >> …`).
    - Then `base64 -d outputs/<name>.b64 > outputs/<name>.pdf` and check the page count with a PDF tool.
 
    Tell the user up front how many calls it takes; for reading and quoting, the PDF viewer (step 2) is much quicker.

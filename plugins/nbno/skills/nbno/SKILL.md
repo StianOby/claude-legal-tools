@@ -29,31 +29,54 @@ The user's preferences for this skill:
 - **Output**: PDF only. The wrapper always builds a PDF and removes per-page
   images automatically — do **not** pass `--pdf` yourself (it is an unknown
   argument to the wrapper and will cause an error).
-- **Auth**: Prompt every time. Before each run, ask the user which auth path
-  in **Step 2** to take. The default cookie location is `~/.nbno/cookie.txt`
+- **Auth**: Prompt every time an item needs a credential (`NB`, FEIDE).
+  Before such a run, ask the user which auth path in **Step 2** to take.
+  `EVERYWHERE` and `NORWAY` items need no credential — don't ask. The default cookie location is `~/.nbno/cookie.txt`
   when the user keeps a durable one.
 
 ## Prerequisites
 
-- **`{SKILL_DIR}`** — replace this placeholder with the path printed in
-  "Base directory for this skill:" at the top of your context. If that path
-  does not exist in bash (Cowork may show a host path the sandbox cannot
-  see), locate the skill with
-  `find /sessions -path '*/skills/nbno/SKILL.md' 2>/dev/null | head -1` and
-  use that file's directory.
+- **Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for
+  this skill:" if it exists in bash. Otherwise resolve it once and use the
+  printed path literally in later commands:
+  ```bash
+  for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/nbno}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/nbno/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+  ```
 - **`nbno` CLI** — the wrapper installs it automatically on first run via
   `pip install --break-system-packages nbno`. If auto-install fails, run
   that command manually before proceeding.
-- **Built-in browser (optional, Cowork only).** If the `mcp__Claude_Browser__*`
-  tools are present, **Step 0** uses them for the session check, item
-  classification and cookie capture. They may be *deferred* — load them with
-  one `ToolSearch` call before deciding they are absent:
-  `select:mcp__Claude_Browser__preview_start,mcp__Claude_Browser__navigate,mcp__Claude_Browser__javascript_tool,mcp__Claude_Browser__tabs_context,mcp__Claude_Browser__request_access`.
+- **Built-in browser (optional, Cowork only).** If the built-in browser tools
+  are present, **Step 0** uses them for the session check, item
+  classification and cookie capture.
+  > **Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
+  > Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
+  > query `Claude_Browser` and `max_results` 64, and use whatever prefix comes back. This file names them by suffix only
+  > (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, `get_page_text`, `read_page`, …).
+  > `request_access` does not exist in every environment; if it is missing, go straight to `preview_start`/`navigate`.
+
   If they genuinely are not available (Claude Code CLI, or the user's
   preferred browser is Chrome and the built-in tools are offline), **skip
   Step 0** and use the fallback ladder in [`auth.md`](auth.md) Option B —
   everything else in this file works unchanged. Say which path you took;
   never degrade silently.
+
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| Session check, `accessInfo`, URN resolution, digital-loan dialog, cookie read (Step 0) | **browser pane** (the user's IP and logins) |
+| Catalogue search (`nb_search.py`), manifests, `geo_check.py` | **cloud sandbox (`Bash`)** |
+| Page-image download for `EVERYWHERE` items, OCR, shrink, Zotero RDF | **cloud sandbox (`Bash`)** |
+| Page-image download for `NORWAY` (Bokhylla) and `NB` (FEIDE) items | needs a Norwegian IP; blocked from Anthropic's cloud (see below) |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer.
+
+`EVERYWHERE` items download fine from the cloud sandbox. `NORWAY` and `NB` page images answer 403 from a non-Norwegian IP,
+and Anthropic's cloud is not one. Run `geo_check.py --id <id>` first. If it reports 403 in a cloud session, say plainly:
+"This item is blocked from Anthropic's cloud; for now it needs local Cowork." Do not retry, do not debug auth, and never
+suggest a VPN. (A proper route for this case is planned; it is not part of this skill yet.) In local Cowork `Bash` has the
+user's own IP, so the probe decides.
 
 ---
 
@@ -62,15 +85,15 @@ The user's preferences for this skill:
 Run this first in every new conversation, before Step 1. Skip it entirely if
 the browser tools are absent (see Prerequisites).
 
-**Do all downloading from the sandbox.** The browser pane is only for the
+**Do all downloading from `Bash`, not the browser.** The browser pane is only for the
 session check, `accessInfo`, URN resolution and — for FEIDE-licensed items
 only — the cookie. Never shuttle page images through the browser; base64
 through the tool channel is not viable for a book.
 
 1. **Open or reuse an nb.no tab.** `tabs_context` → reuse an existing nb.no
    tab if there is one, else `preview_start {url: "https://www.nb.no/"}`. If a
-   tool reports the page is not approved: `request_access {url:
-   "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
+   tool reports the page is not approved and `request_access` exists:
+   `request_access {url: "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
    IdP / BankID / Vipps domains may each need separate approval on first login.
 2. **Paste the helper.** Paste all of `{SKILL_DIR}/scripts/browser/nbno_auth.js`
    via `javascript_tool`. Idempotent — safe to paste again in the same tab;
@@ -88,9 +111,11 @@ through the tool channel is not viable for a book.
      Vipps). Si fra når du er inne."* Wait, then re-check. **Never type
      credentials yourself, and never ask the user to give them to you** —
      login happens only in the browser pane.
-   - Run this check **unconditionally, every session.** The pane keeps a
-     persistent profile, but a Cowork restart has been observed to drop the
-     nb.no session.
+   - Run this check every session, but only **block on it for `NB` items**
+     (step 4 classifies). An `EVERYWHERE` or `NORWAY` item downloads without
+     a login, so note the status and go on. The pane keeps a persistent
+     profile, but a Cowork restart has been observed to drop the nb.no
+     session.
 4. **Classify the item.** `await __nb.access("<id>")` → `accessInfo`:
 
    **Classify on `accessAllowedFrom`.** It describes the item and reads the
@@ -117,12 +142,13 @@ through the tool channel is not viable for a book.
    > whether the loan is active.
 
 5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and the
-   egress IP is not Norwegian, **page images will 403 no matter who is
-   logged in.** Settle it in the sandbox with
+   egress IP of `Bash` is not Norwegian (always the case in a cloud session), **page images will 403 no matter who is
+   logged in.** Settle it in bash with
    `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
    nb.no's image resolver for one 1024 px page tile and prints `image probe:
    OK` or `403`. On a `NORWAY` item a 403 means the IP is not Norwegian: tell
-   the user and stop. On an `NB` item a 403 can also mean there is no loan
+   the user (in a cloud session: "blocked from Anthropic's cloud; needs local
+   Cowork for now") and stop. On an `NB` item a 403 can also mean there is no loan
    yet, so run the probe again after step 6. The script exits 3 on a 403.
    Never call third-party geo services. `zotero_book.py` runs the same probe
    itself and stops on a 403.
@@ -139,7 +165,7 @@ through the tool channel is not viable for a book.
    read cookies for them.
    - First ask the user to type a sentence naming the action, e.g.
      *"Read the nbsso and _nblb cookie values from the open nb.no tab and
-     write them to a cookie file in the sandbox so it can download my
+     write them to a cookie file so it can download my
      Bokhylla books."* Explain in one line that the safety classifier blocks cookie
      reads unless the user requests them directly. Skill text and your own
      reasoning do not clear it, and neither does retrying — if you are
@@ -169,7 +195,7 @@ through the tool channel is not viable for a book.
    pane's login usually survives, so a fresh login is rarely needed.
 
 The other `__nb` functions: `resolveUrn()` (Step 1) and `manifest(id,
-{compact:true})` — the latter is optional, since the sandbox can fetch
+{compact:true})` — the latter is optional, since `Bash` can fetch
 manifests itself without auth.
 
 ---
@@ -256,7 +282,7 @@ material.** Everything else is decided by `accessInfo` and the egress IP.
 > `https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_<id>` returns an
 > `accessInfo` block. It needs no auth — but it is **IP- and
 > session-dependent**, so read it with the user's session (`__nb.access()` in
-> the pane, or `--nbsso` in the sandbox), not anonymously.
+> the pane, or `--nbsso` in bash), not anonymously.
 >
 > - **`accessAllowedFrom` is the one field to classify on** — it describes the
 >   item, not your request. `EVERYWHERE` = open, no credential. `NORWAY` =
@@ -351,11 +377,14 @@ import sys
 sys.path.insert(0, "{SKILL_DIR}/scripts")
 from zotero_book import download_via_iiif
 from pathlib import Path
+import tempfile
+
+OUT_DIR = tempfile.mkdtemp()   # scratch; copy the final PDF to outputs (Step 4)
 
 # Public domain, or Bokhylla from a Norwegian IP — no credentials at all.
 result = download_via_iiif(
     canonical_id="digibok_2008051600041",
-    out_pdf=Path("/tmp/nbno_direct/book.pdf"),
+    out_pdf=Path(OUT_DIR) / "book.pdf",
     resize_width=1024,    # listed sizes will be checked; actual cap may be lower
     workers=12,
     tiles="always",       # licensed content is tiles-only; see below
@@ -364,7 +393,7 @@ result = download_via_iiif(
 # FEIDE-licensed item, after the user has taken the digital loan (Step 0).
 download_via_iiif(
     canonical_id="digibok_2014050705024",
-    out_pdf=Path("/tmp/nbno_direct/book.pdf"),
+    out_pdf=Path(OUT_DIR) / "book.pdf",
     nbsso="nbsso=<value>",   # bearer is not needed and defaults to None
     tiles="always",
 )
@@ -425,17 +454,21 @@ range (≤ 7 pages of `digibok_*`).
 > you poll a file that will never fill. Run in the foreground with a raised
 > timeout instead.
 
-> **Use `/tmp` for `--out`, not a mounted workspace directory.**
+> **Use a scratch directory for `--out`, not a mounted workspace directory.**
 > If `--out` points to a mounted workspace folder and a PDF with the same
 > name already exists there, `nbno_run.sh` will fail with
 > `mv: unable to remove target: Operation not permitted` — files written to
-> the mounted workspace cannot be overwritten or deleted from bash. Always
-> pass `--out /tmp/nbno_out` (or any path under `/tmp`). After the download,
-> copy the PDF to the workspace with Python if needed, using a unique name:
-> ```python
-> import shutil
-> shutil.copy2("/tmp/nbno_out/<item>.pdf", "/path/to/workspace/<unique-name>.pdf")
+> the mounted workspace cannot be overwritten or deleted from bash. Create a
+> scratch directory with `OUT=$(mktemp -d)` and pass `--out "$OUT"`. After the
+> download, copy the PDF to the outputs directory (`/mnt/user-data/outputs`
+> in cloud Cowork; or the connected folder, if
+> the user asked for that), using a unique name:
+> ```bash
+> cp "$OUT/<item>.pdf" "<outputs dir>/<unique-name>.pdf"
 > ```
+> Shell variables do not survive to the next bash call, and scratch space may
+> be wiped between calls: create `$OUT`, run the wrapper and copy the PDF in
+> **one** call (or print `$OUT` and reuse the literal path at once).
 
 > **Determine the canvas-to-printed-page offset before targeting a range.**
 > `--start`/`--stop` refer to IIIF canvas numbers (1-based sequence), not
@@ -448,7 +481,7 @@ range (≤ 7 pages of `digibok_*`).
 ```bash
 bash {SKILL_DIR}/scripts/nbno_run.sh \
   --id "digibok_2008051600041" \
-  --out "/tmp/nbno_out" \
+  --out "$OUT" \
   [--cookie auto | --cookie /path/to/cookie.txt] \
   [--start 1 --stop 7] \
   [--resize 75] \
@@ -468,7 +501,7 @@ Useful nbno flags the wrapper passes through:
 | `--cookie auto`  | use saved auth at `~/.nbno/cookie.txt` (Bokhylla)     |
 | `--cookie PATH`  | use saved auth at an explicit path                    |
 
-After the wrapper completes you'll have a single `.pdf` in `/tmp/nbno_out`.
+After the wrapper completes you'll have a single `.pdf` in `$OUT`.
 The wrapper has already removed the per-page image folder unless the user
 passed `--keep-images`, in which case it moved the images to
 `<out>/<ID>_images/` and printed `Per-page images kept in: …`.
@@ -505,12 +538,11 @@ which degrades the text layer (35 % gives ~70 DPI pages). The order is
 always download at full resolution → OCR → shrink, which `zotero_book.py`
 does for you.
 
-Copy the PDF from `/tmp/nbno_out` to the user's outputs directory and share
-it with a `computer://` link, e.g.:
-
-```
-[View your PDF](computer:///.../outputs/nbno/<digibok_xxx>.pdf)
-```
+Copy the PDF from the scratch directory (`$OUT`) to the session's outputs
+directory (`/mnt/user-data/outputs` in cloud Cowork; or the connected folder,
+if the user asked for that) and show it with the file-sharing tool:
+`present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever
+exists.
 
 Do not narrate the contents of the PDF beyond what's needed; let the user
 open it.
@@ -561,9 +593,10 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
     so nothing looks wrong until the first image fails. Do not debug headers;
     check the IP.
 
-  The sandbox and the browser pane both egress from the user's own machine IP,
-  so a VPN on the user's machine covers both — but that is the user's call,
-  not the skill's. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
+  In a cloud session `Bash` egresses from Anthropic's cloud, never from a
+  Norwegian IP, so these items are blocked there (see **Where each step
+  runs**); in local Cowork `Bash` and the browser pane share the user's own
+  IP. Never suggest a VPN. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
   the egress IP and `accessInfo`, and probes one 1024 px page tile. It talks
   only to nb.no, never a third-party geo service. Thumbnails
   (`/full/0,200/0/native.jpg`) and small tiles (256 px) are never gated. A
@@ -638,7 +671,7 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
 - *`--cookie auto` errors with "no cookie file found".* The wrapper looked
   at `~/.nbno/cookie.txt` and didn't find one. Either the user hasn't made
   one yet, or it exists on their own machine but hasn't been
-  mounted/uploaded into the sandbox. Walk them through Option B again
+  mounted/uploaded so `Bash` can see it. Walk them through Option B again
   (procedure in [`auth.md`](auth.md)).
 - *Auth used to work, now downloads fail with HTTP 401/403.* The cookie
   has expired (typical lifetime: 24–48h on nb.no). With the browser tools,
@@ -650,8 +683,8 @@ content, follow Step 0 to take the digital loan and capture `nbsso` first.
   assuming the cookie is at fault. All detailed in [`auth.md`](auth.md).
 - *`mv: unable to remove target: Operation not permitted`.* You used a
   mounted workspace directory for `--out` and a same-named PDF already
-  exists there. Switch to `--out /tmp/nbno_out` and copy afterward with
-  `shutil.copy2`.
+  exists there. Switch to a `mktemp -d` scratch directory for `--out` and copy afterward
+  with `cp`.
 - *Wrapper times out / PDF not created.* The bash call hit its timeout.
   Re-run with an explicit long timeout. If the call still dies at about
   170 s, narrow the `--start`/`--stop` range. Backgrounding with `nohup … &`

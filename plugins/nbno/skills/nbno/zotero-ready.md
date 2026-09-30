@@ -114,6 +114,7 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
 ## How to invoke it
 
 ```bash
+OUT_DIR=$(mktemp -d)   # scratch; copy the PDF + RDF to outputs and share them (see SKILL.md Step 4)
 # Open-content book, no auth (works for pre-1900 / pliktmonografi)
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \

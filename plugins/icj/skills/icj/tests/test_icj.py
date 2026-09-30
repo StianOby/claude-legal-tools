@@ -110,5 +110,40 @@ check("network error: exit 1", code, 1)
 check("network error: one line, no traceback",
       (err.getvalue().startswith("icj: error: GET"), "Traceback" in err.getvalue()), (True, False))
 
+print("pdf file names")
+R = "https://www.icj-cij.org/sites/default/files/case-related/70/"
+p = cases._parse_pdf_filename(R + "070-19841126-JUD-01-00-EN.pdf")
+check("zero-padded id parses", (p or {}).get("doc_type"), "jud")
+check("lang lower-cased", (p or {}).get("lang"), "en")
+check("mismatched id rejected", cases._parse_pdf_filename(R + "071-19841126-JUD-01-00-EN.pdf"), None)
+check("numeric name not parsed", cases._parse_pdf_filename(R + "9617.pdf"), None)
+
+print("pleadings inside mixed subpages (case 70, /jurisdiction-admissibility)")
+
+
+def item(label, fname):
+    it = {"label": label, "url": R + fname}
+    parsed = cases._parse_pdf_filename(R + fname)
+    if parsed:
+        it["doc_type"] = parsed["doc_type"]
+    return it
+
+
+kept, pleadings = cases._split_pleadings([
+    item("Memorial of Nicaragua", "9617.pdf"),
+    item("Counter-Memorial of the United States of America", "9627.pdf"),
+    item("Verbatim record 1984", "070-19841008-ORA-01-00-BI.pdf"),
+    item("Judgment of 26 November 1984", "070-19841126-JUD-01-00-EN.pdf"),
+    item("French", "070-19841126-JUD-01-00-FR.pdf"),
+    item("Written Observations on the Declaration of Intervention", "9623.pdf"),
+    item("French", "9622.pdf"),
+    item("Declaration of Intervention of the Republic of El Salvador", "9625.pdf"),
+    item("French", "9624.pdf"),
+])
+check("kept", [k["label"] for k in kept],
+      ["Judgment of 26 November 1984", "French",
+       "Declaration of Intervention of the Republic of El Salvador", "French"])
+check("pleadings", len(pleadings), 5)
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)

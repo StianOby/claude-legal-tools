@@ -23,8 +23,10 @@ that's the responsibility of a separate skill for hearing documents.
 Modern PDF names are uniform:
   /sites/default/files/case-related/<case_id>/<case_id>-YYYYMMDD-<type>-NN-NN-<lang>.pdf
 where <type> is jud, adv, ord, app, req, sum, pre (surfaced) or mem, cmem,
-rep, rej, obs, wri, wso, cr (pleadings). Old cases use bare numeric file
-names, so section membership is decided by the subpage, not the file name.
+rep, rej, obs, wri, wso, cr, ora (pleadings). The file-name id may be
+zero-padded (070-…). Old cases use bare numeric file names, and subpages such
+as /jurisdiction-admissibility or /provisional-measures mix pleadings with
+decisions, so each item is classified by its type, or failing that its label.
 """
 
 from __future__ import annotations
@@ -69,6 +71,7 @@ PLEADING_DOC_TYPES = {
     "rep": "Reply",
     "rej": "Rejoinder",
     "cr": "Verbatim record",
+    "ora": "Verbatim record",
     "obs": "Written observations",
     "wri": "Written statement",
     "wso": "Written observations / written statement",
@@ -87,22 +90,55 @@ _DATE_IN_LABEL = re.compile(
 
 
 def _parse_pdf_filename(href: str) -> Optional[dict]:
-    """Parse /sites/default/files/case-related/<id>/<id>-YYYYMMDD-<type>-NN-NN-<lang>.pdf."""
+    """Parse /sites/default/files/case-related/<id>/<id>-YYYYMMDD-<type>-NN-NN-<lang>.pdf.
+
+    The file name's id may be zero-padded (/case-related/70/070-…-ORD-…).
+    """
     m = re.search(
-        r"/case-related/(\d+)/\1-(\d{8})-([a-z]+)-(\d{2})-(\d{2})-([a-z]+)\.pdf$",
+        r"/case-related/(\d+)/(\d+)-(\d{8})-([a-z]+)-(\d{2})-(\d{2})-([a-z]+)\.pdf$",
         href,
         re.IGNORECASE,
     )
-    if not m:
+    if not m or int(m.group(1)) != int(m.group(2)):
         return None
     return {
         "case_id": int(m.group(1)),
-        "date": f"{m.group(2)[:4]}-{m.group(2)[4:6]}-{m.group(2)[6:8]}",
-        "doc_type": m.group(3).lower(),
-        "serial": f"{m.group(4)}-{m.group(5)}",
-        "lang": m.group(6).lower(),
+        "date": f"{m.group(3)[:4]}-{m.group(3)[4:6]}-{m.group(3)[6:8]}",
+        "doc_type": m.group(4).lower(),
+        "serial": f"{m.group(5)}-{m.group(6)}",
+        "lang": m.group(7).lower(),
         "url": href if href.startswith("http") else urljoin(BASE, href),
     }
+
+
+# Old cases use numeric file names, so a pleading inside a mixed subpage
+# (/jurisdiction-admissibility lists the Memorial next to the Judgment) is
+# recognised by its label. "French"/"Bilingual" rows are other-language
+# versions of the row above and follow its classification.
+_PLEADING_LABEL = re.compile(
+    r"^\s*(memorial|counter-memorial|reply|rejoinder|verbatim record|written observations"
+    r"|written statement|written comments|written answers|written replies|exhibits|oral statement)",
+    re.IGNORECASE,
+)
+_LANGUAGE_ONLY = re.compile(r"^\s*(english|french|bilingual|spanish)\s*$", re.IGNORECASE)
+
+
+def _split_pleadings(items: list[dict]) -> tuple[list[dict], list[dict]]:
+    kept: list[dict] = []
+    pleadings: list[dict] = []
+    prev = False
+    for it in items:
+        if _LANGUAGE_ONLY.match(it["label"]):
+            is_pleading = prev
+        elif it.get("doc_type") in PLEADING_DOC_TYPES:
+            is_pleading = True
+        elif it.get("doc_type") in DECISION_DOC_TYPES:
+            is_pleading = False
+        else:
+            is_pleading = bool(_PLEADING_LABEL.match(it["label"]))
+        (pleadings if is_pleading else kept).append(it)
+        prev = is_pleading
+    return kept, pleadings
 
 
 # --- /list-of-all-cases and /pending-cases --------------------------------
@@ -403,11 +439,14 @@ def show(case_id: int, *, force_refresh: bool = False,
         if slug in ("provisional-measures", "preliminary-objections", "intervention",
                     "discontinuance") or not section:
             section = slug.replace("-", " ").capitalize()
-        rec = {"section": section, "slug": slug, "url": sub_url, "items": items}
+        rec = {"section": section, "slug": slug, "url": sub_url}
         if slug in PLEADING_SUBPAGES:
-            pleading_sections.append({**rec, "kind": PLEADING_SUBPAGES[slug]})
-        else:
-            decision_sections.append(rec)
+            pleading_sections.append({**rec, "items": items, "kind": PLEADING_SUBPAGES[slug]})
+            continue
+        kept, pleadings = _split_pleadings(items)
+        decision_sections.append({**rec, "items": kept})
+        if pleadings:
+            pleading_sections.append({**rec, "items": pleadings, "kind": "pleadings"})
 
     pleadings_count = sum(len(s["items"]) for s in pleading_sections)
     decisions_count = sum(len(s["items"]) for s in decision_sections)

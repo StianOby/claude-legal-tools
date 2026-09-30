@@ -12,7 +12,7 @@ shows the call.
 ## Auth recap
 
 `api.nb.no` authenticates by cookie — there is no bearer token. Public-domain
-and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP);
+and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP, so not from Anthropic's cloud);
 FEIDE-licensed items need `nbsso` plus an active digital loan. Anything that
 is not public domain is **tiles-only** — single-shot `/full/<w>,/` returns 403
 at every width. See [`auth.md`](auth.md) for the full table.
@@ -25,13 +25,14 @@ option — e.g. you don't have the skill directory on disk):
 ```python
 import io, json, os, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+import tempfile
 from pathlib import Path
 from PIL import Image
 
 ITEM_ID = "digibok_2008051600041"   # ← replace
 NBSSO   = ""                        # ← "nbsso=<value>", FEIDE-licensed items only;
                                     #   leave empty for public domain / Bokhylla
-OUT_DIR = Path(f"/tmp/nbno_direct/{ITEM_ID}")
+OUT_DIR = Path(tempfile.mkdtemp()) / ITEM_ID   # scratch; copy the finished PDF to outputs
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # api.nb.no serves manifests to anyone and authenticates by cookie — there is
@@ -142,7 +143,7 @@ print(pdf)
 
 Keep each Python call inside the bash tool's timeout (default 120 s; ask
 for more, but calls have been cut off at about 178 s even with 600 s
-requested). Do not count on `/tmp` or `~` surviving
+requested). Do not count on scratch space or `~` surviving
 to the next call in Cowork; keep anything you need later under the outputs
 directory.
 

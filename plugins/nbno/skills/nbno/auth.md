@@ -14,7 +14,7 @@ in `SKILL.md`; this file is the *how*.
 ## Auth scope — what each item class actually needs
 
 Verified 2026-09-06 from a Norwegian IP with a FEIDE session, by direct
-`curl` from the sandbox. **This table is the source of truth**; it replaces
+`curl` from `Bash`. **This table is the source of truth**; it replaces
 the older bearer-token and `_nblb` guidance, both of which were wrong.
 
 | Item class | Manifest / `accessInfo` | Single-shot `/full/<w>,/` | Tiles `regionByPx` ≤ 1024 | Credential needed |
@@ -67,7 +67,7 @@ without `nbsso`. `check_nb_access()` in `zotero_book.py` had exactly that bug.
 The same asymmetry appears geographically: the same Bokhylla item reports
 `viewability: NONE` with a login prompt from Spain and `viewability: ALL` from
 Norway. Read `accessInfo` *with* the user's session — from the browser pane,
-or with `--nbsso` in the sandbox — not anonymously.
+or with `--nbsso` in bash — not anonymously.
 
 ### Geo is enforced at the image resolver, not at the API
 
@@ -77,9 +77,12 @@ every page image 403s. `accessAllowedFrom ∈ {NORWAY, NB}` plus a
 non-Norwegian egress IP means **the download cannot succeed, no matter who is
 logged in** — stop before downloading rather than debugging headers.
 
-The sandbox and the browser pane both egress from the user's own machine IP,
-so a VPN on the user's machine covers both. That is the user's call, not the
-skill's. Thumbnails (`/full/0,200/0/native.jpg`) are never gated — they are a
+Where the download runs matters: in a cloud Cowork session `Bash` egresses
+from Anthropic's cloud, which is never a Norwegian IP, so `NORWAY`/`NB` page
+images 403 there even though the user's browser pane is Norwegian. Tell the
+user plainly that this item is blocked from Anthropic's cloud and, for now,
+needs local Cowork (where `Bash` runs on the user's own machine). Never
+suggest a VPN. Thumbnails (`/full/0,200/0/native.jpg`) are never gated — they are a
 liveness check, never an auth check.
 
 ```bash
@@ -133,12 +136,12 @@ degrade from one to the next.
 
 | # | Path | Available when |
 |---|---|---|
-| 1 | Built-in browser (Cowork) — below | `mcp__Claude_Browser__*` tools present |
+| 1 | Built-in browser (Cowork) — below | `Claude_Browser` tools found by ToolSearch (see SKILL.md Prerequisites) |
 | 2 | Claude in Chrome | `mcp__claude-in-chrome__*` present and the built-in tools are offline |
 | 3 | Option C — manual DevTools cookie | no browser tools at all (Claude Code CLI) |
 
 Detect by tool presence, as `lovdata-pro`'s "Forutsetninger" does. If the
-user's preferred browser is Chrome, `mcp__Claude_Browser__*` may be offline
+user's preferred browser is Chrome, the built-in browser tools may be offline
 even in Cowork — tell the user which browser you ended up driving.
 
 Rung 3 needs no setup and covers every environment without browser tools.
@@ -176,7 +179,7 @@ does not either.
 So ask the user to type something like:
 
 > *"Read the nbsso and _nblb cookie values from the open nb.no tab and write
-> them to a cookie file in the sandbox so it can download my Bokhylla books."*
+> them to a cookie file so it can download my Bokhylla books."*
 
 and explain in one line why (the classifier needs the request to come from
 them). Because context compaction can drop that message and cause a later
@@ -186,7 +189,7 @@ block, **read the cookie as early as possible and only once per session.**
 
 Same JS helper, same confirmation-sentence requirement; substitute
 `mcp__claude-in-chrome__javascript_tool` and friends for the
-`mcp__Claude_Browser__*` calls.
+built-in browser calls.
 
 ### Fallback 3 — manual DevTools cookie (no browser tools)
 
@@ -219,7 +222,7 @@ a visit they were already making:
 or a screenshot of the jar.** The rest of `document.cookie` has no business in
 the conversation.
 
-#### Making a durable `~/.nbno/cookie.txt` reachable from the sandbox
+#### Making a durable `~/.nbno/cookie.txt` reachable from `Bash`
 
 If the user keeps the file at `~/.nbno/cookie.txt` on their own machine
 (Windows: `C:\Users\<name>\.nbno\cookie.txt`), ask them to either:
@@ -230,7 +233,7 @@ If the user keeps the file at `~/.nbno/cookie.txt` on their own machine
    path to `--cookie`).
 
 Then invoke the wrapper with `--cookie auto` (resolves to
-`~/.nbno/cookie.txt` inside the sandbox — adjust the path accordingly if
+`~/.nbno/cookie.txt` in `Bash` — adjust the path accordingly if
 the cookie is mounted/uploaded elsewhere, in which case pass
 `--cookie /path/to/cookie.txt` explicitly).
 
