@@ -95,17 +95,20 @@ not one. So:
 2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
    are available and has the fixed messages if not). For nbno, once `READY <dir>` is printed:
    - Probe again from the user's machine, in `device_bash`:
-     `test -f <dir>/.ready || exit 4; cd <dir> && PYTHONUTF8=1 python3 scripts/geo_check.py --id <id>` (add
+     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/geo_check.py --id <id>` (add
      `--nbsso "nbsso=<v>"` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
      them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
      the cookie, retry **once**, then stop.
    - `NB` only: put the cookie in a mode-600 file inside `<dir>`, never in the connected folder:
      `umask 077; printf 'authorization=\ncookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
-   - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), using `<dir>/…` paths
-     and `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or `--nbsso "nbsso=<v>"` for
-     `zotero_book.py`). Keep each call to a modest page range; timeouts in `device_bash` are not known yet.
-   - OCR / Zotero-ready: first `command -v tesseract`. Missing → run `zotero_book.py` with `--no-ocr`, deliver the
-     PDF and use message **C** from `local-route.md`.
+   - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), calling the scripts by
+     absolute path (`bash <dir>/scripts/nbno_run.sh …`, `python3 <dir>/scripts/zotero_book.py …`) with
+     `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or `--nbsso "nbsso=<v>"` for
+     `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
+     `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
+   - OCR / Zotero-ready: first `command -v tesseract`. Present (it was, with `eng`/`osd` only) → `zotero_book.py`
+     fetches `nor` and pip-installs `ocrmypdf` into the run directory itself. Missing → `--no-ocr`, deliver the PDF
+     and use message **C** from `local-route.md`.
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/`, tell the user where it is, then
      `rm -rf <dir>` (this also removes the cookie).
 
@@ -133,6 +136,9 @@ through the tool channel is not viable for a book.
    via `javascript_tool`. Idempotent — safe to paste again in the same tab;
    an older helper from before a skill update is replaced. It defines
    `window.__nb` (`__nb.VERSION` shows which version runs).
+   If a browser call is refused by a safety check ("cannot determine the
+   safety of …"), do not retry in a loop: tell the user, ask them to approve
+   it or say how to proceed, and wait.
    > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
    > `navigate` or `preview_start` destroys it. Re-paste after every
    > navigation — the version guard makes that free when it is

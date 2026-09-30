@@ -1036,6 +1036,8 @@ def download_via_wrapper(
     cookie: Optional[str],
     resize: Optional[int],
     skill_scripts_dir: Path,
+    start: Optional[int] = None,
+    stop: Optional[int] = None,
 ) -> None:
     """Shell out to nbno_run.sh — the bash wrapper that ships with the skill."""
     wrapper = skill_scripts_dir / "nbno_run.sh"
@@ -1053,6 +1055,10 @@ def download_via_wrapper(
         cmd += ["--cookie", cookie]
     if resize:
         cmd += ["--resize", str(resize)]
+    if start:
+        cmd += ["--start", str(start)]
+    if stop:
+        cmd += ["--stop", str(stop)]
     print(f"[wrapper] running: {' '.join(cmd)}")
     rc = subprocess.call(cmd)
     if rc != 0:
@@ -1455,6 +1461,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="nbsso=<value> cookie pair for the IIIF downloader; "
                          "the only credential FEIDE-licensed items actually "
                          "need. Not required for public or Bokhylla items.")
+    ap.add_argument("--start", type=int, default=None,
+                    help="First canvas to include (1-based, as in nbno_run.sh). "
+                         "Canvas numbers are not printed page numbers.")
+    ap.add_argument("--stop", type=int, default=None,
+                    help="Last canvas to include (inclusive; clamped to the "
+                         "book's length).")
     ap.add_argument("--resize", type=int, default=None,
                     help="Page width in pixels for IIIF (default 1024) or "
                          "percentage for nbno_run.sh (suggested 75).")
@@ -1513,6 +1525,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Path to the nbno skill's scripts/ folder "
                          "(used to locate nbno_run.sh).")
     args = ap.parse_args(argv)
+    if args.start is not None and args.start < 1:
+        ap.error("--start must be 1 or more")
+    if args.stop is not None and args.stop < (args.start or 1):
+        ap.error("--stop must be at least --start")
     if args.shrink is None:
         # Shrinking before OCR leaves 800 px pages that OCR badly, and
         # --no-ocr exists for "download now, OCR later".
@@ -1583,6 +1599,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                   f"({status or 'no response'}); continuing")
 
     base = compute_basename(book)
+    if args.start or args.stop:
+        # A partial copy must not overwrite (or be mistaken for) the full book.
+        base += f"_c{args.start or 1}-{args.stop or 'end'}"
     pdf_name = f"{base}.pdf"
     rdf_name = f"{base}.rdf"
     pdf_path = out_dir / pdf_name
@@ -1625,6 +1644,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             resize_width=args.resize or 1024,
             workers=args.workers,
             tiles=args.tiles,
+            start=args.start,
+            stop=args.stop,
         )
     else:
         print("[dl] using nbno_run.sh wrapper"
@@ -1637,6 +1658,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             cookie=args.cookie,
             resize=args.resize,
             skill_scripts_dir=Path(args.skill_scripts_dir).resolve(),
+            start=args.start,
+            stop=args.stop,
         )
     print(f"[dl] PDF: {pdf_path}  ({pdf_path.stat().st_size/1e6:.1f} MB)")
 

@@ -119,6 +119,12 @@ In a cloud session, `NORWAY`/`NB` items run all of this in the local shell
 add `--no-ocr` and tell the user the PDF has no text layer. `EVERYWHERE`
 items stay in the cloud sandbox as below.
 
+**Part of a book:** `--start N --stop M` (1-based canvas numbers, inclusive,
+as in `nbno_run.sh`; not printed page numbers). The files get a
+`_c<N>-<M>` suffix so a partial copy never overwrites the full book. The
+Zotero record still describes the whole book — tell the user the PDF is an
+excerpt.
+
 ```bash
 OUT_DIR=$(mktemp -d)   # scratch; copy the PDF + RDF to outputs and share them (see SKILL.md Step 4)
 # Open-content book, no auth (works for pre-1900 / pliktmonografi)

@@ -34,6 +34,10 @@
 
 set -uo pipefail
 
+# Absolute, because step 3 cds into a scratch dir: a relative $0 (e.g.
+# `bash scripts/nbno_run.sh`) would no longer resolve after that.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 ID=""
 OUT=""
 COOKIE=""
@@ -252,7 +256,7 @@ for pdf in "${PDFS[@]}"; do
   # non-fatal — the PDF is still valid, just oversized.
   PYBIN="$(command -v python3 || command -v python)"
   if [[ -n "$PYBIN" ]]; then
-    "$PYBIN" - "$(dirname "$0")" "$OUT/$base" <<'PYEOF' || echo "WARNING: could not rescale PDF page size (left as nbno produced it)." >&2
+    "$PYBIN" - "$SCRIPT_DIR" "$OUT/$base" <<'PYEOF' || echo "WARNING: could not rescale PDF page size (left as nbno produced it)." >&2
 import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
@@ -265,7 +269,7 @@ PYEOF
   size_mb=$(( $(stat -c %s "$OUT/$base") / 1000000 ))
   if (( size_mb > 50 )); then
     echo "[hint] PDF is ${size_mb} MB. Shrink it before handing it over:" \
-         "python $(dirname "$0")/shrink_pdf.py --pdf \"$OUT/$base\"" \
+         "python $SCRIPT_DIR/shrink_pdf.py --pdf \"$OUT/$base\"" \
          "(expect ~60 MB for a 500-page book; the original is kept)."
   fi
 done
