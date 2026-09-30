@@ -1,6 +1,6 @@
 {
   "name": "kildesjekk",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Source-check an academic legal text against all retrieval skills; produces an .xlsx worklist",
   "author": {
     "name": "Stian Øby Johansen",
