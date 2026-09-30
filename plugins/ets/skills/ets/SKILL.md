@@ -80,10 +80,27 @@ The PDF URLs come straight out of the master `search` response, so
 once `index.json` is cached every download is one HTTP hop on
 `rm.coe.int`.
 
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| Index, text, report, signatures, declarations (`scripts/coe.py`) | cloud sandbox (`Bash`) |
+| Reading the extracted text, quoting | cloud sandbox (`Bash`) |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `conventions-ws.coe.int` and `rm.coe.int` have worked from the cloud so far; if
+it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+
 ## How to use
 
+**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
+Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/ets}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/ets/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+
 The skill is a single self-contained CLI: `scripts/coe.py`. Run it
-via `python3` from this skill directory. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/ets/SKILL.md' 2>/dev/null | head -1` and use that file's directory. Every command prints the
+via `python3` from this skill directory (`{SKILL_DIR}`, above). Every command prints the
 absolute paths of the files it wrote — read those rather than
 guessing the cache location.
 

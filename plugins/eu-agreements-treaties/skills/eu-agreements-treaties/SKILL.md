@@ -41,9 +41,15 @@ Quote dates and party names exactly as the site gives them.
 
 ## Prerequisites — read first
 
-**This skill runs only in Claude Desktop with Cowork.** It needs the built-in
-browser tools (`mcp__Claude_Browser__*`: `tabs_context`, `preview_start`,
-`navigate`, `javascript_tool`, `browser_batch`, `request_access`).
+**This skill runs only in Claude Desktop with Cowork** (local or cloud). It needs
+the built-in browser tools (`tabs_context`, `preview_start`, `navigate`,
+`javascript_tool`, `browser_batch`, and `request_access` where it exists).
+
+**Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
+Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
+query `Claude_Browser` and `max_results` 64, and use whatever prefix comes back. This file names them by suffix only
+(`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, `get_page_text`, `read_page`, …).
+`request_access` does not exist in every environment; if it is missing, go straight to `preview_start`/`navigate`.
 
 Why: `www.consilium.europa.eu` sits behind a Cloudflare browser check that
 returns HTTP 403 to every non-browser client — `curl`, Python, `WebFetch`,
@@ -54,17 +60,34 @@ the user this skill only works in Claude Desktop/Cowork.** Do not try
 `WebFetch`, `curl` or any other route; they fail, and the skill must never
 try to get around the check.
 
-Your one script is `scripts/browser/consilium.js` (see `Base directory for
-this skill:` at the top of your context — replace `{SKILL_DIR}` below with
-that path; if that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/eu-agreements-treaties/SKILL.md' 2>/dev/null | head -1` and use that file's directory.). It is pasted into the browser tab and does all fetching and
+Your one script is `scripts/browser/consilium.js` in `{SKILL_DIR}`. It is pasted into the browser tab and does all fetching and
 parsing in-page.
+
+**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
+Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/eu-agreements-treaties}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/eu-agreements-treaties/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| Reading `consilium.js` from `{SKILL_DIR}` | cloud sandbox (`Bash`) |
+| Everything that touches consilium.europa.eu (`ready`, `search`, `detail`, …) | browser pane |
+| Local shell | not used |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. The site blocks every
+non-browser client, so nothing is fetched from `Bash`; if it returns 403, say "This source is blocked from Anthropic's
+cloud" and use the browser pane. Never suggest a VPN.
 
 ## Step 0 — session (every new conversation)
 
 1. `tabs_context` — reuse a tab already on `consilium.europa.eu` if there is
    one. Otherwise `preview_start {url:
    "https://www.consilium.europa.eu/en/documents/treaties-agreements/"}`.
-2. If a tool says the site is not approved: `request_access {url:
+2. If a tool says the site is not approved and `request_access` exists: `request_access {url:
    "https://www.consilium.europa.eu/", scope: "site"}` and retry. If the user
    declines, stop.
 3. Paste the whole of `{SKILL_DIR}/scripts/browser/consilium.js` via

@@ -10,7 +10,10 @@ This skill contains no code. Everything is done with the eurlex MCP server
 ([Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server)),
 whose tools appear as `mcp__eurlex__eurlex_*` (server configured by the
 user) or `mcp__plugin_eurlex_eurlex__eurlex_*` (server bundled with the eurlex
-plugin). If neither set of tools is present, stop and tell the user the server
+plugin; in cloud Cowork `mcp__remote-devices__plugin_eurlex_eurlex__eurlex_*`).
+The tools are often deferred: run one ToolSearch with query `eurlex` and
+`max_results` 20 before deciding they are absent, and use whatever prefix
+comes back. If neither set of tools is present, stop and tell the user the server
 has to be added first — either install the `eurlex` plugin from the
 `claude-legal-tools` marketplace, or add it manually:
 

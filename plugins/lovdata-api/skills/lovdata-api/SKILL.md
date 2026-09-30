@@ -26,6 +26,22 @@ katalog som `scripts/lovdata.py` ligger i.
 
 ---
 
+## Hvor hvert steg kjøres
+
+Alle stegene (`update`, `search`, `find`, `get`) kjører i **`Bash`**; skillen
+bruker ingen browser.
+
+I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
+
+**Sky-sesjon: `api.lovdata.no` svarer 405 fra `Bash`.** Får `update` (eller en
+nedlasting) HTTP 405 eller tilsvarende blokkering, si til brukeren: «Lovdata
+blokkerer Anthropics sky; denne skillen trenger foreløpig lokal Cowork.» Stopp
+deretter — ikke prøv på nytt, ikke bytt kilde, ikke foreslå VPN. Finnes det
+allerede lokalt bufrede data (`state.json` og utpakkede pakker), virker
+`search`/`find`/`get` mot dem som vanlig, men si fra at de kan være utdaterte.
+
+---
+
 ## Innhold — hva dekkes
 
 Frie datapakker (ingen API-nøkkel nødvendig):
@@ -69,7 +85,12 @@ lagrede pakker i `state.json`. Hvis oppdateringer finnes, lastes de ned og
 ekstraheres automatisk (~6 MB lover + ~21 MB forskrifter, daglig oppdatert).
 Første gang tar det lenger tid; påfølgende kjøringer er raske hvis intet er endret.
 
-Erstatt `{SKILL_DIR}` med basiskatalogens sti fra "Base directory for this skill:". Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/lovdata-api/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.
+**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
+i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/lovdata-api}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/lovdata-api/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+Erstatt `{SKILL_DIR}` med den stien.
 
 ---
 

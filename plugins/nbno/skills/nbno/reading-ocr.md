@@ -20,14 +20,14 @@ faster and more reliable than OCR.
 ```python
 import fitz  # PyMuPDF
 
-doc = fitz.open("/tmp/nbno_out/<item>.pdf")
+doc = fitz.open("<path to the PDF>")   # e.g. "$OUT/<item>.pdf" from the download step
 page = doc[0]  # 0-based index; canvas N = index N-1
 mat = fitz.Matrix(1, 1)  # 1× scale → approx 1652 × 2272 px from a --resize 75 PDF
 pix = page.get_pixmap(matrix=mat)
-pix.save("/tmp/page_01.png")
+pix.save("<WORK>/page_01.png")   # WORK = a mktemp -d scratch dir
 ```
 
-Then use the Read tool on `/tmp/page_01.png`. Rendering at 1× from a
+Then use the Read tool on that PNG. Rendering at 1× from a
 `--resize 75` PDF gives approximately 1652 × 2272 px, which stays within
 the Read tool's ~2000 px limit. Do **not** use `fitz.Matrix(1.5, 1.5)` or
 higher from a 75%-resize PDF — the result (~2479 × 3409 px) exceeds the
@@ -35,9 +35,9 @@ limit. If 1× images are still too large, resize with PIL before saving:
 
 ```python
 from PIL import Image
-img = Image.open("/tmp/page_01.png")
+img = Image.open("<WORK>/page_01.png")
 img = img.resize((img.width // 2, img.height // 2))
-img.save("/tmp/page_01_small.png")
+img.save("<WORK>/page_01_small.png")
 ```
 
 ### OCR via tesseract (if needed)
@@ -62,13 +62,13 @@ machine-readable text rather than a visual check.
   package. The default is `nor`.
 - **Running `tesseract` by hand without `nor`:** plain `tesseract` needs
   only the `.traineddata` file, so
-  `curl -sLo /tmp/ts/nor.traineddata https://github.com/tesseract-ocr/tessdata_fast/raw/main/nor.traineddata`
-  plus `TESSDATA_PREFIX=/tmp/ts` is enough. `ocrmypdf` also needs
+  `TS=$(mktemp -d); curl -sLo "$TS/nor.traineddata" https://github.com/tesseract-ocr/tessdata_fast/raw/main/nor.traineddata`
+  plus `TESSDATA_PREFIX="$TS"` is enough. `ocrmypdf` also needs
   `configs/` and `pdf.ttf` in the same dir. The system dir is the path in
   the first line of `tesseract --list-langs` (e.g.
   `/usr/share/tesseract-ocr/4.00/tessdata`). Copy whatever exists there, and
-  expect `tessconfigs/` to be missing on some installs. `/tmp` is wiped
-  between calls in Cowork.
+  expect `tessconfigs/` to be missing on some installs. Scratch dirs (`/tmp`) are wiped
+  between calls in Cowork, so redo this in the same call.
 - Use `--psm 6` (uniform block of text) rather than `--psm 1` (the OSD
   model may not be available).
 - Process one page per bash call to stay within the sandbox timeout.

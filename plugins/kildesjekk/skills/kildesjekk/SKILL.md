@@ -34,7 +34,7 @@ Verify that you have access to all the relevant tools:
 	- MCP servers:
 		- zoteus MCP (Zotero; tools named `zotero_*`). Call `zotero_whoami` and confirm it reports the Zotero desktop app as reachable — reading PDFs depends on it.
 		- eurlex MCP
-		- Claude Desktop's built-in browser (`mcp__Claude_Browser__*` tools).
+		- Claude Desktop's built-in browser (its tools are found with ToolSearch `Claude_Browser`; see **Browser tools** below).
 	- Skills:
 		- efta-court
 		- ets
@@ -50,7 +50,34 @@ Verify that you have access to all the relevant tools:
 	
 Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10, for nbno in §14, for reading ICJ judgment PDFs in §11 and for the hudoc fallback in §13 (HUDOC's Cloudflare check often blocks the script, above all for judgment texts), and a manuscript without ICJ cases does not need /icj. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
-Throughout these instructions, **`{SKILL_DIR}`** means the path printed in "Base directory for this skill:" at the top of your context — substitute it when you run one of this skill's scripts. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/kildesjekk/SKILL.md' 2>/dev/null | head -1` and use that file's directory. This skill ships one: `scripts/worklist.py`, the worklist validator used in §2 and §16. It needs `openpyxl`, which you will be installing anyway to write the worklist.
+Throughout these instructions, **`{SKILL_DIR}`** means this skill's directory — substitute it when you run one of this skill's scripts. Use the path after "Base directory for this skill:" if it exists in bash. Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/kildesjekk}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/kildesjekk/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+This skill ships one: `scripts/worklist.py`, the worklist validator used in §2 and §16. It needs `openpyxl`, which you will be installing anyway to write the worklist.
+
+**Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
+Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
+query `Claude_Browser` and `max_results` 64, and use whatever prefix comes back. This file names them by suffix only
+(`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, `get_page_text`, `read_page`, …).
+`request_access` does not exist in every environment; if it is missing, go straight to `preview_start`/`navigate`.
+
+## Where each step runs
+
+kildesjekk orchestrates the other skills; each source step runs where that skill says (see its own "Where each step runs" section).
+
+| Step | Runs in |
+|---|---|
+| `scripts/worklist.py`, writing the .xlsx (openpyxl) | cloud sandbox (`Bash`) |
+| Zotero (zoteus MCP), eurlex MCP | as today (MCP tools, not `Bash`) |
+| Source steps for HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, nbno | where each skill says: `Bash` scripts, with the browser pane where the skill uses it |
+| lovdata-pro, eu-agreements-treaties, browser fallbacks | browser pane |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. In a cloud session
+`lovdata.no` and `api.lovdata.no` are blocked from `Bash` (HTTP 405), so the lovdata-api and norges-traktater steps cannot run
+there (lovdata-pro works via the browser); tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+Save the finished worklist in the outputs directory (`/mnt/user-data/outputs` in cloud Cowork) and give it to the user with the file-sharing tool (`present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever exists). Never suggest a VPN.
 
 Ask for the text document in PDF or DOCX format if not already provided.
 
@@ -378,8 +405,8 @@ For ECtHR case law not found in Zotero, use the /hudoc skill. When its script re
 
 # 14) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. In short:
-1. Find the item from the reference with nbno's `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). These are the *nbno* skill's scripts, not this one's: run them from nbno's own base directory, as that skill's instructions spell out (in Cowork, find it with `find /sessions -path '*/skills/nbno/SKILL.md' 2>/dev/null | head -1` and use that file's directory) — a bare `scripts/…` path resolves against the working directory and will not be found. Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
-2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run nbno's `scripts/geo_check.py` if in doubt; `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
+1. Find the item from the reference with nbno's `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). These are the *nbno* skill's scripts, not this one's: run them from nbno's own base directory, as that skill's instructions spell out (resolve it as the nbno skill describes) — a bare `scripts/…` path resolves against the working directory and will not be found. Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
+2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run nbno's `scripts/geo_check.py` if in doubt (in a cloud session Bokhylla/`NB` items are blocked from Anthropic's cloud; see the nbno skill); `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
 3. Fetch only the pages you need with `--start`/`--stop` (canvas numbers, which are not printed page numbers: download a few canvases first to find the offset), then read them as described in nbno's `reading-ocr.md`. Use the printed pagination in the worklist.
 
 If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.

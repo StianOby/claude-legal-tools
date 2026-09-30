@@ -57,12 +57,29 @@ full volume PDF and slices out the pages of the registration number.
 
 Volume rule for MTDSG: **chapters I–XII → Volume I, chapters XIII–XXIX → Volume II**.
 
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| Treaty text, MTDSG status documents, volume slicing (`scripts/untc.py`) | cloud sandbox (`Bash`) |
+| Reading the extracted text, quoting | cloud sandbox (`Bash`) |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `treaties.un.org` has worked from the cloud so far; if
+it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+
 ## How to use
 
 The skill is a single self-contained CLI: `scripts/untc.py` (Python
 3.8+, needs `pypdf`; `pdftotext` is only a fallback). Run it with
-`python3` from anywhere. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/untc/SKILL.md' 2>/dev/null | head -1` and use that file's directory. Everything it downloads goes to
+`python3` from anywhere, with the full path under `{SKILL_DIR}` (below). Everything it downloads goes to
 `~/.cache/untc/` (or `$UNTC_CACHE_DIR`), never into the skill folder.
+
+**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
+Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/untc}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/untc/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
 
 Concrete invocations Claude should use:
 

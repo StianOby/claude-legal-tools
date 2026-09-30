@@ -64,20 +64,21 @@ procedures relevant to a given task are loaded into Claude's context.
 python scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001
 
 # open content (no login needed) — e.g. a pre-1900 book
+OUT=$(mktemp -d)   # scratch dir; copy the finished PDF to outputs afterwards
 bash scripts/nbno_run.sh \
   --id "digibok_2008051600041" \
-  --out "/tmp/nbno_out"
+  --out "$OUT"
 
 # specific page range (canvas numbers, 1-based)
 bash scripts/nbno_run.sh \
   --id "digibok_2008051600041" \
-  --out "/tmp/nbno_out" \
+  --out "$OUT" \
   --start 10 --stop 16
 
 # FEIDE-licensed content (after capturing nbsso and taking the digital loan)
 bash scripts/nbno_run.sh \
   --id "digibok_2014050705024" \
-  --out "/tmp/nbno_out" \
+  --out "$OUT" \
   --cookie auto \
   --start 1 --stop 7 \
   --resize 75
@@ -192,13 +193,14 @@ The key may itself contain underscores — newspaper issues are
 numbers. On a first run, download canvases 1–7 and inspect the page footer to
 determine the offset between canvas numbers and printed pages.
 
-In a Cowork bash sandbox the bash timeout defaults to 120 s. Pass an
+In a Cowork bash session the bash timeout defaults to 120 s. Pass an
 explicit long timeout, but expect a call to be cut off at about 170 s
 whatever you ask for. A full book still downloads in one call; whole-book
 OCR does not (use `ocr_chunked.py`). If you
 do batch, each batch has ~25 s startup overhead and each page adds ~1–2 s. Always
-write output to `/tmp`, not a mounted workspace directory — files in mounted
-directories cannot be overwritten from bash.
+write output to a scratch directory (`mktemp -d`), not a mounted workspace
+directory — files in mounted directories cannot be overwritten from bash —
+and copy the finished PDF to the outputs directory afterwards.
 
 ## Installing as a Claude skill
 
@@ -226,9 +228,9 @@ skill automatically.
 
 - **Geo-restriction.** Items with `accessAllowedFrom: NORWAY` or `NB` serve
   page images only to Norwegian IPs, and no cookie changes that. The skill
-  cannot bypass it. Both the sandbox and the browser pane egress from your own
-  machine's IP, so a VPN on your machine covers both — your call, not the
-  skill's.
+  cannot bypass it. In a cloud Cowork session the shell runs in Anthropic's
+  cloud (not a Norwegian IP), so such items are blocked there and, for now,
+  need local Cowork; only the browser pane has your own IP.
 - **Copyright.** Access to Bokhylla is granted to individuals under a
   specific agreement and does not permit redistribution. The built-in
   browser keeps a persistent profile, so a later session can download under

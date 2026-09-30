@@ -24,9 +24,9 @@ tilpasses brukerens eget språk** (samme regel som i `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
 Sitater fra dommer og forarbeider beholdes alltid på originalt norsk.
 
-Denne skill-en bruker Claude Desktops innebygde browser (Cowork-verktøyene
-`mcp__Claude_Browser__*`) til å hente Lovdata Pro-dokumenter direkte i
-brukerens innloggede sesjon. Den kjører **ikke** i Claude Code CLI.
+Denne skill-en bruker Claude Desktops innebygde browserverktøy til å hente
+Lovdata Pro-dokumenter direkte i brukerens innloggede sesjon. Den virker
+**ikke** uten disse verktøyene (se Forutsetninger).
 
 Du har tilgang til to hjelpescript:
 
@@ -35,8 +35,12 @@ Du har tilgang til to hjelpescript:
 - `scripts/browser/lovdata_pro.js` — limes inn i browser-fanen via
   `javascript_tool`. Gjør selve hentingen, seksjoneringen og søket.
 
-(se `Base directory for this skill:` i starten av konteksten din for stien —
-erstatt `{SKILL_DIR}` nedenfor med den. Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/lovdata-pro/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.)
+**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
+i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/lovdata-pro}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/lovdata-pro/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+Erstatt `{SKILL_DIR}` nedenfor med den stien.
 
 For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
 `references/lovdata-pro-mapping.md`.
@@ -45,11 +49,31 @@ For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
 
 ## Forutsetninger
 
-Denne skill-en krever at Cowork-verktøyene (`mcp__Claude_Browser__*`, f.eks.
-`preview_start`, `navigate`, `javascript_tool`) er tilgjengelige i
-verktøylisten din. **Hvis de ikke er det** (for eksempel når du kjører som
-Claude Code CLI): stopp og si til brukeren at denne skill-en bare virker i
-Claude Desktop med Cowork aktivert.
+Denne skill-en krever at de innebygde browserverktøyene (f.eks.
+`preview_start`, `navigate`, `javascript_tool`) er tilgjengelige. Finn dem med
+ToolSearch som beskrevet under. **Hvis de ikke finnes** (for eksempel i Claude
+Code CLI): stopp og si til brukeren at denne skill-en trenger de innebygde
+browserverktøyene i Claude Desktop (Cowork, eller Code-fanen der de er
+tilgjengelige).
+
+**Browserverktøy.** Prefikset til den innebygde browserens verktøy varierer (`mcp__Claude_Browser__…` i lokal Cowork,
+`mcp__remote-devices__Claude_Browser__…` i sky-Cowork). De er ofte utsatt (deferred): kjør ett ToolSearch-kall med
+query `Claude_Browser` og `max_results` 64, og bruk prefikset som kommer tilbake. Denne filen omtaler verktøyene bare
+med suffiks (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, …). `request_access` finnes ikke i alle
+miljøer; mangler det, gå rett til `preview_start`/`navigate`.
+
+## Hvor hvert steg kjøres
+
+| Steg | Hvor |
+|---|---|
+| Innlogging, navigering, henting, seksjonering og søk (`lovdata_pro.js`) | **Browser-panelet** (brukerens IP og innlogging) |
+| Oppslag av referanse (`lovdata_ref.py`, ingen nettverkstilgang) | **Bash** (sky-sandkasse eller lokal) |
+
+All henting skjer i browser-panelet. Ingen av shellene kan kalle lovdata.no
+direkte (sky-sandkassen: 405; lokal shell: ikke innlogget) — ikke prøv `curl`
+e.l. mot lovdata.no fra `Bash`.
+
+I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
 
 ---
 
@@ -59,9 +83,9 @@ Claude Desktop med Cowork aktivert.
    Gjenbruk den om den finnes (cachen i `window.__lp` dør ved navigering, så
    ikke naviger denne fanen bort fra `https://lovdata.no/pro/` for annet enn
    søk — se Steg 3). Ellers: `preview_start {url: "https://lovdata.no/pro/"}`.
-2. Hvis et verktøy rapporterer at siden ikke er godkjent ennå:
-   `request_access {url: "https://lovdata.no/pro/", scope: "site"}` og prøv
-   igjen.
+2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
+   godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
+   og prøv igjen.
 3. Lim inn hele innholdet i `{SKILL_DIR}/scripts/browser/lovdata_pro.js` via
    `javascript_tool` (`action: "javascript_exec"`). Idempotent — trygt å lime
    inn flere ganger i samme fane. En eldre versjon av hjelperen fra før en
@@ -176,7 +200,7 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   («a. konsultere vedkommende folk …»), ikke som rørtabellrader.
 - **Dump-modus** — kun når brukeren ber om en full lokal kopi eller
   uttømmende gjennomgang: løkke over `page(path, offset)` til `next` er
-  `null`, og skriv hver `text` til `outputs/<slug>.md` (bash `>>` mellom
+  `null`, og skriv hver `text` til `outputs/<slug>.md` (i sky-Cowork: `/mnt/user-data/outputs/<slug>.md`) (bash `>>` mellom
   hvert kall). Si fra til brukeren på forhånd omtrent hvor mange kall det
   tar (`Math.ceil(totalChars / 45000)`).
 

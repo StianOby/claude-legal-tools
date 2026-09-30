@@ -9,7 +9,7 @@
 // Scope, deliberately narrow: session check, access/loan status, URN
 // resolution and — only when the item needs it — the two readable nb.no
 // cookies. Page images are NEVER fetched here; base64 through the tool
-// channel is not viable for a book. The sandbox does all downloading.
+// channel is not viable for a book. `Bash` does all downloading.
 //
 // Error convention: functions never throw to the caller. They return
 // {error: 'http_<n>' | 'cors' | 'bad_id' | 'not_found' | 'ambiguous', detail}.
@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.1.1';
+  const HELPER_VERSION = '1.3.3';
   if (window.__nb && window.__nb.VERSION === HELPER_VERSION) return;
   window.__nb = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -85,7 +85,8 @@
 
     // Who is nb.no serving this browser as? Anonymous responses carry only
     // {ip}; a logged-in one adds loginProvider/roles/displayName. `ip` is the
-    // egress IP the image resolver geo-checks — the sandbox shares it.
+    // egress IP the image resolver geo-checks for this browser. `Bash` shares it only
+    // in local Cowork; in a cloud session it egresses from Anthropic's cloud.
     async function status() {
       const r = await getJson(ME);
       if (r.error) return r;

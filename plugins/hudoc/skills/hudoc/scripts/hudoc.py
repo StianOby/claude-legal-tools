@@ -925,7 +925,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     sp.add_argument("reference")
     sp.add_argument("--format", choices=("pdf", "docx", "text"), default="text")
     sp.add_argument("-o", "--output",
-                    help="Also copy the result to this path (e.g. /tmp/judgment.pdf).")
+                    help="Also copy the result to this path (e.g. outputs/judgment.pdf).")
     sp.add_argument("--print", action="store_true",
                     help="With --format text, print the full text to stdout.")
     sp.add_argument(*lang_arg, **lang_kw)

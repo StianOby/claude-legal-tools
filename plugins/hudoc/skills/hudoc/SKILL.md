@@ -50,10 +50,37 @@ below). No
 third-party packages for the normal DOCX path — only the standard library
 (`urllib`, `zipfile`, `xml.etree`); `pypdf` or poppler's `pdftotext` is
 needed only for the rare PDF-only documents. Run it from this skill's
-directory. If that path does not exist in bash (Cowork may show a host path the sandbox cannot see), locate the skill with `find /sessions -path '*/skills/hudoc/SKILL.md' 2>/dev/null | head -1` and use that file's directory. The cache is *not* in the skill folder: it lives in
+directory (`{SKILL_DIR}`, below). The cache is *not* in the skill folder: it lives in
 `$HUDOC_CACHE_DIR` if set, otherwise `~/.cache/hudoc/items/<itemid>/`.
 Every `fetch` prints the absolute `path` of the file it wrote — use that
 rather than guessing.
+
+**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
+Otherwise resolve it once and use the printed path literally in later commands:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/hudoc}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/hudoc/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+
+## Where each step runs
+
+| Step | Runs in |
+|---|---|
+| `scripts/hudoc.py` (search, metadata, fetch, citations, show) | cloud sandbox (`Bash`) |
+| Same requests when HUDOC's Cloudflare check answers the script (403 / "Just a moment…"), including a 403/405 in a cloud session | browser pane (`scripts/browser/hudoc.js`, see **Fallback**) |
+| Local shell | not used |
+
+In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. If `Bash` is blocked, tell
+the user "This source is blocked from Anthropic's cloud" and switch to the browser route; never suggest a VPN.
+
+**Files for the user** go in the outputs directory (`/mnt/user-data/outputs` in cloud Cowork) and are shown
+with the file-sharing tool: `present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever exists.
+
+**Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
+Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
+query `Claude_Browser` and `max_results` 64, and use whatever prefix comes back. This file names them by suffix only
+(`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, `get_page_text`, `read_page`, …).
+`request_access` does not exist in every environment; if it is missing, go straight to `preview_start`/`navigate`.
 
 | The user wants… | Run |
 |---|---|
@@ -62,7 +89,7 @@ rather than guessing.
 | The text by appno | `python3 scripts/hudoc.py fetch 14038/88 --format text` |
 | The text by ECLI | `python3 scripts/hudoc.py fetch ECLI:CE:ECHR:1989:0707JUD001403888 --format text` |
 | An admissibility decision (not the later GC judgment) | `python3 scripts/hudoc.py fetch 36813/97 --doctype ADMISSIBILITY --format text` |
-| The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o /tmp/case.pdf` |
+| The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o <outputs-dir>/case.pdf`, then share the file (see **Where each step runs**) |
 | Just the metadata (no full text) | `python3 scripts/hudoc.py metadata <ref>` |
 | Cases cited by this judgment | `python3 scripts/hudoc.py citations <ref>` |
 | Filtered search | `python3 scripts/hudoc.py search '(article:"8") AND (respondent:"NOR") AND (doctypebranch:GRANDCHAMBER)' -n 20` |
@@ -355,7 +382,7 @@ the same text the script would have cached — same paragraph breaks, same
 `[fn N]` footnote markers — so paragraph numbers match either way.
 
 1. `tabs_context` — reuse a tab on `hudoc.echr.coe.int`, or `preview_start
-   {url: "https://hudoc.echr.coe.int/eng"}`. If the site is not approved,
+   {url: "https://hudoc.echr.coe.int/eng"}`. If `request_access` exists and the site is not approved,
    `request_access {url: "https://hudoc.echr.coe.int/", scope: "site"}`.
 2. Paste the whole of `scripts/browser/hudoc.js` via `javascript_tool`.
    Idempotent; an older helper from before a skill update is replaced

@@ -26,7 +26,26 @@ anførselstegn.
 
 Du har et hjelpescript i `scripts/traktater.py` (se «Base directory for this
 skill:» øverst i meldingen — det er samme katalog som scriptet ligger i).
-Erstatt `{SKILL_DIR}` nedenfor med den banen. Finnes ikke den stien i bash (Cowork viser noen ganger en vertsbane sandkassen ikke ser), finn skillen med `find /sessions -path '*/skills/norges-traktater/SKILL.md' 2>/dev/null | head -1` og bruk katalogen til den filen.
+**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
+i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+```bash
+for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/norges-traktater}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/norges-traktater/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
+```
+Erstatt `{SKILL_DIR}` nedenfor med den stien.
+
+---
+
+## Hvor hvert steg kjøres
+
+Alle stegene (`search`, `meta`, `text`, `article`, `countries`, `status`) kjører i **`Bash`**; skillen bruker
+foreløpig ingen browser.
+
+I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
+
+**Sky-sesjon: `lovdata.no` svarer 405 fra `Bash`.** Får scriptet HTTP 405 eller
+tilsvarende blokkering, si til brukeren: «Lovdata blokkerer Anthropics sky;
+denne skillen trenger foreløpig lokal Cowork.» Stopp deretter — ikke prøv på
+nytt, ikke bytt kilde, ikke foreslå VPN.
 
 ---
 

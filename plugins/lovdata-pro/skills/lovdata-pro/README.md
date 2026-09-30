@@ -51,7 +51,8 @@ any browser.
 ## Requirements
 
 - **Claude Desktop** with **Cowork** enabled (the built-in browser tool
-  surface, `mcp__Claude_Browser__*`).
+  surface, found by keyword `Claude_Browser`; the tool prefix differs between
+  local and cloud Cowork).
 - **Python 3.8+** — only for `scripts/lovdata_ref.py`, which has no
   dependencies beyond the standard library.
 - **Lovdata Pro subscription**, with the user able to log in interactively
