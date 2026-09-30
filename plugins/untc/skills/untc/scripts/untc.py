@@ -177,6 +177,14 @@ UNTS_ONLY = {
     "additional protocol ii": (1125, "17513", "Protocol Additional to the Geneva Conventions of 12 August 1949, and relating to the Protection of Victims of Non-International Armed Conflicts (Protocol II)"),
     "ap i": (1125, "17512", "Additional Protocol I"),
     "ap ii": (1125, "17513", "Additional Protocol II"),
+    "nato": (34, "541", "North Atlantic Treaty"),
+    "north atlantic treaty": (34, "541", "North Atlantic Treaty"),
+    "chicago convention": (15, "102", "Convention on International Civil Aviation"),
+    "convention on international civil aviation": (15, "102", "Convention on International Civil Aviation"),
+    "antarctic treaty": (402, "5778", "The Antarctic Treaty"),
+    "outer space treaty": (610, "8843", "Treaty on Principles Governing the Activities of States in the Exploration and Use of Outer Space, including the Moon and Other Celestial Bodies"),
+    "statute of the council of europe": (87, "1168", "Statute of the Council of Europe"),
+    "council of europe statute": (87, "1168", "Statute of the Council of Europe"),
 }
 
 # ---------------------------------------------------------------------------
@@ -514,6 +522,39 @@ def _pdf_pages_text(pdf_path: Path) -> Optional[list]:
         return None
     reader = PdfReader(str(pdf_path))
     return [(p.extract_text() or "") for p in reader.pages]
+
+
+def short_pages(heights: list, ratio: float = 0.85) -> list:
+    """Indices of pages well below the file's median height. Some per-treaty
+    PDFs carry a page cropped short: in volume-34-I-541 (NATO) printed p. 246
+    is 491 pt tall against 657 for the rest, and the second paragraph of
+    Article 5 is simply missing from it. The full volume PDF has the page."""
+    if len(heights) < 3:
+        return []
+    median = sorted(heights)[len(heights) // 2]
+    return [i for i, h in enumerate(heights) if h < ratio * median]
+
+
+def _short_page_report(pdf_path: Path) -> Optional[list]:
+    """[{pdf_page, printed_page, height, median}] for short pages, or None."""
+    PdfReader = _pypdf_reader()
+    if PdfReader is None:
+        return None
+    try:
+        reader = PdfReader(str(pdf_path))
+        heights = [float(p.mediabox.height) for p in reader.pages]
+    except Exception:
+        return None
+    idx = short_pages(heights)
+    if not idx:
+        return None
+    median = sorted(heights)[len(heights) // 2]
+    out = []
+    for i in idx:
+        text = reader.pages[i].extract_text() or ""
+        out.append({"pdf_page": i + 1, "printed_page": printed_page_of(text),
+                    "height": round(heights[i]), "median": round(median)})
+    return out
 
 
 def _pdftotext(pdf_path: Path, txt_path: Path) -> bool:
@@ -1039,7 +1080,7 @@ def _resolve_page(pages: list, toc: list, page: int) -> Optional[dict]:
 
 
 def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
-               force=False, series="I"):
+               force=False, series="I", from_volume=False):
     if lang not in TEXT_LANGS:
         raise SystemExit("--lang for text must be one of %s" % "/".join(TEXT_LANGS))
     resolved_from = None
@@ -1083,10 +1124,28 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
     url = url_unts_text(volume, reg_num, lang, series=series)
     pdf = out_dir / ("text.%s.pdf" % lang)
     try:
+        if from_volume:
+            raise DocumentNotFound(url)
         download_pdf(url, pdf, force=force)
         txt = extract_text(pdf, force=force)
         info.update({"via": "treaty-pdf", "text_pdf": str(pdf),
                      "text_txt": str(txt), "source_url": url})
+        short = _short_page_report(pdf)
+        if short:
+            info["short_pages"] = short
+            where = ", ".join(
+                "PDF p. %d (printed p. %s, %d pt)" % (
+                    s["pdf_page"], s["printed_page"] or "?", s["height"])
+                for s in short)
+            first = next((s["printed_page"] for s in short if s["printed_page"]),
+                         None)
+            info["warning"] = (
+                "the per-treaty PDF has page(s) shorter than the rest (median "
+                "%d pt): %s. A short page may be cropped and missing text. "
+                "Before quoting from it, compare the full volume: `untc.py text "
+                "--vol %d --reg %s --from-volume`%s"
+                % (short[0]["median"], where, volume, reg_num,
+                   " and read printed p. %d" % first if first else ""))
         return info
 
     except DocumentNotFound:
@@ -1130,8 +1189,10 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
             "the citation gives p. %d but the located text runs from printed "
             "p. %d to p. %d; check `untc.py volume %d` before quoting"
             % (page, printed_range[0], printed_range[1], volume))
-    txt = out_dir / ("text.%s.txt" % lang)
-    header = ("[UNTS volume %d, registration No. %s - pages %d-%d of the "
+    # With --from-volume, keep the per-treaty extraction (text.<lang>.txt,
+    # which extract_text caches) apart from the volume slice.
+    txt = out_dir / ("text.volume.txt" if from_volume else "text.%s.txt" % lang)
+    header =("[UNTS volume %d, registration No. %s - pages %d-%d of the "
               "volume PDF %s; all language versions in sequence]\n\n"
               % (volume, reg_num, start + 1, end, url_unts_volume(volume)))
     _write_text(txt, header + "\n\f\n".join(pages[start:end]))
@@ -1171,11 +1232,21 @@ def cmd_lookup(args):
         print("             -- not deposited with the UN Secretary-General: no "
               "MTDSG status doc. Text: `untc.py text --vol %d --reg %s`" % (vol, reg))
     hits = search_index(args.query, limit=args.limit)
-    if not hits and q not in UNTS_ONLY:
-        print("(no matches; the treaty may not be deposited with the "
-              "Secretary-General - try `untc.py volume <N>` with a UNTS "
-              "citation, or `untc.py index --refresh`)")
-        return
+    if q in UNTS_ONLY:
+        # The built-in entry is the answer; word overlaps with SG-deposited
+        # titles (NATO -> the Baltic cetaceans agreement) only mislead.
+        hits = [(s, h) for s, h in hits if s >= 100]
+        if not hits:
+            return
+    elif not hits or hits[0][0] < 100:
+        print("NO MATCH: no treaty deposited with the Secretary-General has "
+              "%r in its title. It may have another depositary: find its UNTS "
+              "citation (e.g. '34 UNTS 243' = volume 34, page 243) and run "
+              "`untc.py text --vol <volume> --page <page>`, or "
+              "`untc.py volume <volume> --search <word>`." % args.query.strip())
+        if hits:
+            print("Titles sharing only some words (almost certainly NOT the "
+                  "treaty asked for):")
     for score, h in hits:
         print("  %-10s  %s" % (h["ref"], h["title"]))
         if h.get("place_date"):
@@ -1195,6 +1266,7 @@ def cmd_text(args):
     info = fetch_text(
         ref=ref, volume=args.vol, reg_num=args.reg, page=args.page,
         lang=args.lang, force=args.force, series=args.series,
+        from_volume=args.from_volume,
     )
     _print_json(info)
 
@@ -1317,6 +1389,9 @@ def main(argv=None):
                       help="I = registered, II = filed and recorded")
     p_tx.add_argument("--lang", default="en", choices=list(TEXT_LANGS))
     p_tx.add_argument("--force", action="store_true")
+    p_tx.add_argument("--from-volume", action="store_true",
+                      help="slice the full volume PDF even if a per-treaty PDF "
+                           "exists (for a per-treaty PDF with a cropped page)")
     p_tx.set_defaults(func=cmd_text)
 
     p_vol = sub.add_parser("volume", help="list a UNTS volume's table of contents")

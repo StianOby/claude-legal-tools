@@ -86,15 +86,24 @@ I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke b
 2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
    godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
    og prøv igjen.
-3. Last inn hjelperen. Kjør `bash {SKILL_DIR}/scripts/browser/load.sh
-   {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash og send den ene linjen
-   den skriver ut via `javascript_tool` (`action: "javascript_exec"`); ta vare
-   på linjen til senere innlasting. `LOADED …` eller `ALREADY …` → ferdig.
-   Ethvert annet svar (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → lim inn
-   hele filen i stedet. Kort aldri ned hjelperen. Idempotent — trygt å lime
-   inn flere ganger i samme fane. En eldre versjon av hjelperen fra før en
-   skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION` viser hvilken
-   som kjører.
+3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash. Den skriver en kopi
+   uten kommentarer og innrykk (ca. 17 000 tegn i stedet for 30 000) og
+   skriver ut stien. Les den filen og send **hele** innholdet via
+   `javascript_tool` (`action: "javascript_exec"`). Virker ikke `paste.py`,
+   lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
+   trygt å lime inn flere ganger i samme fane. En eldre versjon av hjelperen
+   fra før en skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION`
+   viser hvilken som kjører.
+   **Avvises innlimingen av en sikkerhetssjekk**, ikke prøv samme kall igjen.
+   Si det til brukeren med én setning og bruk lese-ruten: logg inn (punkt 4 uten
+   `isLoggedIn()` — spør brukeren), `navigate` til
+   `https://lovdata.no/pro/#document/<path>` (path fra Steg 1, f.eks.
+   `HRSIV/avgjorelse/hr-2016-2554-p`), vent et par sekunder og les med
+   `get_page_text` (eller `read_page`). Søk skjer som i fallbacken i Steg 3,
+   med `get_page_text` i stedet for `readSearchResults`. Lese-ruten har ingen
+   `grep`/`section`/biter: lange dokumenter kan bli avkortet, så si fra hvis
+   teksten slutter brått, og sitér bare det siden faktisk viser.
 4. Kjør `await __lp.isLoggedIn()`. På `#myPage` avgjøres svaret av
    `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
    lite prøveoppslag mot Pro (`source: "probe"`).

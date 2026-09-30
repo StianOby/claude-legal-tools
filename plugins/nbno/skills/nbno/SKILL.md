@@ -135,14 +135,15 @@ only — the cookie. Never shuttle page images through the browser.
    `preview_start {url: "https://www.nb.no/"}`. If `request_access` exists
    and the page is not approved: `request_access {url: "https://www.nb.no/",
    scope: "site"}`. FEIDE / IdP / BankID / Vipps may each need approval.
-2. **Helper.** Run `bash {SKILL_DIR}/scripts/browser/load.sh
-   {SKILL_DIR}/scripts/browser/nbno_auth.js` in Bash and send the one line it
-   prints via `javascript_tool` → `window.__nb`. `LOADED …` or `ALREADY …` →
-   done; any other answer → paste all of `nbno_auth.js` instead (never trim
-   it). **Navigating the tab wipes it: send the line again after every
-   `navigate`/`preview_start`** (same version = no-op). If a
-   browser call is refused by a safety check, tell the user and wait; do not
-   retry in a loop.
+2. **Helper.** Run `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/nbno_auth.js` in Bash; it writes a stripped
+   copy (~6,000 characters) and prints its path. Read that file and send all
+   of it via `javascript_tool` → `window.__nb` (if `paste.py` fails, paste
+   `nbno_auth.js` itself; never trim it). **Navigating the tab wipes it:
+   paste it again after every `navigate`/`preview_start`** (same version =
+   no-op). If the paste is refused by a safety check, do not retry it: tell
+   the user in one sentence and fall back to the manual DevTools cookie
+   (`auth.md`, Fallback 3); `EVERYWHERE` items need no browser at all.
 3. **Session.** `await __nb.status()`. Not logged in → *"Logg inn på nb.no i
    browser-panelet (Feide/BankID/Vipps). Si fra når du er inne."* Block on
    this only for `NB` items. **Never type credentials or ask for them.**
@@ -178,7 +179,7 @@ nbno needs an ID of the form `<type>_<key>`, e.g. `digibok_2008051600041`
 1. **URN** `URN:NBN:no-nb_digibok_…` → the scripts strip the prefix; pass
    either form.
 2. **`nb.no/items/<hash>` URL** — the hash is **not** the ID and cannot be
-   converted. With the browser tools: navigate the pane to the URL, re-load the helper (same loader line)
+   converted. With the browser tools: navigate the pane to the URL, paste the helper again (same file)
    the helper, `await __nb.resolveUrn()` → `{id, urn, via}`. On
    `{error: "ambiguous"}` (item pages embed other editions' ids) ask the user
    for the URN; do not pick a candidate. Otherwise ask the user to click

@@ -1,7 +1,7 @@
 ---
 name: untc
 description: |
-  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General. Trigger on: a UN-deposited treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Vienna Convention, Genocide Convention, Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS volume + registration number; verbs like fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force; casual phrasing counts. Prefer over web search — UNTC PDFs sit at stable doc/Publication URLs. Do NOT trigger for: Norwegian law (lovdata-api); EU law / GDPR (eurlex); ECHR / Strasbourg / Council of Europe; WIPO trademark/patent procedure; WTO panel reports; UN GA/SC resolutions (not treaties); news about draft treaties; contractual reservation clauses.
+  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General; for treaties with another depositary (NATO, Geneva Conventions, Chicago Convention) the UNTS text only. Trigger on: a treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Genocide/Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS citation (e.g. 729 UNTS 161) or volume + registration number; verbs like fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force; casual phrasing counts. Prefer over web search. Do NOT trigger for: Norwegian law (lovdata-api); EU law (eurlex); ECHR / Council of Europe treaties (hudoc, ets); WIPO/WTO procedure; UN GA/SC resolutions; news about draft treaties; contractual reservation clauses.
 ---
 
 # UN Treaty Collection (UNTC) skill
@@ -101,8 +101,11 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
 - `lookup <query>` — fuzzy-search the cached index by title or acronym.
   Known acronyms (ICCPR, OPCAT, CRPD-OP, UNCLOS, Paris Agreement, ...)
   resolve directly; UNTS-only treaties in the built-in list (NPT, Geneva
-  Conventions I–IV, Additional Protocols I–II) are reported with their
-  volume/registration number.
+  Conventions I–IV, Additional Protocols I–II, NATO, Chicago Convention,
+  Antarctic Treaty, Outer Space Treaty, Statute of the Council of Europe)
+  are reported with their volume/registration number. Output starting
+  `NO MATCH` means no SG-deposited title contains the query; any titles
+  listed under it merely share a word and are not the treaty.
 - `status <ref> [--lang en|fr]` — download + parse the MTDSG status doc.
   Writes `meta.json` with title, place/date, entry into force,
   registration date + number, UNTS volume + page, signatories, parties,
@@ -119,7 +122,8 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
   as a cross-check. Falls back to slicing the full volume PDF when there
   is no per-treaty file (the output then says `"via": "volume-pdf"` and
   gives both the PDF page range and the `printed_pages` those pages
-  carry).
+  carry). `--from-volume` slices the volume PDF even when a per-treaty
+  file exists (see step 7).
 - `volume <N> [--search STR] [--json]` — list a UNTS volume's table of
   contents: registration number, first page, title (Annex A entries,
   i.e. later actions on earlier treaties, are flagged).
@@ -191,10 +195,11 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    authentic languages in one file. A text sliced from a volume PDF
    contains every authentic language in sequence.
 6. **For a treaty with no MTDSG entry** (bilateral treaties, treaties
-   with another depositary such as the NPT or the Geneva Conventions):
-   there is no status doc, so parties and reservations must come from
-   the depositary. The text is still in the UNTS: use `fetch NPT` for
-   the built-in ones, otherwise `text --vol N --page P` from the
+   with another depositary such as the NPT, NATO or the Geneva
+   Conventions): there is no status doc, so parties and reservations must
+   come from the depositary. The text is still in the UNTS, and is often
+   the best source for it: use `fetch NPT` / `fetch NATO` for the
+   built-in ones, otherwise `text --vol N --page P` from the
    citation, or `volume N --search ...` to find the registration number.
 7. **Check the pages you were given before quoting a sliced text.** The
    output of `text` carries `printed_pages` — the folios the slice
@@ -204,6 +209,11 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    that volume were mis-parsed: run `volume N --search <title words>`
    and confirm the registration number before reading. The early volumes
    are OCR'd, and their contents page column is the first thing to go.
+   `printed_pages` does not catch a page that is present but cropped:
+   some per-treaty PDFs have a page shorter than the rest, with text cut
+   off (the NATO treaty's p. 246 loses the second paragraph of Article
+   5). `text` then returns `short_pages` and a `warning`; re-run with
+   `--from-volume` and quote the named printed page from that slice.
 8. **If a download fails**, the CLI says whether the status doc, the
    per-treaty file or the whole volume is missing. The newest volumes
    (e.g. vol. 3370, the TPNW) are not yet published as PDFs; the error

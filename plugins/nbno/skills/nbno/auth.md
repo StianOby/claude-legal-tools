@@ -171,18 +171,18 @@ through the tool channel is not viable for a book.
    tool reports the page is not approved and `request_access` exists:
    `request_access {url: "https://www.nb.no/", scope: "site"}` and retry. Warn the user that FEIDE /
    IdP / BankID / Vipps domains may each need separate approval on first login.
-2. **Load the helper.** Run `bash {SKILL_DIR}/scripts/browser/load.sh
-   {SKILL_DIR}/scripts/browser/nbno_auth.js` in Bash and send the one line it
-   prints via `javascript_tool`. `LOADED …` or `ALREADY …` → done. Any other
-   answer (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → paste all of
-   `{SKILL_DIR}/scripts/browser/nbno_auth.js` instead; never trim it. Idempotent — safe to paste again in the same tab;
+2. **Load the helper.** Run `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/nbno_auth.js` in Bash; it writes a copy
+   without comments or indentation and prints its path. Read that file and
+   send all of it via `javascript_tool` (if `paste.py` fails, paste
+   `nbno_auth.js` itself); never trim it. Idempotent — safe to paste again in the same tab;
    an older helper from before a skill update is replaced. It defines
    `window.__nb` (`__nb.VERSION` shows which version runs).
    If a browser call is refused by a safety check ("cannot determine the
-   safety of …"), do not retry in a loop: tell the user, ask them to approve
-   it or say how to proceed, and wait.
+   safety of …"), do not retry it. If it was the paste, tell the user in
+   one sentence and use Fallback 3 (manual DevTools cookie) below.
    > **Navigating the tab wipes `window.__nb`.** It lives in the page, so any
-   > `navigate` or `preview_start` destroys it. Load it again (same loader line) after every
+   > `navigate` or `preview_start` destroys it. Paste it again (same file) after every
    > navigation — the version guard makes that free when it is
    > still there. `__nb.access()`, `status()` and `manifest()` fetch
    > cross-origin and do **not** need the tab parked anywhere in particular;
@@ -286,7 +286,7 @@ manifests itself without auth.
 #### Resolving an `nb.no/items/<hash>` URL (`SKILL.md` Step 1)
 
 - **Preferred, when the browser tools are available:** navigate the pane
-  to the pasted URL, **load `nbno_auth.js` again** (same loader line; navigation wiped it),
+  to the pasted URL, **paste `nbno_auth.js` again** (same file; navigation wiped it),
   then `await __nb.resolveUrn()` → `{id, urn, via, waitedMs}`. It tries,
   in order: the URL itself (`via: "url"`), the catalog record for the
   opaque hash (`"catalog"`), a `urn.nb.no` link on the page

@@ -384,12 +384,19 @@ the same text the script would have cached — same paragraph breaks, same
 1. `tabs_context` — reuse a tab on `hudoc.echr.coe.int`, or `preview_start
    {url: "https://hudoc.echr.coe.int/eng"}`. If `request_access` exists and the site is not approved,
    `request_access {url: "https://hudoc.echr.coe.int/", scope: "site"}`.
-2. Paste the whole of `scripts/browser/hudoc.js` via `javascript_tool`.
-   Never trim or shorten it. (The other skills' one-line loader does not
-   work here: HUDOC's page CSP blocks fetching the helper from GitHub.)
-   Idempotent; an older helper from before a skill update is replaced
+2. Run `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/hudoc.js` in Bash; it writes a copy without
+   comments or indentation (about 21,000 characters instead of 30,000) and
+   prints its path. Read that file and send **all** of it via
+   `javascript_tool` (if `paste.py` fails, paste `hudoc.js` itself). Never
+   trim or shorten it. Idempotent; an older helper from before a skill update is replaced
    (`__hd.VERSION` shows which one runs). Navigating the tab wipes it —
-   re-paste after any navigation.
+   re-paste after any navigation. If the paste is refused by a safety
+   check, do not retry it: tell the user in one sentence and read the
+   judgment instead by `navigate` to `https://hudoc.echr.coe.int/eng?i=<itemid>`,
+   waiting a few seconds and calling `get_page_text` (or `read_page`).
+   That text has no `[fn N]` markers and may be cut short on long
+   judgments; check the paragraph you quote is complete.
 3. `await __hd.ready()` → `{ok: true}`. `{error: "challenge"}` means the tab
    itself is on the Cloudflare page: wait a few seconds, retry, and ask the
    user to reload the tab if it persists.

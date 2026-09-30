@@ -69,18 +69,34 @@ stopp.
    `preview_start {url: "https://lovdata.no/register/traktater"}`.
 2. Hvis `request_access` finnes og et verktøy sier at siden ikke er godkjent ennå:
    `request_access {url: "https://lovdata.no/register/traktater", scope: "site"}` og prøv igjen.
-3. Last inn hjelperen. Kjør `bash {SKILL_DIR}/scripts/browser/load.sh {SKILL_DIR}/scripts/browser/norges_traktater.js`
-   i Bash og send den ene linjen den skriver ut via `javascript_tool` (`action: "javascript_exec"`); ta vare på
-   linjen. `LOADED …` eller `ALREADY …` → ferdig. Ethvert annet svar (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) →
-   lim inn hele `norges_traktater.js` i stedet. Kort aldri ned hjelperen. Idempotent — trygt å kjøre flere ganger;
-   en eldre versjon i fanen byttes ut.
+3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py {SKILL_DIR}/scripts/browser/norges_traktater.js`
+   i Bash. Den skriver en kopi uten kommentarer og innrykk (ca. 21 000 tegn i stedet for 30 000) og skriver ut
+   stien. Les den filen og send **hele** innholdet via `javascript_tool` (`action: "javascript_exec"`). Kort aldri
+   ned hjelperen. Virker ikke `paste.py`, lim inn `norges_traktater.js` direkte. Idempotent — trygt å lime inn
+   flere ganger; en eldre versjon i fanen byttes ut.
 4. Kjør `await __nt.status()`. Skal gi `reachable: true`, antall traktater, årganger og antall land. Får du
    `{error: 'http_405' | 'http_403' …}` er lovdata.no blokkert også her: si det til brukeren og stopp.
 
-**Last inn hjelperen på nytt (samme linje) etter hver navigering.** Cachen og `window.__nt` dør når fanen navigerer eller
+**Lim inn hjelperen på nytt (samme fil) etter hver navigering.** Cachen og `window.__nt` dør når fanen navigerer eller
 lastes på nytt. Naviger ikke fanen bort fra lovdata.no; skal du se på noe annet, bruk en egen fane.
 
-Hvis et browserkall avvises av en sikkerhetssjekk, si det til brukeren og vent på svar — ikke prøv igjen i løkke.
+Hvis et browserkall avvises av en sikkerhetssjekk, ikke prøv det samme kallet igjen. Avvises innlimingen av
+hjelperen, si det til brukeren med én setning og gå over til lese-ruten under — ikke vent.
+
+### Browser-ruten uten hjelper (lese-ruten)
+
+Traktatsidene er vanlige, offentlige HTML-sider, så alt unntatt `countries` og `status` kan leses uten
+JavaScript: `navigate` til URL-en og les siden med `get_page_text` (eller `read_page` hvis `get_page_text`
+mangler).
+
+| Operasjon | URL |
+|---|---|
+| `meta`, `text`, `article` | `https://lovdata.no/dokument/TRAKTAT/traktat/<ID>` — metadatatabellen øverst, deretter teksten; finn artikkelen selv |
+| `search` | `https://lovdata.no/register/traktater?search=<ord>&searchContext=I+tittel` (`I+teksten` for fulltekst), pluss eventuelt `&year=ÅÅÅÅ`, `&country=<norsk landnavn>` og `&offset=20`, `40` … for flere sider |
+
+Forskjeller fra hjelperen: ingen biter (lange traktater kan bli avkortet av `get_page_text` — si fra hvis
+teksten slutter brått), og `country` valideres ikke. Et land Lovdata ikke kjenner gir hele registeret, så
+sjekk at treffantallet er rimelig. Sitér bare det siden faktisk viser.
 
 ### Browser-ruten: kall
 
@@ -459,6 +475,7 @@ Kolonnen «Tekst» sier om den norske teksten ligger fritt på traktatsiden;
 |----|-----------------|-------|
 | `1945-06-26-1` | FN-pakten | ja |
 | `1948-12-09-1` | Folkemordkonvensjonen | ja |
+| `1949-04-04-1` | NATO-traktaten / Atlanterhavspakten (UNTS: vol. 34 nr. 541, se `untc`) | ja |
 | `1949-08-12-1` …`-4` | Genève-konvensjonene I–IV | ja |
 | `1950-11-04-1` | Den europeiske menneskerettighetskonvensjonen (EMK) | nei → menneskerettsloven |
 | `1951-07-28-1` | Flyktningkonvensjonen | ja |

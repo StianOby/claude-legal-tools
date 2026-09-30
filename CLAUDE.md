@@ -68,12 +68,15 @@ Rules:
   older helper gets it replaced. When you change a helper, set its
   `HELPER_VERSION` to the plugin's new version by hand; CI fails a changed
   helper whose `HELPER_VERSION` differs from its plugin's version.
-  The skills (all but hudoc, whose page CSP blocks the fetch) load helpers with `scripts/browser/load.sh` (shared from
-  `shared/browser-loader/`): it prints a one-line loader that fetches the
-  helper from `main` on GitHub, checks it by sha256 against the synced copy
-  and runs it, instead of pasting 30–45 KB. The helper must keep one
-  `window.__x = ` assignment and its `HELPER_VERSION`, and must not need its
-  own file name (tests/browser-helpers/test_loader.js).
+  The skills paste a stripped copy made by `scripts/browser/paste.py` (shared
+  from `shared/browser-paste/`): no comments, indentation or blank lines,
+  30–55 % smaller, with strings, templates, regexes and line breaks untouched.
+  Keep helpers stripper-friendly (plain JS; a regex literal never follows
+  `)`), and keep one `window.__x = ` assignment and the `HELPER_VERSION`.
+  `tests/browser-helpers/test_paste.js` reruns each helper's own suite on the
+  stripped copy (via `stripped_preload.js`). Do not go back to fetching the
+  helper from GitHub and `eval`-ing it: the Cowork safety check blocks that
+  as "Code from External" (live session, 2026-09-30).
 - **Tests live in `tests/<name>/` at the repo root, never inside a plugin.**
   Installing a plugin copies its whole folder (there is no ignore file), so
   anything under `plugins/` ships to every user. Tests find the skill via

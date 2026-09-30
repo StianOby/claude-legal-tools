@@ -90,14 +90,21 @@ cloud" and use the browser pane. Never suggest a VPN.
 2. If a tool says the site is not approved and `request_access` exists: `request_access {url:
    "https://www.consilium.europa.eu/", scope: "site"}` and retry. If the user
    declines, stop.
-3. Load the helper. Run `bash {SKILL_DIR}/scripts/browser/load.sh
-   {SKILL_DIR}/scripts/browser/consilium.js` in Bash and send the one line
-   it prints via `javascript_tool` (`action: "javascript_exec"`); keep that
-   line for re-loading later. `LOADED …` or `ALREADY …` → done. Any other
-   answer (`MISMATCH`, `FETCH_FAILED`, `EVAL_FAILED`) → paste the whole file
-   instead. Never trim or shorten the helper. Idempotent; an older
-   helper left in the tab from before a skill update is replaced
-   (`__cs.VERSION` shows which one runs).
+3. Load the helper. Run `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/consilium.js` in Bash. It writes a copy
+   without comments or indentation (about 30,000 characters instead of
+   45,000) and prints its path. Read that file and send **all** of it via
+   `javascript_tool` (`action: "javascript_exec"`). If `paste.py` fails,
+   paste `consilium.js` itself. Never trim or shorten the helper.
+   Idempotent; an older helper left in the tab from before a skill update
+   is replaced (`__cs.VERSION` shows which one runs).
+   **If the paste is refused by a safety check**, do not retry it. Tell the
+   user in one sentence and use the read-only route: `navigate` to
+   `https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=<7-digit id>&docLanguage=en`
+   and read it with `get_page_text` (or `read_page`); a search is
+   `…/treaties-agreements/?DoSearch=true&Parties=<code>&Lang=en`. Without
+   the helper there is no `find()` or party-code check: read the tables
+   as shown and quote only what the page says.
 4. `await __cs.ready()` →
    - `{ok: true, parties: 256, …}` → go on.
    - `{error: "challenge"}` → the tab is still on the Cloudflare page. Wait a

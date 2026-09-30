@@ -96,7 +96,11 @@ jobs:
 
       - name: Run eu-agreements-treaties parser tests (Node + linkedom)
         working-directory: tests/eu-agreements-treaties
-        run: npm ci --no-audit --no-fund && node run.js
+        run: |
+          npm ci --no-audit --no-fund
+          node run.js
+          echo "== again, on the copy shared/browser-paste/paste.py makes"
+          node -r ../browser-helpers/stripped_preload.js run.js
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
