@@ -1203,7 +1203,8 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
         "printed_pages": printed_range,
         "text_txt": str(txt),
         "source_url": url_unts_volume(volume),
-        "note": "no per-treaty file; text sliced from the volume PDF "
+        "note": ("--from-volume: " if from_volume else "no per-treaty file; ")
+                + "text sliced from the volume PDF "
                 "(contains every authentic language in sequence)",
     })
     if page_warning:

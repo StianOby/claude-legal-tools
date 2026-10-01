@@ -211,8 +211,10 @@ Follow them even when the user's phrasing pushes the other way.
 7. **Procès-Verbaux de Rectification** (corrigenda to language versions) are
    listed as agreements. Pass `noPV: true` or point them out; they have a
    signature but never an entry into force.
-8. **Titles carry editorial insertions** — `- See 2014013 (EEA Agreement)`,
-   language lists `(BG/ES/DA/…)`. Do not present a list title as the formal
+8. **Titles carry editorial insertions** — cross-references to another
+   record such as `- See 2014013 (EEA Agreement)` (the ID is the record
+   referred to from that title, not necessarily the agreement named; the
+   EEA Agreement itself is 1992045), language lists `(BG/ES/DA/…)`. Do not present a list title as the formal
    title; take it from `detail()` or the OJ.
 9. **The database is the EU perspective.** For Norway's ratification,
    provisional application and entry into force, `norges-traktater` is

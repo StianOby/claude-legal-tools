@@ -87,7 +87,8 @@ hjelperen, si det til brukeren med én setning og gå over til lese-ruten under 
 
 Traktatsidene er vanlige, offentlige HTML-sider, så alt unntatt `countries` og `status` kan leses uten
 JavaScript: `navigate` til URL-en og les siden med `get_page_text` (eller `read_page` hvis `get_page_text`
-mangler).
+mangler). Bruk lovdata-fanen du har; den trenger ikke hjelperen. Trenger du en egen fane, åpne den med
+`tabs_create` og `navigate` — `preview_start` gjenbruker fanen som allerede er åpen.
 
 | Operasjon | URL |
 |---|---|
