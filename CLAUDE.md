@@ -45,7 +45,6 @@ Each skill is its own plugin:
 ```
 plugins/<name>/
   .claude-plugin/plugin.json   # manifest; holds the version
-  .mcp.json                    # optional bundled MCP servers (eurlex only)
   skills/<name>/SKILL.md       # the skill; scripts/, references/ … beside it
 ```
 

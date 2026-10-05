@@ -42,8 +42,19 @@
     {
       "name": "eurlex",
       "source": "./plugins/eurlex",
-      "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)",
+      "description": "EU legislation and case law from EUR-Lex (requires the eurlex MCP server, installed separately)",
       "category": "legal-research",
+      "metadata": {
+        "requires": {
+          "mcpServers": {
+            "eurlex": {
+              "command": "npx",
+              "args": ["-y", "eurlex-mcp-server"],
+              "homepage": "https://github.com/Honeyfield-Org/eurlex-mcp-server"
+            }
+          }
+        }
+      },
       "keywords": [
         "eu",
         "cjeu",

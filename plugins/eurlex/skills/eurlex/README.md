@@ -9,10 +9,11 @@ paragraph offset, choosing consolidated versions, and citing correctly.
 
 ## Requirements
 
-- The eurlex MCP server. When installed as a plugin it is bundled
-  (`.mcp.json` in the plugin root) and needs no setup beyond `npx` being
-  available. When installed from the skill zip, configure it in the client
-  yourself. Minimal config:
+- The eurlex MCP server, installed by you — neither the plugin nor the skill
+  zip bundles it, so that you keep control of its settings (e.g. tool
+  permission defaults) in Claude Desktop. Add it under **Settings →
+  Developer → Edit Config** (`claude_desktop_config.json`) and restart
+  Claude Desktop; it needs `npx` (Node.js). Minimal config:
 
   ```json
   {

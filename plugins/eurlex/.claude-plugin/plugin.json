@@ -1,7 +1,7 @@
 {
   "name": "eurlex",
-  "version": "1.0.4",
-  "description": "EU legislation and case law from EUR-Lex (bundles the eurlex MCP server)",
+  "version": "1.1.0",
+  "description": "EU legislation and case law from EUR-Lex (requires the eurlex MCP server, installed separately)",
   "author": {
     "name": "Stian Øby Johansen",
     "url": "https://github.com/StianOby"

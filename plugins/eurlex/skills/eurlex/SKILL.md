@@ -1,21 +1,25 @@
 ---
 name: eurlex
 description: |
-  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (mcp__eurlex__* or mcp__plugin_eurlex_eurlex__* tools, must be installed) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
+  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (*__eurlex_* tools; the user installs it separately) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
 # eurlex — using the EUR-Lex MCP well
 
 This skill contains no code. Everything is done with the eurlex MCP server
 ([Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server)),
-whose tools appear as `mcp__eurlex__eurlex_*` (server configured by the
-user) or `mcp__plugin_eurlex_eurlex__eurlex_*` (server bundled with the eurlex
-plugin; in cloud Cowork `mcp__remote-devices__plugin_eurlex_eurlex__eurlex_*`).
-The tools are often deferred: run one ToolSearch with query `eurlex` and
-`max_results` 20 before deciding they are absent, and use whatever prefix
-comes back. If neither set of tools is present, stop and tell the user the server
-has to be added first — either install the `eurlex` plugin from the
-`claude-legal-tools` marketplace, or add it manually:
+which the user installs separately (the `eurlex` plugin does not bundle it).
+Its tools are the ones whose names end in `__eurlex_<tool>` (pattern
+`*__eurlex_*`, e.g. `mcp__eurlex__eurlex_fetch`), with `<tool>` one of the
+names in the tool map below. The prefix before `__eurlex_` varies by client
+(cloud Cowork adds `mcp__remote-devices__`) and by the name the user gave the
+server, so never assume one. The tools are often deferred: run one ToolSearch
+with query `eurlex` and `max_results` 20 before deciding they are absent, and
+use the names that come back. If no `*__eurlex_*` tools are present, stop and
+tell the user the
+server has to be added first — in Claude Desktop under **Settings →
+Developer → Edit Config** (`claude_desktop_config.json`, under
+`mcpServers`), then restart the app:
 
 ```json
 "eurlex": { "command": "npx", "args": ["-y", "eurlex-mcp-server"] }

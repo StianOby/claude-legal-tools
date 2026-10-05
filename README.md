@@ -73,7 +73,7 @@ That's it. The skill is now active in your Claude sessions. You do not need to t
 
 Each skill is a separate `.zip` file. To install several skills, choose several of the `.zip` files at the same time when using the file picker in step 3.
 
-Note that the `eurlex` skill zip does not include the eurlex MCP server; the plugin does. See the [eurlex README](plugins/eurlex/skills/eurlex/README.md).
+Note that neither the `eurlex` plugin nor its skill zip includes the eurlex MCP server; install it yourself in Claude Desktop. See the [eurlex README](plugins/eurlex/skills/eurlex/README.md).
 
 ## Repository layout
 
@@ -81,7 +81,6 @@ Note that the `eurlex` skill zip does not include the eurlex MCP server; the plu
 .claude-plugin/marketplace.json     # the marketplace catalogue
 plugins/<name>/
   .claude-plugin/plugin.json        # plugin manifest (name, version, …)
-  .mcp.json                         # only eurlex: bundled MCP server
   skills/<name>/                    # the skill itself: SKILL.md, README.md, scripts/ …
 ```
 
