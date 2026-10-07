@@ -38,9 +38,9 @@ for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skil
 | Index, case lookup, document download (`scripts/efta_court.py`) | cloud sandbox (`Bash`) |
 | Reading the extracted text, quoting | cloud sandbox (`Bash`) |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `eftacourt.int` has worked from the cloud so far; if
-it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. `eftacourt.int` has worked from the cloud so far; if
+it answers 403/405 from `Bash`, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
 
 ---
 

@@ -24,56 +24,42 @@ spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
 Direkte sitater fra traktatteksten beholdes alltid på originalt norsk i
 anførselstegn.
 
-Du har et hjelpescript i `scripts/traktater.py` (se «Base directory for this
-skill:» øverst i meldingen — det er samme katalog som scriptet ligger i).
-**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
-i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+**Alt går gjennom browser-panelet.** lovdata.no avviser Anthropics sky (HTTP 405 «Request stopped by Varnish IPS»),
+og Cowork kjører i skyen, så `Bash` når aldri lovdata.no. Hjelperen `scripts/browser/norges_traktater.js` limes
+inn i en fane på lovdata.no og gjør alle oppslagene derfra, med brukerens IP. Traktatsidene er offentlige, så
+ingen innlogging trengs. Ikke prøv lovdata.no fra `Bash`, ikke gå rundt hjelperen med `curl` e.l., og ikke
+foreslå VPN.
+
+**Skill-katalogen (`{SKILL_DIR}`)** trengs bare for å lage innlimingskopien (steg 3 under). Bruk stien etter
+«Base directory for this skill:» hvis den finnes i bash. Ellers finn den én gang og bruk den utskrevne stien
+bokstavelig:
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/norges-traktater}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/norges-traktater/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```
-Erstatt `{SKILL_DIR}` nedenfor med den stien.
 
 ---
 
-## Hvor hvert steg kjøres
+## Oppstart (én gang per samtale)
 
-Alle operasjonene (`search`, `meta`, `text`, `article`, `countries`, `status`) finnes i to utgaver som
-gir **samme utdata** (samme JSON-nøkler og verdier):
+**Browserverktøy.** Prefikset til den innebygde browserens verktøy varierer (`mcp__remote-devices__Claude_Browser__…`
+i sky-Cowork, `mcp__Claude_Browser__…` ellers). De er ofte utsatt (deferred): kjør ett ToolSearch-kall med query
+`Claude_Browser` og `max_results` 64, og bruk prefikset som kommer tilbake. Denne filen omtaler verktøyene bare med
+suffiks (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, …). `request_access` finnes ikke i alle
+miljøer; mangler det, gå rett til `preview_start`/`navigate`. Mangler browserverktøyene helt: si det til brukeren
+og stopp.
 
-| Rute | Hva | Hvor |
-|---|---|---|
-| **Script** | `scripts/traktater.py` | **`Bash`** |
-| **Browser** | `scripts/browser/norges_traktater.js` → `window.__nt` | **Browser-panelet** (brukerens IP, fane på lovdata.no) |
-
-**Sky-sesjon (`mcp__remote-devices__device_bash` står i verktøylisten): gå rett til browser-ruten.** `Bash` kjører
-da i Anthropics sky, og lovdata.no svarer alltid 405 der — ikke bruk et kall på å bekrefte det.
-
-**Ellers: kjør scriptet i `Bash` først.** Svarer lovdata.no med HTTP 405 («Request stopped by Varnish IPS»)
-eller en annen blokkering, bytt til browser-ruten for resten av samtalen: samme operasjoner, samme resultat. Det
-er alltid tilfellet i en sky-Cowork-sesjon, der `Bash` kjører i Anthropics sky og lovdata.no blokkerer den IP-en;
-traktatsidene er offentlige, så browser-panelet trenger ingen innlogging. Ikke prøv nytt, ikke bytt kilde, ikke
-foreslå VPN, og ikke gå rundt scriptet med `curl` e.l. fra `Bash`. I lokal Cowork virker vanligvis scriptet i `Bash`.
-
-**Browserverktøy.** Prefikset til den innebygde browserens verktøy varierer (`mcp__Claude_Browser__…` i lokal Cowork,
-`mcp__remote-devices__Claude_Browser__…` i sky-Cowork). De er ofte utsatt (deferred): kjør ett ToolSearch-kall med
-query `Claude_Browser` og `max_results` 64, og bruk prefikset som kommer tilbake. Denne filen omtaler verktøyene bare
-med suffiks (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, …). `request_access` finnes ikke i alle
-miljøer; mangler det, gå rett til `preview_start`/`navigate`.
-
-Mangler browserverktøyene helt (for eksempel i Claude Code CLI) og lovdata.no er blokkert: si det til brukeren og
-stopp.
-
-### Browser-ruten: oppstart (én gang per samtale)
-
-1. `tabs_context` — finnes det allerede en fane på `lovdata.no`? Gjenbruk den. Ellers:
-   `preview_start {url: "https://lovdata.no/register/traktater"}`.
+1. `tabs_context` — finnes det allerede en fane på `lovdata.no`? Gjenbruk den. Er det ingen faner:
+   `preview_start {url: "https://lovdata.no/register/traktater"}`. Står en annen skills fane åpen (f.eks. nb.no),
+   åpne en egen fane med `tabs_create` og `navigate` — `preview_start` gjenbruker fanen som er fremme, og den
+   andre skillen mister da hjelperen og tilstanden sin.
 2. Hvis `request_access` finnes og et verktøy sier at siden ikke er godkjent ennå:
    `request_access {url: "https://lovdata.no/register/traktater", scope: "site"}` og prøv igjen.
 3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py {SKILL_DIR}/scripts/browser/norges_traktater.js`
    i Bash. Den skriver en kopi uten kommentarer og innrykk (ca. 21 000 tegn i stedet for 30 000) og skriver ut
    stien. Les den filen og send **hele** innholdet via `javascript_tool` (`action: "javascript_exec"`). Kort aldri
    ned hjelperen. Virker ikke `paste.py`, lim inn `norges_traktater.js` direkte. Idempotent — trygt å lime inn
-   flere ganger; en eldre versjon i fanen byttes ut.
+   flere ganger; en eldre versjon i fanen byttes ut. `__nt.VERSION` er plugin-versjonen ved siste endring i
+   hjelperen, så den kan være lavere enn pluginens.
 4. Kjør `await __nt.status()`. Skal gi `reachable: true`, antall traktater, årganger og antall land. Får du
    `{error: 'http_405' | 'http_403' …}` er lovdata.no blokkert også her: si det til brukeren og stopp.
 
@@ -83,12 +69,38 @@ lastes på nytt. Naviger ikke fanen bort fra lovdata.no; skal du se på noe anne
 Hvis et browserkall avvises av en sikkerhetssjekk, ikke prøv det samme kallet igjen. Avvises innlimingen av
 hjelperen, si det til brukeren med én setning og gå over til lese-ruten under — ikke vent.
 
-### Browser-ruten uten hjelper (lese-ruten)
+## Kall
+
+Alle kall går via `javascript_tool` med `await` foran, er `async` og returnerer JSON (aldri unntak).
+
+| Operasjon | Kall |
+|---|---|
+| Søk | `__nt.search("Wien", {year: 1969, country: "Sverige", context: "tekst", max: 50, full: true})` |
+| Metadata | `__nt.meta("1948-12-09-1")` |
+| Metadata for mange | `__nt.meta(["1948-12-09-1", "1951-07-28-1"])` (liste med resultater) |
+| Full tekst | `__nt.text("1948-12-09-1", {offset: 0})` — i biter, se under |
+| Én artikkel | `__nt.article("1948-12-09-1", "II")` |
+| Gyldige landnavn | `__nt.countries("europ")` → `{count, countries: [...]}` |
+| Status | `__nt.status()` |
+
+Alle kall tar `{noCache: true}` i valgene for å hente ferskt i stedet for fra fanens cache.
+
+Grensen på ca. 45 000 tegn per `javascript_tool`-svar styrer formen på svarene:
+
+- **`text` og `article` kommer i biter.** Svaret har `total` (tegn i hele teksten), `offset` og `next`
+  (`null` når du har alt). Kall på nytt med `{offset: <next>}` til `next` er `null`, og sett bitene sammen i
+  rekkefølge. Korte artikler går i én bit. Ikke sitér fra en bit som slutter midt i et ledd uten å ha hentet neste.
+- **`search` og `meta` med mange ID-er** kan gi `{error: 'result_too_large'}`; kall da med færre treff eller ID-er
+  (sidene ligger i fanens cache, så nytt kall går raskt). Med `full: true` hentes ett dokument per treff.
+- **Feil** kommer som `{error: 'invalid' | 'http_<n>' | 'network' | 'wrong_origin', detail}`; `detail` er en norsk
+  melding (ukjent land med forslag, ukjent traktat-ID, …). `text`/`article` på en traktat uten fri tekst gir
+  `available: false`, se «Når kroppen er tom».
+
+### Lese-ruten (uten hjelper)
 
 Traktatsidene er vanlige, offentlige HTML-sider, så alt unntatt `countries` og `status` kan leses uten
 JavaScript: `navigate` til URL-en og les siden med `get_page_text` (eller `read_page` hvis `get_page_text`
-mangler). Bruk lovdata-fanen du har; den trenger ikke hjelperen. Trenger du en egen fane, åpne den med
-`tabs_create` og `navigate` — `preview_start` gjenbruker fanen som allerede er åpen.
+mangler). Bruk lovdata-fanen du har; den trenger ikke hjelperen.
 
 | Operasjon | URL |
 |---|---|
@@ -99,43 +111,13 @@ Forskjeller fra hjelperen: ingen biter (lange traktater kan bli avkortet av `get
 teksten slutter brått), og `country` valideres ikke. Et land Lovdata ikke kjenner gir hele registeret, så
 sjekk at treffantallet er rimelig. Sitér bare det siden faktisk viser.
 
-### Browser-ruten: kall
-
-Alle kall er `async` og returnerer et JSON-objekt (aldri unntak; feil kommer som `{error, detail}`).
-Tabellen viser hvilket kall som tilsvarer hvilken script-kommando; utdataet er det samme som
-`traktater.py … --json`.
-
-| Script | Browser (`javascript_tool`, `await` foran) |
-|---|---|
-| `search "Wien" --year 1969 --country Sverige --context tekst --max 50 --full` | `__nt.search("Wien", {year: 1969, country: "Sverige", context: "tekst", max: 50, full: true})` |
-| `meta ID --json` | `__nt.meta("1948-12-09-1")` |
-| `meta --batch FIL --json` | `__nt.meta(["1948-12-09-1", "1951-07-28-1"])` (liste med resultater) |
-| `text ID` | `__nt.text("1948-12-09-1", {offset: 0})` — i biter, se under |
-| `article ID ART` | `__nt.article("1948-12-09-1", "II")` |
-| `countries [søk]` | `__nt.countries("europ")` → `{count, countries: [...]}` |
-| `status` | `__nt.status()` |
-
-Forskjeller fra scriptet, alle på grunn av grensen på ca. 45 000 tegn per `javascript_tool`-svar:
-
-- **`text` og `article` kommer i biter.** Svaret har i tillegg `total` (tegn i hele teksten), `offset` og `next`
-  (`null` når du har alt). Kall på nytt med `{offset: <next>}` til `next` er `null`, og sett bitene sammen i rekkefølge:
-  `body` er da identisk med det scriptet skriver ut. Korte artikler går i én bit. Ikke sitér fra en bit som slutter
-  midt i et ledd uten å ha hentet neste.
-- **`search` og `meta` med mange ID-er** kan gi `{error: 'result_too_large'}`; kall da med færre treff eller ID-er
-  (sidene ligger i fanens cache, så nytt kall går raskt). Med `full: true` hentes ett dokument per treff.
-- **Feil** kommer som `{error: 'invalid' | 'http_<n>' | 'network' | 'wrong_origin', detail}` der scriptet ville
-  avsluttet med en feilmelding; `detail` er den samme norske meldingen (ukjent land, ukjent traktat-ID, …).
-  `text`/`article` på en traktat uten fri tekst gir som i scriptet `available: false`, se «Når kroppen er tom».
-
-Resten av dette dokumentet beskriver scriptet; alt gjelder likt for browser-ruten.
-
 ---
 
 ## Hva dekkes
 
 Lovdatas register over Norges traktater (`https://lovdata.no/register/traktater`)
 inneholdt **3 457 avtaler** da dette ble skrevet (september 2026), med årganger
-fra **1661** til i dag. Kjør `status` for dagens tall — scriptet leser dem fra
+fra **1661** til i dag. Kjør `status` for dagens tall — hjelperen leser dem fra
 registeret. Registeret er **fritt tilgjengelig** for søk og metadata; selve
 traktatteksten er publisert offentlig for mange konvensjoner, men en god del
 har bare metadata på den åpne siden.
@@ -154,68 +136,65 @@ Skillet dekker derfor to nivåer:
 
 Ratifikasjons- og partsforhold endrer seg, og traktattekster oversettes og
 endres ved tilleggsprotokoller. **Aldri sitér eller parafraser traktattekst,
-og aldri rapporter dato eller status, uten å hente det via scriptet.** All
+og aldri rapporter dato eller status, uten å hente det via hjelperen.** All
 informasjon skal komme fra det live-hentede registeret — ikke fra treningsdata.
 
 ---
 
-## Slik bruker du scriptet
+## Slik bruker du hjelperen
 
 ### Søk i registeret
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py search "søkeord"
+```js
+await __nt.search("søkeord")
 ```
 
-Søker i traktattitler. Returnerer en liste med traktat-ID og tittel, og til
-slutt hvor mange treff søket ga totalt («Viser 20 av 269 treff»). **Si alltid
-fra til brukeren når det er flere treff enn du viste** — ellers ser en liste
-på 20 ut som om den er uttømmende.
+Søker i traktattitler. Returnerer `{total, shown, results: [{id, title, year}]}`,
+der `total` er hvor mange treff søket ga totalt. **Si alltid fra til brukeren
+når `total` er større enn det du viste** — ellers ser en liste på 20 ut som om
+den er uttømmende.
 
-Avgrens med flagg:
+Avgrens med valg:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py search "Wien" --year 1969
-python {SKILL_DIR}/scripts/traktater.py search "" --country Storbritannia
-python {SKILL_DIR}/scripts/traktater.py search "menneskerett" --context tekst
-python {SKILL_DIR}/scripts/traktater.py search "" --year 2024 --max 50
+```js
+await __nt.search("Wien", {year: 1969})
+await __nt.search("", {country: "Storbritannia"})
+await __nt.search("menneskerett", {context: "tekst"})
+await __nt.search("", {year: 2024, max: 50})
 ```
 
-Flagg:
-- `--year YYYY` — bare traktater fra ett bestemt år
-- `--country NAVN` — filtrer på en motpart/land (norsk navn, f.eks.
+Valg:
+- `year: ÅÅÅÅ` — bare traktater fra ett bestemt år
+- `country: "NAVN"` — filtrer på en motpart/land (norsk navn, f.eks.
   `Storbritannia`, `Sverige`, `Den europeiske union`). Les advarselen
   nedenfor om hva som *ikke* finnes i listen.
-- `--context tittel|tekst` — søk i tittel (standard) eller fulltekst.
+- `context: "tittel" | "tekst"` — søk i tittel (standard) eller fulltekst.
   Fulltekstsøk gir mange flere treff («menneskerett» gir 26 i tittel, 321 i
   tekst), men treffene er sortert **nyest først, ikke etter relevans**, så
   toppen av listen er ferske avtaler som tilfeldigvis nevner ordet. Bruk
   tittelsøk når du leter etter en bestemt traktat.
-- `--max N` — antall treff (standard 20, henter flere sider automatisk)
-- `--full` — bytt registerets forkortede titler mot dokumentenes egne.
+- `max: N` — antall treff (standard 20, henter flere sider automatisk)
+- `full: true` — bytt registerets forkortede titler mot dokumentenes egne.
   Lovdata kutter titler rundt 200 tegn i trefflisten, så dette koster ett
-  dokumentoppslag per treff (cachet, og scriptet sier fra på stderr før det
-  begynner). Bruk det når du bygger en liste; dropp det når du bare skal
-  finne fram til én traktat.
-- `--json` — maskinlesbart utdata, `{"total", "shown", "results": [{"id",
-  "title", "year"}]}`. Da slipper du å parse tekstformatet.
+  dokumentoppslag per treff (cachet i fanen; svaret får `full_title_failures`
+  hvis noen av dem feilet). Bruk det når du bygger en liste; dropp det når du
+  bare skal finne fram til én traktat.
 
-`--country` og `--year` valideres mot registerets egne nedtrekkslister før
+`country` og `year` valideres mot registerets egne nedtrekkslister før
 søket sendes. Det er med vilje: skriver du et land Lovdata ikke kjenner,
 ignorerer nettstedet filteret og returnerer **hele registeret** — som ville
-se ut som et ekte resultat. Scriptet stopper i stedet og foreslår nærmeste
-treff. `python {SKILL_DIR}/scripts/traktater.py countries [søk]` lister de
-216 gyldige landnavnene.
+se ut som et ekte resultat. Hjelperen svarer i stedet med
+`{error: 'invalid', detail}` og foreslår nærmeste treff. `__nt.countries(søk)`
+lister de 216 gyldige landnavnene.
 
-#### `--country` er en innsnevring, ikke en fullstendighetsgaranti
+#### `country` er en innsnevring, ikke en fullstendighetsgaranti
 
 Nedtrekkslisten dekker ikke alle motparter som faktisk opptrer i registeret.
 Kjør alltid `countries` før du stoler på et partsfilter:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py countries europ
-# Den europeiske union
-# Det europeiske økonomiske fellesskap
+```js
+await __nt.countries("europ")
+// {count: 2, countries: ["Den europeiske union", "Det europeiske økonomiske fellesskap"]}
 ```
 
 Det er alt EU-siden har. **«Det europeiske fellesskap» — motparten i praktisk
@@ -266,18 +245,18 @@ under Feilhåndtering.
 **For ILO-konvensjoner** er det mest pålitelige å søke på konvensjonsnummeret
 slik det står i den norske tittelen:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py search "ILO nr. 87"
-python {SKILL_DIR}/scripts/traktater.py search "ILO nr. 98"
+```js
+await __nt.search("ILO nr. 87")
+await __nt.search("ILO nr. 98")
 ```
 
 Søk på faglig innhold hvis nummeret er ukjent:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py search "tvangsarbeid"       # ILO 29/105
-python {SKILL_DIR}/scripts/traktater.py search "kollektive forhandlinger"  # ILO 98/154
-python {SKILL_DIR}/scripts/traktater.py search "diskriminering sysselsetting"  # ILO 111
-python {SKILL_DIR}/scripts/traktater.py search "barnearbeid"         # ILO 182
+```js
+await __nt.search("tvangsarbeid")                  // ILO 29/105
+await __nt.search("kollektive forhandlinger")      // ILO 98/154
+await __nt.search("diskriminering sysselsetting")  // ILO 111
+await __nt.search("barnearbeid")                   // ILO 182
 ```
 
 Kjenner du Lovdata-ID-en fra tabellen nedenfor, hopp over søket og gå rett
@@ -285,9 +264,9 @@ til `meta` eller `text`.
 
 ### Hent metadata for én traktat
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py meta "1948-12-09-1"
-python {SKILL_DIR}/scripts/traktater.py meta "TRAKTAT/traktat/1948-12-09-1"
+```js
+await __nt.meta("1948-12-09-1")
+await __nt.meta("TRAKTAT/traktat/1948-12-09-1")
 ```
 
 Returnerer alle metadatafelter Lovdata har for dokumentet: tittel (norsk +
@@ -295,25 +274,17 @@ originalspråk), undertegningsdato/-sted, ikrafttredelse, Norges undertegning
 og ratifikasjon, depositar, Stortingets behandling (St.prp., Innst.S.,
 vedtak), publisering, FN-registrering og eventuelle merknader.
 
-Flagg:
-- `--json` — hele metadatasettet som JSON: `{"id", "url", "title",
-  "has_text", "metadata": {<norsk ledetekst>: <verdi>}, "fields":
-  {<Lovdatas feltnavn>: <verdi>}}`. Bruk `fields` når du skal slå opp et
-  bestemt felt programmatisk; `metadata` har ledetekstene slik Lovdata viser
-  dem, i Lovdatas rekkefølge.
-- `--batch FIL` — les IDer fra en fil, én per linje (`#` innleder kommentar,
-  duplikater droppes, `-` leser fra stdin; URL-er og fulle DokID-er går
-  også). Med `--json` kommer resultatet som én liste. Et oppslag som feiler
-  stopper ikke resten: raden får en `error`-nøkkel i JSON, og feilen skrives
-  til stderr.
+Svaret er `{id, url, title, has_text, metadata: {<norsk ledetekst>: <verdi>},
+fields: {<Lovdatas feltnavn>: <verdi>}}`. Bruk `fields` når du skal slå opp et
+bestemt felt programmatisk; `metadata` har ledetekstene slik Lovdata viser dem,
+i Lovdatas rekkefølge.
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py meta --batch ids.txt --json
-```
+Gi en liste for mange traktater på én gang: `await __nt.meta(["1948-12-09-1",
+"1951-07-28-1"])`. Duplikater droppes, og URL-er og fulle DokID-er går også. Et
+oppslag som feiler stopper ikke resten: raden får en `error`-nøkkel.
 
-Skal du bygge et register over mange traktater, er `search … --full --json`
-pluss `meta --batch … --json` hele verktøykassen — ikke skriv en egen løkke
-over `meta`.
+Skal du bygge et register over mange traktater, er `search(…, {full: true})`
+pluss `meta([…])` hele verktøykassen — ikke skriv en egen løkke over `meta`.
 
 Tre ting varierer fra traktat til traktat:
 
@@ -322,15 +293,14 @@ Tre ting varierer fra traktat til traktat:
   bare Norge, med en merknad om at oppdatert partsforhold ligger hos
   depositaren — Folkemordkonvensjonen er et slikt tilfelle. Trenger brukeren
   den fulle partslisten for en FN-deponert traktat, bruk `untc`.
-- **Feltutvalget.** Ulike dokumenttyper har ulike felter; scriptet leser
+- **Feltutvalget.** Ulike dokumenttyper har ulike felter; hjelperen leser
   ledeteksten fra Lovdatas egen tabell, så nye felter dukker opp automatisk
   med riktig norsk navn.
 - **Bilateral/multilateral er ikke eget felt.** Det står sist i
   `Ident`-linjen (`Ident: 14-10-2003 nr 121 Bilateral`) og må plukkes ut
   derfra.
 
-Har traktaten ingen fri tekst, sier `meta` fra om det på linjen «Tekst: ikke
-publisert fritt på lovdata.no».
+Har traktaten ingen fri tekst på lovdata.no, er `has_text` `false`.
 
 #### Ikrafttredelsesfeltene er fritekst, ikke datoer
 
@@ -363,8 +333,8 @@ Og noen traktater har **ingen** ikrafttredelsesfelter i det hele tatt, men
 har `Dato for dep av rat.dok el.likn` — typisk der Norge har tiltrådt en
 avtale som allerede var i kraft:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py meta 2003-01-29-212   # ECURIE: deponert 09-04-2015, ingen ikrafttredelsesfelt
+```js
+await __nt.meta("2003-01-29-212")   // ECURIE: deponert 09-04-2015, ingen ikrafttredelsesfelt
 ```
 
 **Ikke reduser disse verdiene til «i kraft / ikke i kraft».** Gjengi feltet
@@ -375,21 +345,21 @@ Er ikrafttredelse selve spørsmålet, sitér feltet ordrett og forklar det.
 
 ### Hent full norsk tekst
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py text "1948-12-09-1"
+```js
+await __nt.text("1948-12-09-1")
 ```
 
-Returnerer ren norsk tekst inkludert kapitler og artikler, hentet fra Lovdatas
-offentlige side. Hvis Lovdata ikke har publisert teksten offentlig (typisk
-nyere bilaterale eller tekniske avtaler), skriver scriptet en klar feilmelding
-til stderr — se «Når kroppen er tom» nedenfor.
+Returnerer ren norsk tekst inkludert kapitler og artikler i `body` (i biter,
+se «Kall»), hentet fra Lovdatas offentlige side. Hvis Lovdata ikke har
+publisert teksten offentlig (typisk nyere bilaterale eller tekniske avtaler),
+svarer hjelperen `available: false` — se «Når kroppen er tom» nedenfor.
 
 ### Hent én bestemt artikkel
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py article "1948-12-09-1" "II"
-python {SKILL_DIR}/scripts/traktater.py article "1948-12-09-1" "Artikkel II"
-python {SKILL_DIR}/scripts/traktater.py article "1951-07-28-1" "33"
+```js
+await __nt.article("1948-12-09-1", "II")
+await __nt.article("1948-12-09-1", "Artikkel II")
+await __nt.article("1951-07-28-1", "33")
 ```
 
 Aksepterer både romertall (I, II, III, …) og arabiske tall, med eller uten
@@ -399,27 +369,27 @@ kommer på egne linjer med markøren bevart («a. å drepe medlemmer av
 gruppen;»), slik at «artikkel II bokstav a» kan siteres presist.
 
 **Underartikler** som «1 A», «4a» eller «8 bis» er hos Lovdata normalt ledd
-inne i artikkelen, ikke egne blokker. Scriptet prøver underartikkelen først
+inne i artikkelen, ikke egne blokker. Hjelperen prøver underartikkelen først
 og faller ellers tilbake på hele artikkelen (Flyktningkonvensjonen «1 A» gir
-hele artikkel 1), med en merknad på stderr. Finn leddet i teksten og sitér
+hele artikkel 1), med en merknad i `note`. Finn leddet i teksten og sitér
 bare det.
 
 Når samme artikkelnummer finnes flere ganger i dokumentet (en avtale med
 protokoller eller vedlegg), har den andre forekomsten nøkkelen `1_1`, den
-tredje `1_2` osv. Artikkellisten i feilmeldingen står i dokumentets
-rekkefølge, så du ser hvilken del hvert nummer hører til.
+tredje `1_2` osv. Finnes ikke artikkelen, lister `available_articles` det som
+finnes, i dokumentets rekkefølge, så du ser hvilken del hvert nummer hører til.
 
-### Sjekk hva scriptet kan finne
+### Sjekk hva hjelperen kan finne
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py status
+```js
+await __nt.status()
 ```
 
-Viser nettverksstatus mot Lovdata, hvor cache-filene ligger, hvor mange
-traktater registeret inneholder nå, hvilke årganger som finnes, og hvor mange
-land nedtrekkslisten har. Klarer scriptet ikke å lese disse tallene, sier det
-fra om at Lovdata kan ha endret markupen — da er det sannsynligvis
-parse-reglene i `scripts/traktater.py` som må oppdateres.
+Viser om Lovdata svarer, hvor mange traktater registeret inneholder nå,
+hvilke årganger som finnes, og hvor mange land nedtrekkslisten har. Klarer
+hjelperen ikke å lese disse tallene, får svaret en `warning` — da har Lovdata
+sannsynligvis endret markupen, og parse-reglene i
+`scripts/browser/norges_traktater.js` må oppdateres.
 
 ---
 
@@ -427,7 +397,7 @@ parse-reglene i `scripts/traktater.py` som må oppdateres.
 
 Lovdata gir hver traktat en stabil ID på formen `YYYY-MM-DD-N`, der
 `YYYY-MM-DD` er undertegningsdatoen. Den fulle DokID-en er
-`TRAKTAT/traktat/YYYY-MM-DD-N`. Scriptet aksepterer begge formene — du kan
+`TRAKTAT/traktat/YYYY-MM-DD-N`. Hjelperen aksepterer begge formene — du kan
 også lime inn hele URL-en
 (`https://lovdata.no/dokument/TRAKTAT/traktat/1948-12-09-1`).
 
@@ -442,11 +412,11 @@ også lime inn hele URL-en
 Fire traktater deler datoen 14. oktober 2003, og numrene deres er 70, 121,
 124 og 187 — ikke 1–4:
 
-```bash
-python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-70    # Tilleggsprotokoll, EU-utvidelsen 2004
-python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-121   # Norsk finansieringsordning 2004–2009
-python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-124   # Visse landbruksvarer
-python {SKILL_DIR}/scripts/traktater.py meta 2003-10-14-187   # EØS-utvidelsen, ti nye stater
+```js
+await __nt.meta(["2003-10-14-70",    // Tilleggsprotokoll, EU-utvidelsen 2004
+                 "2003-10-14-121",   // Norsk finansieringsordning 2004–2009
+                 "2003-10-14-124",   // Visse landbruksvarer
+                 "2003-10-14-187"])  // EØS-utvidelsen, ti nye stater
 ```
 
 Og `N` er **ikke unikt innenfor året heller**: både `2004-04-29-119` og
@@ -551,9 +521,9 @@ Seksjonen inneholder bare selve konvensjonen: protokollene er egne seksjoner
 (`emkn/p1`, `emkn/p4` …), og én artikkel hentes som `emkn/a8` eller
 `emkn/p1/a1`.
 
-Scriptet sier fra om dette selv: når `text` feiler, skriver det ut de
-lovdata.no-lenkene Lovdata oppgir i metadataene (for EMK peker feltet
-«Original tekst» rett på menneskerettsloven) med ferdig `lovdata-api`-kommando.
+Gir `text` `available: false`, se i `meta`-svarets `metadata`: Lovdata
+oppgir ofte lenker der (for EMK peker feltet «Original tekst» rett på
+menneskerettsloven).
 
 **Merk om siteringen:** menneskerettsloven gjengir konvensjonsteksten slik
 den er inkorporert i norsk rett. Det er riktig kilde for norsk rettsanvendelse,
@@ -624,15 +594,15 @@ Bruk standard juridisk siteringsform:
 ### Bruker spør «hvilke traktater har Norge med X?»
 
 1. `countries X` først — er motparten i det hele tatt i nedtrekkslisten?
-2. `search "" --country X --max 50` (norsk landnavn). Legg til `--full` hvis
-   listen skal presenteres med titler.
+2. `search("", {country: "X", max: 50})` (norsk landnavn). Legg til
+   `full: true` hvis listen skal presenteres med titler.
 3. Suppler med tittelsøk på motpartens navn og eventuelle organer den
    opptrer gjennom (for EU: `"Det europeiske fellesskap"`, `Europol`,
-   `Eurojust`, `Frontex`, `Euratom`) — se «`--country` er en innsnevring».
+   `Eurojust`, `Frontex`, `Euratom`) — se «`country` er en innsnevring».
 4. Presenter en sortert liste med hele ID-en, dato og tittel, og si fra om
    hvilke deler av svaret som kommer fra partsfilteret og hvilke fra
    tittelsøk.
-5. Tilby `meta --batch` for de mest relevante.
+5. Tilby `meta([…])` for de mest relevante.
 
 ### Bruker spør om Norges reservasjoner
 
@@ -666,28 +636,19 @@ og spør brukeren hvilken hvis det er flertydig.
   eller `eurlex` før du konkluderer.
 - **Tom kropp på `text`/`article`**: Se «Når kroppen er tom» — sjekk først om
   konvensjonen ligger i menneskerettsloven.
-- **Ukjent land i `--country`**: Scriptet stopper med forslag til nærmeste
-  navn. Bruk `countries` for hele listen. (Lovdata selv ville ha returnert
+- **Ukjent land i `country`**: hjelperen svarer `{error: 'invalid', detail}`
+  med forslag til nærmeste navn. Bruk `countries` for hele listen. (Lovdata selv ville ha returnert
   hele registeret uten å si fra.)
-- **Ukjent traktat-ID**: Scriptet skriver én linje til stderr og avslutter med
-  status 1.
+- **Ukjent traktat-ID**: `{error: 'invalid', detail: 'Traktat … ikke funnet'}`.
 - **Artikkel ikke funnet**: Eldre traktater bruker romertall (I, II, …);
-  nyere bruker arabiske tall. Scriptet håndterer begge — men hvis noen ber om
+  nyere bruker arabiske tall. Hjelperen håndterer begge — men hvis noen ber om
   «artikkel 2» på Folkemordkonvensjonen får de Artikkel II. Ved tvil: bruk
-  listen over tilgjengelige artikler som feilmeldingen gir (i dokumentets
-  rekkefølge).
+  `available_articles` fra svaret (i dokumentets rekkefølge).
 
 ---
 
-## Hvor lagres cache?
+## Cache
 
-Scriptet cacher hentede sider for å unngå unødvendige requests. Stien velges:
-
-1. `$NORGES_TRAKTATER_DATA_DIR` — hvis miljøvariabelen er satt
-2. `$XDG_CACHE_HOME/norges-traktater` — hvis satt
-3. `%LOCALAPPDATA%\norges-traktater` — på Windows
-4. `~/.cache/norges-traktater` — ellers
-
-Cache-tid: 24 timer for registerlistinger, 7 dager for traktatdokumenter
-(metadata endres sjelden retroaktivt). Tving fersk henting med `--no-cache`,
-før eller etter underkommandoen (`meta 1948-12-09-1 --no-cache` virker).
+Hjelperen cacher hentede sider i fanen så lenge den lever, så gjentatte oppslag
+går raskt. `{noCache: true}` i valgene tvinger fersk henting. Cachen forsvinner
+når fanen navigerer eller lastes på nytt.

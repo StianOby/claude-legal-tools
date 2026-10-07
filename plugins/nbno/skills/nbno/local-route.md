@@ -6,7 +6,7 @@
 
 Some sources refuse Anthropic's cloud: Lovdata answers 405, and nb.no serves
 Bokhylla (`NORWAY`) and legal-deposit (`NB`) page images only to Norwegian
-IPs. In a cloud Cowork session the skill's scripts can still run **on the
+IPs. Cowork runs in the cloud, but the skill's scripts can still run **on the
 user's computer**, in the sandboxed Linux VM behind the `device_bash` tool,
 which uses the user's own internet connection. This file is how.
 
@@ -20,17 +20,16 @@ The three places work can run:
 
 ## 1. Decide whether to use it
 
-Never assume the environment; probe.
+The skill says when: lovdata-api always (Lovdata blocks the cloud), nbno
+when `geo_check.py` prints `route: norwegian-ip` or `norwegian-ip+loan`.
 
-1. Run the network step (or the skill's cheap probe) in `Bash` first. If it
-   works — as it does in local Cowork, where `Bash` already runs on the
-   user's computer — stay in `Bash` and ignore the rest of this file.
-2. If it is blocked (403/405 from the origin), look for
-   `mcp__remote-devices__device_bash` **in your tool list**. It is loaded up
-   front in cloud sessions, so ToolSearch does not return it; use ToolSearch
-   `device_bash` only if it is not listed.
-3. No `device_bash` → stop with message **A** (section 5).
-4. `device_bash` present → find the connected folder (section 3). None →
+1. Load the local-shell tools
+   with **one** ToolSearch call:
+   `select:mcp__remote-devices__device_bash,mcp__remote-devices__device_request_folder_access,mcp__remote-devices__device_stage_files`.
+   They are deferred, so they are usually *not* in your tool list, and a keyword search (`device_bash`) can miss them — always use
+   `select:`.
+2. No `device_bash` → stop with message **A** (section 5).
+3. `device_bash` present → find the connected folder (section 3). None →
    if a `device_request_folder_access` tool exists, use it to ask the user to
    connect one, then look again; otherwise stop with message **B**.
    (`device_bash` itself refuses to run with "No folders are connected …"
@@ -90,13 +89,21 @@ The local shell does not have the skill's files, so every run copies them in.
 - **Final files** go to `<connected folder>/<skill>/<item-id>/`. Intermediate
   files (page tiles, cookies, downloads being assembled) stay in `<dir>`.
 - **Finish the whole pipeline in the local shell** (download → OCR → shrink →
-  metadata). Do not hand files back to the cloud sandbox for more work — it
-  is not yet known whether it can read what the local shell writes. Tell the
-  user where the result is in their connected folder.
+  metadata); its toolchain is enough for that (Python 3 with venv/pip,
+  tesseract, qpdf, gs, pdftoppm; `ocrmypdf` is pip-installed into `<dir>`).
+  Final files stay in the connected folder; tell the user where.
+- **The cloud side cannot see the connected folder.** `device_stage_files`
+  copies a file from it to `/mnt/user-data/uploads/<folder>/<path>`
+  (read-only, up to 400 MB per file). Use that only to look at something —
+  render a page with `pdftoppm` and Read the image — or to send a file with
+  `SendUserFile`, which refuses anything over **30 MiB**. Larger files: just
+  tell the user where they are in their connected folder.
 - **Clean up** at the end:
   `rm -rf <dir>; rmdir "$HOME/.clt" 2>/dev/null; true`. If deletion is
   refused, say so and leave it; it is under `$HOME`, not the connected
-  folder.
+  folder. Never delete anything in the connected folder: `rm` there fails
+  until the user grants `device_request_delete_permission`, and the skills
+  do not ask for it.
 
 ## 4. Security
 

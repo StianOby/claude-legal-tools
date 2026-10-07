@@ -113,7 +113,7 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
 
 ## How to invoke it
 
-In a cloud session, `NORWAY`/`NB` items run all of this in the local shell
+`NORWAY`/`NB` items run all of this in the local shell
 (SKILL.md **Routing**): same commands with `<dir>/scripts/…` and
 `--out <dir>/out`, after checking `command -v tesseract` — if it is missing,
 add `--no-ocr` and tell the user the PDF has no text layer. `EVERYWHERE`

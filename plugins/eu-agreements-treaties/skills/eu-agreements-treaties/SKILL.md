@@ -77,8 +77,8 @@ for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skil
 | Everything that touches consilium.europa.eu (`ready`, `search`, `detail`, …) | browser pane |
 | Local shell | not used |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. The site blocks every
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. The site blocks every
 non-browser client, so nothing is fetched from `Bash`; if it returns 403, say "This source is blocked from Anthropic's
 cloud" and use the browser pane. Never suggest a VPN.
 
@@ -97,7 +97,9 @@ cloud" and use the browser pane. Never suggest a VPN.
    `javascript_tool` (`action: "javascript_exec"`). If `paste.py` fails,
    paste `consilium.js` itself. Never trim or shorten the helper.
    Idempotent; an older helper left in the tab from before a skill update
-   is replaced (`__cs.VERSION` shows which one runs).
+   is replaced (`__cs.VERSION` shows which one runs; it is the plugin
+   version of the last change to the helper, so it can be lower than the
+   plugin's).
    **If the paste is refused by a safety check**, do not retry it. Tell the
    user in one sentence and use the read-only route: `navigate` to
    `https://www.consilium.europa.eu/en/documents/treaties-agreements/agreement/?id=<7-digit id>&docLanguage=en`

@@ -73,7 +73,7 @@ All henting skjer i browser-panelet. Ingen av shellene kan kalle lovdata.no
 direkte (sky-sandkassen: 405; lokal shell: ikke innlogget) — ikke prøv `curl`
 e.l. mot lovdata.no fra `Bash`.
 
-I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin.
+Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger.
 
 ---
 
@@ -94,7 +94,8 @@ I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke b
    lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
    trygt å lime inn flere ganger i samme fane. En eldre versjon av hjelperen
    fra før en skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION`
-   viser hvilken som kjører.
+   viser hvilken som kjører (plugin-versjonen ved siste endring i
+   hjelperen, så den kan være lavere enn pluginens).
    **Avvises innlimingen av en sikkerhetssjekk**, ikke prøv samme kall igjen.
    Si det til brukeren med én setning og bruk lese-ruten: logg inn (punkt 4 uten
    `isLoggedIn()` — spør brukeren), `navigate` til
@@ -213,7 +214,7 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   («a. konsultere vedkommende folk …»), ikke som rørtabellrader.
 - **Dump-modus** — kun når brukeren ber om en full lokal kopi eller
   uttømmende gjennomgang: løkke over `page(path, offset)` til `next` er
-  `null`, og skriv hver `text` til `outputs/<slug>.md` (i sky-Cowork: `/mnt/user-data/outputs/<slug>.md`) (bash `>>` mellom
+  `null`, og skriv hver `text` til `/mnt/user-data/outputs/<slug>.md` (bash `>>` mellom
   hvert kall). Si fra til brukeren på forhånd omtrent hvor mange kall det
   tar (`Math.ceil(totalChars / 45000)`).
 

@@ -50,7 +50,7 @@ Verify that you have access to all the relevant tools:
 	
 Report which of these are missing. Not every manuscript needs every tool, so do not stop yet: the built-in browser is needed only for the lovdata-pro fallbacks in §§8–9, for eu-agreements-treaties in §10, for nbno in §14, for reading ICJ judgment PDFs in §11 and for the hudoc fallback in §13 (HUDOC's Cloudflare check often blocks the script, above all for judgment texts) — and, in a cloud session, for /norges-traktater in §10 — and a manuscript without ICJ cases does not need /icj.
 
-**Cloud session** (`mcp__remote-devices__device_bash` is in your tool list): /lovdata-api (§7) and Bokhylla/legal-deposit books (§14) run on the user's computer through that local shell, which needs the Claude desktop app open and a **connected folder**. If the manuscript cites Norwegian statutes or Norwegian books, check this before §4 (`ls -d "$HOME"/mnt/*/` in `device_bash`) and ask for a folder then, not halfway through. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
+**Local shell.** /lovdata-api (§7) and Bokhylla/legal-deposit books (§14) run on the user's computer through the local shell (`device_bash`; load it with ToolSearch `select:mcp__remote-devices__device_bash,mcp__remote-devices__device_request_folder_access` — it is deferred and usually not in your tool list), which needs the Claude desktop app open and a **connected folder**. If the manuscript cites Norwegian statutes or Norwegian books, check this before §4 (`ls -d "$HOME"/mnt/*/` in `device_bash`) and ask for a folder then, not halfway through. Once the references are extracted (below), stop and explain if a missing tool is needed by a category that actually occurs — say which rows it affects — and suggest a solution. If nothing in the manuscript needs the missing tool, note it in your reply and continue. All skills mentioned are available in this GitHub repo: https://github.com/StianOby/claude-legal-tools. The MCP servers can be found here: zoteus MCP: https://github.com/oscardvs/zoteus — eurlex MCP: https://github.com/Honeyfield-Org/eurlex-mcp-server
 
 Throughout these instructions, **`{SKILL_DIR}`** means this skill's directory — substitute it when you run one of this skill's scripts. Use the path after "Base directory for this skill:" if it exists in bash. Otherwise resolve it once and use the printed path literally in later commands:
 ```bash
@@ -74,17 +74,17 @@ kildesjekk orchestrates the other skills; each source step runs where that skill
 | Zotero (zoteus MCP), eurlex MCP | as today (MCP tools, not `Bash`) |
 | Source steps for HUDOC, ICJ, EFTA Court, UNTC, ETS | where each skill says: `Bash` scripts, with the browser pane where the skill uses it |
 | lovdata-pro, eu-agreements-treaties, browser fallbacks | browser pane |
-| lovdata-api (§7) | `Bash` in local Cowork; in a cloud session the **local shell** (lovdata-api's local route) |
-| norges-traktater (§10) | `Bash` in local Cowork; in a cloud session the **browser pane** (its `__nt` helper) |
-| nbno (§14) | open items in `Bash`; Bokhylla/`NB` items in a cloud session the **local shell** (nbno's Routing) |
+| lovdata-api (§7) | the **local shell** (lovdata-api's local route) |
+| norges-traktater (§10) | the **browser pane** (its `__nt` helper) |
+| nbno (§14) | open items in `Bash`; Bokhylla/`NB` items the **local shell** (nbno's Routing) |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. In a cloud session
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins.
 `lovdata.no` and `api.lovdata.no` answer 405 from `Bash` and nb.no refuses Bokhylla/`NB` page images there. That is
 expected, not a missing source: each skill then switches route by itself (table above). Never mark a row "source
 unavailable" because of a 405 or a geo 403; only if the skill's own route also fails (no local shell or no connected
 folder — tell the user what it would take).
-Save the finished worklist in the outputs directory (`/mnt/user-data/outputs` in cloud Cowork) and give it to the user with the file-sharing tool (`present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever exists). Never suggest a VPN.
+Save the finished worklist in the outputs directory (`/mnt/user-data/outputs`) and give it to the user with `SendUserFile`. Never suggest a VPN.
 
 Ask for the text document in PDF or DOCX format if not already provided.
 
@@ -357,7 +357,7 @@ Use the /lovdata-api skill for Norwegian statutes and regulations in force: it i
 
 **Grunnloven** is on lovdata.no in both bokmål and nynorsk, under the same DokID: `get` returns bokmål, `get --nn` nynorsk. Compare a quotation with the written form the manuscript quotes — fetch the nynorsk text for a nynorsk quotation — and do not flag the author's choice of form, or a difference that only reflects it, as "Quotation not verbatim".
 
-In a cloud session lovdata-api runs through its local route (see that skill): its first `update` downloads Lovdata's data into the local shell in about 10–20 s; later lookups in the same session are instant. Run the `get` lookups for all §7 rows in that local shell.
+lovdata-api runs through its local route (see that skill): its first `update` downloads Lovdata's data into the local shell in about 10–20 s; later lookups in the same session are instant. Run the `get` lookups for all §7 rows in that local shell.
 
 Check the reference against the version the author cites. If the current text has changed since, the reference may still be correct for its date; flag it as "Outdated/superseded source" only if the manuscript presents the old text as current law. If there is something you cannot find with either tool, write "source unavailable" in the "checked" column. Do not search the web.
 
@@ -422,9 +422,9 @@ For ECtHR case law not found in Zotero, use the /hudoc skill. When its script re
 # 14) Check Norwegian books
 For Norwegian books not found in Zotero, use the /nbno skill to look for them at Nasjonalbiblioteket. In short:
 1. Find the item from the reference with nbno's `scripts/nb_search.py "<surname> <title word>" --year <year>` (open catalogue, no login). These are the *nbno* skill's scripts, not this one's: run them from nbno's own base directory, as that skill's instructions spell out (resolve it as the nbno skill describes) — a bare `scripts/…` path resolves against the working directory and will not be found. Take the hit whose year matches the reference — same title with other years are other editions, and a title beginning "Utdrag av …" is an excerpt. Never check against another edition than the one cited.
-2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run nbno's `scripts/geo_check.py` if in doubt (in a cloud session its `route:` line sends Bokhylla/`NB` items through nbno's local route — that is the normal path, not a blocked source); `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
+2. Read the access class the search prints. `EVERYWHERE` is free; `NORWAY` (Bokhylla) needs a Norwegian IP — run nbno's `scripts/geo_check.py` if in doubt (its `route:` line sends Bokhylla/`NB` items through nbno's local route — that is the normal path, not a blocked source); `NB` (legal deposit) needs a FEIDE loan taken by the user in the built-in browser, as described in the nbno skill. If the item cannot be read with the access you have, tell the user what it would take before marking the row "source unavailable".
 3. Fetch only the pages you need with `--start`/`--stop` (canvas numbers, which are not printed page numbers: download a few canvases first to find the offset), then read them as described in nbno's `reading-ocr.md`. Use the printed pagination in the worklist.
-4. **Local route (cloud session):** the PDF is made on the user's computer and lands in `<connected folder>/nbno/<id>/`; the cloud side may not be able to open it. Make it with a text layer (`zotero_book.py --start N --stop M`, which OCRs with Tesseract) and read the text in the same local shell, printing it page by page:
+4. **Local route:** the PDF is made on the user's computer and lands in `<connected folder>/nbno/<id>/`; the cloud side sees it only after `device_stage_files`, so read it where it is. Make it with a text layer (`zotero_book.py --start N --stop M`, which OCRs with Tesseract) and read the text in the same local shell, printing it page by page:
    ```bash
    test -f <dir>/.ready || exit 4; python3 -m pip install --quiet --no-cache-dir --target <dir>/pylib pypdf && PYTHONPATH=<dir>/pylib python3 -c "import sys, pypdf; [print('--- PDF page', i + 1, chr(10) + (pg.extract_text() or '')) for i, pg in enumerate(pypdf.PdfReader(sys.argv[1]).pages)]" "<pdf>"
    ```

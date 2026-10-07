@@ -28,24 +28,15 @@ katalog som `scripts/lovdata.py` ligger i.
 
 ## Hvor hvert steg kjøres
 
-Alle stegene (`update`, `search`, `find`, `get`) kjører i et shell; skillen
-bruker ingen browser. Hvilket shell avhenger av om Lovdata slipper deg inn:
+Alle stegene (`update`, `search`, `find`, `get`) kjører i **det lokale shellet**
+(`device_bash`, lokal rute) på brukerens datamaskin; skillen bruker ingen
+browser. Dataene ligger i `$HOME/.cache/lovdata` i den lokale VM-en.
 
-| Situasjon | Hvor | Datakatalog |
-|---|---|---|
-| Lokal Cowork (og Claude Code) | **`Bash`** | brukerens cache-katalog (`lovdata.py status` viser hvor) |
-| Sky-Cowork: `api.lovdata.no` svarer 405 fra `Bash` | **lokalt shell** (`device_bash`, lokal rute) | `$HOME/.cache/lovdata` i den lokale VM-en |
-
-I en sky-Cowork-sesjon kjører `Bash` i Anthropics sky med Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger. I lokal Cowork kjører `Bash` på brukerens datamaskin. Du er i en sky-sesjon når `mcp__remote-devices__device_bash` står i verktøylisten.
+Cowork kjører i skyen, og `api.lovdata.no` avviser Anthropics sky (HTTP 405). Derfor kjøres `lovdata.py` aldri i `Bash`: ikke prøv, ikke bytt kilde, ikke foreslå VPN. (Gir `lovdata.py` likevel kode 6, `BLOKKERT: … HTTP 405`, er det denne blokkeringen.)
 
 ### Ruting
 
-1. **Prøv `Bash` først:** `python {SKILL_DIR}/scripts/lovdata.py update`.
-   Avslutningskode 0 → gjør resten i `Bash` som beskrevet under.
-   **Kode 6** (`BLOKKERT: … HTTP 405`) → Lovdata avviser Anthropics sky. Det er
-   forventet i en sky-sesjon og ingen feil: bruk lokal rute (punkt 2). Ikke
-   prøv på nytt i `Bash`, ikke bytt kilde, ikke foreslå VPN.
-2. **Lokal rute** — følg [`local-route.md`](local-route.md) (den avgjør om
+1. **Lokal rute** — følg [`local-route.md`](local-route.md) (den avgjør om
    `device_bash` og en tilkoblet mappe finnes, og har de faste meldingene hvis
    ikke; `device_bash` nekter å kjøre uten tilkoblet mappe). For denne
    skillen, når `READY <dir>` er skrevet ut:
@@ -95,11 +86,15 @@ nedlastede XML-filene — ikke fra treningsdata.
 
 ## Kjøring ved oppstart: oppdateringssjekk
 
+Alle kommandoene i resten av dokumentet kjøres i `device_bash`, med
+`<dir>` fra `READY <dir>` og prefikset `test -f <dir>/.ready || exit 4; PYTHONUTF8=1`
+foran (se «Ruting»).
+
 **Alltid første steg:** kjør oppdateringssjekket for å sikre at du arbeider med
 gjeldende lovtekst:
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py update
+python3 <dir>/scripts/lovdata.py update
 ```
 
 Scriptet sammenligner `lastModified`-tidsstemplene fra Lovdata-APIet
@@ -122,7 +117,7 @@ Erstatt `{SKILL_DIR}` med den stien.
 ### Søk etter lover/forskrifter
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py search "søkeord"
+python3 <dir>/scripts/lovdata.py search "søkeord"
 ```
 
 Søker i titler, Lovdatas korttitler/forkortelser (`aml`, `fvl`, `Grl.`,
@@ -143,10 +138,10 @@ python .../lovdata.py search "internkontroll"
 Når du ikke vet hvilken lov som regulerer et tema:
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py find "deltid"
-python {SKILL_DIR}/scripts/lovdata.py find "rimelig tid" --phrase
-python {SKILL_DIR}/scripts/lovdata.py find "oppfølgingsplan" aml        # bare i én lov
-python {SKILL_DIR}/scripts/lovdata.py find "personopplysninger" --sf    # også forskriftene
+python3 <dir>/scripts/lovdata.py find "deltid"
+python3 <dir>/scripts/lovdata.py find "rimelig tid" --phrase
+python3 <dir>/scripts/lovdata.py find "oppfølgingsplan" aml        # bare i én lov
+python3 <dir>/scripts/lovdata.py find "personopplysninger" --sf    # også forskriftene
 ```
 
 Gir én linje per paragraf (lov, §, DokID) med et utdrag. En bestemmelse
@@ -161,9 +156,9 @@ paragrafen med `get` før du siterer.
 ### Hent en spesifikk paragraf
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "§4-6"
+python3 <dir>/scripts/lovdata.py get "NL/lov/2005-06-17-62" "§4-6"
 # eller uten §-tegn:
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
+python3 <dir>/scripts/lovdata.py get "NL/lov/2005-06-17-62" "4-6"
 ```
 
 Returnerer ren tekst av paragrafen med alle ledd, inkl. endringshistorikk.
@@ -194,7 +189,7 @@ rett, og du må si det.
 ### Hent et kapittel eller et vedlegg
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
+python3 <dir>/scripts/lovdata.py get "NL/lov/2005-06-17-62" "kap4"
 ```
 
 Foretrekk kapittel fremfor hele loven når spørsmålet gjelder et tema
@@ -222,8 +217,8 @@ seksjoner**: `emkn/p1`, `emkn/p4`, `emkn/p6`, `emkn/p7`, `emkn/p13` (og
 fremfor hele konvensjonen når spørsmålet gjelder én bestemmelse.
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/a8"
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/p1/a1"
+python3 <dir>/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/a8"
+python3 <dir>/scripts/lovdata.py get "NL/lov/1999-05-21-30" "emkn/p1/a1"
 ```
 
 Oppgir du et ukjent seksjonsnavn, lister scriptet de gyldige.
@@ -231,7 +226,7 @@ Oppgir du et ukjent seksjonsnavn, lister scriptet de gyldige.
 ### Hent full lovtekst
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py get "NL/lov/2005-06-17-62" --out aml.txt
+python3 <dir>/scripts/lovdata.py get "NL/lov/2005-06-17-62" --out aml.txt
 ```
 
 Hele lover er ofte svært lange (arbeidsmiljøloven er over 200 000 tegn).
@@ -241,7 +236,7 @@ terminalen; uten `--out` skrives teksten til stdout.
 ### Sjekk status
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata.py status
+python3 <dir>/scripts/lovdata.py status
 ```
 
 Viser nedlastningsdatoer og filantall per pakke, samt hvilken datakatalog som
@@ -332,7 +327,7 @@ skrivbar brukerkatalog. Stien velges i denne rekkefølgen:
 3. `%LOCALAPPDATA%\lovdata` — på Windows
 4. `~/.cache/lovdata` — ellers
 
-Kjør `python {SKILL_DIR}/scripts/lovdata.py status` for å se faktisk sti.
+Kjør `python3 <dir>/scripts/lovdata.py status` for å se faktisk sti.
 Hvis en eldre installasjon hadde lagt `state.json` og `data/` direkte i
 ferdighetskatalogen, blir disse migrert over første gang scriptet kjører.
 

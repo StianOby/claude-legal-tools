@@ -77,7 +77,7 @@ every page image 403s. `accessAllowedFrom ∈ {NORWAY, NB}` plus a
 non-Norwegian egress IP means **the download cannot succeed, no matter who is
 logged in** — stop before downloading rather than debugging headers.
 
-Where the download runs matters: in a cloud Cowork session `Bash` egresses
+Where the download runs matters: Cowork's `Bash` egresses
 from Anthropic's cloud, which is never a Norwegian IP, so `NORWAY`/`NB` page
 images 403 there even though the user's browser pane is Norwegian. That 403
 is expected: download through the local shell on the user's machine instead
@@ -224,12 +224,12 @@ through the tool channel is not viable for a book.
    > whether the loan is active.
 
 5. **Geo pre-check.** If `accessAllowedFrom` is `NORWAY` or `NB` and the
-   egress IP of `Bash` is not Norwegian (always the case in a cloud session), **page images will 403 no matter who is
+   egress IP of `Bash` is not Norwegian (always the case in Cowork), **page images will 403 no matter who is
    logged in.** Settle it in bash with
    `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The script asks
    nb.no's image resolver for one 1024 px page tile and prints `image probe:
    OK` or `403`, then a `route:` line. On a `NORWAY` item a 403 means the IP
-   is not Norwegian — in a cloud session that is expected: use the local
+   is not Norwegian — in Cowork that is expected: use the local
    route (`SKILL.md` **Routing**). On an `NB` item a 403 can also mean there is no
    loan yet, so run the probe again after step 6. The script exits 3 on a 403.
    Never call third-party geo services. `zotero_book.py` runs the same probe
@@ -254,9 +254,9 @@ through the tool channel is not viable for a book.
      blocked, ask for the sentence rather than trying again.
    - Then `await __nb.cookies()` → `{nbsso, nblb, cookieHeader}` and nothing
      else. Never return the whole `document.cookie`.
-   - **Cloud session:** the cookie goes straight to the local shell, into
+   - The cookie goes straight to the local shell, into
      `<dir>/cookie.txt` (see `SKILL.md` **Routing**, step 2) — never to a file in the
-     cloud sandbox, which cannot use it anyway. Otherwise (local Cowork):
+     cloud sandbox, which cannot use it anyway. Outside Cowork (no local shell):
    - Write the cookie to a **fresh per-run path**, mode 600:
      ```bash
      CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"

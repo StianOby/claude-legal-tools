@@ -41,9 +41,9 @@ Pleadings, written observations, and verbatim records of hearings are deliberate
 | Reading the extracted text, quoting | cloud sandbox (`Bash`) |
 | Judgment/opinion PDFs (Cloudflare blocks every script) | browser pane (see **Fetching PDF text**) |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `icj-cij.org` has worked from the cloud so far; if
-it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. `icj-cij.org` has worked from the cloud so far; if
+it answers 403/405 from `Bash`, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
 
 ## Setup
 

@@ -1,19 +1,16 @@
 # norges-traktater
 
-Pure-Python skill that lets Claude search and retrieve Norwegian treaties from
-Lovdata's public treaty register (*Norges traktater*) — 3 457 agreements Norway
-is party to as of September 2026, with year ranges going back to 1661. Covers
-metadata (signing date, ratification, entry into force for Norway, parties,
+Skill that lets Claude search and retrieve Norwegian treaties from Lovdata's
+public treaty register (*Norges traktater*) — 3 457 agreements Norway is party
+to as of September 2026, with year ranges going back to 1661. Covers metadata
+(signing date, ratification, entry into force for Norway, parties,
 reservations) and, for many conventions, the full Norwegian treaty text.
-`status` prints the current counts, read live from the register.
+`status()` reports the current counts, read live from the register.
 
-See `SKILL.md` for the full workflow guide. Quick test:
-
-```bash
-python3 scripts/traktater.py search "Wien"
-python3 scripts/traktater.py meta 1950-11-04-1
-python3 scripts/traktater.py text 1951-07-28-1
-```
+lovdata.no blocks Anthropic's cloud (HTTP 405), and Cowork runs in the cloud,
+so everything goes through the **built-in browser pane**: a helper is pasted
+into a tab on lovdata.no and fetches the public treaty pages from there. No
+login is needed. See `SKILL.md` for the full workflow guide.
 
 ## Layout
 
@@ -22,28 +19,18 @@ norges-traktater/
 ├── SKILL.md
 ├── README.md
 └── scripts/
-    ├── traktater.py    # single self-contained CLI; stdlib only
     └── browser/
-        └── norges_traktater.js  # same operations as a paste-in helper (window.__nt)
-                                 # for cloud Cowork, where lovdata.no blocks Bash
+        ├── norges_traktater.js  # the helper (window.__nt): search, meta, text,
+        │                        # article, countries, status
+        └── paste.py             # makes the stripped copy that is pasted (shared file)
 ```
 
-Offline tests live in the repository at `tests/norges-traktater/`, not in the plugin (they do not ship to users): `python tests/norges-traktater/test_traktater.py`, `python tests/norges-traktater/test_browser_parity.py`, `node tests/norges-traktater/test_browser.js`.
+Offline tests live in the repository at `tests/norges-traktater/`, not in the
+plugin (they do not ship to users): `node tests/norges-traktater/test_browser.js`.
 
 ## Requirements
 
-- **Python 3.8+**
-- No third-party packages — stdlib only.
-
-The cache is written to a user-writable directory, not the skill folder
-itself (so the skill can be installed read-only):
-
-1. `$NORGES_TRAKTATER_DATA_DIR` — if set
-2. `$XDG_CACHE_HOME/norges-traktater`
-3. `%LOCALAPPDATA%\norges-traktater` on Windows
-4. `~/.cache/norges-traktater` otherwise
-
-Run `python3 scripts/traktater.py status` to see the actual path.
+- Claude Desktop with Cowork and its built-in browser.
 
 ## Installing as a Claude skill
 
@@ -67,41 +54,39 @@ Then in Cowork: describe the task ("has Norway ratified the
 Genocide Convention?", "which treaties did Norway sign with Sweden in 1951?")
 and the description in `SKILL.md` will trigger it automatically.
 
-## Quickstart
+## Quickstart (in the lovdata.no tab, after pasting the helper)
 
-```sh
-# Search by title keyword (prints "showing N of M hits")
-python3 scripts/traktater.py search "menneskerett"
+```js
+// Search by title keyword ({total, shown, results})
+await __nt.search("menneskerett")
 
-# All treaties from a given year
-python3 scripts/traktater.py search "" --year 1969
+// All treaties from a given year
+await __nt.search("", {year: 1969})
 
-# Bilateral treaties with a specific country (Norwegian name; validated
-# against the register's own list, since Lovdata silently ignores an
-# unknown country and returns everything)
-python3 scripts/traktater.py search "" --country Sverige --max 50
-python3 scripts/traktater.py countries stor      # valid --country values
+// Bilateral treaties with a specific country (Norwegian name; validated
+// against the register's own list, since Lovdata silently ignores an
+// unknown country and returns everything)
+await __nt.search("", {country: "Sverige", max: 50})
+await __nt.countries("stor")      // valid country values
 
-# Full-text search — many more hits, ordered newest-first, not by relevance
-python3 scripts/traktater.py search "non-refoulement" --context tekst
+// Full-text search — many more hits, ordered newest-first, not by relevance
+await __nt.search("non-refoulement", {context: "tekst"})
 
-# Metadata for one treaty (signing/ratification dates, parties, reservations)
-python3 scripts/traktater.py meta 1951-07-28-1
+// Metadata for one treaty, or many at once
+await __nt.meta("1951-07-28-1")
+await __nt.meta(["1951-07-28-1", "1950-11-04-1"])
 
-# Machine-readable output, for building lists: --json on search and meta,
-# --full to replace the listing's truncated titles (one document fetch per
-# hit, cached), --batch to look up many IDs from a file in one call
-python3 scripts/traktater.py search "" --year 2003 --max 100 --full --json
-python3 scripts/traktater.py meta --batch ids.txt --json
+// Full titles instead of the listing's truncated ones (one fetch per hit)
+await __nt.search("", {year: 2003, max: 100, full: true})
 
-# Full Norwegian text
-python3 scripts/traktater.py text 1951-07-28-1
+// Full Norwegian text, in chunks: call again with {offset: next} until next is null
+await __nt.text("1951-07-28-1")
 
-# One specific article (Roman or Arabic numerals, with or without "Artikkel")
-python3 scripts/traktater.py article 1951-07-28-1 33
+// One specific article (Roman or Arabic numerals, with or without "Artikkel")
+await __nt.article("1951-07-28-1", "33")
 
-# Show cache location and network status
-python3 scripts/traktater.py status
+// Reachability and register counts
+await __nt.status()
 ```
 
 ## Notes on scope
@@ -116,8 +101,8 @@ python3 scripts/traktater.py status
 - For **EU law / EEA acts** use the `eurlex` skill.
 - For **ECtHR case law** (ECHR applications) use the `hudoc` skill.
 - For **Norwegian statutes and case law** use `lovdata-api` or `lovdata-pro`.
-- If a treaty has no free text on its register page, the script says so and
-  prints any lovdata.no link Lovdata itself gives for the document.
+- If a treaty has no free text on its register page, `text` answers
+  `available: false`; `meta` often carries a lovdata.no link to where the text is.
 - **The core human rights conventions are the common case here**: the European
   Convention, the two 1966 Covenants, CEDAW and the Convention on the Rights of
   the Child have metadata only in the treaty register, but their full Norwegian

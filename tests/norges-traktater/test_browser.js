@@ -3,12 +3,12 @@
 // network and no npm dependencies: fetch and location are stubbed with the
 // saved lovdata.no pages in fixtures/ (routing in fixtures/routes.json).
 //
-// Parity: fixtures/parity_expected.json is what traktater.py returns for the
-// same pages and cases (tests/test_browser_parity.py checks and regenerates
-// it). Every case here must produce the identical structure from the JS
-// helper.
+// Cases: fixtures/cases.json, expected results in fixtures/expected.json
+// (first produced by the Python script the helper was ported from, which was
+// dropped in 1.3.0). After a deliberate change to the helper's output,
+// regenerate with --write and review the diff.
 //
-// Run with `node tests/norges-traktater/test_browser.js`.
+// Run with `node tests/norges-traktater/test_browser.js [--write]`.
 
 const fs = require('fs');
 const path = require('path');
@@ -16,8 +16,9 @@ const path = require('path');
 const nt = require(path.join(__dirname, '..', '..', 'plugins', 'norges-traktater', 'skills', 'norges-traktater', 'scripts', 'browser', 'norges_traktater.js'));
 const FIX = path.join(__dirname, 'fixtures');
 const ROUTES = JSON.parse(fs.readFileSync(path.join(FIX, 'routes.json'), 'utf8'));
-const CASES = JSON.parse(fs.readFileSync(path.join(FIX, 'parity_cases.json'), 'utf8'));
-const EXPECTED = JSON.parse(fs.readFileSync(path.join(FIX, 'parity_expected.json'), 'utf8'));
+const CASES = JSON.parse(fs.readFileSync(path.join(FIX, 'cases.json'), 'utf8'));
+const WRITE = process.argv.includes('--write');
+const EXPECTED = WRITE ? [] : JSON.parse(fs.readFileSync(path.join(FIX, 'expected.json'), 'utf8'));
 
 let failures = 0;
 function check(name, got, want) {
@@ -46,7 +47,7 @@ function canon(url) {
   return u.pathname + (q.length ? '?' + new URLSearchParams(q).toString() : '');
 }
 
-// Python sorts the canonical strings by code point; do the same here.
+// Sort the canonical strings by code point.
 const sortedUnique = (xs) => [...new Set(xs)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
 let requests = [];
@@ -72,7 +73,7 @@ nt._deps.fetch = async (url) => {
   return { ok: true, status: 200, text: async () => body };
 };
 
-// Collect a chunked text/article result into the Python-shaped one, checking
+// Collect a chunked text/article result into one whole result, checking
 // the size limit on every chunk.
 async function collect(fn) {
   let res = await fn(0);
@@ -110,7 +111,7 @@ async function runCase(c) {
     const s = await nt.status();
     got = { reachable: s.reachable, total: s.total, years: s.years, countries: s.countries };
   }
-  // Errors: Python {"__error": msg}; JS {error, detail}.
+  // Errors are recorded as {__error: detail}.
   if (got && got.error && got.detail !== undefined && !got.available_articles && !Array.isArray(got)) {
     got = { __error: got.detail };
   }
@@ -118,17 +119,24 @@ async function runCase(c) {
 }
 
 (async () => {
-  console.log('Parity with traktater.py (same pages, same cases)');
+  console.log('Cases (fixtures/cases.json against fixtures/expected.json)');
+  const written = [];
   for (let i = 0; i < CASES.length; i++) {
-    const c = CASES[i]; const want = EXPECTED[i];
-    if (c.name !== want.name) { console.log('  FAIL case list and parity_expected.json differ: regenerate'); failures++; break; }
+    const c = CASES[i];
     const got = await runCase(c);
-    // JS adds keys Python has no equivalent for; drop those before comparing.
+    // Chunk bookkeeping is checked separately below.
     if (got && typeof got === 'object') { delete got._chunks; delete got._total; }
     const cleaned = JSON.parse(JSON.stringify(got));
     if (cleaned && cleaned.full_title_failures !== undefined) delete cleaned.full_title_failures;
+    if (WRITE) { written.push({ name: c.name, result: cleaned, requests: sortedUnique(requests) }); continue; }
+    const want = EXPECTED[i];
+    if (!want || c.name !== want.name) { console.log('  FAIL cases.json and expected.json differ: run with --write'); failures++; break; }
     check(c.name, cleaned, want.result);
     check('  requests: ' + c.name, sortedUnique(requests), want.requests);
+  }
+  if (WRITE) {
+    fs.writeFileSync(path.join(FIX, 'expected.json'), JSON.stringify(written, null, 1) + String.fromCharCode(10));
+    console.log(`  wrote ${written.length} cases to fixtures/expected.json`);
   }
 
   console.log('Chunking');

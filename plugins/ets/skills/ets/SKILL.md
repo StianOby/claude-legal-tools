@@ -87,9 +87,9 @@ once `index.json` is cached every download is one HTTP hop on
 | Index, text, report, signatures, declarations (`scripts/coe.py`) | cloud sandbox (`Bash`) |
 | Reading the extracted text, quoting | cloud sandbox (`Bash`) |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. `conventions-ws.coe.int` and `rm.coe.int` have worked from the cloud so far; if
-it answers 403/405 from `Bash` in a cloud session, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. `conventions-ws.coe.int` and `rm.coe.int` have worked from the cloud so far; if
+it answers 403/405 from `Bash`, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
 
 ## How to use
 

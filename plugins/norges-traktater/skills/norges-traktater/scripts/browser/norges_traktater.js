@@ -1,18 +1,13 @@
 // Norges traktater in-page helper — paste into javascript_tool once per tab
 // that is open on https://lovdata.no/ (e.g. https://lovdata.no/register/traktater).
 //
-// Why it exists: in a cloud Cowork session scripts/traktater.py runs from
-// Anthropic's cloud, and lovdata.no answers that IP with HTTP 405. The
-// browser pane runs on the user's own PC and can load the public treaty
-// pages. This helper does the same fetching and parsing there, with
-// same-origin fetch(), and returns the same JSON as `traktater.py ... --json`
-// (same keys, same value formats), so SKILL.md works for both routes.
-//
-// It is a line-by-line port of the Python parsers, and works on the raw HTML
-// string with the same regular expressions rather than on a DOM tree, so the
-// output is identical character for character (the repo's tests/norges-traktater/test_browser.js checks
-// this against traktater.py on saved pages). Only entity decoding differs
-// in mechanism (see unescape()).
+// Why it exists: lovdata.no answers Anthropic's cloud with HTTP 405, and Cowork
+// runs in the cloud. The browser pane runs on the user's own PC and can load
+// the public treaty pages, so this helper does all fetching and parsing there,
+// with same-origin fetch(). It is the skill's only route (the Python script it
+// was ported from was dropped in 1.3.0); it works on the raw HTML string with
+// regular expressions rather than on a DOM tree. The repo's
+// tests/norges-traktater/test_browser.js checks it on saved pages.
 //
 // Idempotent: re-pasting is a no-op if the same version of window.__nt is
 // already there. Everything is on window.__nt; functions are async and never
@@ -27,7 +22,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.2.1';
+  const HELPER_VERSION = '1.3.0';
   if (root.window && root.window.__nt && root.window.__nt.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -469,7 +464,7 @@
       return candidates;
     }
 
-    // --- Operations (each returns exactly what traktater.py --json prints) ---
+    // --- Operations ---
 
     async function getMeta(rawId, noCache) {
       const tid = normalizeId(rawId);

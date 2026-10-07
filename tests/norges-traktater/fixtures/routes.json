@@ -1,5 +1,5 @@
 {
-  "_comment": "How the offline tests map a request to a fixture. Used by test_browser_parity.py (Python) and test_browser.js (JS) alike. Register: search=menneskerett -> search_menneskerett_<offset>.html, search=Wien -> search_wien_0.html, no params -> register.html, any other filter combination -> search_wien_0.html (the tests only check the requested URL there). Documents: doc_<id>.html, after applying the aliases below; anything else is a 404.",
+  "_comment": "How the offline tests map a request to a fixture. Used by test_browser.js. Register: search=menneskerett -> search_menneskerett_<offset>.html, search=Wien -> search_wien_0.html, no params -> register.html, any other filter combination -> search_wien_0.html (the tests only check the requested URL there). Documents: doc_<id>.html, after applying the aliases below; anything else is a 404.",
   "aliases": {
     "1988-09-21-1": "1948-12-09-1",
     "1985-03-22-1": "1951-07-28-1"

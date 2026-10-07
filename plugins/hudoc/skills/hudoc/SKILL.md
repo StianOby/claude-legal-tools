@@ -66,15 +66,15 @@ for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skil
 | Step | Runs in |
 |---|---|
 | `scripts/hudoc.py` (search, metadata, fetch, citations, show) | cloud sandbox (`Bash`) |
-| Same requests when HUDOC's Cloudflare check answers the script (403 / "Just a moment…"), including a 403/405 in a cloud session | browser pane (`scripts/browser/hudoc.js`, see **Fallback**) |
+| Same requests when HUDOC's Cloudflare check answers the script (403 / "Just a moment…" / 405) | browser pane (`scripts/browser/hudoc.js`, see **Fallback**) |
 | Local shell | not used |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. If `Bash` is blocked, tell
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
+sure to have the user's IP and logins. If `Bash` is blocked, tell
 the user "This source is blocked from Anthropic's cloud" and switch to the browser route; never suggest a VPN.
 
-**Files for the user** go in the outputs directory (`/mnt/user-data/outputs` in cloud Cowork) and are shown
-with the file-sharing tool: `present_files` in local Cowork, `SendUserFile` in cloud Cowork — whichever exists.
+**Files for the user** go in the outputs directory (`/mnt/user-data/outputs`) and are shown with `SendUserFile`
+(at most 30 MiB per file; for a larger one, say where it is).
 
 **Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
 Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
@@ -390,7 +390,8 @@ the same text the script would have cached — same paragraph breaks, same
    prints its path. Read that file and send **all** of it via
    `javascript_tool` (if `paste.py` fails, paste `hudoc.js` itself). Never
    trim or shorten it. Idempotent; an older helper from before a skill update is replaced
-   (`__hd.VERSION` shows which one runs). Navigating the tab wipes it —
+   (`__hd.VERSION` shows which one runs; it is the plugin version of the
+   last change to the helper, so it can be lower than the plugin's). Navigating the tab wipes it —
    re-paste after any navigation. If the paste is refused by a safety
    check, do not retry it: tell the user in one sentence and read the
    judgment instead by `navigate` to `https://hudoc.echr.coe.int/eng?i=<itemid>`,

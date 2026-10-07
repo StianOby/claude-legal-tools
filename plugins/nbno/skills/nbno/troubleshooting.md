@@ -15,9 +15,8 @@ at the end of `SKILL.md`.
     so nothing looks wrong until the first image fails. Do not debug headers;
     check the IP.
 
-  In a cloud session `Bash` egresses from Anthropic's cloud, never from a
-  Norwegian IP, so these items are blocked there (see `SKILL.md` **Routing**); in local Cowork `Bash` and the browser pane share the user's own
-  IP. Never suggest a VPN. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
+  Cowork's `Bash` egresses from Anthropic's cloud, never from a
+  Norwegian IP, so these items are blocked there (see `SKILL.md` **Routing**). Never suggest a VPN. `python {SKILL_DIR}/scripts/geo_check.py --id <id>` prints
   the egress IP and `accessInfo`, and probes one 1024 px page tile. It talks
   only to nb.no, never a third-party geo service. Thumbnails
   (`/full/0,200/0/native.jpg`) and small tiles (256 px) are never gated. A

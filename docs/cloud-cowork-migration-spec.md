@@ -96,7 +96,7 @@ Use the local route when a step needs the user's IP and the cloud sandbox is blo
 Detection (don't assume the environment):
 
 1. Run the network step, or a cheap probe, in the normal `Bash` first. If it works (e.g. `geo_check.py` exit 0 in local Cowork), stay there.
-2. If it's blocked (403/405), look for `mcp__remote-devices__device_bash` in the tool list. It is loaded up front in cloud sessions, so ToolSearch `device_bash` does **not** return it (test run 2026-09-30); use ToolSearch only as a fallback.
+2. If it's blocked (403/405), load `mcp__remote-devices__device_bash` (and its siblings) with ToolSearch `select:`. On 2026-09-30 it was loaded up front; on 2026-10-07 it was deferred and not listed, and a keyword search can miss it, so `select:` is the only reliable way. Since the switch Cowork is cloud-only, so the skills no longer detect cloud vs local at all (2026-10-07).
 3. If `device_bash` is present but no folder is connected, ask the user to connect one (suggest a dedicated folder, e.g. `Claude-legal-work`).
 4. If `device_bash` is absent, stop with a clear message (WP2.4).
 
@@ -199,7 +199,7 @@ WP1 (unblocks everything), then WP2, then WP3 and WP4 in parallel, then WP5, the
 
 ## V: deferred verification (after 6 October 2026)
 
-Do these once cloud sessions are the default. Record the results in `claude/post-switch-findings.md`, then revisit the working assumptions above and simplify the code where they turn out to be wrong or overcautious.
+Do these once cloud sessions are the default. Record the results in `docs/post-switch-findings.md` (done 2026-10-07, run 9), then revisit the working assumptions above and simplify the code where they turn out to be wrong or overcautious.
 
 1. **Does `device_bash` still exist** in a fresh cloud session with a folder connected? If not, trigger Appendix A.
 2. **File hand-back:** write a PDF from the local shell into the connected folder, then check that the cloud sandbox can open it (e.g. `pikepdf` page count) and that `present_files` can show it. Record size limits and latency (try a ~50 MB file). If it works, consider moving post-processing (OCR, RDF) back to the cloud sandbox, which has a known toolchain.
@@ -208,7 +208,7 @@ Do these once cloud sessions are the default. Record the results in `claude/post
 5. **Reachability audit from the cloud sandbox** for every host the skills call: `hudoc.echr.coe.int`, `icj-cij.org`, `eftacourt.int`, `treaties.un.org`, `rm.coe.int`/`coe.int`, `consilium.europa.eu`, `api.zotero.org` (if used directly). Record the HTTP status and `server` header, so an origin block can be told apart from the sandbox's own network allowlist.
 6. **Script bundle sizes** for every skill's `scripts/`, to confirm the chunking thresholds in WP2.2.
 7. **Re-run the full test plan.**
-8. **norges-traktater: keep the Python script or go JS-only?** Since WP4 it has two routes with identical output: `scripts/traktater.py` in `Bash` (cheaper where lovdata.no answers; disk cache; works without a browser) and the browser helper `norges_traktater.js` (the only route in cloud sessions; ~24 KB paste per tab). Cloud sessions skip the `Bash` attempt. If nearly all runs after the switch go through the browser, drop `traktater.py`, turn `tests/norges-traktater/test_browser_parity.py` into plain fixture tests for the JS, and simplify SKILL.md to one route. Decide with the results of Stian's desktop test on 7 October 2026.
+8. **norges-traktater: keep the Python script or go JS-only?** Since WP4 it has two routes with identical output: `scripts/traktater.py` in `Bash` (cheaper where lovdata.no answers; disk cache; works without a browser) and the browser helper `norges_traktater.js` (the only route in cloud sessions; ~24 KB paste per tab). Cloud sessions skip the `Bash` attempt. If nearly all runs after the switch go through the browser, drop `traktater.py`, turn `tests/norges-traktater/test_browser_parity.py` into plain fixture tests for the JS, and simplify SKILL.md to one route. Decide with the results of Stian's desktop test on 7 October 2026. **Decided 2026-10-07: JS-only** (norges-traktater 1.3.0; `traktater.py` and the parity test removed).
 
 ---
 

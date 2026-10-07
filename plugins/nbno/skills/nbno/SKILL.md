@@ -66,31 +66,27 @@ The user's preferences for this skill:
 |---|---|
 | Session check, `accessInfo`, URN resolution, digital-loan dialog, cookie read (Step 0) | **browser pane** (the user's IP and logins) |
 | Catalogue search (`nb_search.py`), manifests, first `geo_check.py` probe | **`Bash`** |
-| Download, OCR, shrink, Zotero RDF — `EVERYWHERE` items, or any item when `Bash` is on the user's computer | **`Bash`** |
-| Download, OCR, shrink, Zotero RDF — `NORWAY` / `NB` items in a cloud session | **local shell** (`device_bash`, the local route) |
+| Download, OCR, shrink, Zotero RDF — `EVERYWHERE` items | **`Bash`** |
+| Download, OCR, shrink, Zotero RDF — `NORWAY` / `NB` items | **local shell** (`device_bash`, the local route) |
 
-In a cloud Cowork session `Bash` runs in Anthropic's cloud with Anthropic's IP, not the user's; only the browser pane is
-sure to have the user's IP and logins. In local Cowork, `Bash` runs on the user's computer. You are in a cloud session
-when `mcp__remote-devices__device_bash` is in your tool list.
+Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane and the local shell
+(`device_bash`) have the user's IP, and only the browser pane has the user's logins.
 
 ### Routing
 
 nb.no serves `NORWAY` (Bokhylla) and `NB` (legal deposit) page images only to Norwegian IPs, and Anthropic's cloud is
 not one. So:
 
-| `accessAllowedFrom` | Where the download runs in a cloud session | Credential |
+| `accessAllowedFrom` | Where the download runs | Credential |
 |---|---|---|
 | `EVERYWHERE` | cloud sandbox (`Bash`), as always | none |
 | `NORWAY` | local shell (local route) | none |
 | `NB` | local shell (local route) | `nbsso` from the browser pane (Step 0.7) + an active loan (Step 0.6) |
 
 1. **Probe in `Bash`:** `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The last line is `route: …`.
-   - `route: here` → download in `Bash` (Step 3). This is every `EVERYWHERE` item, and every item in local Cowork
-     from a Norwegian IP.
-   - `route: norwegian-ip` or `norwegian-ip+loan` **in a cloud session** → expected, not an error: use the local route
+   - `route: here` → download in `Bash` (Step 3). This is every `EVERYWHERE` item.
+   - `route: norwegian-ip` or `norwegian-ip+loan` → expected, not an error: use the local route
      (step 2). For `norwegian-ip+loan` do Step 0.6–0.7 first (loan, cookie).
-   - `route: norwegian-ip` **in local Cowork** → the user's own IP is not Norwegian: tell them and stop.
-     `norwegian-ip+loan` there → no active loan or an expired cookie: Step 0.6–0.7, then probe again once.
    - `route: unknown` → report the probe line and ask before downloading.
 2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
    are available and has the fixed messages if not). **Check for a connected folder first** (`ls -d "$HOME"/mnt/*/`
@@ -141,7 +137,8 @@ only — the cookie. Never shuttle page images through the browser.
    of it via `javascript_tool` → `window.__nb` (if `paste.py` fails, paste
    `nbno_auth.js` itself; never trim it). **Navigating the tab wipes it:
    paste it again after every `navigate`/`preview_start`** (same version =
-   no-op). If the paste is refused by a safety check, do not retry it: tell
+   no-op; `__nb.VERSION` is the plugin version of the last change to the
+   helper, so it can be lower than the plugin's). If the paste is refused by a safety check, do not retry it: tell
    the user in one sentence and fall back to the manual DevTools cookie
    (`auth.md`, Fallback 3); `EVERYWHERE` items need no browser at all.
 3. **Session.** `await __nb.status()`. Not logged in → *"Logg inn på nb.no i
@@ -162,10 +159,9 @@ only — the cookie. Never shuttle page images through the browser.
    and write them to a cookie file so it can download my book."*) — the
    safety classifier blocks cookie reads otherwise, and retrying does not
    help. Then `await __nb.cookies()` → `{nbsso, nblb}` only, never the whole
-   jar. Do it early and once. Cloud session → the cookie goes straight into
-   `<dir>/cookie.txt` in the local shell (**Routing**). Local Cowork → a fresh
-   `mktemp -d` path, mode 600 (format in `auth.md`); never a shared path like
-   `/tmp/cookie.txt`.
+   jar. Do it early and once. The cookie goes straight into
+   `<dir>/cookie.txt` in the local shell, mode 600 (**Routing**; format in
+   `auth.md`); never a shared path like `/tmp/cookie.txt`.
 8. **Expiry.** Cookies live 24–48 h; on a mid-run 401/403 repeat step 7 (and
    check the loan).
 
@@ -273,9 +269,10 @@ For reading pages visually, OCR and shrinking, read
   full resolution → OCR → shrink; never `--resize` to save space. Say what
   size the PDF ended up.
 - **Deliver:** copy it to the outputs directory (`/mnt/user-data/outputs` in
-  cloud Cowork) and share it with `present_files` (local Cowork) or
-  `SendUserFile` (cloud) — whichever exists. Local-route results are already
-  in `<connected folder>/nbno/<id>/`; say where.
+  cloud Cowork) and share it with `SendUserFile`, which refuses files
+  over 30 MiB: then just say where the PDF is. Local-route results are
+  already in `<connected folder>/nbno/<id>/`; say where (send one only if it
+  is under 30 MiB, after `device_stage_files` — see `local-route.md` §3).
 - **Say what it is, when you deliver it:** a canvas range is an **excerpt**
   (name the canvases and, if known, the printed pages); placeholder pages
   (exit 3) are missing pages; exit 5 means no text layer.
