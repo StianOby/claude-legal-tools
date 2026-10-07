@@ -16,6 +16,8 @@ description: >
 
 # Lovdata — Norsk lovdatabase (API)
 
+**Første steg, før alle kommandoer:** finn `{SKILL_DIR}` som beskrevet under «Skill-katalogen» nedenfor, og bruk den utskrevne stien bokstavelig. Gjett den aldri (f.eks. `/mnt/skills/...`).
+
 Dette ferdighetsdokumentet er på norsk, men **svaret til brukeren skal alltid
 tilpasses brukerens eget språk** (se Språkregler nedenfor).
 
@@ -43,7 +45,11 @@ Cowork kjører i skyen, og `api.lovdata.no` avviser Anthropics sky (HTTP 405). D
    - Kall alltid scriptet med absolutt sti og `PYTHONUTF8=1`, og start hvert
      kall med `test -f <dir>/.ready || exit 4;`, f.eks.
      `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/lovdata.py get LOV-1967-02-10 §17`.
-   - Første kall i økten: `… lovdata.py update`. Dataene (275 MB, ca. 5 900
+   - Én `<dir>` og ett `update` per samtale: kopier inn skriptene og kjør
+     `… lovdata.py update` ved første oppslag, og bruk samme `<dir>` til alle
+     senere oppslag i samtalen uten nytt `update` (`.ready`-sjekken sier fra
+     hvis `<dir>` er borte; da kopierer du inn på nytt og kjører `update`
+     igjen). `update` ved første oppslag: Dataene (275 MB, ca. 5 900
      filer) havner i `$HOME/.cache/lovdata` **i den lokale VM-en — ikke i den
      tilkoblede mappen**, så de ikke synkroniseres (f.eks. til Dropbox). Er de
      borte i en ny økt, laster `update` dem ned igjen på ca. 20 sekunder; er de
@@ -51,8 +57,8 @@ Cowork kjører i skyen, og `api.lovdata.no` avviser Anthropics sky (HTTP 405). D
    - Deretter `search`/`find`/`get` som vanlig, ett `device_bash`-kall per
      oppslag. Svar og sitater gis i chatten; bare hvis brukeren vil ha en fil
      (`--out`), skrives den til `<tilkoblet mappe>/lovdata-api/`.
-   - Til slutt: `rm -rf <dir>` (skriptene), men **la `$HOME/.cache/lovdata`
-     stå** til neste oppslag.
+   - Når du er ferdig med Lovdata i samtalen: `rm -rf <dir>` (skriptene), men
+     **la `$HOME/.cache/lovdata` stå** til neste samtale.
 
 ---
 

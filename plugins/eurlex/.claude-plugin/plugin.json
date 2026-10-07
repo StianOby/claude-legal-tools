@@ -1,6 +1,6 @@
 {
   "name": "eurlex",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "EU legislation and case law from EUR-Lex (requires the eurlex MCP server, installed separately)",
   "author": {
     "name": "Stian Øby Johansen",

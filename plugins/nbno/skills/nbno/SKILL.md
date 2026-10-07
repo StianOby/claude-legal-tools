@@ -20,6 +20,8 @@ description: >
 
 # nbno — download from Nasjonalbiblioteket (nb.no)
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill wraps the [`nbno`](https://github.com/Lanjelin/NBNO.py) CLI tool by
 Lanjelin, which uses nb.no's IIIF API to download books, newspapers, photos,
 journals, maps, manuscripts, etc. as page images and assemble them into a PDF.
@@ -86,23 +88,25 @@ not one. So:
 1. **Probe in `Bash`:** `python {SKILL_DIR}/scripts/geo_check.py --id <id>`. The last line is `route: …`.
    - `route: here` → download in `Bash` (Step 3). This is every `EVERYWHERE` item.
    - `route: norwegian-ip` or `norwegian-ip+loan` → expected, not an error: use the local route
-     (step 2). For `norwegian-ip+loan` do Step 0.6–0.7 first (loan, cookie).
+     (step 2). **First make sure it can run** (`local-route.md` §1: load the tools, find a connected folder),
+     before asking the user to log in, take a loan or approve a cookie read; then, for `norwegian-ip+loan`,
+     Step 0.6–0.7 (loan, cookie).
    - `route: unknown` → report the probe line and ask before downloading.
 2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
    are available and has the fixed messages if not). **Check for a connected folder first** (`ls -d "$HOME"/mnt/*/`
    in `device_bash`; if none, ask for one as `local-route.md` §1 says) — `device_bash` refuses to run without one.
    For nbno, once `READY <dir>` is printed:
-   - Probe again from the user's machine, in `device_bash`:
-     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/geo_check.py --id <id>` (add
-     `--nbsso "nbsso=<v>"` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
-     them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
-     the cookie, retry **once**, then stop.
    - `NB` only: put the cookie in a mode-600 file inside `<dir>`, never in the connected folder:
      `umask 077; printf 'authorization=\ncookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
+   - Probe again from the user's machine, in `device_bash`:
+     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/geo_check.py --id <id>` (add
+     `--cookie <dir>/cookie.txt` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
+     them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
+     the cookie, retry **once**, then stop.
    - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), calling the scripts by
      absolute path (`bash <dir>/scripts/nbno_run.sh …`, `python3 <dir>/scripts/zotero_book.py …`) with
-     `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or `--nbsso "nbsso=<v>"` for
-     `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
+     `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or
+     `--nbsso "$(grep -o 'nbsso=[^;]*' <dir>/cookie.txt)"` for `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
      `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
    - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
      2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
@@ -144,6 +148,9 @@ only — the cookie. Never shuttle page images through the browser.
 3. **Session.** `await __nb.status()`. Not logged in → *"Logg inn på nb.no i
    browser-panelet (Feide/BankID/Vipps). Si fra når du er inne."* Block on
    this only for `NB` items. **Never type credentials or ask for them.**
+   The login redirects through FEIDE/IdP pages, which wipes `__nb`: when the
+   user says they are in, check `typeof __nb` and paste the helper again
+   before `status()`.
 4. **Classify.** `await __nb.access("<id>")` → classify on
    **`accessAllowedFrom` only** (`EVERYWHERE` open · `NORWAY` Bokhylla, no
    cookie, tiles only · `NB` legal deposit, `nbsso` + loan, tiles only).
@@ -273,6 +280,9 @@ For reading pages visually, OCR and shrinking, read
   over 30 MiB: then just say where the PDF is. Local-route results are
   already in `<connected folder>/nbno/<id>/`; say where (send one only if it
   is under 30 MiB, after `device_stage_files` — see `local-route.md` §3).
+- **Page size:** pages are scaled to A4 height (297 mm), with the width
+  following the scan's proportions — the scan does not record the book's
+  real size, so do not report it as the book's format.
 - **Say what it is, when you deliver it:** a canvas range is an **excerpt**
   (name the canvases and, if known, the printed pages); placeholder pages
   (exit 3) are missing pages; exit 5 means no text layer.

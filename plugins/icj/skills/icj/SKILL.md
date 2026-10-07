@@ -17,6 +17,8 @@ description: |
 
 # ICJ — International Court of Justice
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill talks to `icj-cij.org` to find and retrieve ICJ and PCIJ case law, jurisdictional facts, and optional-clause declarations. It uses a small Python CLI that scrapes the site and caches the slow-changing parts on disk.
 
 ---
@@ -137,7 +139,11 @@ Direct HTTP requests to `icj-cij.org` PDF URLs — via `curl`, `urllib` or any s
      ({ status: r.status, type: blob.type, bytes: blob.size, chunks: Math.ceil(window.__pdf.length / 40000) })
      ```
      `type` must be `application/pdf`; `text/html` means Cloudflare answered instead — open the case page first and try again.
-   - If the pane shows a Cloudflare "Verify you are human" check (Turnstile), you cannot pass it yourself: `navigate` the pane to the PDF URL, ask the user to tick the box in the browser pane and say when it's done, then retry once. If it still answers `text/html`, give the user the PDF URL and stop.
+   - If the pane shows a Cloudflare "Verify you are human" check (Turnstile), you cannot pass it yourself: `navigate` the pane to the PDF URL, ask the user to tick the box in the browser pane and say when it's done, then retry once. If it still answers `text/html`, do not stop yet:
+     - **Summary instead:** the case page lists a press release / summary PDF for most decisions; if the question can be answered from it (e.g. the operative clause, which the summary quotes), try that URL the same way and say you used the summary.
+     - **User download:** ask the user to open the PDF URL in their own browser and save it into the connected folder. Then copy it to the cloud side with `device_stage_files` (load it with ToolSearch `select:mcp__remote-devices__device_stage_files`); it appears read-only under `/mnt/user-data/uploads/<folder>/`, where `pdftotext` can read it.
+     - Neither possible → give the user the PDF URL and stop.
+     Screenshots of the pane time out while the pane is hidden, so do not rely on them to see the check.
    - For `i` = 0 … `chunks`−1, get `window.__pdf.slice(i * 40000, (i + 1) * 40000)` and append it to `outputs/<name>.b64` (outputs = `/mnt/user-data/outputs` in cloud Cowork) with bash (`printf '%s' '<chunk>' >> …`).
    - Then `base64 -d outputs/<name>.b64 > outputs/<name>.pdf` and check the page count with a PDF tool.
 

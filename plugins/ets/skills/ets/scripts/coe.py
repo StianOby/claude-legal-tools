@@ -67,6 +67,9 @@ SEED_INDEX = Path(__file__).resolve().parent.parent / "data" / "index.json"
 # The cached index is refreshed when older than this (see resolve_treaty).
 INDEX_MAX_AGE_DAYS = 30
 
+# If the Treaty Office ever moves the service, its treaty pages under
+# coe.int/en/web/conventions/ show the new address as
+# `window.conventions_api_url` (and the key as `conventions_api_key`).
 API_BASE = "https://conventions-ws.coe.int/WS_LFRConventions/"
 # Public token embedded in the Treaty Office page source. Required as
 # the `token:` HTTP header on every request to the WCF service. Static.
@@ -260,9 +263,42 @@ def _dump_json(p: Path, obj) -> None:
 # Low-level HTTP helpers
 # ---------------------------------------------------------------------------
 
+class ServiceUnavailable(Exception):
+    """The Treaty Office data service answered, but not with its data: a
+    redirect (2026-10-07: every conventions-ws.coe.int URL answered 301 to the
+    coe.int portal, from every IP, while coe.int's own treaty pages, which call
+    the same service, stayed on "Loading...") or a body that is not JSON. An
+    outage on the Council of Europe's side, not a block of the caller's IP."""
+
+    def __init__(self, url, detail):
+        super().__init__(detail)
+        self.url = url
+        self.detail = detail
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ServiceUnavailable(req.full_url, f"HTTP {code} redirect to {newurl}")
+
+
+_API_OPENER = urllib.request.build_opener(
+    _NoRedirect, urllib.request.HTTPSHandler(context=SSL_CONTEXT))
+
+
+def _api_json(r, url):
+    raw = r.read()
+    try:
+        return json.loads(raw)
+    except ValueError:
+        ctype = r.headers.get("Content-Type") or "?"
+        raise ServiceUnavailable(url, f"answered {ctype}, not JSON")
+
+
 def _open(url, *, method="GET", body=None, accept="application/json"):
     """Open `url` against the conventions-ws backend with the right
-    TLS context, headers and (optional) JSON body."""
+    headers and (optional) JSON body. Redirects are not followed: the backend
+    never redirects when it works, so a 3xx is reported as an outage
+    (ServiceUnavailable) with the original URL."""
     headers = {
         "token": API_TOKEN,
         "Accept": accept,
@@ -274,7 +310,7 @@ def _open(url, *, method="GET", body=None, accept="application/json"):
     else:
         body_bytes = None
     req = urllib.request.Request(url, data=body_bytes, headers=headers, method=method)
-    return urllib.request.urlopen(req, context=SSL_CONTEXT, timeout=60)
+    return _API_OPENER.open(req, timeout=60)
 
 
 def api_get(endpoint, params=None, lang=DEFAULT_LANG):
@@ -284,7 +320,7 @@ def api_get(endpoint, params=None, lang=DEFAULT_LANG):
     qs = urllib.parse.urlencode(p, safe=",")
     url = API_BASE + endpoint.lstrip("/") + "?" + qs
     with _open(url) as r:
-        return json.load(r)
+        return _api_json(r, url)
 
 
 def api_post(endpoint, body, lang=DEFAULT_LANG):
@@ -293,7 +329,7 @@ def api_post(endpoint, body, lang=DEFAULT_LANG):
     body.setdefault("langue", LANG_CODE.get(lang, "ENG"))
     url = API_BASE + endpoint.lstrip("/")
     with _open(url, method="POST", body=body) as r:
-        return json.load(r)
+        return _api_json(r, url)
 
 
 def download_document(url, stem: Path):
@@ -941,6 +977,12 @@ def main():
     args = ap.parse_args()
     try:
         return args.func(args)
+    except ServiceUnavailable as e:
+        print(f"TREATY OFFICE DATA SERVICE UNAVAILABLE: {e.url} {e.detail}.", file=sys.stderr)
+        print("This is an outage on the Council of Europe's side (coe.int's own treaty "
+              "pages stay on 'Loading...' too), not a block of this IP. Try again later; "
+              "cached treaties still work.", file=sys.stderr)
+        return 7
     except urllib.error.HTTPError as e:
         raise SystemExit(f"HTTP {e.code} from {e.url}: {e.reason}")
     except (urllib.error.URLError, TimeoutError) as e:
@@ -948,4 +990,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

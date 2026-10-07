@@ -27,7 +27,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '0.1.7';
+  const HELPER_VERSION = '0.1.13';
   if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -686,6 +686,12 @@
           const sig = idx.signature === undefined ? null : cellDate(cells[idx.signature]);
           const notif = idx.notification === undefined ? null : cellDate(cells[idx.notification]);
           const eif = idx.eif === undefined ? null : cellDate(cells[idx.eif]);
+          // Acceding parties (e.g. BG, CZ, HR on the EEA Agreement) joined by
+          // an accession act: no signature, no notification, their own entry
+          // into force. The footnote's inheritance rule excludes them, so they
+          // get no inherited signature (Cowork run 11, 2026-10-07).
+          const obs = cellText(idx.observations);
+          const acceding = /acced|accession|adh[ée]sion/i.test(obs) || (!sig && !notif && !!eif);
           parties.push({
             name,
             code,
@@ -695,15 +701,16 @@
             // The flag marks the empty cell; `inherited_*` carries the
             // agreement-level value, which may itself be null (e.g. 2011036,
             // where the page has no agreement-level dates at all).
-            signature_inherited: !sig,
-            inherited_signature: !sig ? agreementDates.signature : undefined,
+            acceding,
+            signature_inherited: !sig && !acceding,
+            inherited_signature: !sig && !acceding ? agreementDates.signature : undefined,
             notification: notif,
             entry_into_force: eif,
             entry_into_force_inherited: !eif,
             inherited_entry_into_force: !eif ? agreementDates.entry_into_force : undefined,
             has_declaration: !!declLink,
             declaration_url: declLink ? (/^https?:/i.test(declLink.getAttribute('href')) ? declLink.getAttribute('href') : ORIGIN + declLink.getAttribute('href')) : null,
-            observations: cellText(idx.observations) || null,
+            observations: obs || null,
           });
         }
         const foot = norm((table.parentElement || doc.body || doc.documentElement).textContent).match(/\*\s*When no dates are specified[^.]*\./i);

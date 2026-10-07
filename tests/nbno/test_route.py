@@ -96,5 +96,15 @@ print("main(): text output ends with the route line")
 code, text, _ = run({"accessAllowedFrom": "NORWAY"}, 403, json_out=False)
 check("last line", text.strip().splitlines()[-1].split(" — ")[0], "route: norwegian-ip")
 
+print("nbsso_from_cookie_file(): the nbno_run.sh cookie file")
+import tempfile  # noqa: E402
+with tempfile.TemporaryDirectory() as d:
+    ck = Path(d) / "cookie.txt"
+    ck.write_text("authorization=\ncookie=nbsso=abc123; _nblb=lb9\n", encoding="utf-8")
+    check("nbsso pair", gc.nbsso_from_cookie_file(str(ck)), "nbsso=abc123")
+    ck.write_text("authorization=\ncookie=_nblb=lb9\n", encoding="utf-8")
+    check("no nbsso", gc.nbsso_from_cookie_file(str(ck)), None)
+    check("missing file", gc.nbsso_from_cookie_file(str(Path(d) / "nope.txt")), None)
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)

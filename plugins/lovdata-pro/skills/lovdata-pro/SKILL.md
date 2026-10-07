@@ -19,6 +19,8 @@ description: >
 
 # Lovdata Pro — rettspraksis og forarbeider
 
+**Første steg, før alle kommandoer:** finn `{SKILL_DIR}` som beskrevet under «Skill-katalogen» nedenfor, og bruk den utskrevne stien bokstavelig. Gjett den aldri (f.eks. `/mnt/skills/...`).
+
 Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
 tilpasses brukerens eget språk** (samme regel som i `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
@@ -205,6 +207,10 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   for hvor mye ett `javascript_tool`-svar tåler), hent den med `page(path, 0)`.
   Partene og prosessfullmektigene står ikke i brødteksten — de ligger i
   `metadata.Parter` (én linje per part).
+  **Avsnittsnumre** står som `(77)` i en egen tabellcelle (i teksten
+  `| (77) |`), ikke som «avsnitt 77». Finn avsnitt 77 med
+  `grep(path, "(77)", 600, 3)` — `term` er bokstavelig, så parentesene
+  trenger ingen escaping — og les videre med `page(path, offset)`.
 - **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
   (NOU 2022:8 har 708 seksjoner). Vis `toc` til brukeren eller velg selv
   relevante kapitler ut fra tittel/spørsmål. `grep(path, "søkeord")` finner
@@ -219,7 +225,9 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   tar (`Math.ceil(totalChars / 45000)`).
 
 **Skriv alltid det du skal sitere til fil først, og siter fra filen** — ikke
-fra samtalens korttidsminne av et tidligere `javascript_tool`-svar.
+fra samtalens korttidsminne av et tidligere `javascript_tool`-svar. Bruk
+`/mnt/user-data/outputs/<slug>-utdrag.md` (bash `>>`), og les den med Read før
+du siterer.
 
 Eksempler på JS-kall:
 

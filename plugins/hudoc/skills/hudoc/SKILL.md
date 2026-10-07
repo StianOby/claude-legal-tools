@@ -18,6 +18,8 @@ description: |
 
 # HUDOC — European Court of Human Rights case law
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill talks to `hudoc.echr.coe.int` to retrieve five things:
 
 1. **Search results** — filtered by case name, application number, article,

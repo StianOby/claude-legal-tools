@@ -20,6 +20,8 @@ description: >
 
 # Consilium Treaties Office database
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 The Council of the European Union's register of treaties and agreements to
 which the EU, EC, EEC, Euratom or the member states are party (2 363 records
 in September 2026). It is the authoritative source for the **EU side** of a
@@ -160,7 +162,7 @@ id, title, is_proces_verbal
 signature, signature_place, entry_into_force        # agreement level
 oj_references: [{text, url, oj:{series,year,issue,part}, eurlex_hint}]
 observations                                        # provisional application lives here
-parties: [{name, code, signature, signature_inherited, inherited_signature,
+parties: [{name, code, acceding, signature, signature_inherited, inherited_signature,
            notification, entry_into_force, entry_into_force_inherited,
            inherited_entry_into_force, has_declaration, declaration_url,
            observations}]
@@ -203,7 +205,10 @@ Follow them even when the user's phrasing pushes the other way.
    site's footnote: *when no dates are specified, the agreement-level
    "Entry into force" and "Signature" apply, except for acceding parties.*
    The helper marks these `signature_inherited` / `entry_into_force_inherited:
-   true`. Report the inherited date and say it is inherited.
+   true`. Report the inherited date and say it is inherited. `acceding: true`
+   (no signature, no notification, own entry into force, or "acceding" in the
+   observations) marks a party that joined by accession: it inherits no
+   signature date — say it acceded.
 5. **One Consilium record can cover several instruments.** `2007059`
    bundles four agreements that Norway's register lists as four treaties.
    When reconciling against a national register, compare titles, not counts.
@@ -252,6 +257,9 @@ All functions return `{error, detail}` rather than throwing:
 - `challenge` → Cloudflare page. Wait, retry `ready()` up to three times,
   then ask the user to reload the tab. Never work around it.
 - `wrong_origin` → the tab left the site; navigate back and load the helper again (step 3).
+- A browser tool says the tab is gone, or `tabs_context` lists no tabs → the pane was closed. Start over at step 1
+  (`preview_start`), load the helper again and run `ready()`. Results you already have stay valid; only the
+  helper's cache is lost.
 - `unknown_party` → show the `suggestions` to the user; do not search.
 - `ambiguous_code` → the code means something else on the site (`EC` =
   Ecuador). Show both `options`; rerun with the intended code or

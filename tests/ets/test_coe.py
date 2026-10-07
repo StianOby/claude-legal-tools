@@ -105,5 +105,32 @@ coe.refresh_index = failing_refresh
 (ref, t), note = quiet(coe.resolve_treaty, "005")
 check("failed refresh keeps the cached index", (ref, "using the cached index" in note), ("005", True))
 
+# The data service redirecting to the coe.int portal (2026-10-07) or answering
+# HTML is an outage, reported with the URL that was called, not followed.
+import urllib.request  # noqa: E402
+
+api_url = coe.API_BASE + "api/signatures?NumSte=210"
+req = urllib.request.Request(api_url)
+try:
+    coe._NoRedirect().redirect_request(req, None, 301, "Moved", {}, "http://www.coe.int/?NumSte=210")
+    got = None
+except coe.ServiceUnavailable as e:
+    got = (e.url, e.detail)
+check("redirect is ServiceUnavailable with the original URL", got,
+      (api_url, "HTTP 301 redirect to http://www.coe.int/?NumSte=210"))
+
+
+class FakeResponse(io.BytesIO):
+    headers = {"Content-Type": "text/html"}
+
+
+try:
+    coe._api_json(FakeResponse(b"<!doctype html><title>Portal</title>"), api_url)
+    got = None
+except coe.ServiceUnavailable as e:
+    got = e.detail
+check("HTML body is ServiceUnavailable", got, "answered text/html, not JSON")
+check("JSON body is parsed", coe._api_json(FakeResponse(b'{"a": 1}'), api_url), {"a": 1})
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)

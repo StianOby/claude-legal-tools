@@ -30,6 +30,9 @@ The work may be extensive and may run over several sessions. Use the .xlsx file 
 Each step of the workflow is explained in detail below.
 
 # 1) Startup
+
+**Before any command:** resolve `{SKILL_DIR}` ("Throughout these instructions, `{SKILL_DIR}` means …" below) and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`). The same holds for every skill this one calls.
+
 Verify that you have access to all the relevant tools:
 	- MCP servers:
 		- zoteus MCP (Zotero; tools named `zotero_*`). Call `zotero_whoami` and confirm it reports the Zotero desktop app as reachable — reading PDFs depends on it.

@@ -2,8 +2,8 @@
 """efta_court.py — fetch and search EFTA Court case law.
 
 Self-contained CLI with no required third-party dependencies for the basic
-flows. PDF text extraction uses `pypdf` if installed, otherwise the system
-`pdftotext` binary, otherwise it falls back to writing only the PDF.
+flows. PDF text extraction uses the system `pdftotext` binary if present,
+otherwise `pypdf`, otherwise it falls back to writing only the PDF.
 
 Cache layout (under the resolved cache dir):
 
@@ -793,7 +793,14 @@ def _choose_doc(docs: list[dict], doc_type: str, lang: str) -> dict | None:
 
 
 def extract_pdf_text(pdf: Path) -> str | None:
-    # Try pypdf first
+    # pdftotext (poppler) first: on the 1990s judgments pypdf splits words at
+    # irregular letter spacing ("statut ory", "intr a-EEA"; Cowork run 11).
+    if shutil.which("pdftotext"):
+        out = pdf.with_suffix(".txt")
+        subprocess.run(["pdftotext", str(pdf), str(out)], check=False)
+        if _has_content(out):
+            return _read(out)
+    # Then pypdf
     try:
         from pypdf import PdfReader  # type: ignore
     except ModuleNotFoundError:
@@ -804,14 +811,8 @@ def extract_pdf_text(pdf: Path) -> str | None:
             text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
             if text.strip():
                 return text
-        except Exception as e:  # corrupt / encrypted PDF — try the next backend
+        except Exception as e:  # corrupt / encrypted PDF
             print(f"[pdf] pypdf failed on {pdf.name}: {e}", file=sys.stderr)
-    # Fall back to pdftotext binary
-    if shutil.which("pdftotext"):
-        out = pdf.with_suffix(".txt")
-        subprocess.run(["pdftotext", "-layout", str(pdf), str(out)], check=False)
-        if _has_content(out):
-            return _read(out)
     return None
 
 

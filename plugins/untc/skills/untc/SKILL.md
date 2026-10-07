@@ -6,6 +6,8 @@ description: |
 
 # UN Treaty Collection (UNTC) skill
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill talks to `treaties.un.org` to download:
 
 1. **MTDSG status documents** — the authoritative consolidation of the

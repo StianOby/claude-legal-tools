@@ -23,6 +23,7 @@ expired nbsso cookie, so it is reported as that, not as "not Norwegian".
 Usage:
     python geo_check.py                       # anonymous view
     python geo_check.py --nbsso "nbsso=<v>"   # the user's own session
+    python geo_check.py --cookie <dir>/cookie.txt   # same, from nbno_run.sh's cookie file
     python geo_check.py --id digibok_2008051600041   # + accessInfo + tile probe
 
 Exit status: 0 normally; 3 when the tile probe was refused (403); 1 when
@@ -50,6 +51,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 import urllib.error
 import urllib.request
 from typing import Optional
@@ -143,17 +145,41 @@ def probe_tile(canonical: str, nbsso: Optional[str],
         return None
 
 
+def nbsso_from_cookie_file(path: str) -> Optional[str]:
+    """The `nbsso=<v>` pair from a cookie file ('cookie=nbsso=<v>; _nblb=<v>'
+    line, as nbno_run.sh reads it), or None."""
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        if not line.lower().startswith("cookie="):
+            continue
+        for part in line[len("cookie="):].split(";"):
+            if part.strip().startswith("nbsso="):
+                return part.strip()
+    return None
+
+
 def main(argv: Optional[list] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--nbsso", default=None,
                     help="nbsso=<value> cookie pair. Without it you see the "
                          "anonymous view, which can differ from the user's.")
+    ap.add_argument("--cookie", default=None, metavar="FILE",
+                    help="Cookie file in nbno_run.sh's format (a 'cookie=nbsso=...; "
+                         "_nblb=...' line); its nbsso pair is used as --nbsso.")
     ap.add_argument("--id", default=None,
                     help="Optional canonical id or URN — also prints that "
                          "item's accessInfo as this IP/session sees it.")
     ap.add_argument("--json", action="store_true",
                     help="Emit raw JSON instead of the human-readable summary.")
     args = ap.parse_args(argv)
+    if args.cookie and not args.nbsso:
+        args.nbsso = nbsso_from_cookie_file(args.cookie)
+        if not args.nbsso:
+            print(f"ERROR: no nbsso=... in {args.cookie}", file=sys.stderr)
+            return 1
 
     try:
         me = _get_json(ME_URL, args.nbsso)

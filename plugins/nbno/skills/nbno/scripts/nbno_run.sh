@@ -250,6 +250,11 @@ fi
 
 for pdf in "${PDFS[@]}"; do
   base="$(basename "$pdf")"
+  # A canvas range gets the same _c<N>-<M> suffix as zotero_book.py, so an
+  # excerpt never looks like (or overwrites) the whole item.
+  if [[ -n "$START" || -n "$STOP" ]]; then
+    base="${base%.pdf}_c${START:-1}-${STOP:-end}.pdf"
+  fi
   mv "$pdf" "$OUT/$base"
   # nbno embeds page images at 72 DPI, so pages come out poster-size (~1 m).
   # Rescale them to book size (same rule as zotero_book.py); failure is

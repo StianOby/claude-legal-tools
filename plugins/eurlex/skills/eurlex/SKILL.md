@@ -86,6 +86,13 @@ Long judgments exceed one `eurlex_fetch` call (default 20 000 chars, max
 large documents; then fetch by offset ranges and read paragraph numbers from
 the text itself.
 
+Some older judgments come back with **no** `Paragraph N` entries (the
+numbers stand alone on their own line, e.g. Google Spain, 62012CJ0131). Then
+estimate: fetch a small piece near the end to learn the last paragraph
+number and the total length, start at about
+`N / last_paragraph × total_chars` minus a few thousand characters, and step
+forward or back by the paragraph numbers you see until you have paragraph N.
+
 For legislation, `eurlex_structure` gives article offsets the same way;
 prefer `eurlex_consolidated` when the user wants what is in force, and
 report the `consolidation_date` alongside the quote.

@@ -207,6 +207,22 @@ test('parseDetail: empty agreement-level dates (2011036 shape) still flag inheri
   assert.strictEqual(at.inherited_signature, null);
 });
 
+test('parseDetail: an acceding party (own EIF, no signature, no notification) inherits no signature (EEA, run 11)', () => {
+  const html = DETAIL_HTML.replace(
+    '<tr><td><b>Not A Party Name</b>',
+    '<tr><td><b>Bulgaria</b></td><td data-sort-value=""></td><td data-sort-value=""></td><td data-sort-value="20070101000000000">01/01/2007</td><td></td><td></td></tr><tr><td><b>Not A Party Name</b>');
+  const r = I.parseDetail(doc(html), '2011036', INDEX);
+  const bg = r.parties.find((p) => p.name === 'Bulgaria');
+  assert.strictEqual(bg.acceding, true);
+  assert.strictEqual(bg.signature_inherited, false);
+  assert.strictEqual(bg.inherited_signature, undefined);
+  assert.strictEqual(bg.entry_into_force, '2007-01-01');
+  const at = r.parties.find((p) => p.name === 'Austria');
+  assert.strictEqual(at.acceding, false, 'a notifying party with an empty EIF is not acceding');
+  assert.strictEqual(at.signature_inherited, true);
+  assert.strictEqual(r.parties.find((p) => p.name === 'Czechia').acceding, true, '"acceding" in observations');
+});
+
 test('isChallengeHtml recognises the Cloudflare page', () => {
   assert.strictEqual(I.isChallengeHtml('<title>Just a moment...</title>'), true);
   assert.strictEqual(I.isChallengeHtml('<html><span id="challenge-error-text">x</span>'), true);

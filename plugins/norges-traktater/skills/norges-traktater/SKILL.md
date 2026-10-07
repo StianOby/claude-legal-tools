@@ -18,6 +18,8 @@ description: >
 
 # Norges traktater — Lovdatas traktatregister
 
+**Første steg, før alle kommandoer:** finn `{SKILL_DIR}` som beskrevet under «Skill-katalogen» nedenfor, og bruk den utskrevne stien bokstavelig. Gjett den aldri (f.eks. `/mnt/skills/...`).
+
 Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
 tilpasses brukerens eget språk** (samme regel som `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
@@ -592,6 +594,12 @@ Bruk standard juridisk siteringsform:
 3. Vær presis: Norge kan ha undertegnet uten å ha ratifisert.
 
 ### Bruker spør «hvilke traktater har Norge med X?»
+
+**Omfang:** svaret dekker avtaler der X står som motpart i registeret
+(partsfilteret) eller er nevnt i tittelen — bilaterale avtaler og nordiske/
+regionale avtaler med X i tittelen. Multilaterale konvensjoner der X bare er
+én av mange parter (FN-, Europaråds-konvensjoner o.l.) kommer **ikke** med;
+si det i svaret, og bruk `untc`/`ets` hvis brukeren vil ha dem.
 
 1. `countries X` først — er motparten i det hele tatt i nedtrekkslisten?
 2. `search("", {country: "X", max: 50})` (norsk landnavn). Legg til

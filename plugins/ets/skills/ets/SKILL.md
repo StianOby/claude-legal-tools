@@ -21,6 +21,8 @@ description: |
 
 # Council of Europe Treaty Office (ETS / CETS) skill
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill talks to the Treaty Office's React-portlet backend at
 `conventions-ws.coe.int` — the same JSON API the public site
 [`coe.int/en/web/conventions/full-list`](https://www.coe.int/en/web/conventions/full-list)
@@ -90,6 +92,14 @@ once `index.json` is cached every download is one HTTP hop on
 Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
 sure to have the user's IP and logins. `conventions-ws.coe.int` and `rm.coe.int` have worked from the cloud so far; if
 it answers 403/405 from `Bash`, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
+
+**Exit code 7, `TREATY OFFICE DATA SERVICE UNAVAILABLE`:** an outage on the Council of Europe's side. The data
+service redirects to the coe.int portal (seen 2026-10-07 from every IP), and coe.int's own treaty pages, which use
+the same service, stay on "Loading..." then. It is not an IP block: tell the user the Treaty Office's data service
+is down and to try later. If it stays down, check whether it has moved: the treaty pages under
+`coe.int/en/web/conventions/` (e.g. Full list) set `window.conventions_api_url` and `conventions_api_key`; a new
+value there means `API_BASE`/`API_TOKEN` in `scripts/coe.py` must be updated. Cached treaties still work. For Norway's own status, `norges-traktater` is an alternative; for treaties
+deposited with the UN, `untc`.
 
 ## How to use
 

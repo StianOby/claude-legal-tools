@@ -17,6 +17,8 @@ description: |
 
 # EFTA Court — Case Law Lookup
 
+**First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
+
 This skill talks to `eftacourt.int` to find and download case law from the
 EFTA Court — the court that interprets the EEA Agreement for the three EFTA
 states inside the EEA (Iceland, Liechtenstein, Norway).
@@ -279,7 +281,10 @@ or the list number if there is no date. `get` prints the path; use that.
 ### When you present an EFTA Court case to the user
 
 1. Always give the **case number** and the **case title** (parties).
-2. Quote judgment paragraphs from the cached `.txt`, never from memory.
+2. Quote judgment paragraphs from the cached `.txt`, never from memory. Text
+   extracted from the older PDFs (1990s) can split words at odd letter
+   spacing ("statut ory", "intr a-EEA"): join such fragments when quoting,
+   and if a word is unclear, check it in the PDF rather than guessing.
    EFTA Court judgments are paragraph-numbered — keep the numbering when
    quoting (e.g. *Holship*, para 90).
 3. Cite using the form: *Case E-14/15 Holship Norge AS v Norsk

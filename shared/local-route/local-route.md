@@ -23,15 +23,22 @@ The three places work can run:
 The skill says when: lovdata-api always (Lovdata blocks the cloud), nbno
 when `geo_check.py` prints `route: norwegian-ip` or `norwegian-ip+loan`.
 
-1. Load the local-shell tools
-   with **one** ToolSearch call:
+Do this **before** any step that needs the user's time — a login, a loan,
+a cookie — so they are not asked for those and then told it cannot run.
+
+1. Load the local-shell tools with **one** ToolSearch call:
    `select:mcp__remote-devices__device_bash,mcp__remote-devices__device_request_folder_access,mcp__remote-devices__device_stage_files`.
    They are deferred, so they are usually *not* in your tool list, and a keyword search (`device_bash`) can miss them — always use
    `select:`.
 2. No `device_bash` → stop with message **A** (section 5).
-3. `device_bash` present → find the connected folder (section 3). None →
+3. `device_bash` present but its call fails with "The device this session is
+   bound to is not connected to the bridge" (the desktop app is closed or
+   asleep) → retry **once**; if it fails again or the remote-devices tools
+   disappear, stop with message **A**.
+4. `device_bash` works → find the connected folder (section 3). None →
    if a `device_request_folder_access` tool exists, use it to ask the user to
-   connect one, then look again; otherwise stop with message **B**.
+   connect one, then look again. The user declines, or there is no such
+   tool → stop with message **B**.
    (`device_bash` itself refuses to run with "No folders are connected …"
    until there is one.)
 
@@ -57,9 +64,11 @@ The local shell does not have the skill's files, so every run copies them in.
    each printed command into `device_bash` in order. This copies the files
    through the commands themselves: slower and costly for big skills, so it
    is the fallback. Tell the user it will take a few calls.
-4. Do not keep a copy of the scripts in the connected folder or reuse an old
-   `<dir>`: a fresh copy per run keeps the version exact and leaves nothing
-   writable for anything else to change.
+4. Within one conversation, keep using the same `<dir>` for every call (the
+   `.ready` check tells you if it vanished). Never keep a copy of the scripts
+   in the connected folder, and never reuse a `<dir>` from an earlier
+   conversation: a fresh copy per conversation keeps the version exact and
+   leaves nothing writable for anything else to change.
 
 ## 3. Run, and where files go
 
@@ -122,6 +131,10 @@ user's**.
 - Leave file deletion in the connected folder switched off (the default).
 
 ## 5. Messages — use these exact words
+
+Give the message **verbatim and on its own** (translated into the user's
+language if they write in another one). No paraphrase, no menu of
+alternatives, no workaround offers: the next step is the user's.
 
 - **A** (no `device_bash`): "This item/source is blocked from Anthropic's
   cloud and needs your computer's connection. Open the Claude desktop app and
