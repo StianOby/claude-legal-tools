@@ -16,7 +16,7 @@
       "plugin": "ets",
       "path": "plugins/ets/skills/ets/data/index.json",
       "source": "https://www.coe.int/en/web/conventions — api/traites/search (full treaty list)",
-      "last_refreshed": "2026-09-12",
+      "last_refreshed": "2026-10-14",
       "refresh": "d=$(mktemp -d) && ETS_CACHE_DIR=$d python3 plugins/ets/skills/ets/scripts/coe.py index --refresh && cp \"$d/index.json\" plugins/ets/skills/ets/data/index.json"
     },
     {
