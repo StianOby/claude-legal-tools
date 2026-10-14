@@ -350,9 +350,28 @@ def save_index(root, idx):
     (root / "index.json").write_text(json.dumps(idx, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+README_TXT = """\
+NEM-vedtak – lokal kopi / local copy
+
+Denne mappen er en lokal kopi av NEMs vedtak fra forskningsetikk.no, laget av
+nem-vedtak-skillen (https://github.com/StianOby/claude-legal-tools). Koble til
+den samme mappen (eller en mappe over den) i Claude neste gang, så brukes og
+oppdateres denne kopien i stedet for at det lages en ny. Vedtakene ligger som
+tekstfiler i vedtak/ og kan leses i en hvilken som helst editor.
+
+This folder is a local copy of NEM's decisions from forskningsetikk.no, made by
+the nem-vedtak skill. Connect this same folder (or a folder above it) in Claude
+next time, and this copy is reused and updated instead of a new one being made.
+The decisions are plain-text files in vedtak/.
+"""
+
+
 def cmd_sync(a):
     root = Path(a.dir)
     (root / "vedtak").mkdir(parents=True, exist_ok=True)
+    readme = root / "README.txt"
+    if not readme.exists() or readme.read_text(encoding="utf-8") != README_TXT:
+        readme.write_text(README_TXT, encoding="utf-8")
     deadline = time.time() + a.time_budget
     idx = load_index(root)
     ved = idx["vedtak"]

@@ -138,6 +138,7 @@ with tempfile.TemporaryDirectory() as d:
     check("sync ok", out.strip().splitlines()[-1].startswith("OK: 2 decisions"), True)
     idx = json.loads((Path(d) / "index.json").read_text(encoding="utf-8"))
     check("index slugs", sorted(idx["vedtak"]), sorted([A, B]))
+    check("README.txt written", (Path(d) / "README.txt").read_text(encoding="utf-8"), nem.README_TXT)
     meta, _ = nem.read_md(Path(d) / "vedtak" / "2026-052_faktoranalyse-av-core-om.md")
     check("facets in front matter", (meta["utfall"], meta["emneord"], meta["prinsipper"]),
           (["Klager gis ikke medhold"], ["Samtykke"], ["Selvbestemmelsesprinsippet"]))

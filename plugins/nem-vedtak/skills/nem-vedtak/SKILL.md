@@ -42,15 +42,25 @@ cloud copy: it would download the whole corpus again every session. Settle
 this once per conversation, before the first search:
 
 1. **Is there a copy already?** Load the local-shell tools
-   ([`local-route.md`](local-route.md) §1, step 1). If `device_bash` works
-   and a connected folder holds `nem-vedtak/index.json`
-   (`ls "$HOME"/mnt/*/nem-vedtak/index.json`), use that copy without asking:
-   set up as in "The local copy" below and run `sync`.
+   ([`local-route.md`](local-route.md) §1, step 1). If `device_bash` works,
+   look for a copy anywhere in the connected folders, not just at their top
+   level (the user may have connected a parent or a sibling of the folder
+   used last time):
+   ```bash
+   timeout 30 find "$HOME"/mnt -maxdepth 5 -path '*/nem-vedtak/index.json' -printf '%T@ %h\n' 2>/dev/null | sort -rn | cut -d' ' -f2-
+   ```
+   Each line is a copy's folder, most recently synced first. Use the first
+   one without asking (set up as in "The local copy" below, with `--dir`
+   that folder, and run `sync`); if there are several, say where the others
+   are.
 2. **Otherwise ask** before searching. For example: "Shall I keep a local copy
    of all NEM decisions (about 3 MB, roughly 15 seconds) in a folder on your
    computer? It stays between sessions, allows exact-phrase searches, and
    shows each decision's outcome, keywords and principles. It needs a
-   connected folder (e.g. Claude-legal-work)."
+   connected folder (e.g. Claude-legal-work). If you already have a copy
+   from an earlier conversation, connect that folder instead, and I'll use
+   it." If the user then connects a folder, run the search in step 1 again
+   before making a new copy.
    - **Yes** → "The local copy" below; the local route asks for a folder
      if none is connected.
    - **No**, or the user cannot connect a folder after local-route message
@@ -100,12 +110,13 @@ stderr; say there is more than one.
    connected folder and `READY <dir>`. If it stops with message A or B,
    give the message and let the user act; if they then cannot or will not
    connect, there is no search (see "Start here").
-2. The copy goes in **`<connected folder>/nem-vedtak/`**. Start every call
+2. The copy is the one found in "Start here" step 1; a new copy goes in
+   **`<connected folder>/nem-vedtak/`**. Call that the copy folder. Start every call
    with `test -f <dir>/.ready || exit 4;` and call the script by its
    absolute path with `PYTHONUTF8=1`.
 3. Run `sync` at the first use in each conversation:
    ```bash
-   test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/nem.py sync --dir "<connected folder>/nem-vedtak"
+   test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/nem.py sync --dir "<copy folder>"
    ```
    A first sync takes about 15 s (234 pages plus the filter lists); later
    ones fetch only decisions whose sitemap date changed, and refresh the
@@ -116,6 +127,7 @@ stderr; say there is more than one.
 
 The copy: `vedtak/<YYYY-NNN>_<slug>.md` (one file per decision, front matter
 plus text, readable by the user in any editor), `index.json` (all metadata),
+`README.txt` (says what the folder is and to connect it again next time),
 and `pdf/` only for a decision whose text exists only as a PDF (none today;
 its text is then extracted with `pdftotext`). Files are never deleted: a
 decision that disappears from the site is marked `"removed": true` in
