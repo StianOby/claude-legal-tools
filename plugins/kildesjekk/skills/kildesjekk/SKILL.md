@@ -438,6 +438,8 @@ If there is something you cannot find, write "source unavailable" in the "checke
 # 15) Sources not found with the tools
 If you are unable to find a source after having gone through all the steps above (and used all the tools), enter "source unavailable" in the "checked" column. This applies in particular to non-Norwegian books, journal articles, working papers, and other literature where Zotero is the only available tool: if the item is not in Zotero, mark it "source unavailable". **Do not be afraid to do this – it is *very important* that you only check against *original sources* using *only* the tools defined above.**
 
+**Optional niche skills.** The same repo has skills for niche sources that are not part of kildesjekk and not required for it — currently /nem-vedtak (decisions of NEM, Den nasjonale forskningsetiske komité for medisin og helsefag). If "source unavailable" rows cite such a source, end the chat report with a short "Other tools" note: which rows, which skill, and that it can check them on request if installed (it is less tested with kildesjekk). Use it only when the user explicitly asks.
+
 # 16) Final verification
 Verify that no row has checked = "no". For any that remain, attempt one final lookup using the appropriate tool from §§5–14. If the source still cannot be retrieved, set checked = "source unavailable" and explain in description which tools were tried.
 

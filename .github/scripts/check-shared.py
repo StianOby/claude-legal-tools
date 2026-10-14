@@ -15,8 +15,8 @@ from pathlib import Path
 
 # canonical file -> (plugins that carry it, path inside plugins/<p>/skills/<p>/)
 SHARED = {
-    "shared/local-route/local-route.md": (["nbno", "lovdata-api"], "local-route.md"),
-    "shared/local-route/pack_for_local.sh": (["nbno", "lovdata-api"], "scripts/pack_for_local.sh"),
+    "shared/local-route/local-route.md": (["nbno", "lovdata-api", "nem-vedtak"], "local-route.md"),
+    "shared/local-route/pack_for_local.sh": (["nbno", "lovdata-api", "nem-vedtak"], "scripts/pack_for_local.sh"),
     "shared/browser-paste/paste.py": (
         ["eu-agreements-treaties", "hudoc", "lovdata-pro", "nbno", "norges-traktater"],
         "scripts/browser/paste.py",

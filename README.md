@@ -19,6 +19,14 @@ These skills each connect Claude to a single legal database. Install the ones yo
 | [`norges-traktater`](plugins/norges-traktater/skills/norges-traktater/README.md) | Norway's treaty register |
 | [`untc`](plugins/untc/skills/untc/README.md) | UN Treaty Collection — treaty texts and ratification status |
 
+## Niche retrieval skills
+
+Skills for sources that matter only in specialised fields. They are less tested than the skills above, and no workflow skill requires them; install them if you work in that field.
+
+| Skill | What it does |
+|---|---|
+| [`nem-vedtak`](plugins/nem-vedtak/skills/nem-vedtak/README.md) | Appeal decisions of NEM (Den nasjonale forskningsetiske komité for medisin og helsefag), with an optional local full-text copy for phrase search |
+
 ## Research workflow skills
 
 These skills orchestrate the document retrieval skills above to carry out broader academic research tasks. To use them, install both the workflow skill and all the retrieval skills it depends on. Click the skill name in the table below to open its README file.

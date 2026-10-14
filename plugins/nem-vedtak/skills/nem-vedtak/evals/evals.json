@@ -1,0 +1,26 @@
+{
+  "skill_name": "nem-vedtak",
+  "evals": [
+    {
+      "id": 1,
+      "name": "live-single-decision",
+      "prompt": "Hva kom NEM til i sak 2021/169 (Psychopharm Young)? Gi meg utfallet og et ordrett sitat fra NEMs vurdering.",
+      "expected_output": "Looks the decision up live (no full download): NEM 2021/169, Legemiddelbehandling av barn og unge med psykiske lidelser i Norge (Psychopharm Young), first instance REK sør-øst D; the outcome as stated in the Vedtak section; at least one verbatim quote labelled as from 'NEMs vurdering'; the forskningsetikk.no URL. Ends by telling the user that a local copy would add phrase search and facets such as utfall and emneord.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "phrase-search-local-copy",
+      "prompt": "I'm writing on delayed publication of research results. Which NEM decisions discuss 'utsatt offentlighet', and what did NEM decide in each?",
+      "expected_output": "Sets up the local copy (local route into the connected folder, or the cloud fallback with a warning that it is temporary), runs an exact phrase search and finds the decisions that actually contain the phrase (2013/99 'Klage over avslag på søknad om utsatt offentlighet', 2014/169 'Reindriftas hverdag', 2024/135 'CRUX1', and the 2013/99 ME/CFS decision, as of 2026-10), each with saksnr, title, outcome and URL. Does not report the ~69 loose hits the website's own search gives.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "facet-filter",
+      "prompt": "List all NEM decisions where the appeal against REK nord succeeded (medhold) and consent (samtykke) was an issue.",
+      "expected_output": "Uses the local copy with --forsteinstans 'REK nord', --utfall 'medhold' (stating whether partial medhold is included) and an emneord or text filter for samtykke; lists saksnr, title, exact outcome and URL for each; notes that untagged decisions could be missed by facet filters.",
+      "files": []
+    }
+  ]
+}

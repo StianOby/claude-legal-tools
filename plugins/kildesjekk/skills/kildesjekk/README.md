@@ -83,6 +83,12 @@ For the skill to work you need:
 All skills are available in this repository. Install them alongside kildesjekk
 (see below).
 
+**Optional, not required:** niche skills such as
+[`nem-vedtak`](../nem-vedtak/README.md) (NEM's research-ethics decisions).
+Kildesjekk does not use them by itself. If the text cites such a source, the
+end-of-run report says which skill could check those references, and it is
+used only if you ask.
+
 `eu-agreements-treaties`, `nbno` and the `lovdata-pro` fallbacks need Claude
 Desktop's built-in browser, so those steps of the source check run only in
 Cowork. Kildesjekk reports at startup which tools are missing and stops before

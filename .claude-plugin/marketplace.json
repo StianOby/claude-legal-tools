@@ -125,6 +125,18 @@
       ]
     },
     {
+      "name": "nem-vedtak",
+      "source": "./plugins/nem-vedtak",
+      "description": "NEM's appeal decisions in medical and health research ethics, with an optional local full-text copy",
+      "category": "legal-research",
+      "keywords": [
+        "nem",
+        "research-ethics",
+        "helseforskningsloven",
+        "rek"
+      ]
+    },
+    {
       "name": "norges-traktater",
       "source": "./plugins/norges-traktater",
       "description": "Norway's treaty register",
