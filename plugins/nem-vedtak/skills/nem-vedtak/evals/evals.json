@@ -5,14 +5,14 @@
       "id": 1,
       "name": "live-single-decision",
       "prompt": "Hva kom NEM til i sak 2021/169 (Psychopharm Young)? Gi meg utfallet og et ordrett sitat fra NEMs vurdering.",
-      "expected_output": "Before any lookup, asks whether to keep a local copy in a connected folder (or uses an existing one); if the user declines, looks the decision up live in the cloud. Finds NEM 2021/169, Legemiddelbehandling av barn og unge med psykiske lidelser i Norge (Psychopharm Young), first instance REK sør-øst D; the outcome as stated in the Vedtak section; at least one verbatim quote labelled as from 'NEMs vurdering'; the forskningsetikk.no URL. If live, mentions once that outcome/keywords are not shown, without repeating the local-copy offer.",
+      "expected_output": "Looks the decision up live in the cloud without asking about or building a local copy. Finds NEM 2021/169, Legemiddelbehandling av barn og unge med psykiske lidelser i Norge (Psychopharm Young), first instance REK sør-øst D; the outcome as stated in the Vedtak section; at least one verbatim quote labelled as from 'NEMs vurdering'; the forskningsetikk.no URL. May mention once that a local copy adds outcome/keyword facets and phrase search.",
       "files": []
     },
     {
       "id": 2,
       "name": "phrase-search-local-copy",
       "prompt": "I'm writing on delayed publication of research results. Which NEM decisions discuss 'utsatt offentlighet', and what did NEM decide in each?",
-      "expected_output": "Sets up the local copy (local route into the connected folder, or the cloud fallback with a warning that it is temporary), runs an exact phrase search and finds the decisions that actually contain the phrase (2013/99 'Klage over avslag på søknad om utsatt offentlighet', 2014/169 'Reindriftas hverdag', 2024/135 'CRUX1', and the 2013/99 ME/CFS decision, as of 2026-10), each with saksnr, title, outcome and URL. Does not report the ~69 loose hits the website's own search gives.",
+      "expected_output": "Asks whether to keep a local copy (or uses an existing one in a connected folder); sets it up via the local route (on 'no', says the search needs a local copy and offers single-decision lookups instead; never builds a copy in the cloud), runs an exact phrase search and finds the decisions that actually contain the phrase (2013/99 'Klage over avslag på søknad om utsatt offentlighet', 2014/169 'Reindriftas hverdag', 2024/135 'CRUX1', and the 2013/99 ME/CFS decision, as of 2026-10), each with saksnr, title, outcome and URL. Does not report the ~69 loose hits the website's own search gives.",
       "files": []
     },
     {

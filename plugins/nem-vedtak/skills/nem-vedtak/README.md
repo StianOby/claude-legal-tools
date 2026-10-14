@@ -12,12 +12,13 @@ computer (about 3 MB of Markdown, roughly 15 seconds) and search them with
 exact phrases, regular expressions and filters: outcome, keyword (emneord),
 research-ethics principle, statute, REK, institution and year.
 
-In Cowork, Claude first asks whether to keep the copy in a connected folder
+A single decision you can name (case number, title or link) is always
+fetched live from the site, with no copy. For searches across decisions,
+Claude in Cowork first asks whether to keep the copy in a connected folder
 (`<connected folder>/nem-vedtak/`, through the local shell), so it persists
-between sessions and you can open the files yourself. If you would rather
-not connect a folder, Claude falls back to the cloud: single decisions are
-fetched live, and searches use a temporary copy in the cloud sandbox that is
-lost when the session ends.
+between sessions and you can open the files yourself. Searching across
+decisions needs this copy; without a connected folder, only single
+decisions can be looked up.
 
 This is a niche tool. `kildesjekk` does not need it; install it if you work
 with research ethics.

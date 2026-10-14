@@ -1,7 +1,7 @@
 ---
 name: nem-vedtak
 description: |
-  NEM-vedtak: use when the user needs decisions from NEM — Den nasjonale forskningsetiske komité for medisin og helsefag, the appeal body for REK decisions under helseforskningsloven — from forskningsetikk.no. Triggers: NEM-vedtak, NEM-sak, a NEM saksnr (NEM 2021/169, 2022-32), "klage på REK-vedtak", "hva har NEM sagt om dispensasjon fra taushetsplikten / samtykke / sårbare grupper / utsatt offentlighet", "NEM practice on hfl. § 35", "NEM decisions where the appellant won", or a forskningsetikk.no/…/sok-i-nems-vedtak/ link. Covers all ~234 appeal decisions since 2009: full text, outcome, REK, institution, keywords, research-ethics principles, statutes. Works from a local copy on the user's computer (asks first) with phrase/regex search and filters the site lacks; live cloud lookup is the fallback. Do NOT use for: REK's own decisions; the other national research ethics committees (NENT, NESH, Granskingsutvalget); Norwegian statutes (lovdata-api); court decisions (lovdata-pro).
+  NEM-vedtak: use when the user needs decisions from NEM — Den nasjonale forskningsetiske komité for medisin og helsefag, the appeal body for REK decisions under helseforskningsloven — from forskningsetikk.no. Triggers: NEM-vedtak, NEM-sak, a NEM saksnr (NEM 2021/169, 2022-32), "klage på REK-vedtak", "hva har NEM sagt om dispensasjon fra taushetsplikten / samtykke / sårbare grupper / utsatt offentlighet", "NEM practice on hfl. § 35", "NEM decisions where the appellant won", or a forskningsetikk.no/…/sok-i-nems-vedtak/ link. Covers all ~234 appeal decisions since 2009: full text, outcome, REK, institution, keywords, research-ethics principles, statutes. One known decision is fetched live; searches use a local copy on the user's computer (asks first) with phrase/regex search and filters the site lacks. Do NOT use for: REK's own decisions; the other national research ethics committees (NENT, NESH, Granskingsutvalget); Norwegian statutes (lovdata-api); court decisions (lovdata-pro).
 ---
 
 # NEM-vedtak — NEM's appeal decisions
@@ -26,43 +26,53 @@ Otherwise resolve it once and use the printed path literally in later commands:
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/nem-vedtak}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/nem-vedtak/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```
 
-## Start here: local copy first, cloud as fallback
+## Start here: which route
 
-The preferred way to work is a **local copy** of all decisions in a folder on
-the user's computer, even for a single decision. Settle this once per
-conversation, before the first lookup:
+**One known decision** (a saksnr, title or link; its text, outcome, a quote,
+the PDF) → **look it up live** with `get` / `pdf` in the cloud sandbox
+(`Bash`, "Live lookups" below). No local copy, no cache, no question —
+even if a local copy exists. If title words do not give one clear match
+(no hit, or several plausible decisions), treat the request as a search
+across decisions (below).
+
+**Anything across decisions** ("what has NEM said about X", a phrase, all
+decisions with a given outcome, keyword, principle, statute, REK, institution
+or year) → **local copy** in a folder on the user's computer. There is no
+cloud copy: it would download the whole corpus again every session. Settle
+this once per conversation, before the first search:
 
 1. **Is there a copy already?** Load the local-shell tools
    ([`local-route.md`](local-route.md) §1, step 1). If `device_bash` works
    and a connected folder holds `nem-vedtak/index.json`
    (`ls "$HOME"/mnt/*/nem-vedtak/index.json`), use that copy without asking:
    set up as in "The local copy" below and run `sync`.
-2. **Otherwise ask**, before looking anything up. For example: "Shall I keep a
-   local copy of all NEM decisions (about 3 MB, roughly 15 seconds) in a folder
-   on your computer? It stays between sessions, allows exact-phrase searches,
-   and shows each decision's outcome, keywords and principles. It needs a
+2. **Otherwise ask** before searching. For example: "Shall I keep a local copy
+   of all NEM decisions (about 3 MB, roughly 15 seconds) in a folder on your
+   computer? It stays between sessions, allows exact-phrase searches, and
+   shows each decision's outcome, keywords and principles. It needs a
    connected folder (e.g. Claude-legal-work)."
    - **Yes** → "The local copy" below; the local route asks for a folder
      if none is connected.
-   - **No**, or it can't be set up (local-route message A or B) → **cloud
-     fallback**. (After message A or B, wait for the user before falling
-     back.) Do not ask again in this conversation.
+   - **No**, or the user cannot connect a folder after local-route message
+     A or B → say that searching across decisions needs the local copy, and
+     offer live lookups of decisions they can name. Do not run the search
+     some other way (no cloud copy, no looping over live lookups), and do not
+     ask again in this conversation.
 
-| Mode | Runs in | Use |
+| Route | Runs in | Use |
 |---|---|---|
-| Local copy: `sync`, `search`, `get`, `facets`, `pdf` | **local shell** (`device_bash`, the local route), in `<connected folder>/nem-vedtak/` — persists | everything |
-| Cloud fallback, one decision: `get`, `pdf` without `--dir` | cloud sandbox (`Bash`), live from the site | a known decision (saksnr, title, link) |
-| Cloud fallback, across decisions: `sync` + `search` | cloud sandbox, in `/mnt/user-data/outputs/nem-vedtak` — **lost when the session ends**; say so | "what has NEM said about X", phrases, filters |
+| Live: `get`, `pdf` without `--dir` | cloud sandbox (`Bash`), straight from the site | one known decision — always |
+| Local copy: `sync`, `search`, `facets`, `get --dir` | **local shell** (`device_bash`, the local route), in `<connected folder>/nem-vedtak/` — persists | searches across decisions |
 
-A live `get` ends with a note on what a local copy adds. The user has
-already chosen, so do not repeat the offer; just say once that outcome,
-keywords and principles are not shown live.
+A live `get` ends with a note on what a local copy adds. Pass it on as one
+sentence the first time in a conversation, unless the user has already
+declined a local copy; never repeat it.
 
 forskningsetikk.no has not blocked any client so far. If it answers 403/405
-from `Bash`, say "This source is blocked from Anthropic's cloud"; then only
-the local copy works.
+from `Bash`, say "This source is blocked from Anthropic's cloud"; then run
+live lookups and searches through the local route instead.
 
-## Live lookups (cloud fallback)
+## Live lookups (one known decision)
 
 ```bash
 python3 {SKILL_DIR}/scripts/nem.py get "NEM 2021/169"          # saksnr (2021/169, 2022-32 …)
@@ -89,7 +99,7 @@ stderr; say there is more than one.
 1. Follow [`local-route.md`](local-route.md) to get `device_bash`, a
    connected folder and `READY <dir>`. If it stops with message A or B,
    give the message and let the user act; if they then cannot or will not
-   connect, use the cloud fallback (see "Start here").
+   connect, there is no search (see "Start here").
 2. The copy goes in **`<connected folder>/nem-vedtak/`**. Start every call
    with `test -f <dir>/.ready || exit 4;` and call the script by its
    absolute path with `PYTHONUTF8=1`.
