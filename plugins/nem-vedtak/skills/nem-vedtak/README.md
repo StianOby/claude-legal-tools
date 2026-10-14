@@ -10,13 +10,14 @@ The site's own search ignores quotation marks, so it cannot do phrase searches.
 This skill can therefore download **all** decisions into a folder on your
 computer (about 3 MB of Markdown, roughly 15 seconds) and search them with
 exact phrases, regular expressions and filters: outcome, keyword (emneord),
-research-ethics principle, statute, REK, institution and year. Single
-decisions can also be fetched live, with no download.
+research-ethics principle, statute, REK, institution and year.
 
-In Cowork the copy goes to `<connected folder>/nem-vedtak/` through the
-local shell, so it persists between sessions and you can open the files
-yourself. Without a connected folder, Claude can build a temporary copy in
-the cloud sandbox, which is lost when the session ends.
+In Cowork, Claude first asks whether to keep the copy in a connected folder
+(`<connected folder>/nem-vedtak/`, through the local shell), so it persists
+between sessions and you can open the files yourself. If you would rather
+not connect a folder, Claude falls back to the cloud: single decisions are
+fetched live, and searches use a temporary copy in the cloud sandbox that is
+lost when the session ends.
 
 This is a niche tool. `kildesjekk` does not need it; install it if you work
 with research ethics.

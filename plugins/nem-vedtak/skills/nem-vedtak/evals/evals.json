@@ -5,7 +5,7 @@
       "id": 1,
       "name": "live-single-decision",
       "prompt": "Hva kom NEM til i sak 2021/169 (Psychopharm Young)? Gi meg utfallet og et ordrett sitat fra NEMs vurdering.",
-      "expected_output": "Looks the decision up live (no full download): NEM 2021/169, Legemiddelbehandling av barn og unge med psykiske lidelser i Norge (Psychopharm Young), first instance REK sør-øst D; the outcome as stated in the Vedtak section; at least one verbatim quote labelled as from 'NEMs vurdering'; the forskningsetikk.no URL. Ends by telling the user that a local copy would add phrase search and facets such as utfall and emneord.",
+      "expected_output": "Before any lookup, asks whether to keep a local copy in a connected folder (or uses an existing one); if the user declines, looks the decision up live in the cloud. Finds NEM 2021/169, Legemiddelbehandling av barn og unge med psykiske lidelser i Norge (Psychopharm Young), first instance REK sør-øst D; the outcome as stated in the Vedtak section; at least one verbatim quote labelled as from 'NEMs vurdering'; the forskningsetikk.no URL. If live, mentions once that outcome/keywords are not shown, without repeating the local-copy offer.",
       "files": []
     },
     {
