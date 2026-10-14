@@ -25,7 +25,7 @@ Skills for sources that matter only in specialised fields. They are less tested 
 
 | Skill | What it does |
 |---|---|
-| [`nem-vedtak`](plugins/nem-vedtak/skills/nem-vedtak/README.md) | Appeal decisions of NEM (Den nasjonale forskningsetiske komité for medisin og helsefag), with an optional local full-text copy for phrase search |
+| [`nem-vedtak`](plugins/nem-vedtak/skills/nem-vedtak/README.md) | NEM-vedtak: appeal decisions of NEM (Den nasjonale forskningsetiske komité for medisin og helsefag), with an optional local full-text copy for phrase search |
 
 ## Research workflow skills
 

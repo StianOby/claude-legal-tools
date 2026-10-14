@@ -1,4 +1,4 @@
-# nem-vedtak
+# NEM-vedtak
 
 Lets Claude look up and search the appeal decisions of **NEM** (Den nasjonale
 forskningsetiske komité for medisin og helsefag), published at

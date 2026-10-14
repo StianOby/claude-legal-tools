@@ -1,7 +1,7 @@
 {
   "name": "nem-vedtak",
-  "version": "0.1.0",
-  "description": "NEM's appeal decisions in medical and health research ethics (forskningsetikk.no), with an optional local full-text copy",
+  "version": "0.1.1",
+  "description": "NEM-vedtak: appeal decisions of NEM in medical and health research ethics (forskningsetikk.no), with an optional local full-text copy",
   "author": {
     "name": "Stian Øby Johansen",
     "url": "https://github.com/StianOby"
