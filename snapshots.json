@@ -8,7 +8,7 @@
       "path": "plugins/untc/skills/untc/cache/index.json",
       "source": "https://treaties.un.org/Pages/Treaties.aspx (MTDSG chapter pages I–XXIX)",
       "count_key": "treaties",
-      "last_refreshed": "2026-09-08",
+      "last_refreshed": "2026-10-14",
       "refresh": "d=$(mktemp -d) && UNTC_CACHE_DIR=$d python3 plugins/untc/skills/untc/scripts/untc.py index --refresh && cp \"$d/index.json\" plugins/untc/skills/untc/cache/index.json"
     },
     {
