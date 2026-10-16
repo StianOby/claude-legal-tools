@@ -33,8 +33,8 @@ ingen innlogging trengs. Ikke prøv lovdata.no fra `Bash`, ikke gå rundt hjelpe
 foreslå VPN.
 
 **Skill-katalogen (`{SKILL_DIR}`)** trengs bare for å lage innlimingskopien (steg 3 under). Bruk stien etter
-«Base directory for this skill:» hvis den finnes i bash. Ellers finn den én gang og bruk den utskrevne stien
-bokstavelig:
+«Base directory for this skill:» bare til å lese filer: shellet ser ofte ikke den stien. Kjør alltid dette
+én gang og bruk den utskrevne stien bokstavelig:
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/norges-traktater}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/norges-traktater/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```

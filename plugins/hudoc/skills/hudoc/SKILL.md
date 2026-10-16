@@ -57,8 +57,8 @@ directory (`{SKILL_DIR}`, below). The cache is *not* in the skill folder: it liv
 Every `fetch` prints the absolute `path` of the file it wrote — use that
 rather than guessing.
 
-**Skill directory (`{SKILL_DIR}`).** Use the path after "Base directory for this skill:" if it exists in bash.
-Otherwise resolve it once and use the printed path literally in later commands:
+**Skill directory (`{SKILL_DIR}`).** Always run this once before the first command, even when "Base directory for this skill:" is given: that path works for reading files, but the shell often cannot see it.
+Use the printed path literally in later commands:
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/hudoc}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/hudoc/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```

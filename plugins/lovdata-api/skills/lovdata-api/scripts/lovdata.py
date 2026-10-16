@@ -552,7 +552,9 @@ def find_text(index: dict, query: str, *, only: str | None = None,
 
     Treffer en bestemmelse når hvert ord i `query` står i teksten (som
     delstreng, uten hensyn til store/små bokstaver), eller hele `query`
-    ordrett med phrase=True. Søker i lovene (NL); forskriftene bare med
+    ordrett med phrase=True. `|` betyr ELLER innenfor et ord
+    («forsinkelsesrente|morarente tvangsgrunnlag»), og med phrase=True
+    mellom hele uttrykk. Søker i lovene (NL); forskriftene bare med
     include_sf, siden de er sju ganger så mange filer. `only` er en
     indeksnøkkel som begrenser søket til ett dokument.
 
@@ -561,9 +563,16 @@ def find_text(index: dict, query: str, *, only: str | None = None,
     {dokid, title, titleShort, provision, snippet, exact, count}.
     """
     q = re.sub(r"\s+", " ", query.strip().lower())
-    if not q:
+    q = re.sub(r" ?\| ?", "|", q).strip("|")
+    # Hvert ledd må treffe; et ledd treffer når ett av alternativene står i teksten.
+    terms = [[a for a in t.split("|") if a] for t in ([q] if phrase else q.split(" "))]
+    terms = [t for t in terms if t]
+    if not terms:
         return []
-    words = [q] if phrase else q.split(" ")
+
+    def matches(text: str) -> bool:
+        return all(any(a in text for a in alts) for alts in terms)
+
     if only:
         paths = [only]
     else:
@@ -578,25 +587,27 @@ def find_text(index: dict, query: str, *, only: str | None = None,
         except OSError:
             continue
         low = content.lower()
-        if not all(w in low for w in words):
+        if not matches(low):
             continue  # billig forhåndsfilter før teksten deles opp
         starts = list(_PROVISION_START.finditer(content))
         for i, m in enumerate(starts):
             end = starts[i + 1].start() if i + 1 < len(starts) else len(content)
             text = _plain(content[m.start():end])
             tl = text.lower()
-            if not all(w in tl for w in words):
+            if not matches(tl):
                 continue
-            pos = tl.find(q) if q in tl else tl.find(words[0])
-            a, b = max(0, pos - 120), min(len(text), pos + len(q) + 160)
+            exact = "|" not in q and q in tl
+            shown = q if exact else next(a for a in terms[0] if a in tl)
+            pos = tl.find(shown)
+            a, b = max(0, pos - 120), min(len(text), pos + len(shown) + 160)
             hits.append({
                 "dokid": meta["dokid"],
                 "title": meta["title"],
                 "titleShort": meta.get("titleShort", ""),
                 "provision": m.group(1),
                 "snippet": ("…" if a else "") + text[a:b] + ("…" if b < len(text) else ""),
-                "exact": q in tl,
-                "count": tl.count(q) if q in tl else sum(tl.count(w) for w in words),
+                "exact": exact,
+                "count": tl.count(q) if exact else sum(tl.count(a) for t in terms for a in t),
             })
     hits.sort(key=lambda h: (not h["exact"], not h["dokid"].startswith("NL/"), -h["count"]))
     return hits
@@ -830,6 +841,22 @@ def cmd_search(args, state: dict):
         print()
 
 
+def find_scope_hint(index: dict, query: str, raw: str) -> str:
+    """Hint når andre argument til `find` ikke er et dokument.
+
+    Det andre argumentet er dokumentet det søkes i, ikke et ord til; det er en
+    lett feil å skrive `find "renter" "tvangsgrunnlag"`.
+    """
+    words = f"{query} {raw}".replace('"', "")
+    lines = [f"Det andre argumentet er loven/forskriften det søkes i, ikke et søkeord til. "
+             f"Mente du: find \"{words}\"?"]
+    docs = search_index(index, raw)
+    if docs:
+        lines.append(f"Eller søke i et av disse dokumentene (find \"{query}\" <DokID>):")
+        lines += [f"  {r['dokid']} — {r['title']}" for r in docs[:5]]
+    return "\n".join(lines)
+
+
 def cmd_find(args, state: dict):
     """Fulltekstsøk i bestemmelsene."""
     index = _load_index()
@@ -839,6 +866,8 @@ def cmd_find(args, state: dict):
         if not only:
             print(f"Dokument ikke funnet: {args.dokid}" + (f" — {problem}" if problem else ""),
                   file=sys.stderr)
+            if not problem:
+                print(find_scope_hint(index, args.query, args.dokid), file=sys.stderr)
             sys.exit(1)
     hits = find_text(index, args.query, only=only, include_sf=args.sf,
                      nynorsk=args.nn, phrase=args.phrase)
@@ -928,7 +957,7 @@ def main():
     p_search.add_argument("query", help="Søkeord (tittel eller dokid)")
 
     p_find = subparsers.add_parser("find", help="Fulltekstsøk i bestemmelsene")
-    p_find.add_argument("query", help="Ord som alle skal stå i bestemmelsen")
+    p_find.add_argument("query", help="Ord som alle skal stå i bestemmelsen; a|b = a eller b")
     p_find.add_argument("dokid", nargs="?", help="Søk bare i dette dokumentet (DokID, LOV-…, aml …)")
     p_find.add_argument("--phrase", action="store_true", help="Søk etter hele uttrykket ordrett")
     p_find.add_argument("--sf", action="store_true", help="Ta med forskriftene (tregere)")

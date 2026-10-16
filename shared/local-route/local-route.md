@@ -30,15 +30,23 @@ a cookie — so they are not asked for those and then told it cannot run.
    `select:mcp__remote-devices__device_bash,mcp__remote-devices__device_request_folder_access,mcp__remote-devices__device_stage_files`.
    They are deferred, so they are usually *not* in your tool list, and a keyword search (`device_bash`) can miss them — always use
    `select:`.
-2. No `device_bash` → stop with message **A** (section 5).
+   If the `select:` query returns nothing (no error, just no tools), the
+   remote-devices tools are not switched on for this conversation yet: call
+   the `enable__mcp__remote-devices__…` tool if one is in your tool list
+   (search `enable remote-devices` if unsure), then run the same `select:`
+   query again.
+2. Still no `device_bash` → stop with message **A** (section 5).
 3. `device_bash` present but its call fails with "The device this session is
    bound to is not connected to the bridge" (the desktop app is closed or
    asleep) → retry **once**; if it fails again or the remote-devices tools
    disappear, stop with message **A**.
 4. `device_bash` works → find the connected folder (section 3). None →
    if a `device_request_folder_access` tool exists, use it to ask the user to
-   connect one, then look again. The user declines, or there is no such
-   tool → stop with message **B**.
+   connect one, then look again. Right before the request, tell the user why
+   in one line, with message **B**'s second and third sentences: the folder
+   is needed only because the local shell will not start without one, and
+   nothing is written there unless they asked for a file. The user declines,
+   or there is no such tool → stop with message **B**.
    (`device_bash` itself refuses to run with "No folders are connected …"
    until there is one.)
 
@@ -50,7 +58,10 @@ cannot change the cloud sandbox's IP.
 The local shell does not have the skill's files, so every run copies them in.
 
 1. In `Bash`, run
-   `bash {SKILL_DIR}/scripts/pack_for_local.sh {SKILL_DIR}`.
+   `bash {SKILL_DIR}/scripts/pack_for_local.sh`
+   (`{SKILL_DIR}` as the skill's own snippet printed it — not the "Base
+   directory for this skill:" path, which the shell often cannot see; the
+   script finds the skill from its own location).
    It prints **one command**. Paste it into `device_bash` unchanged.
 2. The local shell downloads the scripts from the skill's public GitHub
    repository and checks every file against the sha256 of the copy in the
@@ -60,7 +71,7 @@ The local shell does not have the skill's files, so every run copies them in.
    shell variables and `cd` do not carry from one call to the next.
 3. Exit 3 with `MISMATCH` means GitHub has moved on from the installed
    version (or is unreachable). Then run
-   `bash {SKILL_DIR}/scripts/pack_for_local.sh --bundle {SKILL_DIR}` and paste
+   `bash {SKILL_DIR}/scripts/pack_for_local.sh --bundle` and paste
    each printed command into `device_bash` in order. This copies the files
    through the commands themselves: slower and costly for big skills, so it
    is the fallback. Tell the user it will take a few calls.
@@ -140,6 +151,8 @@ alternatives, no workaround offers: the next step is the user's.
   cloud and needs your computer's connection. Open the Claude desktop app and
   make sure local access is enabled, then try again."
 - **B** (no connected folder): "Connect a folder (e.g. Claude-legal-work) so
-  I can run this step on your computer."
+  I can run this step on your computer. The local shell only starts once a
+  folder is connected. Nothing is written there unless you asked for a file
+  (such as a download)."
 - **C** (no OCR tools locally): "Downloaded the PDF, but OCR tools aren't
   available on the local side, so the PDF has no text layer."

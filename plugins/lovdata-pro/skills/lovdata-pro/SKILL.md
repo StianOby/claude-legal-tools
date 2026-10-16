@@ -37,8 +37,8 @@ Du har tilgang til to hjelpescript:
 - `scripts/browser/lovdata_pro.js` — limes inn i browser-fanen via
   `javascript_tool`. Gjør selve hentingen, seksjoneringen og søket.
 
-**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
-i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+**Skill-katalogen (`{SKILL_DIR}`).** Kjør alltid dette én gang før første kommando, også når «Base directory for this skill:» er oppgitt: den stien virker for å lese filer, men shellet ser den ofte ikke.
+Bruk den utskrevne stien bokstavelig i senere kommandoer:
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/lovdata-pro}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/lovdata-pro/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```

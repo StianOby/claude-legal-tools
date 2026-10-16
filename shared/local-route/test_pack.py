@@ -68,6 +68,16 @@ try:
         check("files copied", (r / "scripts" / "a.py").read_bytes() == b"print('a')\n")
         check(".ready written", (r / ".ready").exists())
 
+    print("no skill_dir argument: found from the script's own location")
+    shutil.rmtree(home / ".clt")
+    shutil.copy(PACK, skill / "scripts" / "pack_for_local.sh")
+    out = bash(f'bash "{posix(skill)}/scripts/pack_for_local.sh"', env=env, cwd=tmp)
+    check("pack exits 0", out.returncode == 0, out.stderr)
+    res = bash(out.stdout, env=env)
+    check("local side exits 0", res.returncode == 0, res.stdout + res.stderr)
+    check("prints READY under demo-", "/.clt/demo-" in res.stdout, res.stdout)
+    (skill / "scripts" / "pack_for_local.sh").unlink()
+
     print("github mode, repo moved on (hash mismatch)")
     out = bash(f'bash "{posix(PACK)}" "{posix(skill)}"', env=env)
     (skill / "scripts" / "a.py").write_bytes(b"print('changed upstream')\n")

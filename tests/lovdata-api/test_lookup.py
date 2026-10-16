@@ -163,6 +163,25 @@ check("restricted to one document",
       [h["provision"] for h in lovdata.find_text(index, "art", only="nl/nl-19990521-030.xml")],
       ["emkn/a8", "emkn/a9", "emkn/p1/a1"])
 
+print("find: | means OR")
+provs = lambda q, **kw: sorted(h["provision"] for h in lovdata.find_text(index, q, **kw))
+check("either word", provs("deltid|oppfølgingsplan"), ["§14-3", "§4-6"])
+check("spaces around | are ignored", provs("deltid | oppfølgingsplan"), ["§14-3", "§4-6"])
+check("OR term combined with AND", provs("deltid|oppfølgingsplan fortrinnsrett"), ["§14-3"])
+check("OR with no match in either", provs("morarente|forsinkelsesrente"), [])
+check("phrase alternatives", provs("utvidet stilling|tankefrihet", phrase=True),
+      ["emkn/a9", "§14-3"])
+check("no OR query is ranked as exact",
+      any(h["exact"] for h in lovdata.find_text(index, "deltid|oppfølgingsplan")), False)
+check("stray | is ignored", provs("|deltid|"), ["§14-3"])
+
+print("find: second argument that is not a document")
+hint = lovdata.find_scope_hint(index, "renter", "tvangsgrunnlag")
+check("suggests one query with both words", 'find "renter tvangsgrunnlag"' in hint, True)
+check("no document list when nothing matches", "DokID" in hint, False)
+hint = lovdata.find_scope_hint(index, "deltid", "arbeidsmiljø")
+check("lists documents the word matches", "NL/lov/2005-06-17-62" in hint, True)
+
 if failures:
     print("\n%d failure(s)" % len(failures))
     sys.exit(1)

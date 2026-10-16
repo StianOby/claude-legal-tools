@@ -22,9 +22,8 @@ Dette ferdighetsdokumentet er på norsk, men **svaret til brukeren skal alltid
 tilpasses brukerens eget språk** (se Språkregler nedenfor).
 
 Du har tilgang til Lovdatas offisielle datapakker via et hjelpescript i
-`scripts/lovdata.py` (se Ferdighetskatalogens base dir). Merk: legg merke til
-"Base directory for this skill:" i starten av dette dokumentet — det er samme
-katalog som `scripts/lovdata.py` ligger i.
+`{SKILL_DIR}/scripts/lovdata.py`. Det kjøres i det lokale shellet, som får en
+kopi av skriptene (se «Ruting»).
 
 ---
 
@@ -109,8 +108,8 @@ lagrede pakker i `state.json`. Hvis oppdateringer finnes, lastes de ned og
 ekstraheres automatisk (~6 MB lover + ~21 MB forskrifter, daglig oppdatert).
 Første gang tar det lenger tid; påfølgende kjøringer er raske hvis intet er endret.
 
-**Skill-katalogen (`{SKILL_DIR}`).** Bruk stien etter «Base directory for this skill:» hvis den finnes
-i bash. Ellers finn den én gang og bruk den utskrevne stien bokstavelig i senere kommandoer:
+**Skill-katalogen (`{SKILL_DIR}`).** Kjør alltid dette én gang før første kommando, også når «Base directory for this skill:» er oppgitt: den stien virker for å lese filer, men shellet ser den ofte ikke.
+Bruk den utskrevne stien bokstavelig i senere kommandoer:
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/lovdata-api}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/lovdata-api/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```
@@ -149,6 +148,14 @@ python3 <dir>/scripts/lovdata.py find "rimelig tid" --phrase
 python3 <dir>/scripts/lovdata.py find "oppfølgingsplan" aml        # bare i én lov
 python3 <dir>/scripts/lovdata.py find "personopplysninger" --sf    # også forskriftene
 ```
+
+Det andre argumentet er dokumentet det søkes i (DokID eller korttittel),
+**ikke** et søkeord til: flere ord står i samme anførselstegn
+(`find "renter tvangsgrunnlag"`, ikke `find "renter" "tvangsgrunnlag"`).
+
+`|` betyr ELLER, nyttig for synonymer: `find "forsinkelsesrente|morarente tvangsgrunnlag"`
+treffer bestemmelser med (forsinkelsesrente eller morarente) og tvangsgrunnlag.
+Med `--phrase` skiller `|` hele uttrykk: `find "rimelig tid|uten ugrunnet opphold" --phrase`.
 
 Gir én linje per paragraf (lov, §, DokID) med et utdrag. En bestemmelse
 treffer når *alle* ordene står i den, som delstrenger («deltid» treffer

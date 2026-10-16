@@ -7,8 +7,10 @@
 # plugin that uses the local route carries an identical copy (CI checks it).
 #
 # Usage:
-#   bash pack_for_local.sh <skill_dir>            # GitHub + sha256 check (default)
-#   bash pack_for_local.sh --bundle <skill_dir>   # fallback: base64 copy
+#   bash <skill_dir>/scripts/pack_for_local.sh              # GitHub + sha256 check (default)
+#   bash <skill_dir>/scripts/pack_for_local.sh --bundle     # fallback: base64 copy
+# <skill_dir> is found from the script's own location; passing it as a last
+# argument still works.
 #
 # Default mode prints ONE command. The local shell downloads the scripts from
 # the public repo and checks each file against the sha256 of the copy synced
@@ -28,7 +30,8 @@ LIMIT=1000000
 
 mode=github
 if [ "${1:-}" = "--bundle" ]; then mode=bundle; shift; fi
-dir="${1:?usage: pack_for_local.sh [--bundle] <skill_dir>}"
+# Default: the skill this copy of the script belongs to (<skill_dir>/scripts/).
+dir="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 dir="${dir%/}"
 [ -f "$dir/SKILL.md" ] || { echo "pack_for_local: no SKILL.md in $dir" >&2; exit 2; }
 skill=$(basename "$dir")
