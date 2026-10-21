@@ -1,0 +1,527 @@
+[
+ {
+  "itemType": "bill",
+  "title": "Ny minerallov",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Minerallovutvalget"
+   }
+  ],
+  "billNumber": "8",
+  "code": "NOU",
+  "date": "2022-07-01",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Forslag fra stortingsrepresentantene Erna Solberg, Annelise Høegh og Harald Ellefsen om å endre lov om markedsføring",
+  "billNumber": "8:49",
+  "code": "Dokument",
+  "legislativeBody": "Stortinget",
+  "session": "1991–1992",
+  "date": "1992-09-18",
+  "url": "https://lovdata.no/pro/#document/REPFOR/forarbeid/dok8-49-199192",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Nærings- og fiskeridepartementet"
+   }
+  ],
+  "billNumber": "71 L",
+  "code": "Prop.",
+  "legislativeBody": "Stortinget",
+  "session": "2024–2025",
+  "date": "2025-03-28",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Om lov om tillegg til rettergangslovgivningen når det gjelder folkerettslig immunitet",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Justis- og politidepartementet"
+   }
+  ],
+  "billNumber": "23",
+  "code": "Ot.prp. nr.",
+  "legislativeBody": "Odelstinget",
+  "session": "1961–1962",
+  "date": "1962-01-05",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Innstilling frå den utvida justisnemnda om lov om odelsretten og åsetesretten",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Justisnemnda"
+   }
+  ],
+  "billNumber": "60",
+  "code": "Innst. O. nr.",
+  "legislativeBody": "Odelstinget",
+  "session": "1973–1974",
+  "date": "1974-05-22",
+  "url": "https://lovdata.no/pro/#document/INNST/forarbeid/inns-o-60-197374",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Justis- og politidepartementet"
+   }
+  ],
+  "billNumber": "3",
+  "code": "Ot.prp. nr.",
+  "legislativeBody": "Odelstinget",
+  "session": "1998–1999",
+  "date": "1998-10-09",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Om lov om endringer i lov av 21 mai 1971 nr 47 om brannfarlige varer samt væsker og gasser under trykk",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Kommunal- og regionaldepartementet"
+   }
+  ],
+  "billNumber": "87",
+  "code": "Ot.prp. nr.",
+  "legislativeBody": "Odelstinget",
+  "session": "1997–1998",
+  "date": "1998-09-25",
+  "url": "https://lovdata.no/pro/#document/PROP/forarbeid/otprp-87-199798",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Om tilbaketrekking av deler av Ot.prp. nr. 2 (2006–2007) Om lov om endringer i folketrygdloven og i enkelte andre lover",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Arbeids- og inkluderingsdepartementet"
+   }
+  ],
+  "billNumber": "1",
+  "code": "Ot.meld. nr.",
+  "legislativeBody": "Odelstinget",
+  "session": "2006–2007",
+  "date": "2006-11-10",
+  "url": "https://lovdata.no/pro/#document/OTMELD/forarbeid/otmeld-1-200607",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Endringer i matloven mv. (forskriftshjemmel for å fremme helse)",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Helse- og omsorgsdepartementet"
+   }
+  ],
+  "billNumber": "120 L",
+  "code": "Prop.",
+  "legislativeBody": "Stortinget",
+  "session": "2023–2024",
+  "date": "2024-09-20",
+  "url": "https://lovdata.no/pro/#document/PROP/forarbeid/prop-120-l-202324",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Innstilling fra valgkomiteen om endringer i de faste komiteers sammensetning",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Valgkomiteen"
+   }
+  ],
+  "billNumber": "450 S",
+  "code": "Innst.",
+  "legislativeBody": "Stortinget",
+  "session": "2023–2024",
+  "date": "2024-06-14",
+  "url": "https://lovdata.no/pro/#document/INNST/forarbeid/inns-450-s-202324",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Grunnlovsforslag fra Peter Frølich og Audun Lysbakken om endring i § 90 (om dommerutnevnelser)",
+  "billNumber": "12:39",
+  "code": "Dokument",
+  "legislativeBody": "Stortinget",
+  "session": "2023–2024",
+  "date": "2024-09-30",
+  "url": "https://lovdata.no/pro/#document/GLFOR/forarbeid/dok12-39-202324",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Innstilling fra næringskomiteen om Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Næringskomiteen"
+   }
+  ],
+  "billNumber": "521 L",
+  "code": "Innst.",
+  "legislativeBody": "Stortinget",
+  "session": "2024–2025",
+  "date": "2025-06-03",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "bill",
+  "title": "Representantforslag fra stortingsrepresentantene Lars Haltbrekken og Grete Wold om berging av Oslofjorden",
+  "billNumber": "8:269 S",
+  "code": "Dokument",
+  "legislativeBody": "Stortinget",
+  "session": "2024–2025",
+  "date": "2025-04-10",
+  "url": "https://lovdata.no/pro/#document/REPFOR/forarbeid/representantforslag-269-202425",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Et bedre personvern – forslag til lov om behandling av personopplysninger",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Personregisterlovutvalget"
+   }
+  ],
+  "billNumber": "19",
+  "code": "NOU",
+  "date": "1997-05-27",
+  "url": "https://lovdata.no/pro/#document/NOU/forarbeid/nou-1997-19",
+  "shortTitle": "Et bedre personvern",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Forskrift om medlemspremie i pensjonstrygden for fiskere for 2013",
+  "creators": [
+   {
+    "creatorType": "sponsor",
+    "name": "Arbeidsdepartementet"
+   }
+  ],
+  "billNumber": "PRE-2012-12-14-1289",
+  "code": "Statsrådsforedrag",
+  "legislativeBody": "Kongen i statsråd",
+  "date": "2012-12-14",
+  "url": "https://lovdata.no/pro/#document/PRE/forarbeid/pre-2012-12-14-1289",
+  "language": "no"
+ },
+ {
+  "itemType": "bill",
+  "title": "Innstilling om ombudsmannskontroll med kommunalforvaltningen",
+  "billNumber": "1",
+  "code": "NUT",
+  "date": "1966-09-28",
+  "url": "https://lovdata.no/pro/#document/NOU/forarbeid/nut-1966-1",
+  "language": "no"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "Convention implementing the Schengen Agreement of 14 June 1985 between the Governments of the States of the Benelux Economic Union, the Federal Republic of Germany and the French Republic on the gradual abolition of checks at their common borders",
+  "code": "EUT 2000 L",
+  "dateEnacted": "26/03/1995",
+  "pages": "239/19",
+  "url": "http://data.europa.eu/eli/convention/2000/922/oj",
+  "accessDate": "2026-06-09T21:42:24Z",
+  "shortTitle": "Convention implementing the Schengen Agreement",
+  "language": "en",
+  "extra": "type: treaty\navailable-date: 1990-06-19"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "om medisinsk og helsefaglig forskning",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Stortinget"
+   }
+  ],
+  "abstractNote": "Helse- og omsorgsrett\nSkoler, universiteter og forskning ► Helseforskning",
+  "code": "Lov",
+  "codeNumber": "44",
+  "dateEnacted": "2008-06-20",
+  "shortTitle": "helseforskningsloven",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "book",
+  "title": "Agreement on the European Economic Area: A Commentary",
+  "creators": [
+   {
+    "creatorType": "editor",
+    "firstName": "Finn",
+    "lastName": "Arnesen"
+   },
+   {
+    "creatorType": "editor",
+    "firstName": "Halvard Haukeland",
+    "lastName": "Fredriksen"
+   },
+   {
+    "creatorType": "editor",
+    "firstName": "Hans Petter",
+    "lastName": "Graver"
+   },
+   {
+    "creatorType": "editor",
+    "firstName": "Ola",
+    "lastName": "Mestad"
+   },
+   {
+    "creatorType": "editor",
+    "firstName": "Christoph",
+    "lastName": "Vedder"
+   }
+  ],
+  "abstractNote": "The provisions of the Agreement on the European Economic Area (EEA) determine the relations of the EFTA States Norway, Iceland and Liechtenstein with the EU and its Member States. On the basis of EEA, these three countries are largely integrated into the single market of the EU. The EEA is also discussed as a possible model for the EU and UK relations after the Brexit.\n\nArticle by article, the new commentary outlines the importance of the EEA for legal practice, including all extensive annexes and protocols. There is also included both the essential secondary law of EEA and cross-links to EU law. Moreover, the commentary involves the current status of EEA law in Norway, Iceland and Liechtenstein, taking legislation and jurisprudence into account.\n\nThe commentary focuses on the EEA rules on free movement of goods, movement of persons, services, capital, transport policy and competition law. In addition, the commentary intensively discusses the responsibilities and procedures of both the European Surveillance Authority and EFTA Court and the complementary agreement between Norway, Iceland and Liechtenstein.",
+  "date": "2018",
+  "publisher": "Nomos",
+  "ISBN": "978-3-8452-7579-6",
+  "DOI": "10.5771/9783845275796",
+  "url": "https://www.nomos-elibrary.de/index.php?doi=10.5771/9783845275796",
+  "accessDate": "2018-10-30T12:18:28Z",
+  "shortTitle": "Agreement on the European Economic Area",
+  "language": "en",
+  "libraryCatalog": "Crossref"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "Avtale mellom Norge og Sverige om Den nye Svinesundsforbindelsen",
+  "publicLawNumber": "Overenskomster med fremmede stater 2015, s. 302",
+  "dateEnacted": "2015-10-30",
+  "url": "https://lovdata.no/pro/TRAKTAT/traktat/2015-07-02-13",
+  "accessDate": "2026-02-10",
+  "extra": "Type: treaty\navailable-date: 2015-07-02"
+ },
+ {
+  "itemType": "case",
+  "caseName": "Rt. 2000 s. 1811 (Finanger I)",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Høyesterett"
+   }
+  ],
+  "abstractNote": "En passasjer ble skadet i bilulykke der bilføreren hadde vært alkoholpåvirket. Passasjeren visste at føreren var påvirket. Etter bilansvarsloven § 7 tredje ledd bokstav b tilkommer passasjeren da normalt ikke erstatning. Etter uttalelse fra EFTA-domstolen ble lagt til grunn at en ordning med erstatningsbortfall lik den som var etablert i bilansvarsloven § 7, var uforenlig med EØS-retten. Høyesterett la likevel til grunn at § 7 måtte følges da det var en lovgiversak å bringe loven i overensstemmelse med EØS-retten. Dissens 10-5. - Krav etter bilens passasjerulykkesforsikring ble redusert med 30% på grunn av passasjerens grove uaktsomhet, jfr. forsikringsavtaleloven § 13-9. Dissens 8-7. - Plenumssak.",
+  "court": "Norges Høyesterett",
+  "dateDecided": "2000-11-16",
+  "docketNumber": "Sak nr. 55/1999",
+  "reporter": "Rt.",
+  "reporterVolume": "2000",
+  "firstPage": "1811",
+  "history": "Frostating lagmannsrett LF-1998-997 A (se også EFTA-domstolens rådgivende uttalelse 699EJ0001) - Høyesterett HR-2000-49-B, nr. 55/1999.",
+  "shortTitle": "Finanger I",
+  "language": "nb-NO",
+  "extra": "Rt. 2000 s. 1811 (Finanger I)"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "om organisering av medisinsk og helsefaglig forskning",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Helse- og omsorgsdepartementet"
+   }
+  ],
+  "code": "Forskrift",
+  "codeNumber": "955",
+  "publicLawNumber": "FOR-2009-07-01-955",
+  "dateEnacted": "2009-07-01",
+  "language": "nb-NO",
+  "extra": "type:regulation"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "til mineralloven",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Nærings- og fiskeridepartementet"
+   }
+  ],
+  "code": "Forskrift",
+  "codeNumber": "1842",
+  "publicLawNumber": "FOR-2009-12-23-1842",
+  "dateEnacted": "2009-12-23",
+  "extra": "type:regulation"
+ },
+ {
+  "itemType": "case",
+  "caseName": "RG 1966 s. 1",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Mandal byrett"
+   }
+  ],
+  "court": "Mandal byrett",
+  "dateDecided": "1965-05-13",
+  "reporter": "RG",
+  "reporterVolume": "1966",
+  "firstPage": "1"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "om mineralvirksomhet og forvaltning av mineralressurser",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Stortinget"
+   }
+  ],
+  "code": "Lov",
+  "codeNumber": "107",
+  "dateEnacted": "2025-06-20",
+  "shortTitle": "mineralloven"
+ },
+ {
+  "itemType": "case",
+  "caseName": "LG-2008-135938 (Tomt i LNF-område)",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Gulating Lagmannsrett"
+   }
+  ],
+  "abstractNote": "Kjøper (profesjonell eiendomsutvikler) trakk seg fra avtale om kjøp av tomt før skriftlig kontrakt var inngått. Han fant ut at selger (forbruker) ikke hadde opplyst om at eiendommen faktisk lå i et LNF-område, over byfjellsgrensen og at det ikke ville bli gitt byggetillatelse på tomten. Lagmannsretten fant, som tingretten, at det forelå mangler ved eiendommen. Kjøper kunne forvente, utfra tomtens størrelse, den pris som ble forespeilet og det bud som ikke ble akseptert, at tomten kunne bebygges. De manglende opplysningene om tomten utgjorde en mangel ved eiendomen som virket inn på avtalen. Mangelen innebærte et vesentlig avtalebrudd og ga kjøper rett til å heve, jf. avhendingslova § 4-14 første ledd. Det var følgelig ikke grunnlag for selger til å rette krav mot kjøper for ikke å ha oppfylt avtalen. (Sammendrag ved Lovdata.)",
+  "court": "Gulating lagmannsrett",
+  "dateDecided": "2009-06-22",
+  "docketNumber": "LG-2008-135938",
+  "history": "Bergen tingrett TBERG-2007-170926 - Gulating lagmannsrett LG-2008-135938 (08-135938ASD-GULA/AVD2).",
+  "shortTitle": "Tomt i LNF-område",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "case",
+  "caseName": "HR-2016-2554-P (Holship Norge mot Norges Transportarbeiderforbund)",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Høyesterett"
+   }
+  ],
+  "court": "Norges Høyesterett",
+  "dateDecided": "2016-12-16",
+  "docketNumber": "HR-2016-2554-P",
+  "shortTitle": "Holship",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway",
+  "publicLawNumber": "EUT L 93/40",
+  "dateEnacted": "2001-04-01",
+  "url": "http://data.europa.eu/eli/agree_internation/2001/258/oj",
+  "accessDate": "2026-01-27T18:19:30Z",
+  "shortTitle": "Dublin-tilknytningsavtalen",
+  "language": "English",
+  "extra": "type:treaty\navailable-date:2001-01-19"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "Avtale om opprettelse av Nordisk Patentinstitutt",
+  "creators": [
+   {
+    "creatorType": "author",
+    "name": "Norge"
+   },
+   {
+    "creatorType": "author",
+    "name": "Danmark"
+   },
+   {
+    "creatorType": "author",
+    "name": "Island"
+   }
+  ],
+  "publicLawNumber": "Overenskomster med fremmede stater 2011, s. 507",
+  "dateEnacted": "2007-12-28",
+  "url": "https://lovdata.no/pro/TRAKTAT/traktat/2006-07-05-9",
+  "extra": "type: treaty\navailable-date: 2006-07-05"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "United Nations Convention on the Law of the Sea",
+  "code": "UNTS",
+  "codeNumber": "1833",
+  "dateEnacted": "1994-11-16",
+  "pages": "3",
+  "url": "http://treaties.un.org/doc/Publication/UNTS/Volume%201833/volume-1833-A-31363-English.pdf",
+  "accessDate": "2011-10-04T14:25:29Z",
+  "shortTitle": "UNCLOS",
+  "language": "English",
+  "extra": "type:treaty\navailable-date:1982-12-10"
+ },
+ {
+  "itemType": "statute",
+  "nameOfAct": "Convention for the Protection of Human Rights and Fundamental Freedoms",
+  "publicLawNumber": "ETS No. 5",
+  "dateEnacted": "1953-09-03",
+  "shortTitle": "ECHR",
+  "language": "English",
+  "extra": "type:treaty\navailable-date:1950-11-04"
+ },
+ {
+  "itemType": "book",
+  "title": "Frihagens forvaltningsrett",
+  "creators": [
+   {
+    "creatorType": "author",
+    "firstName": "Jan Fridthjof",
+    "lastName": "Bernt"
+   },
+   {
+    "creatorType": "author",
+    "firstName": "Ørnulf",
+    "lastName": "Rasmussen"
+   }
+  ],
+  "volume": "1",
+  "edition": "2",
+  "date": "2010",
+  "publisher": "Fagbokforlaget",
+  "language": "nb-NO"
+ },
+ {
+  "itemType": "book",
+  "title": "EØS-rett",
+  "creators": [
+   {
+    "creatorType": "author",
+    "firstName": "Halvard Haukeland",
+    "lastName": "Fredriksen"
+   },
+   {
+    "creatorType": "author",
+    "firstName": "Gjermund",
+    "lastName": "Mathisen"
+   }
+  ],
+  "edition": "3",
+  "date": "2018",
+  "publisher": "Fagbokforlaget",
+  "place": "Bergen",
+  "language": "nb-NO"
+ }
+]

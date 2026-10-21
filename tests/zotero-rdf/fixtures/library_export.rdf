@@ -1,0 +1,129 @@
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns:z="http://www.zotero.org/namespaces/export#"
+ xmlns:foaf="http://xmlns.com/foaf/0.1/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:prism="http://prismstandard.org/namespaces/1.2/basic/"
+ xmlns:bib="http://purl.org/net/biblio#"
+ xmlns:dcterms="http://purl.org/dc/terms/">
+    <bib:Legislation rdf:about="#item_1">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Minerallovutvalget</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:relation rdf:resource="#item_5"/>
+        <dc:subject>NOU</dc:subject>
+        <dc:title>Ny minerallov</dc:title>
+        <prism:number>8</prism:number>
+        <z:code>NOU</z:code>
+        <dc:date>2022-07-01</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/PROP/forarbeid/prop-120-l-202324">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Helse- og omsorgsdepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Proposisjon</dc:subject>
+        <dc:title>Endringer i matloven mv. (forskriftshjemmel for å fremme helse)</dc:title>
+        <prism:number>120 L</prism:number>
+        <z:code>Prop.</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2023–2024</z:session>
+        <dc:date>2024-09-20</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/PROP/forarbeid/prop-120-l-202324</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Document rdf:about="#item_3">
+        <z:itemType>case</z:itemType>
+        <dcterms:isPartOf>
+            <bib:CourtReporter>
+                <prism:number>Sak nr. 55/1999</prism:number>
+                <dc:title>Rt.</dc:title>
+                <prism:volume>2000</prism:volume>
+            </bib:CourtReporter>
+        </dcterms:isPartOf>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Høyesterett</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>Rt. 2000 s. 1811 (Finanger I)</dc:title>
+        <dcterms:abstract>En passasjer ble skadet i bilulykke der bilføreren hadde vært alkoholpåvirket. Passasjeren visste at føreren var påvirket. Etter bilansvarsloven § 7 tredje ledd bokstav b tilkommer passasjeren da normalt ikke erstatning. Etter uttalelse fra EFTA-domstolen ble lagt til grunn at en ordning med erstatningsbortfall lik den som var etablert i bilansvarsloven § 7, var uforenlig med EØS-retten. Høyesterett la likevel til grunn at § 7 måtte følges da det var en lovgiversak å bringe loven i overensstemmelse med EØS-retten. Dissens 10-5. - Krav etter bilens passasjerulykkesforsikring ble redusert med 30% på grunn av passasjerens grove uaktsomhet, jfr. forsikringsavtaleloven § 13-9. Dissens 8-7. - Plenumssak.</dcterms:abstract>
+        <z:authority>Norges Høyesterett</z:authority>
+        <dc:date>2000-11-16</dc:date>
+        <bib:pages>1811</bib:pages>
+        <z:history>Frostating lagmannsrett LF-1998-997 A (se også EFTA-domstolens rådgivende uttalelse 699EJ0001) - Høyesterett HR-2000-49-B, nr. 55/1999.</z:history>
+        <z:shortTitle>Finanger I</z:shortTitle>
+        <z:language>nb-NO</z:language>
+        <dc:description>Rt. 2000 s. 1811 (Finanger I)</dc:description>
+        <z:displayTitle>Rt. 2000 s. 1811 (Finanger I) (Rt.)</z:displayTitle>
+    </bib:Document>
+    <bib:Legislation rdf:about="#item_4">
+        <z:itemType>statute</z:itemType>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Helse- og omsorgsdepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>om organisering av medisinsk og helsefaglig forskning</dc:title>
+        <z:code>Forskrift</z:code>
+        <z:codeNumber>955</z:codeNumber>
+        <prism:number>FOR-2009-07-01-955</prism:number>
+        <dc:date>2009-07-01</dc:date>
+        <z:language>nb-NO</z:language>
+        <dc:description>type:regulation</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_5">
+        <z:itemType>statute</z:itemType>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Stortinget</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:relation rdf:resource="#item_1"/>
+        <dc:title>om mineralvirksomhet og forvaltning av mineralressurser</dc:title>
+        <z:code>Lov</z:code>
+        <z:codeNumber>107</z:codeNumber>
+        <dc:date>2025-06-20</dc:date>
+        <z:shortTitle>mineralloven</z:shortTitle>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_6">
+        <z:itemType>statute</z:itemType>
+        <dc:title>Convention for the Protection of Human Rights and Fundamental Freedoms</dc:title>
+        <prism:number>ETS No. 5</prism:number>
+        <dc:date>1953-09-03</dc:date>
+        <z:shortTitle>ECHR</z:shortTitle>
+        <z:language>English</z:language>
+        <dc:description>type:treaty
+available-date:1950-11-04</dc:description>
+    </bib:Legislation>
+</rdf:RDF>

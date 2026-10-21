@@ -37,7 +37,7 @@ nbno/
 │   ├── geo_check.py           # egress IP + accessInfo + a page-tile probe (is this IP allowed?)
 │   ├── zotero_book.py         # orchestrator: download → text layer → shrink → Zotero RDF
 │   ├── alto_text.py           # nb.no's own OCR (ALTO) as the PDF text layer
-│   ├── build_zotero_rdf.py    # Zotero RDF generation
+│   ├── zotero_rdf.py          # Zotero RDF + item JSON (copy of shared/zotero-rdf/)
 │   ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
 │   ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
 │   └── browser/

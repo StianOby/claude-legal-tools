@@ -29,6 +29,8 @@ What it produces:
                                          as an imported-file attachment
                                          and the nb.no URL as a Web Link
                                          titled "eBok (nb.no)".
+    <out>/AUTHOR_TITLE_(YEAR).zotero.json — the same item as Zotero JSON,
+                                         for direct import with Zoteus.
 
 The Zotero "URL" metadata field is intentionally left blank — the only link
 to nb.no lives as a Web Link attachment on the imported item.
@@ -51,7 +53,8 @@ Pipeline:
      otherwise ocrmypdf (-l nor; the model is fetched from tessdata_fast
      when the sandbox lacks it). --ocr picks one explicitly. --no-ocr also
      skips the shrink, so a later ocr_chunked.py run sees full-size pages.
-  6. Render the Zotero RDF via build_zotero_rdf.build_rdf.
+  6. Render the Zotero RDF and item JSON via zotero_rdf.write_zotero_files
+     (shared/zotero-rdf/ in the repo).
 
 Designed to stream progress (each step prints a single line) so the user can
 follow along in a Cowork session even when individual phases take a while.
@@ -73,15 +76,94 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Make the sibling build_zotero_rdf module importable regardless of the
+# Make the sibling zotero_rdf module importable regardless of the
 # directory we're invoked from.
 _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
-import build_zotero_rdf as rdfmod   # noqa: E402  (after sys.path mutation)
+import zotero_rdf   # noqa: E402  (after sys.path mutation)
+
+
+# ---------------------------------------------------------------------------
+# Normalized metadata
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Creator:
+    """A person or organisation associated with the book.
+
+    creator_type:  "author" (default), "editor", "translator", "contributor".
+    """
+
+    surname: str = ""
+    given: str = ""
+    organization: str = ""    # used when surname/given are empty
+    creator_type: str = "author"
+
+    @property
+    def is_person(self) -> bool:
+        return bool(self.surname or self.given)
+
+
+@dataclass
+class NormalizedBook:
+    """The book metadata nb.no gives us, before it becomes a Zotero item."""
+
+    title: str
+    short_title: str = ""
+    subtitle: str = ""
+    creators: List[Creator] = field(default_factory=list)
+    publisher: str = ""
+    place: str = ""
+    year: str = ""                  # ISO year as string ("1890")
+    date: str = ""                  # full ISO date when known ("1870-08-17");
+                                    # newspaper issues have one, books do not
+    language: str = ""              # ISO 639 code, two- or three-letter
+    isbn: str = ""
+    num_pages: str = ""             # string to allow "[358]" etc.
+    abstract: str = ""
+    series: str = ""
+    edition: str = ""
+    extra: str = ""                 # Zotero's Extra field
+
+
+def book_to_item(book: NormalizedBook) -> dict:
+    """The Zotero item (Zotero's own JSON) for a book. Every nb.no item type
+    is a Zotero Book: Zotero has no "newspaper issue" type. The URL field
+    stays empty by design — the nb.no link is a Web Link attachment."""
+    creators = []
+    for c in book.creators:
+        if c.surname and c.given:
+            creators.append({"creatorType": c.creator_type,
+                             "firstName": c.given, "lastName": c.surname})
+        elif c.is_person or c.organization:
+            creators.append({"creatorType": c.creator_type,
+                             "name": c.surname or c.given or c.organization})
+    title = book.title.strip()
+    if book.subtitle:
+        title = f"{title}: {book.subtitle.strip()}"
+    fields = {
+        "title": title,
+        "shortTitle": book.short_title,
+        "creators": creators,
+        "series": book.series,
+        "edition": book.edition,
+        "place": book.place,
+        "publisher": book.publisher,
+        "date": book.date or book.year,
+        "numPages": book.num_pages,
+        "language": book.language,
+        "ISBN": book.isbn,
+        "abstractNote": book.abstract,
+        "extra": book.extra,
+    }
+    item = {"itemType": "book"}
+    item.update({k: v for k, v in fields.items() if v})
+    return item
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +362,7 @@ def _edition(value: Optional[str]) -> str:
     return str(int(m.group(1))) if m else _squash(value)
 
 
-def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
+def normalize_metadata(api_blob: dict) -> NormalizedBook:
     """Translate the nb.no JSON response into our NormalizedBook."""
     md = api_blob.get("metadata", {}) or {}
     title_infos = md.get("titleInfos") or []
@@ -300,7 +382,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
     else:
         title = ti_title or full_title
 
-    creators: List[rdfmod.Creator] = []
+    creators: List[Creator] = []
     for p in md.get("people") or []:
         roles = {r.get("name", "") for r in p.get("roles") or []}
         if roles & _EDITOR_ROLES:
@@ -314,7 +396,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
             kind = "contributor"
         surname, given = _split_name(p.get("name", ""))
         if surname or given:
-            creators.append(rdfmod.Creator(
+            creators.append(Creator(
                 surname=surname, given=given, creator_type=kind
             ))
 
@@ -367,7 +449,7 @@ def normalize_metadata(api_blob: dict) -> rdfmod.NormalizedBook:
     urn = (md.get("identifiers") or {}).get("urn")
     if urn:
         extras.append(f"URN: {urn}")
-    return rdfmod.NormalizedBook(
+    return NormalizedBook(
         title=title,
         subtitle=subtitle,
         creators=creators,
@@ -427,7 +509,7 @@ def _slug(s: str, maxlen: int = 60) -> str:
     return s or "Untitled"
 
 
-def compute_basename(book: rdfmod.NormalizedBook) -> str:
+def compute_basename(book: NormalizedBook) -> str:
     """Compose AUTHOR_TITLE_(YEAR), filesystem-safe.
 
     Picks the first author's surname; falls back to the first creator of any
@@ -1634,7 +1716,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     pdf_name = f"{base}.pdf"
     rdf_name = f"{base}.rdf"
     pdf_path = out_dir / pdf_name
-    rdf_path = out_dir / rdf_name
     print(f"[meta] basename: {base}")
     print(f"[meta] title:    {book.title}")
     author_list = ", ".join(f"{c.surname}, {c.given}".strip(", ")
@@ -1769,20 +1850,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                   "images: expect ~60 MB for a 500-page book.")
 
     # ---- RDF ----------------------------------------------------------------
-    nb_url = items_page_url(canonical)
-    rdf_xml = rdfmod.build_rdf(
-        book,
+    # Also writes <base>.zotero.json, the same item for Zoteus's
+    # zotero_create_items (zotero-ready.md, "Direct import with Zoteus").
+    zotero_rdf.write_zotero_files(
+        book_to_item(book), out_dir, base,
         pdf_filename=pdf_name,
-        nb_url=nb_url,
+        link_url=items_page_url(canonical),
+        link_title="eBok (nb.no)",
         item_id=base.lower(),
     )
-    rdf_path.write_text(rdf_xml, encoding="utf-8")
-    print(f"[rdf] {rdf_path}")
 
     print()
     print(f"Done. Final artefacts in {out_dir}:")
     print(f"  {pdf_name}")
     print(f"  {rdf_name}   ← import this into Zotero")
+    print(f"  {base}.zotero.json   ← the same item for Zoteus (zotero_create_items)")
     extras = []
     master_path = pdf_path.with_suffix(".original.pdf")
     if args.shrink and args.shrink_keep_master and master_path.exists():

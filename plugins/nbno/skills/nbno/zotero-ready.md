@@ -11,6 +11,14 @@ an attached searchable PDF, and a single Web Link attachment titled
 **"eBok (nb.no)"**. The Zotero **URL** metadata field is left blank by
 design — the link lives only as the Web Link attachment.
 
+When the Zoteus MCP tools (`zotero_*`) are available, the same item can
+instead go straight into the user's library: see **Direct import with
+Zoteus** below. Unless the user has already said which they want, ask once:
+an RDF file to drag into Zotero, or straight into their library.
+
+**Whichever route, tell the user when the item ends up without its PDF** —
+see **When the PDF is not attached**.
+
 Read `SKILL.md` first for the underlying nb.no concepts: the browser session
 and access classification (Step 0), ID forms (Step 1), authentication options
 (Step 2), the IIIF download paths and their gotchas (Step 3), and the
@@ -100,9 +108,11 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      `scripts/ocr_chunked.py` (one call per chunk), then
      `shrink_pdf.py --in-place`. The quality is the same, and the per-page
      cache makes it resumable.
-7. **Emit the Zotero RDF** via `scripts/build_zotero_rdf.py`. The RDF
-   references the PDF by its bare filename, so the .rdf and .pdf must sit
-   side by side at import time.
+7. **Emit the Zotero RDF** via `scripts/zotero_rdf.py` (shared with other
+   skills; the canonical copy is `shared/zotero-rdf/` in the repo). It also
+   writes `<basename>.zotero.json`: the same item as Zotero JSON, for the
+   Zoteus route. The RDF references the PDF by its bare filename, so the
+   .rdf and .pdf must sit side by side at import time.
    - Every item type is exported as a Zotero **Book**, newspapers and
      journals included: Zotero has no "newspaper issue" type, and
      `newspaperArticle` / `magazineArticle` describe a single article, not a
@@ -221,13 +231,66 @@ $OUT_DIR/
   AUTHOR_TITLE_(YEAR).pdf           # OCRed, searchable, shrunk
                                     # (unless --no-shrink)
   AUTHOR_TITLE_(YEAR).rdf           # Zotero RDF — drag-and-drop import
+  AUTHOR_TITLE_(YEAR).zotero.json   # the same item for Zoteus; not for the user
   AUTHOR_TITLE_(YEAR).original.pdf  # only with --shrink-keep-master:
                                     # full-resolution OCRed master
 ```
 
 The `.original.pdf` exists only if you asked for it. It is never referenced
 by the RDF; once the user is happy with the shrunk PDF, delete it to free
-300–800 MB.
+300–800 MB. Give the user the `.pdf` and `.rdf` only.
+
+## Direct import with Zoteus
+
+Use this route when the `zotero_*` tools are present and the user wants the
+book straight in their library. Run `zotero_book.py` exactly as above first;
+it writes `<basename>.zotero.json`, which holds `items` (the book), `web_link`
+and `pdf`. Then:
+
+1. `zotero_whoami`: is the Zotero desktop app reachable? If not, Zoteus
+   writes through the cloud, which needs a Zotero API key; say so if it fails.
+2. **Library.** The user's own library unless they name a group or a
+   collection. For a group, take its numeric `library_id` from
+   `zotero_groups` and pass it with `library_type: "group"`. Take collection
+   keys from `zotero_list_collections` for the same library.
+3. **Duplicates.** `zotero_search_items` with the surname and a title word.
+   If an existing item looks like the same book, show it and ask before
+   creating another.
+4. **Ask before writing:** "Save *<title>* (<year>) to <library / collection>?"
+5. `zotero_create_items` with the `items` array from the JSON unchanged (add
+   `collections` if a collection was chosen). Note the new item's key.
+6. **Web link:** `zotero_create_items` again with the `web_link` object, its
+   `parentItem` set to that key. If Zoteus refuses it, say so and give the
+   user the nb.no link. It is not worth retrying.
+7. **PDF:** `zotero_attach_file` with `parent` = the key and `path` = the
+   PDF's path *on the user's computer*. Zoteus runs on the user's computer,
+   so a path in the cloud sandbox (`/mnt/user-data/outputs/…`) or in the
+   local VM (`$HOME/mnt/…`) means nothing to it, and nb.no has no public
+   PDF URL for `url`. So attach only when you know the real path, for
+   example because the user told you where their connected folder is.
+   Otherwise skip this step: deliver the PDF as in SKILL.md Step 4 and follow
+   **When the PDF is not attached**.
+8. Report what was made: library, collection, Web Link yes/no, PDF yes/no.
+
+## When the PDF is not attached
+
+The user must always learn that an item has no PDF, so they can add it
+themselves. This applies when:
+
+- a script prints a line starting `PDF NOT ATTACHED:`;
+- the Zoteus route created the item but did not attach the PDF (step 7
+  skipped, or `zotero_attach_file` failed);
+- the `.rdf` reaches the user without its `.pdf` next to it, for example
+  because `SendUserFile` refused a PDF over 30 MiB, or the PDF went to a
+  different folder from the RDF.
+
+Say it in the reply, not only in the log: which item, where the PDF is (the
+outputs folder, `<connected folder>/nbno/<id>/`, or "not sent: too large"),
+and how to add it: in Zotero, drag the PDF onto the item, or right-click
+the item → *Add Attachment* → *Attach Stored Copy of File*. For the RDF
+route, add that both files must be saved in the same folder **before**
+dragging in the `.rdf`. Otherwise the import still works, but the PDF has to
+be added by hand.
 
 ## Sandbox notes
 
@@ -279,35 +342,28 @@ by the RDF; once the user is happy with the shrunk PDF, delete it to free
 
 ## Customising the metadata
 
-If you need to tweak the fetched metadata before the RDF is written (e.g.
-correct an editor that nb.no flagged as author), the recommended pattern is
-to call the orchestrator with `--no-ocr` and inspect the printed metadata,
-then re-run `build_zotero_rdf.py` directly against a hand-edited JSON dump:
+To correct the metadata (e.g. an editor that nb.no flagged as author), edit
+the item in `<basename>.zotero.json`. It is Zotero's own JSON: `creators`
+entries are `{creatorType, firstName, lastName}` or `{creatorType, name}`,
+and field names are Zotero's (`title`, `edition`, `numPages`, `ISBN` …).
+Then re-render the RDF. The Web Link is read from the JSON:
 
 ```bash
-python -c "
-from zotero_book import normalise_id, fetch_nb_metadata, normalize_metadata
-import json, dataclasses
-book = normalize_metadata(fetch_nb_metadata(normalise_id('digibok_2008051600041')))
-d = dataclasses.asdict(book)
-d['creators'] = [dataclasses.asdict(c) for c in book.creators]
-print(json.dumps(d, indent=2, ensure_ascii=False))
-" > book.json
-
-# Edit book.json by hand, then:
-python {SKILL_DIR}/scripts/build_zotero_rdf.py \
-  --book-json book.json \
-  --pdf-filename Author_Title_(Year).pdf \
-  --nb-url https://www.nb.no/items/URN:NBN:no-nb_digibok_2008051600041 \
-  --out Author_Title_(Year).rdf
+python {SKILL_DIR}/scripts/zotero_rdf.py \
+  --item-json "$OUT_DIR/Author_Title_(Year).zotero.json" \
+  --pdf-filename "Author_Title_(Year).pdf" \
+  --out "$OUT_DIR/Author_Title_(Year).rdf"
 ```
+
+For the Zoteus route, pass the edited `items` to `zotero_create_items`, or
+fix the item afterwards with `zotero_update_item`.
 
 ## Troubleshooting (Zotero-specific)
 
 - *Zotero imports the book entry but not the PDF.* The .rdf must be in the
   same folder as the .pdf at import time. Drag the .rdf (not the .pdf) into
   Zotero. If you move the files between steps, redo the move so both end up
-  paired again.
+  paired again — or add the PDF to the imported item by hand.
 - *"Web Link" attachment shows up but the title is the URL.* You're running
   an older Zotero. Newer versions read the `dc:title` of the linked-URL
   attachment correctly. Workaround: edit the attachment title in Zotero

@@ -9,9 +9,10 @@ description: >
   "URN:NBN:no-nb_digibok_..."; requests like "last ned boka fra nb.no", "log
   in to nb.no with FEIDE and download X".
   Covers books, newspapers, photos, journals, maps, manuscripts, sheet music,
-  posters, programme reports. ALSO use for "Zotero-ready" requests
-  ("Zotero-ready book", "Zotero RDF for nb.no", "OCR and import this book")
-  — triggers the PDF + OCR + Zotero RDF workflow.
+  posters, programme reports. ALSO use for Zotero requests
+  ("Zotero-ready book", "Zotero RDF for nb.no", "OCR and import this book",
+  "add it to my Zotero") — PDF + OCR + Zotero RDF, or direct import via
+  Zoteus.
   Uses the Cowork built-in browser for FEIDE session capture when available;
   falls back to a manual DevTools cookie.
   Do NOT use for: Lovdata legal texts (use lovdata-api / lovdata-pro), generic web
@@ -299,11 +300,15 @@ For reading pages visually, OCR and shrinking, read
 
 ## Zotero-ready books
 
-For "Zotero-ready", "RDF with the PDF attached", "OCR and import this book":
-read [`zotero-ready.md`](zotero-ready.md) first. `zotero_book.py` downloads,
-adds a text layer (nb.no's own OCR for public-domain books, Tesseract
-otherwise), shrinks and writes a `.pdf` + `.rdf` pair; drag the `.rdf` into
-Zotero. `--start/--stop` make an excerpt (files get a `_c<N>-<M>` suffix).
+For "Zotero-ready", "RDF with the PDF attached", "OCR and import this book",
+"put it in my Zotero library": read [`zotero-ready.md`](zotero-ready.md)
+first. `zotero_book.py` downloads, adds a text layer (nb.no's own OCR for
+public-domain books, Tesseract otherwise), shrinks and writes a `.pdf` +
+`.rdf` pair; drag the `.rdf` into Zotero. With the Zoteus tools
+(`zotero_*`), the item can go straight into the library instead.
+`--start/--stop` make an excerpt (files get a `_c<N>-<M>` suffix). **If the
+item ends up without its PDF, tell the user** (`zotero-ready.md`, "When the
+PDF is not attached").
 
 ```bash
 python {SKILL_DIR}/scripts/zotero_book.py --id URN:NBN:no-nb_digibok_2008051600041 \
