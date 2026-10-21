@@ -1,5 +1,17 @@
 [
  {
+  "itemType": "statute",
+  "nameOfAct": "Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway",
+  "code": "EUT 2001 L",
+  "dateEnacted": "2001-04-01",
+  "pages": "93/40",
+  "url": "http://data.europa.eu/eli/agree_internation/2001/258/oj",
+  "accessDate": "2026-01-27T18:19:30Z",
+  "shortTitle": "Dublin-tilknytningsavtalen",
+  "language": "English",
+  "extra": "type:treaty\navailable-date:2001-01-19"
+ },
+ {
   "itemType": "bill",
   "title": "Ny minerallov",
   "creators": [
@@ -426,17 +438,6 @@
   "docketNumber": "HR-2016-2554-P",
   "shortTitle": "Holship",
   "language": "nb-NO"
- },
- {
-  "itemType": "statute",
-  "nameOfAct": "Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway",
-  "publicLawNumber": "EUT L 93/40",
-  "dateEnacted": "2001-04-01",
-  "url": "http://data.europa.eu/eli/agree_internation/2001/258/oj",
-  "accessDate": "2026-01-27T18:19:30Z",
-  "shortTitle": "Dublin-tilknytningsavtalen",
-  "language": "English",
-  "extra": "type:treaty\navailable-date:2001-01-19"
  },
  {
   "itemType": "statute",

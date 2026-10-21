@@ -1,13 +1,30 @@
 <rdf:RDF
  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
  xmlns:z="http://www.zotero.org/namespaces/export#"
- xmlns:foaf="http://xmlns.com/foaf/0.1/"
  xmlns:dc="http://purl.org/dc/elements/1.1/"
- xmlns:prism="http://prismstandard.org/namespaces/1.2/basic/"
  xmlns:bib="http://purl.org/net/biblio#"
  xmlns:dcterms="http://purl.org/dc/terms/"
+ xmlns:foaf="http://xmlns.com/foaf/0.1/"
+ xmlns:prism="http://prismstandard.org/namespaces/1.2/basic/"
  xmlns:vcard="http://nwalsh.com/rdf/vCard#">
-    <bib:Legislation rdf:about="#item_1">
+    <bib:Legislation rdf:about="http://data.europa.eu/eli/agree_internation/2001/258/oj">
+        <z:itemType>statute</z:itemType>
+        <dc:title>Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway</dc:title>
+        <z:code>EUT 2001 L</z:code>
+        <dc:date>2001-04-01</dc:date>
+        <bib:pages>93/40</bib:pages>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>http://data.europa.eu/eli/agree_internation/2001/258/oj</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2026-01-27 18:19:30</dcterms:dateSubmitted>
+        <z:shortTitle>Dublin-tilknytningsavtalen</z:shortTitle>
+        <z:language>English</z:language>
+        <dc:description>type:treaty
+available-date:2001-01-19</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_2">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
             <rdf:Seq>
@@ -18,9 +35,9 @@
                 </rdf:li>
             </rdf:Seq>
         </z:sponsors>
-        <dc:relation rdf:resource="#item_25"/>
-        <dc:relation rdf:resource="#item_3"/>
-        <dc:relation rdf:resource="#item_12"/>
+        <dc:relation rdf:resource="#item_26"/>
+        <dc:relation rdf:resource="#item_4"/>
+        <dc:relation rdf:resource="#item_13"/>
         <dc:subject>NOU</dc:subject>
         <dc:title>Ny minerallov</dc:title>
         <prism:number>8</prism:number>
@@ -44,7 +61,7 @@
         </dc:identifier>
         <z:language>no</z:language>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_3">
+    <bib:Legislation rdf:about="#item_4">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
             <rdf:Seq>
@@ -55,9 +72,9 @@
                 </rdf:li>
             </rdf:Seq>
         </z:sponsors>
-        <dc:relation rdf:resource="#item_12"/>
-        <dc:relation rdf:resource="#item_1"/>
-        <dc:relation rdf:resource="#item_25"/>
+        <dc:relation rdf:resource="#item_13"/>
+        <dc:relation rdf:resource="#item_2"/>
+        <dc:relation rdf:resource="#item_26"/>
         <dc:subject>Proposisjon</dc:subject>
         <dc:title>Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)</dc:title>
         <prism:number>71 L</prism:number>
@@ -67,7 +84,7 @@
         <dc:date>2025-03-28</dc:date>
         <z:language>nb-NO</z:language>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_4">
+    <bib:Legislation rdf:about="#item_5">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
             <rdf:Seq>
@@ -112,7 +129,7 @@
         </dc:identifier>
         <z:language>no</z:language>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_6">
+    <bib:Legislation rdf:about="#item_7">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
             <rdf:Seq>
@@ -249,7 +266,7 @@
         </dc:identifier>
         <z:language>no</z:language>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_12">
+    <bib:Legislation rdf:about="#item_13">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
             <rdf:Seq>
@@ -260,9 +277,9 @@
                 </rdf:li>
             </rdf:Seq>
         </z:sponsors>
-        <dc:relation rdf:resource="#item_1"/>
-        <dc:relation rdf:resource="#item_25"/>
-        <dc:relation rdf:resource="#item_3"/>
+        <dc:relation rdf:resource="#item_2"/>
+        <dc:relation rdf:resource="#item_26"/>
+        <dc:relation rdf:resource="#item_4"/>
         <dc:subject>Innstilling</dc:subject>
         <dc:title>Innstilling fra næringskomiteen om Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)</dc:title>
         <prism:number>521 L</prism:number>
@@ -367,7 +384,7 @@
         <dc:description>type: treaty
 available-date: 1990-06-19</dc:description>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_18">
+    <bib:Legislation rdf:about="#item_19">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -459,7 +476,7 @@ The commentary focuses on the EEA rules on free movement of goods, movement of p
         <dc:description>Type: treaty
 available-date: 2015-07-02</dc:description>
     </bib:Legislation>
-    <bib:Document rdf:about="#item_21">
+    <bib:Document rdf:about="#item_22">
         <z:itemType>case</z:itemType>
         <dcterms:isPartOf>
             <bib:CourtReporter>
@@ -488,7 +505,7 @@ available-date: 2015-07-02</dc:description>
         <dc:description>Rt. 2000 s. 1811 (Finanger I)</dc:description>
         <z:displayTitle>Rt. 2000 s. 1811 (Finanger I) (Rt.)</z:displayTitle>
     </bib:Document>
-    <bib:Legislation rdf:about="#item_22">
+    <bib:Legislation rdf:about="#item_23">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -507,7 +524,7 @@ available-date: 2015-07-02</dc:description>
         <z:language>nb-NO</z:language>
         <dc:description>type:regulation</dc:description>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_23">
+    <bib:Legislation rdf:about="#item_24">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -525,7 +542,7 @@ available-date: 2015-07-02</dc:description>
         <dc:date>2009-12-23</dc:date>
         <dc:description>type:regulation</dc:description>
     </bib:Legislation>
-    <bib:Document rdf:about="#item_24">
+    <bib:Document rdf:about="#item_25">
         <z:itemType>case</z:itemType>
         <dcterms:isPartOf>
             <bib:CourtReporter>
@@ -547,7 +564,7 @@ available-date: 2015-07-02</dc:description>
         <bib:pages>1</bib:pages>
         <z:displayTitle>RG 1966 s. 1 (RG)</z:displayTitle>
     </bib:Document>
-    <bib:Legislation rdf:about="#item_25">
+    <bib:Legislation rdf:about="#item_26">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -558,16 +575,16 @@ available-date: 2015-07-02</dc:description>
                 </rdf:li>
             </rdf:Seq>
         </bib:authors>
-        <dc:relation rdf:resource="#item_3"/>
-        <dc:relation rdf:resource="#item_12"/>
-        <dc:relation rdf:resource="#item_1"/>
+        <dc:relation rdf:resource="#item_4"/>
+        <dc:relation rdf:resource="#item_13"/>
+        <dc:relation rdf:resource="#item_2"/>
         <dc:title>om mineralvirksomhet og forvaltning av mineralressurser</dc:title>
         <z:code>Lov</z:code>
         <z:codeNumber>107</z:codeNumber>
         <dc:date>2025-06-20</dc:date>
         <z:shortTitle>mineralloven</z:shortTitle>
     </bib:Legislation>
-    <bib:Document rdf:about="#item_26">
+    <bib:Document rdf:about="#item_27">
         <z:itemType>case</z:itemType>
         <dcterms:isPartOf>
             <bib:CourtReporter>
@@ -591,7 +608,7 @@ available-date: 2015-07-02</dc:description>
         <z:shortTitle>Tomt i LNF-område</z:shortTitle>
         <z:language>nb-NO</z:language>
     </bib:Document>
-    <bib:Document rdf:about="#item_27">
+    <bib:Document rdf:about="#item_28">
         <z:itemType>case</z:itemType>
         <dcterms:isPartOf>
             <bib:CourtReporter>
@@ -613,22 +630,6 @@ available-date: 2015-07-02</dc:description>
         <z:shortTitle>Holship</z:shortTitle>
         <z:language>nb-NO</z:language>
     </bib:Document>
-    <bib:Legislation rdf:about="http://data.europa.eu/eli/agree_internation/2001/258/oj">
-        <z:itemType>statute</z:itemType>
-        <dc:title>Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway</dc:title>
-        <prism:number>EUT L 93/40</prism:number>
-        <dc:date>2001-04-01</dc:date>
-        <dc:identifier>
-            <dcterms:URI>
-                <rdf:value>http://data.europa.eu/eli/agree_internation/2001/258/oj</rdf:value>
-            </dcterms:URI>
-        </dc:identifier>
-        <dcterms:dateSubmitted>2026-01-27 18:19:30</dcterms:dateSubmitted>
-        <z:shortTitle>Dublin-tilknytningsavtalen</z:shortTitle>
-        <z:language>English</z:language>
-        <dc:description>type:treaty
-available-date:2001-01-19</dc:description>
-    </bib:Legislation>
     <bib:Legislation rdf:about="https://lovdata.no/pro/TRAKTAT/traktat/2006-07-05-9">
         <z:itemType>statute</z:itemType>
         <bib:authors>
