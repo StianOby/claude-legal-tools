@@ -50,14 +50,14 @@ Cowork kjører i skyen, og `api.lovdata.no` avviser Anthropics sky (HTTP 405). D
      hvis `<dir>` er borte; da kopierer du inn på nytt og kjører `update`
      igjen). `update` ved første oppslag: Dataene (275 MB, ca. 5 900
      filer) havner i `$HOME/.cache/lovdata` **i den lokale VM-en — ikke i den
-     tilkoblede mappen**, så de ikke synkroniseres (f.eks. til Dropbox). Er de
-     borte i en ny økt, laster `update` dem ned igjen på ca. 20 sekunder; er de
-     der, sjekker `update` bare om Lovdata har noe nyere.
+     tilkoblede mappen**, så de ikke synkroniseres (f.eks. til Dropbox).
+     Hjemmekatalogen i VM-en er ny for hver økt (`rcw-<økt-id>`), så regn med
+     en full nedlasting (ca. 15 s) ved første oppslag i hver samtale.
    - Deretter `search`/`find`/`get` som vanlig, ett `device_bash`-kall per
      oppslag. Svar og sitater gis i chatten; bare hvis brukeren vil ha en fil
      (`--out`), skrives den til `<tilkoblet mappe>/lovdata-api/`.
-   - Når du er ferdig med Lovdata i samtalen: `rm -rf <dir>` (skriptene), men
-     **la `$HOME/.cache/lovdata` stå** til neste samtale.
+   - Når du er ferdig med Lovdata i samtalen: `rm -rf <dir>` (skriptene).
+     `$HOME/.cache/lovdata` kan stå; den forsvinner med økten.
 
 ---
 

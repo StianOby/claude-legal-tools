@@ -10,9 +10,8 @@ where relevant).
 from __future__ import annotations
 
 import re
-from urllib.parse import urljoin
 
-from _common import BASE, fetch_cached, resolve_state
+from _common import BASE, abs_url, fetch_cached, resolve_state
 from _html import main_content, parse
 
 INDEX_URL = f"{BASE}/index.php/declarations"
@@ -56,7 +55,7 @@ def index(*, force_refresh: bool = False) -> dict:
                 "state": state_name,
                 "iso2": cc,
                 "deposit_date": deposit_date,
-                "url": urljoin(BASE, a["href"]),
+                "url": abs_url(a["href"]),
             }
         )
     # Pull the introductory paragraph(s)

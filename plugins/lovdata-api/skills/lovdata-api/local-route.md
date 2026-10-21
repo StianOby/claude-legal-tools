@@ -42,11 +42,14 @@ a cookie — so they are not asked for those and then told it cannot run.
    disappear, stop with message **A**.
 4. `device_bash` works → find the connected folder (section 3). None →
    if a `device_request_folder_access` tool exists, use it to ask the user to
-   connect one, then look again. Right before the request, tell the user why
-   in one line, with message **B**'s second and third sentences: the folder
-   is needed only because the local shell will not start without one, and
-   nothing is written there unless they asked for a file. The user declines,
-   or there is no such tool → stop with message **B**.
+   connect one, then look again. Do not invent a path for the request: if it
+   needs one, use a folder you have seen exists (`get_device_info`), or let
+   the user pick. Right before the request, tell the user why in one line,
+   with message **B**'s second and third sentences: the folder is needed only
+   because the local shell will not start without one, and nothing is
+   written there unless they asked for a file. The user declines → stop with
+   **only B's first sentence** (they have just read the rest). No such tool →
+   stop with message **B** in full.
    (`device_bash` itself refuses to run with "No folders are connected …"
    until there is one.)
 

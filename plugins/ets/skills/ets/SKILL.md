@@ -93,6 +93,10 @@ Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the br
 sure to have the user's IP and logins. `conventions-ws.coe.int` and `rm.coe.int` have worked from the cloud so far; if
 it answers 403/405 from `Bash`, tell the user "This source is blocked from Anthropic's cloud" rather than retrying.
 
+**Any other non-zero exit (usually 1):** read the script's stderr — never
+send it to `/dev/null` — and run the same command once more before reporting;
+a passing network error looks the same as a real one.
+
 **Exit code 7, `TREATY OFFICE DATA SERVICE UNAVAILABLE`:** an outage on the Council of Europe's side. The data
 service redirects to the coe.int portal (seen 2026-10-07 from every IP), and coe.int's own treaty pages, which use
 the same service, stay on "Loading..." then. It is not an IP block: tell the user the Treaty Office's data service

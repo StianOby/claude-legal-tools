@@ -34,9 +34,8 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Optional
-from urllib.parse import urljoin
 
-from _common import BASE, fetch_cached as _fetch_cached
+from _common import BASE, abs_url, fetch_cached as _fetch_cached
 from _html import Node, main_content, parse
 
 LIST_ALL_URL = f"{BASE}/index.php/list-of-all-cases"
@@ -107,7 +106,7 @@ def _parse_pdf_filename(href: str) -> Optional[dict]:
         "doc_type": m.group(4).lower(),
         "serial": f"{m.group(5)}-{m.group(6)}",
         "lang": m.group(7).lower(),
-        "url": href if href.startswith("http") else urljoin(BASE, href),
+        "url": abs_url(href),
     }
 
 
@@ -166,7 +165,7 @@ def _parse_case_tables(main: Node) -> list[dict]:
                     "year_introduced": intro_cell.get_text(),
                     "year_concluded": conc_cell.get_text(),
                     "kind": kind_cell.get_text().lstrip("﻿"),
-                    "url": urljoin(BASE, href),
+                    "url": abs_url(href),
                     "table_year": cap_year,
                 }
             )
@@ -200,7 +199,7 @@ def _parse_pending(main: Node) -> list[dict]:
                 "year_concluded": "",
                 "kind": "Contentious" if contentious else "Advisory",
                 "kind_inferred": True,
-                "url": urljoin(BASE, href),
+                "url": abs_url(href),
                 "table_year": None,
                 "pending": True,
             }
@@ -389,7 +388,7 @@ def _parse_section_page(html: str) -> tuple[str, list[dict]]:
         href = a.get("href") or ""
         if not href.lower().endswith(".pdf"):
             continue
-        full = href if href.startswith("http") else urljoin(BASE, href)
+        full = abs_url(href)
         if full in seen:
             continue
         seen.add(full)
@@ -490,7 +489,7 @@ def recent(*, limit: int = 20, force_refresh: bool = False) -> dict:
             href = a.get("href") or ""
             if not href.lower().endswith(".pdf"):
                 continue
-            full = urljoin(BASE, href)
+            full = abs_url(href)
             if full in seen:
                 continue
             seen.add(full)
@@ -507,7 +506,7 @@ def recent(*, limit: int = 20, force_refresh: bool = False) -> dict:
                 "doc_type": (parsed or {}).get("doc_type"),
                 "case_title": case_a.get_text() if case_a else "",
                 "case_id": int(m.group(1)) if m else None,
-                "case_url": urljoin(BASE, case_href) if case_href else None,
+                "case_url": abs_url(case_href) if case_href else None,
                 "subtitle": sub_div.get_text() if sub_div else "",
                 "pdfs": pdfs,
             }

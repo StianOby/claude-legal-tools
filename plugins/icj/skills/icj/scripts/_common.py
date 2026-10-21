@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -31,6 +32,15 @@ USER_AGENT = (
     "Python-urllib; reads public ICJ pages for legal research"
 )
 BASE = "https://www.icj-cij.org"
+
+
+def abs_url(href: str) -> str:
+    """Absolute URL on the www host. The site links some PDFs as
+    https://icj-cij.org/...; fetched from a www.icj-cij.org page in the
+    browser pane, that other origin fails CORS ("Failed to fetch"), so every
+    URL the scripts print uses www.icj-cij.org."""
+    from urllib.parse import urljoin
+    return re.sub(r"^https?://icj-cij\.org(?=/|$)", BASE, urljoin(BASE + "/", href))
 
 # Default TTL for jurisdiction data (in seconds): 14 days.
 DEFAULT_TTL = 14 * 24 * 3600

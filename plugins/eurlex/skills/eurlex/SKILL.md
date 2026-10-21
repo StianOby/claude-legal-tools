@@ -89,9 +89,11 @@ the text itself.
 Some older judgments come back with **no** `Paragraph N` entries (the
 numbers stand alone on their own line, e.g. Google Spain, 62012CJ0131). Then
 estimate: fetch a small piece near the end to learn the last paragraph
-number and the total length, start at about
-`N / last_paragraph × total_chars` minus a few thousand characters, and step
-forward or back by the paragraph numbers you see until you have paragraph N.
+number and where the grounds end (the operative part, "On those grounds,
+the Court … hereby rules", and the costs follow the last paragraph). Start
+at about `N / last_paragraph × <offset where the grounds end>`, minus 10 %,
+and step forward or back by the paragraph numbers you see until you have
+paragraph N. Using the total length overshoots.
 
 For legislation, `eurlex_structure` gives article offsets the same way;
 prefer `eurlex_consolidated` when the user wants what is in force, and

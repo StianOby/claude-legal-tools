@@ -87,7 +87,10 @@ cloud" and use the browser pane. Never suggest a VPN.
 ## Step 0 — session (every new conversation)
 
 1. `tabs_context` — reuse a tab already on `consilium.europa.eu` if there is
-   one. Otherwise `preview_start {url:
+   one. If another skill's tab is open (e.g. nb.no or lovdata.no), open your
+   own with `tabs_create` + `navigate` to the URL below — `preview_start`
+   reuses the tab in front, and that skill loses its helper. With no tabs at
+   all, `preview_start {url:
    "https://www.consilium.europa.eu/en/documents/treaties-agreements/"}`.
 2. If a tool says the site is not approved and `request_access` exists: `request_access {url:
    "https://www.consilium.europa.eu/", scope: "site"}` and retry. If the user

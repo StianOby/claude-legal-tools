@@ -113,8 +113,9 @@ not one. So:
      2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
      Missing → `--no-ocr`. Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
      deliver them and use message **C** from `local-route.md`. Do not re-run just to retry OCR.
-   - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/`, tell the user where it is, then
-     `rm -rf <dir>` (this also removes the cookie).
+   - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/` and tell the user where it is. Keep
+     `<dir>` for further nb.no downloads in this conversation (`local-route.md` §2.4); when you are done with
+     nb.no, `rm -rf <dir>` (this also removes the cookie).
 
 Never fall back silently to the cloud sandbox for a `NORWAY`/`NB` item, never debug headers after a geo 403, and never
 suggest a VPN.
@@ -123,8 +124,11 @@ suggest a VPN.
 
 ## Step 0 — Session (Cowork built-in browser)
 
-Run this first in every new conversation, before Step 1. Skip it if the
-browser tools are absent (see Prerequisites). The full procedure, with the
+Run this in every new conversation before Step 1 — but for a `NORWAY`/`NB`
+item only after **Routing** has confirmed that the local route can run
+(tools and a connected folder), so the user is never asked to log in or take
+a loan for a download that cannot happen. Skip it if the browser tools are
+absent (see Prerequisites). The full procedure, with the
 reasons behind each rule, is in [`auth.md`](auth.md) ("Fallback 1 (primary) —
 built-in browser"); the rules below are the ones you must not break.
 
@@ -161,7 +165,9 @@ only — the cookie. Never shuttle page images through the browser.
 6. **Loan (`NB` only).** If `legalDepositReservationStatus !=
    "TAKENBYCURRENTUSER"`, navigate the pane to the item page. **Never click
    OK yourself** — it takes one of the item's four licences in the user's
-   name. Ask the user to click it, then poll `await __nb.loanStatus("<id>")`.
+   name. Navigating to the item page wipes `__nb`: paste the helper again
+   before polling. Ask the user to click it, then poll
+   `await __nb.loanStatus("<id>")`.
 7. **Cookie (`NB` only).** First ask the user to type a sentence naming the
    action (*"Read the nbsso and _nblb cookie values from the open nb.no tab
    and write them to a cookie file so it can download my book."*) — the

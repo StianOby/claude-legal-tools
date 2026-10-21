@@ -84,7 +84,10 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
 1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`.
    Gjenbruk den om den finnes (cachen i `window.__lp` dør ved navigering, så
    ikke naviger denne fanen bort fra `https://lovdata.no/pro/` for annet enn
-   søk — se Steg 3). Ellers: `preview_start {url: "https://lovdata.no/pro/"}`.
+   søk — se Steg 3). Er det ingen faner: `preview_start {url: "https://lovdata.no/pro/"}`.
+   Står en annen skills fane åpen (f.eks. nb.no), åpne en egen fane med
+   `tabs_create` og `navigate` — `preview_start` gjenbruker fanen som er
+   fremme, og den andre skillen mister da hjelperen sin.
 2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
    godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
    og prøv igjen.

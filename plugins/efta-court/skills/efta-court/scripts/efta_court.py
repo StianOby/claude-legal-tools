@@ -792,14 +792,30 @@ def _choose_doc(docs: list[dict], doc_type: str, lang: str) -> dict | None:
     return candidates[0]
 
 
+# pdftotext joins a word hyphenated across a line break and drops the hyphen,
+# also where the hyphen belongs ("intra-\nCommunity" -> "intraCommunity",
+# Cowork run 12). A lower-case prefix glued to a capitalised word is put back.
+_LOST_HYPHEN = re.compile(
+    r"\b(intra|extra|inter|non|anti|pan|post|pre|pro|self|cross|sub|co|ex"
+    r"|quasi|semi|supra|trans|ultra|multi|re)(?=[A-Z])")
+
+
+def restore_hyphens(text: str) -> str:
+    return _LOST_HYPHEN.sub(r"\1-", text)
+
+
 def extract_pdf_text(pdf: Path) -> str | None:
     # pdftotext (poppler) first: on the 1990s judgments pypdf splits words at
     # irregular letter spacing ("statut ory", "intr a-EEA"; Cowork run 11).
+    # Its "Syntax Error … default config" chatter goes to stderr; drop it.
     if shutil.which("pdftotext"):
         out = pdf.with_suffix(".txt")
-        subprocess.run(["pdftotext", str(pdf), str(out)], check=False)
+        subprocess.run(["pdftotext", str(pdf), str(out)], check=False,
+                       stderr=subprocess.DEVNULL)
         if _has_content(out):
-            return _read(out)
+            text = restore_hyphens(_read(out))
+            _write(out, text)
+            return text
     # Then pypdf
     try:
         from pypdf import PdfReader  # type: ignore

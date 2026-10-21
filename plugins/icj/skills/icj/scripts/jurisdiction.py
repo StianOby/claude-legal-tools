@@ -17,9 +17,8 @@ Pages handled:
 from __future__ import annotations
 
 from typing import Optional
-from urllib.parse import urljoin
 
-from _common import BASE, fetch_cached
+from _common import BASE, abs_url, fetch_cached
 from _html import Node, main_content, parse
 
 URLS = {
@@ -80,7 +79,7 @@ def states(*, force_refresh: bool = False) -> dict:
             decl_cell = cells[2]
             decl_link = decl_cell.find("a")
             decl_date = decl_cell.get_text() or None
-            decl_url = urljoin(BASE, decl_link["href"]) if decl_link and decl_link.get("href") else None
+            decl_url = abs_url(decl_link["href"]) if decl_link and decl_link.get("href") else None
             rows.append(
                 {
                     "state": state,
@@ -172,7 +171,7 @@ def treaties(*, force_refresh: bool = False, year: Optional[int] = None,
                     "title": title,
                     "parties": parties,
                     "text": f"{yr} {date} {place} — {title} — {parties}".strip(),
-                    "url": urljoin(BASE, link["href"]) if link and link.get("href") else None,
+                    "url": abs_url(link["href"]) if link and link.get("href") else None,
                 }
             )
     total = len(items)

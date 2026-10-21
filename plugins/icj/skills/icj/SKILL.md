@@ -140,8 +140,9 @@ Direct HTTP requests to `icj-cij.org` PDF URLs — via `curl`, `urllib` or any s
      ```
      `type` must be `application/pdf`; `text/html` means Cloudflare answered instead — open the case page first and try again.
    - If the pane shows a Cloudflare "Verify you are human" check (Turnstile), you cannot pass it yourself: `navigate` the pane to the PDF URL, ask the user to tick the box in the browser pane and say when it's done, then retry once. If it still answers `text/html`, do not stop yet:
-     - **Summary instead:** the case page lists a press release / summary PDF for most decisions; if the question can be answered from it (e.g. the operative clause, which the summary quotes), try that URL the same way and say you used the summary.
-     - **User download:** ask the user to open the PDF URL in their own browser and save it into the connected folder. Then copy it to the cloud side with `device_stage_files` (load it with ToolSearch `select:mcp__remote-devices__device_stage_files`); it appears read-only under `/mnt/user-data/uploads/<folder>/`, where `pdftotext` can read it.
+     The check can loop in the pane while an ordinary browser passes it (run 12, 2026-10-21), so do not keep retrying — one tick, then:
+     - **Summary instead:** `cases show` lists it under the `Summaries` (and `Press releases`) section with the judgment's date; if the question can be answered from it (e.g. the operative clause, which the summary quotes), try that URL the same way and say you used the summary. It is often behind the same check.
+     - **User download** (the reliable way out): ask the user to open the PDF URL in their own browser and save it into the connected folder. Then copy it to the cloud side with `device_stage_files` (load it with ToolSearch `select:mcp__remote-devices__device_stage_files`); it appears read-only under `/mnt/user-data/uploads/<folder>/`, where `pdftotext` can read it.
      - Neither possible → give the user the PDF URL and stop.
      Screenshots of the pane time out while the pane is hidden, so do not rely on them to see the check.
    - For `i` = 0 … `chunks`−1, get `window.__pdf.slice(i * 40000, (i + 1) * 40000)` and append it to `outputs/<name>.b64` (outputs = `/mnt/user-data/outputs` in cloud Cowork) with bash (`printf '%s' '<chunk>' >> …`).

@@ -19,9 +19,8 @@ from __future__ import annotations
 
 import re
 from typing import Optional
-from urllib.parse import urljoin
 
-from _common import BASE, fetch_cached
+from _common import BASE, abs_url, fetch_cached
 from _html import main_content, parse
 
 SERIES_URLS = {
@@ -78,7 +77,7 @@ def _parse_series_page(html: str) -> list[dict]:
             current["documents"].append(
                 {
                     "label": a.get_text(),
-                    "url": href if href.startswith("http") else urljoin(BASE, href),
+                    "url": abs_url(href),
                 }
             )
     return cases
