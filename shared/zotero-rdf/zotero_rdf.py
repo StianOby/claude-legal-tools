@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -154,6 +155,14 @@ def _creators(creators: List[dict]) -> List[str]:
     return out
 
 
+def _sql_datetime(value: str) -> str:
+    """accessDate as the export writes it: "2026-06-09T21:42:24Z" and
+    "2026-02-10" become "2026-06-09 21:42:24" and "2026-02-10 00:00:00".
+    Anything else is passed through."""
+    m = re.fullmatch(r"(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}:\d{2})Z?)?", value.strip())
+    return f"{m.group(1)} {m.group(2) or '00:00:00'}" if m else value
+
+
 def _uri(value: str) -> str:
     return ("<dc:identifier><dcterms:URI>"
             f"{_el('rdf:value', value)}"
@@ -182,7 +191,7 @@ def _item_body(itype: str, f: Dict[str, str]) -> List[str]:
         elif prop == "date":
             body.append(_el("dc:date", value))
         elif prop == "accessDate":
-            body.append(_el("dcterms:dateSubmitted", value))
+            body.append(_el("dcterms:dateSubmitted", _sql_datetime(value)))
         elif prop == "pages":
             body.append(_el("bib:pages", value))
         elif prop == "extra":

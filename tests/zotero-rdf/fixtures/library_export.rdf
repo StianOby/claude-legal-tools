@@ -5,7 +5,8 @@
  xmlns:dc="http://purl.org/dc/elements/1.1/"
  xmlns:prism="http://prismstandard.org/namespaces/1.2/basic/"
  xmlns:bib="http://purl.org/net/biblio#"
- xmlns:dcterms="http://purl.org/dc/terms/">
+ xmlns:dcterms="http://purl.org/dc/terms/"
+ xmlns:vcard="http://nwalsh.com/rdf/vCard#">
     <bib:Legislation rdf:about="#item_1">
         <z:itemType>bill</z:itemType>
         <z:sponsors>
@@ -17,13 +18,170 @@
                 </rdf:li>
             </rdf:Seq>
         </z:sponsors>
-        <dc:relation rdf:resource="#item_5"/>
+        <dc:relation rdf:resource="#item_25"/>
+        <dc:relation rdf:resource="#item_3"/>
+        <dc:relation rdf:resource="#item_12"/>
         <dc:subject>NOU</dc:subject>
         <dc:title>Ny minerallov</dc:title>
         <prism:number>8</prism:number>
         <z:code>NOU</z:code>
         <dc:date>2022-07-01</dc:date>
         <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/REPFOR/forarbeid/dok8-49-199192">
+        <z:itemType>bill</z:itemType>
+        <dc:subject>Representantforslag</dc:subject>
+        <dc:title>Forslag fra stortingsrepresentantene Erna Solberg, Annelise Høegh og Harald Ellefsen om å endre lov om markedsføring</dc:title>
+        <prism:number>8:49</prism:number>
+        <z:code>Dokument</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>1991–1992</z:session>
+        <dc:date>1992-09-18</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/REPFOR/forarbeid/dok8-49-199192</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_3">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Nærings- og fiskeridepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:relation rdf:resource="#item_12"/>
+        <dc:relation rdf:resource="#item_1"/>
+        <dc:relation rdf:resource="#item_25"/>
+        <dc:subject>Proposisjon</dc:subject>
+        <dc:title>Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)</dc:title>
+        <prism:number>71 L</prism:number>
+        <z:code>Prop.</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2024–2025</z:session>
+        <dc:date>2025-03-28</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_4">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Justis- og politidepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Proposisjon</dc:subject>
+        <dc:title>Om lov om tillegg til rettergangslovgivningen når det gjelder folkerettslig immunitet</dc:title>
+        <prism:number>23</prism:number>
+        <z:code>Ot.prp. nr.</z:code>
+        <z:authority>Odelstinget</z:authority>
+        <z:session>1961–1962</z:session>
+        <dc:date>1962-01-05</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/INNST/forarbeid/inns-o-60-197374">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Justisnemnda</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Innstilling</dc:subject>
+        <dc:title>Innstilling frå den utvida justisnemnda om lov om odelsretten og åsetesretten</dc:title>
+        <prism:number>60</prism:number>
+        <z:code>Innst. O. nr.</z:code>
+        <z:authority>Odelstinget</z:authority>
+        <z:session>1973–1974</z:session>
+        <dc:date>1974-05-22</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/INNST/forarbeid/inns-o-60-197374</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_6">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Justis- og politidepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Proposisjon</dc:subject>
+        <dc:title>Om lov om styrking av menneskerettighetenes stilling i norsk rett (menneskerettsloven)</dc:title>
+        <prism:number>3</prism:number>
+        <z:code>Ot.prp. nr.</z:code>
+        <z:authority>Odelstinget</z:authority>
+        <z:session>1998–1999</z:session>
+        <dc:date>1998-10-09</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/PROP/forarbeid/otprp-87-199798">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Kommunal- og regionaldepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Proposisjon</dc:subject>
+        <dc:title>Om lov om endringer i lov av 21 mai 1971 nr 47 om brannfarlige varer samt væsker og gasser under trykk</dc:title>
+        <prism:number>87</prism:number>
+        <z:code>Ot.prp. nr.</z:code>
+        <z:authority>Odelstinget</z:authority>
+        <z:session>1997–1998</z:session>
+        <dc:date>1998-09-25</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/PROP/forarbeid/otprp-87-199798</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/OTMELD/forarbeid/otmeld-1-200607">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Arbeids- og inkluderingsdepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Ot.meld.</dc:subject>
+        <dc:subject>Tilbaketrekking av lovforslag</dc:subject>
+        <dc:title>Om tilbaketrekking av deler av Ot.prp. nr. 2 (2006–2007) Om lov om endringer i folketrygdloven og i enkelte andre lover</dc:title>
+        <prism:number>1</prism:number>
+        <z:code>Ot.meld. nr.</z:code>
+        <z:authority>Odelstinget</z:authority>
+        <z:session>2006–2007</z:session>
+        <dc:date>2006-11-10</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/OTMELD/forarbeid/otmeld-1-200607</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
     </bib:Legislation>
     <bib:Legislation rdf:about="https://lovdata.no/pro/#document/PROP/forarbeid/prop-120-l-202324">
         <z:itemType>bill</z:itemType>
@@ -50,7 +208,258 @@
         </dc:identifier>
         <z:language>no</z:language>
     </bib:Legislation>
-    <bib:Document rdf:about="#item_3">
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/INNST/forarbeid/inns-450-s-202324">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Valgkomiteen</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Innstilling</dc:subject>
+        <dc:title>Innstilling fra valgkomiteen om endringer i de faste komiteers sammensetning</dc:title>
+        <prism:number>450 S</prism:number>
+        <z:code>Innst.</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2023–2024</z:session>
+        <dc:date>2024-06-14</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/INNST/forarbeid/inns-450-s-202324</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/GLFOR/forarbeid/dok12-39-202324">
+        <z:itemType>bill</z:itemType>
+        <dc:subject>Grunnlovsforslag</dc:subject>
+        <dc:title>Grunnlovsforslag fra Peter Frølich og Audun Lysbakken om endring i § 90 (om dommerutnevnelser)</dc:title>
+        <prism:number>12:39</prism:number>
+        <z:code>Dokument</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2023–2024</z:session>
+        <dc:date>2024-09-30</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/GLFOR/forarbeid/dok12-39-202324</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_12">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Næringskomiteen</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:relation rdf:resource="#item_1"/>
+        <dc:relation rdf:resource="#item_25"/>
+        <dc:relation rdf:resource="#item_3"/>
+        <dc:subject>Innstilling</dc:subject>
+        <dc:title>Innstilling fra næringskomiteen om Lov om mineralvirksomhet og forvaltning av mineralressurser (mineralloven)</dc:title>
+        <prism:number>521 L</prism:number>
+        <z:code>Innst.</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2024–2025</z:session>
+        <dc:date>2025-06-03</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/REPFOR/forarbeid/representantforslag-269-202425">
+        <z:itemType>bill</z:itemType>
+        <dc:subject>Representantforslag</dc:subject>
+        <dc:title>Representantforslag fra stortingsrepresentantene Lars Haltbrekken og Grete Wold om berging av Oslofjorden</dc:title>
+        <prism:number>8:269 S</prism:number>
+        <z:code>Dokument</z:code>
+        <z:authority>Stortinget</z:authority>
+        <z:session>2024–2025</z:session>
+        <dc:date>2025-04-10</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/REPFOR/forarbeid/representantforslag-269-202425</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/NOU/forarbeid/nou-1997-19">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Personregisterlovutvalget</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>NOU</dc:subject>
+        <dc:title>Et bedre personvern – forslag til lov om behandling av personopplysninger</dc:title>
+        <prism:number>19</prism:number>
+        <z:code>NOU</z:code>
+        <dc:date>1997-05-27</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/NOU/forarbeid/nou-1997-19</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:shortTitle>Et bedre personvern</z:shortTitle>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/PRE/forarbeid/pre-2012-12-14-1289">
+        <z:itemType>bill</z:itemType>
+        <z:sponsors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Arbeidsdepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </z:sponsors>
+        <dc:subject>Statsrådsforedrag</dc:subject>
+        <dc:title>Forskrift om medlemspremie i pensjonstrygden for fiskere for 2013</dc:title>
+        <prism:number>PRE-2012-12-14-1289</prism:number>
+        <z:code>Statsrådsforedrag</z:code>
+        <z:authority>Kongen i statsråd</z:authority>
+        <dc:date>2012-12-14</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/PRE/forarbeid/pre-2012-12-14-1289</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/#document/NOU/forarbeid/nut-1966-1">
+        <z:itemType>bill</z:itemType>
+        <dc:subject>NOU</dc:subject>
+        <dc:title>Innstilling om ombudsmannskontroll med kommunalforvaltningen</dc:title>
+        <prism:number>1</prism:number>
+        <z:code>NUT</z:code>
+        <dc:date>1966-09-28</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/#document/NOU/forarbeid/nut-1966-1</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <z:language>no</z:language>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="http://data.europa.eu/eli/convention/2000/922/oj">
+        <z:itemType>statute</z:itemType>
+        <dc:title>Convention implementing the Schengen Agreement of 14 June 1985 between the Governments of the States of the Benelux Economic Union, the Federal Republic of Germany and the French Republic on the gradual abolition of checks at their common borders</dc:title>
+        <z:code>EUT 2000 L</z:code>
+        <dc:date>26/03/1995</dc:date>
+        <bib:pages>239/19</bib:pages>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>http://data.europa.eu/eli/convention/2000/922/oj</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2026-06-09 21:42:24</dcterms:dateSubmitted>
+        <z:shortTitle>Convention implementing the Schengen Agreement</z:shortTitle>
+        <z:language>en</z:language>
+        <dc:description>type: treaty
+available-date: 1990-06-19</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_18">
+        <z:itemType>statute</z:itemType>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Stortinget</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>om medisinsk og helsefaglig forskning</dc:title>
+        <dcterms:abstract>Helse- og omsorgsrett
+Skoler, universiteter og forskning ► Helseforskning</dcterms:abstract>
+        <z:code>Lov</z:code>
+        <z:codeNumber>44</z:codeNumber>
+        <dc:date>2008-06-20</dc:date>
+        <z:shortTitle>helseforskningsloven</z:shortTitle>
+        <z:language>nb-NO</z:language>
+    </bib:Legislation>
+    <bib:Book rdf:about="urn:isbn:978-3-8452-7579-6">
+        <z:itemType>book</z:itemType>
+        <dc:publisher>
+           <foaf:Organization><foaf:name>Nomos</foaf:name></foaf:Organization>
+        </dc:publisher>
+        <bib:editors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Arnesen</foaf:surname>
+                        <foaf:givenName>Finn</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Fredriksen</foaf:surname>
+                        <foaf:givenName>Halvard Haukeland</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Graver</foaf:surname>
+                        <foaf:givenName>Hans Petter</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Mestad</foaf:surname>
+                        <foaf:givenName>Ola</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Vedder</foaf:surname>
+                        <foaf:givenName>Christoph</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:editors>
+        <dc:title>Agreement on the European Economic Area: A Commentary</dc:title>
+        <dcterms:abstract>The provisions of the Agreement on the European Economic Area (EEA) determine the relations of the EFTA States Norway, Iceland and Liechtenstein with the EU and its Member States. On the basis of EEA, these three countries are largely integrated into the single market of the EU. The EEA is also discussed as a possible model for the EU and UK relations after the Brexit.
+
+Article by article, the new commentary outlines the importance of the EEA for legal practice, including all extensive annexes and protocols. There is also included both the essential secondary law of EEA and cross-links to EU law. Moreover, the commentary involves the current status of EEA law in Norway, Iceland and Liechtenstein, taking legislation and jurisprudence into account.
+
+The commentary focuses on the EEA rules on free movement of goods, movement of persons, services, capital, transport policy and competition law. In addition, the commentary intensively discusses the responsibilities and procedures of both the European Surveillance Authority and EFTA Court and the complementary agreement between Norway, Iceland and Liechtenstein.</dcterms:abstract>
+        <dc:date>2018</dc:date>
+        <dc:identifier>ISBN 978-3-8452-7579-6</dc:identifier>
+        <dc:identifier>DOI 10.5771/9783845275796</dc:identifier>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://www.nomos-elibrary.de/index.php?doi=10.5771/9783845275796</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2018-10-30 12:18:28</dcterms:dateSubmitted>
+        <z:shortTitle>Agreement on the European Economic Area</z:shortTitle>
+        <z:language>en</z:language>
+        <z:libraryCatalog>Crossref</z:libraryCatalog>
+    </bib:Book>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/TRAKTAT/traktat/2015-07-02-13">
+        <z:itemType>statute</z:itemType>
+        <dc:title>Avtale mellom Norge og Sverige om Den nye Svinesundsforbindelsen</dc:title>
+        <prism:number>Overenskomster med fremmede stater 2015, s. 302</prism:number>
+        <dc:date>2015-10-30</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/TRAKTAT/traktat/2015-07-02-13</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2026-02-10 00:00:00</dcterms:dateSubmitted>
+        <dc:description>Type: treaty
+available-date: 2015-07-02</dc:description>
+    </bib:Legislation>
+    <bib:Document rdf:about="#item_21">
         <z:itemType>case</z:itemType>
         <dcterms:isPartOf>
             <bib:CourtReporter>
@@ -79,7 +488,7 @@
         <dc:description>Rt. 2000 s. 1811 (Finanger I)</dc:description>
         <z:displayTitle>Rt. 2000 s. 1811 (Finanger I) (Rt.)</z:displayTitle>
     </bib:Document>
-    <bib:Legislation rdf:about="#item_4">
+    <bib:Legislation rdf:about="#item_22">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -98,7 +507,47 @@
         <z:language>nb-NO</z:language>
         <dc:description>type:regulation</dc:description>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_5">
+    <bib:Legislation rdf:about="#item_23">
+        <z:itemType>statute</z:itemType>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Nærings- og fiskeridepartementet</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>til mineralloven</dc:title>
+        <z:code>Forskrift</z:code>
+        <z:codeNumber>1842</z:codeNumber>
+        <prism:number>FOR-2009-12-23-1842</prism:number>
+        <dc:date>2009-12-23</dc:date>
+        <dc:description>type:regulation</dc:description>
+    </bib:Legislation>
+    <bib:Document rdf:about="#item_24">
+        <z:itemType>case</z:itemType>
+        <dcterms:isPartOf>
+            <bib:CourtReporter>
+               <dc:title>RG</dc:title><prism:volume>1966</prism:volume>
+            </bib:CourtReporter>
+        </dcterms:isPartOf>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Mandal byrett</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>RG 1966 s. 1</dc:title>
+        <z:authority>Mandal byrett</z:authority>
+        <dc:date>1965-05-13</dc:date>
+        <bib:pages>1</bib:pages>
+        <z:displayTitle>RG 1966 s. 1 (RG)</z:displayTitle>
+    </bib:Document>
+    <bib:Legislation rdf:about="#item_25">
         <z:itemType>statute</z:itemType>
         <bib:authors>
             <rdf:Seq>
@@ -109,6 +558,8 @@
                 </rdf:li>
             </rdf:Seq>
         </bib:authors>
+        <dc:relation rdf:resource="#item_3"/>
+        <dc:relation rdf:resource="#item_12"/>
         <dc:relation rdf:resource="#item_1"/>
         <dc:title>om mineralvirksomhet og forvaltning av mineralressurser</dc:title>
         <z:code>Lov</z:code>
@@ -116,7 +567,113 @@
         <dc:date>2025-06-20</dc:date>
         <z:shortTitle>mineralloven</z:shortTitle>
     </bib:Legislation>
-    <bib:Legislation rdf:about="#item_6">
+    <bib:Document rdf:about="#item_26">
+        <z:itemType>case</z:itemType>
+        <dcterms:isPartOf>
+            <bib:CourtReporter>
+               <prism:number>LG-2008-135938</prism:number>
+            </bib:CourtReporter>
+        </dcterms:isPartOf>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Gulating Lagmannsrett</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>LG-2008-135938 (Tomt i LNF-område)</dc:title>
+        <dcterms:abstract>Kjøper (profesjonell eiendomsutvikler) trakk seg fra avtale om kjøp av tomt før skriftlig kontrakt var inngått. Han fant ut at selger (forbruker) ikke hadde opplyst om at eiendommen faktisk lå i et LNF-område, over byfjellsgrensen og at det ikke ville bli gitt byggetillatelse på tomten. Lagmannsretten fant, som tingretten, at det forelå mangler ved eiendommen. Kjøper kunne forvente, utfra tomtens størrelse, den pris som ble forespeilet og det bud som ikke ble akseptert, at tomten kunne bebygges. De manglende opplysningene om tomten utgjorde en mangel ved eiendomen som virket inn på avtalen. Mangelen innebærte et vesentlig avtalebrudd og ga kjøper rett til å heve, jf. avhendingslova § 4-14 første ledd. Det var følgelig ikke grunnlag for selger til å rette krav mot kjøper for ikke å ha oppfylt avtalen. (Sammendrag ved Lovdata.)</dcterms:abstract>
+        <z:authority>Gulating lagmannsrett</z:authority>
+        <dc:date>2009-06-22</dc:date>
+        <z:history>Bergen tingrett TBERG-2007-170926 - Gulating lagmannsrett LG-2008-135938 (08-135938ASD-GULA/AVD2).</z:history>
+        <z:shortTitle>Tomt i LNF-område</z:shortTitle>
+        <z:language>nb-NO</z:language>
+    </bib:Document>
+    <bib:Document rdf:about="#item_27">
+        <z:itemType>case</z:itemType>
+        <dcterms:isPartOf>
+            <bib:CourtReporter>
+               <prism:number>HR-2016-2554-P</prism:number>
+            </bib:CourtReporter>
+        </dcterms:isPartOf>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                       <foaf:surname>Høyesterett</foaf:surname>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>HR-2016-2554-P (Holship Norge mot Norges Transportarbeiderforbund)</dc:title>
+        <z:authority>Norges Høyesterett</z:authority>
+        <dc:date>2016-12-16</dc:date>
+        <z:shortTitle>Holship</z:shortTitle>
+        <z:language>nb-NO</z:language>
+    </bib:Document>
+    <bib:Legislation rdf:about="http://data.europa.eu/eli/agree_internation/2001/258/oj">
+        <z:itemType>statute</z:itemType>
+        <dc:title>Agreement between the European Community and the Republic of Iceland and the Kingdom of Norway concerning the criteria and mechanisms for establishing the State responsible for examining a request for asylum lodged in a Member State or in Iceland or Norway</dc:title>
+        <prism:number>EUT L 93/40</prism:number>
+        <dc:date>2001-04-01</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>http://data.europa.eu/eli/agree_internation/2001/258/oj</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2026-01-27 18:19:30</dcterms:dateSubmitted>
+        <z:shortTitle>Dublin-tilknytningsavtalen</z:shortTitle>
+        <z:language>English</z:language>
+        <dc:description>type:treaty
+available-date:2001-01-19</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="https://lovdata.no/pro/TRAKTAT/traktat/2006-07-05-9">
+        <z:itemType>statute</z:itemType>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                   <foaf:Person><foaf:surname>Norge</foaf:surname></foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                   <foaf:Person><foaf:surname>Danmark</foaf:surname></foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                   <foaf:Person><foaf:surname>Island</foaf:surname></foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>Avtale om opprettelse av Nordisk Patentinstitutt</dc:title>
+        <prism:number>Overenskomster med fremmede stater 2011, s. 507</prism:number>
+        <dc:date>2007-12-28</dc:date>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>https://lovdata.no/pro/TRAKTAT/traktat/2006-07-05-9</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dc:description>type: treaty
+available-date: 2006-07-05</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="http://treaties.un.org/doc/Publication/UNTS/Volume%201833/volume-1833-A-31363-English.pdf">
+        <z:itemType>statute</z:itemType>
+        <dc:title>United Nations Convention on the Law of the Sea</dc:title>
+        <z:code>UNTS</z:code>
+        <z:codeNumber>1833</z:codeNumber>
+        <dc:date>1994-11-16</dc:date>
+        <bib:pages>3</bib:pages>
+        <dc:identifier>
+            <dcterms:URI>
+                <rdf:value>http://treaties.un.org/doc/Publication/UNTS/Volume%201833/volume-1833-A-31363-English.pdf</rdf:value>
+            </dcterms:URI>
+        </dc:identifier>
+        <dcterms:dateSubmitted>2011-10-04 14:25:29</dcterms:dateSubmitted>
+        <z:shortTitle>UNCLOS</z:shortTitle>
+        <z:language>English</z:language>
+        <dc:description>type:treaty
+available-date:1982-12-10</dc:description>
+    </bib:Legislation>
+    <bib:Legislation rdf:about="#item_31">
         <z:itemType>statute</z:itemType>
         <dc:title>Convention for the Protection of Human Rights and Fundamental Freedoms</dc:title>
         <prism:number>ETS No. 5</prism:number>
@@ -126,4 +683,66 @@
         <dc:description>type:treaty
 available-date:1950-11-04</dc:description>
     </bib:Legislation>
+    <bib:Book rdf:about="#item_32">
+        <z:itemType>book</z:itemType>
+        <dc:publisher>
+            <foaf:Organization>
+               <foaf:name>Fagbokforlaget</foaf:name>
+            </foaf:Organization>
+        </dc:publisher>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Bernt</foaf:surname>
+                        <foaf:givenName>Jan Fridthjof</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Rasmussen</foaf:surname>
+                        <foaf:givenName>Ørnulf</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>Frihagens forvaltningsrett</dc:title>
+        <prism:volume>1</prism:volume>
+        <prism:edition>2</prism:edition>
+        <dc:date>2010</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Book>
+    <bib:Book rdf:about="#item_33">
+        <z:itemType>book</z:itemType>
+        <dc:publisher>
+            <foaf:Organization>
+                <foaf:name>Fagbokforlaget</foaf:name>
+                <vcard:adr>
+                    <vcard:Address>
+                       <vcard:locality>Bergen</vcard:locality>
+                    </vcard:Address>
+                </vcard:adr>
+            </foaf:Organization>
+        </dc:publisher>
+        <bib:authors>
+            <rdf:Seq>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Fredriksen</foaf:surname>
+                        <foaf:givenName>Halvard Haukeland</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+                <rdf:li>
+                    <foaf:Person>
+                        <foaf:surname>Mathisen</foaf:surname>
+                        <foaf:givenName>Gjermund</foaf:givenName>
+                    </foaf:Person>
+                </rdf:li>
+            </rdf:Seq>
+        </bib:authors>
+        <dc:title>EØS-rett</dc:title>
+        <prism:edition>3</prism:edition>
+        <dc:date>2018</dc:date>
+        <z:language>nb-NO</z:language>
+    </bib:Book>
 </rdf:RDF>
