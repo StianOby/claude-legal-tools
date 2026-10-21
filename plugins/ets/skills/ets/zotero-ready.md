@@ -81,8 +81,38 @@ offer the direct import below.
    `collections` if chosen). Note the new item's key.
 6. **PDF:** `zotero_attach_file` with `parent` = the key and `url` = `pdf.url`
    from the JSON (a public rm.coe.int link; Zoteus downloads it), `title`
-   "Full Text PDF". If it fails, follow **When the PDF is not attached**.
+   "Full Text PDF". If rm.coe.int refuses Zoteus, attach the `.pdf` the
+   script made instead: **Attaching a PDF that is only in the cloud** below.
 7. Report what was made: library, collection, PDF yes/no.
+
+## Attaching a PDF that is only in the cloud
+
+Zoteus runs on the user's computer, so `zotero_attach_file` takes a file only
+from a `url` it can download or a `path` on that computer. A PDF the script
+made in the cloud sandbox gets there through the connected folder (verified
+2026-10-21 with a 22 MB UNTS slice):
+
+1. Load the tools with one ToolSearch call:
+   `select:mcp__remote-devices__get_device_info,mcp__remote-devices__device_commit_files,mcp__remote-devices__device_request_folder_access`.
+   If they are not there, follow **When the PDF is not attached**.
+2. **Over 30 MB → stop here** and follow **When the PDF is not attached**:
+   that is the copying cap.
+3. Copy the PDF to `/mnt/user-data/outputs/` (`device_commit_files` takes
+   files only from there, or a `fileUuid` from an earlier `SendUserFile`).
+4. **Folder:** `get_device_info` → `connectedFolders`, which gives the real
+   path on the user's computer (e.g. `C:\Users\…\Claude-legal-work`). With
+   more than one, ask which. With none, ask the user which folder to connect
+   (offer the folders you have seen exist, plus "another folder") and request
+   exactly that one with `device_request_folder_access`; if they decline,
+   follow **When the PDF is not attached**.
+5. `device_commit_files` with `devicePath` = `<folder>\ets\<base>.pdf`
+   (the folder as `connectedFolders` spells it; the subfolder is created).
+6. `zotero_attach_file` with `parent` = the item key, `path` = the path the
+   commit reports under `written`, `title` "Full Text PDF".
+7. Zotero stores its own copy, so the file in `<folder>\ets\` is no
+   longer needed. Do not delete it (deleting in the connected folder is off
+   unless the user turns it on): tell the user it is there and can be
+   deleted.
 
 ## When the PDF is not attached
 

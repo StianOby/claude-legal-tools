@@ -95,10 +95,39 @@ offer the direct import below.
 6. **PDF:** if the JSON's `pdf` has a `url` (a per-treaty file on
    treaties.un.org), `zotero_attach_file` with `parent` = the key and that
    `url`, `title` "Full Text PDF". A text cut from a volume PDF has no `url`
-   of its own: it exists only as the `.pdf` file. Then attach it with `path`
-   only if you know its path on the user's computer; otherwise follow **When
-   the PDF is not attached**.
+   of its own: it exists only as the `.pdf` file, so attach it through
+   **Attaching a PDF that is only in the cloud** below. Do the same if
+   Zoteus cannot download the `url`.
 7. Report what was made: library, collection, PDF yes/no.
+
+## Attaching a PDF that is only in the cloud
+
+Zoteus runs on the user's computer, so `zotero_attach_file` takes a file only
+from a `url` it can download or a `path` on that computer. A PDF the script
+made in the cloud sandbox gets there through the connected folder (verified
+2026-10-21 with a 22 MB UNTS slice):
+
+1. Load the tools with one ToolSearch call:
+   `select:mcp__remote-devices__get_device_info,mcp__remote-devices__device_commit_files,mcp__remote-devices__device_request_folder_access`.
+   If they are not there, follow **When the PDF is not attached**.
+2. **Over 30 MB → stop here** and follow **When the PDF is not attached**:
+   that is the copying cap.
+3. Copy the PDF to `/mnt/user-data/outputs/` (`device_commit_files` takes
+   files only from there, or a `fileUuid` from an earlier `SendUserFile`).
+4. **Folder:** `get_device_info` → `connectedFolders`, which gives the real
+   path on the user's computer (e.g. `C:\Users\…\Claude-legal-work`). With
+   more than one, ask which. With none, ask the user which folder to connect
+   (offer the folders you have seen exist, plus "another folder") and request
+   exactly that one with `device_request_folder_access`; if they decline,
+   follow **When the PDF is not attached**.
+5. `device_commit_files` with `devicePath` = `<folder>\untc\<base>.pdf`
+   (the folder as `connectedFolders` spells it; the subfolder is created).
+6. `zotero_attach_file` with `parent` = the item key, `path` = the path the
+   commit reports under `written`, `title` "Full Text PDF".
+7. Zotero stores its own copy, so the file in `<folder>\untc\` is no
+   longer needed. Do not delete it (deleting in the connected folder is off
+   unless the user turns it on): tell the user it is there and can be
+   deleted.
 
 ## When the PDF is not attached
 

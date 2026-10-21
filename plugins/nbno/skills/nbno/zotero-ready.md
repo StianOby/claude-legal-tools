@@ -275,15 +275,45 @@ and `pdf`. Then:
 6. **Web link:** `zotero_create_items` again with the `web_link` object, its
    `parentItem` set to that key. If Zoteus refuses it, say so and give the
    user the nb.no link. It is not worth retrying.
-7. **PDF:** `zotero_attach_file` with `parent` = the key and `path` = the
-   PDF's path *on the user's computer*. Zoteus runs on the user's computer,
-   so a path in the cloud sandbox (`/mnt/user-data/outputs/…`) or in the
-   local VM (`$HOME/mnt/…`) means nothing to it, and nb.no has no public
-   PDF URL for `url`. So attach only when you know the real path, for
-   example because the user told you where their connected folder is.
-   Otherwise skip this step: deliver the PDF as in SKILL.md Step 4 and follow
-   **When the PDF is not attached**.
+7. **PDF:** nb.no has no public PDF URL, so follow **Attaching a PDF that
+   is only in the cloud** below. If that cannot be done, deliver the PDF as
+   in SKILL.md Step 4 and follow **When the PDF is not attached**.
 8. Report what was made: library, collection, Web Link yes/no, PDF yes/no.
+
+## Attaching a PDF that is only in the cloud
+
+Zoteus runs on the user's computer, so `zotero_attach_file` takes a file only
+from a `url` it can download or a `path` on that computer. A PDF the script
+made in the cloud sandbox gets there through the connected folder (verified
+2026-10-21 with a 22 MB UNTS slice):
+
+1. Load the tools with one ToolSearch call:
+   `select:mcp__remote-devices__get_device_info,mcp__remote-devices__device_commit_files,mcp__remote-devices__device_request_folder_access`.
+   If they are not there, follow **When the PDF is not attached**.
+2. **Over 30 MB → stop here** and follow **When the PDF is not attached**:
+   that is the copying cap.
+3. Copy the PDF to `/mnt/user-data/outputs/` (`device_commit_files` takes
+   files only from there, or a `fileUuid` from an earlier `SendUserFile`).
+4. **Folder:** `get_device_info` → `connectedFolders`, which gives the real
+   path on the user's computer (e.g. `C:\Users\…\Claude-legal-work`). With
+   more than one, ask which. With none, ask the user which folder to connect
+   (offer the folders you have seen exist, plus "another folder") and request
+   exactly that one with `device_request_folder_access`; if they decline,
+   follow **When the PDF is not attached**.
+5. `device_commit_files` with `devicePath` = `<folder>\nbno\<base>.pdf`
+   (the folder as `connectedFolders` spells it; the subfolder is created).
+6. `zotero_attach_file` with `parent` = the item key, `path` = the path the
+   commit reports under `written`, `title` "Full Text PDF".
+7. Zotero stores its own copy, so the file in `<folder>\nbno\` is no
+   longer needed. Do not delete it (deleting in the connected folder is off
+   unless the user turns it on): tell the user it is there and can be
+   deleted.
+
+A local-route book is already in the connected folder
+(`$HOME/mnt/<folder>/nbno/<id>/` in the local shell): skip steps 2–5 and
+attach it with `path` = the same file under the folder's real path from
+`get_device_info` (`<folder>\nbno\<id>\<file>`). The 30 MB cap does not
+apply to it.
 
 ## When the PDF is not attached
 
