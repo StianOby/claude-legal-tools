@@ -317,17 +317,23 @@ def pdf_missing_notice(reason: str, where: Optional[str] = None) -> str:
 
 def zoteus_payload(item: dict, pdf_filename: Optional[str] = None,
                    link_url: Optional[str] = None,
-                   link_title: Optional[str] = None) -> dict:
+                   link_title: Optional[str] = None,
+                   pdf_url: Optional[str] = None) -> dict:
     """What the Zoteus route needs: `items` goes to zotero_create_items as
     is; `web_link` is created as a child once the parent's key is known
-    (set its parentItem); `pdf` names the file for zotero_attach_file."""
+    (set its parentItem); `pdf` names the file for zotero_attach_file, and
+    its public `url` when the source has one (Zoteus then fetches it)."""
     payload: dict = {"items": [item]}
     if link_url:
         payload["web_link"] = {"itemType": "attachment", "linkMode": "linked_url",
                                "title": link_title or link_url, "url": link_url,
                                "parentItem": "<key of the created item>"}
-    if pdf_filename:
-        payload["pdf"] = {"filename": pdf_filename, "content_type": "application/pdf"}
+    if pdf_filename or pdf_url:
+        payload["pdf"] = {"content_type": "application/pdf"}
+        if pdf_filename:
+            payload["pdf"]["filename"] = pdf_filename
+        if pdf_url:
+            payload["pdf"]["url"] = pdf_url
     return payload
 
 
@@ -336,9 +342,11 @@ def write_zotero_files(item: dict, out_dir: Path, base: str,
                        link_url: Optional[str] = None,
                        link_title: Optional[str] = None,
                        missing_reason: str = "no PDF was made for this item",
-                       item_id: str = "item_1") -> Tuple[Path, Path]:
+                       item_id: str = "item_1",
+                       pdf_url: Optional[str] = None) -> Tuple[Path, Path]:
     """Write <base>.rdf and <base>.zotero.json into out_dir. Prints the
-    PDF NOT ATTACHED line when pdf_filename is None or not in out_dir."""
+    PDF NOT ATTACHED line when pdf_filename is None or not in out_dir.
+    pdf_url, the PDF's public source, goes only into the Zoteus payload."""
     out_dir = Path(out_dir)
     if pdf_filename and not (out_dir / pdf_filename).exists():
         missing_reason = f"{pdf_filename} is not in {out_dir}"
@@ -347,7 +355,8 @@ def write_zotero_files(item: dict, out_dir: Path, base: str,
     json_path = out_dir / f"{base}.zotero.json"
     rdf_path.write_text(build_rdf(item, pdf_filename, link_url, link_title, item_id),
                         encoding="utf-8")
-    json_path.write_text(json.dumps(zoteus_payload(item, pdf_filename, link_url, link_title),
+    json_path.write_text(json.dumps(zoteus_payload(item, pdf_filename, link_url, link_title,
+                                                   pdf_url),
                                     ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[rdf] {rdf_path}")
     print(f"[rdf] {json_path}  (item for zotero_create_items)")

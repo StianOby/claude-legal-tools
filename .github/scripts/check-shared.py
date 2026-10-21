@@ -17,7 +17,7 @@ from pathlib import Path
 SHARED = {
     "shared/local-route/local-route.md": (["nbno", "lovdata-api", "nem-vedtak"], "local-route.md"),
     "shared/local-route/pack_for_local.sh": (["nbno", "lovdata-api", "nem-vedtak"], "scripts/pack_for_local.sh"),
-    "shared/zotero-rdf/zotero_rdf.py": (["nbno"], "scripts/zotero_rdf.py"),
+    "shared/zotero-rdf/zotero_rdf.py": (["nbno", "ets"], "scripts/zotero_rdf.py"),
     "shared/browser-paste/paste.py": (
         ["eu-agreements-treaties", "hudoc", "lovdata-pro", "nbno", "norges-traktater"],
         "scripts/browser/paste.py",

@@ -152,6 +152,15 @@ with tempfile.TemporaryDirectory() as tmp:
     check("payload item is the item", payload["items"], [book])
     check("payload web link", (payload["web_link"]["linkMode"], payload["web_link"]["url"]),
           ("linked_url", "https://www.nb.no/items/x"))
+    with redirect_stdout(io.StringIO()):
+        zr.write_zotero_files(book, tmp, "with_url", pdf_filename="Eckhoff_(1997).pdf",
+                              pdf_url="https://example.org/e.pdf")
+    payload_url = json.loads((tmp / "with_url.zotero.json").read_text(encoding="utf-8"))
+    check("payload pdf url", payload_url["pdf"],
+          {"content_type": "application/pdf", "filename": "Eckhoff_(1997).pdf",
+           "url": "https://example.org/e.pdf"})
+    check("pdf url stays out of the RDF",
+          "example.org" in (tmp / "with_url.rdf").read_text(encoding="utf-8"), False)
     out = io.StringIO()
     with redirect_stdout(out):
         zr.main(["--item-json", str(tmp / "Eckhoff_(1997).zotero.json"),

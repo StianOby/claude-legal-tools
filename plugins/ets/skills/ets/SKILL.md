@@ -1,8 +1,8 @@
 ---
 name: ets
 description: |
-  Retrieve Council of Europe (CoE) treaty documents — ETS (nos.
-  1–193) and CETS (nos. 194+). Fetches: (a)
+  Retrieve Council of Europe (CoE) treaty documents — ETS (1–193)
+  and CETS (194+). Fetches: (a)
   treaty text PDF; (b) Explanatory Report; (c) signatures/
   ratifications per state; (d) declarations and reservations per
   state. Trigger on: CoE convention name or acronym (ECHR, CPT,
@@ -12,7 +12,8 @@ description: |
   Tromsø Convention, European Social Charter); CETS/ETS number ("ETS No. 5",
   "CETS 210", "treaty 185"); asks like fetch the text, what
   reservations did [state] make to, list parties to, when did
-  [treaty] enter into force, get the explanatory report. Do NOT
+  [treaty] enter into force, get the explanatory report, add it to
+  Zotero (RDF or Zoteus). Do NOT
   trigger for: ECtHR judgments or Strasbourg case law; EU law/GDPR/
   directives (use eurlex); UN-deposited treaties (ICCPR, CEDAW, Rome
   Statute, UNCLOS — use untc); Norwegian law (lovdata-api); WIPO/WTO; UN
@@ -259,6 +260,16 @@ quick factual questions to avoid re-parsing the index.
    English and names the files `*.en.*` — so a `text.de.txt` never
    silently contains English. Only EN and FR are authentic texts;
    quote those for anything that turns on wording.
+
+## Zotero-ready treaties
+
+For "Zotero-ready", "Zotero RDF for the ECHR", "add CETS 210 to my Zotero
+library": read [`zotero-ready.md`](zotero-ready.md) first.
+`scripts/zotero_treaty.py <ref> --out DIR` writes the treaty as a Zotero
+statute item (`.rdf` + the English text as `.pdf`). With the Zoteus tools
+(`zotero_*`), the item can go straight into the library instead. **If the
+item ends up without its PDF, tell the user** (`zotero-ready.md`, "When the
+PDF is not attached").
 
 ## Citation
 

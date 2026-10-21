@@ -22,16 +22,17 @@ lookup finds nothing; no snapshot ships with the skill.
 ets/
   SKILL.md                 # Skill description and usage policy
   README.md                # This file
+  zotero-ready.md          # Zotero-ready treaties (RDF file or Zoteus)
   requirements.txt         # Optional Python dependency (pypdf)
-  data/
-    index.json             # Bundled snapshot of the master treaty index (~230 records)
   evals/
     trigger_evals.json     # Trigger evaluation test cases
   scripts/
-    coe.py                 # Self-contained CLI
+    coe.py                 # Self-contained CLI (the treaty index is fetched live)
+    zotero_treaty.py       # one treaty as a Zotero statute item (.rdf + .pdf)
+    zotero_rdf.py          # Zotero RDF + item JSON (copy of shared/zotero-rdf/)
 ```
 
-Offline tests live in the repository at `tests/ets/`, not in the plugin (they do not ship to users): `python tests/ets/test_coe.py`.
+Offline tests live in the repository at `tests/ets/`, not in the plugin (they do not ship to users): `python tests/ets/test_coe.py`, `python tests/ets/test_zotero_treaty.py`.
 
 ## Requirements
 
