@@ -240,6 +240,19 @@ The `.original.pdf` exists only if you asked for it. It is never referenced
 by the RDF; once the user is happy with the shrunk PDF, delete it to free
 300–800 MB. Give the user the `.pdf` and `.rdf` only.
 
+The `.rdf` finds the PDF only when the two files sit in the same folder, so
+always say this when you hand them over, in these words:
+
+> Download both files into the same folder first, then drag the `.rdf` into
+> Zotero from there. If you open the `.rdf` straight from this chat, Zotero
+> imports the book without its PDF.
+
+For a local-route book the two files are already together in
+`<connected folder>/nbno/<id>/`. Say instead: "Drag the `.rdf` into Zotero
+from `<that folder>`; the PDF next to it is attached automatically." If the
+user would rather skip that step and the Zoteus tools are available, offer
+the direct import below.
+
 ## Direct import with Zoteus
 
 Use this route when the `zotero_*` tools are present and the user wants the
@@ -282,7 +295,8 @@ themselves. This applies when:
   skipped, or `zotero_attach_file` failed);
 - the `.rdf` reaches the user without its `.pdf` next to it, for example
   because `SendUserFile` refused a PDF over 30 MiB, or the PDF went to a
-  different folder from the RDF.
+  different folder from the RDF. If the user says the item came in without
+  its PDF, the usual cause is a `.rdf` opened straight from the chat.
 
 Say it in the reply, not only in the log: which item, where the PDF is (the
 outputs folder, `<connected folder>/nbno/<id>/`, or "not sent: too large"),

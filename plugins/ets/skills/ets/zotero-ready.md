@@ -52,8 +52,15 @@ that is the text as amended by the later protocols, not the 1950 original.
 ## RDF route
 
 Copy the `.pdf` and the `.rdf` (not the `.zotero.json`) to the outputs
-directory and share both. Tell the user to save them in the same folder,
-then drag the `.rdf` into Zotero.
+directory and share both. The `.rdf` finds the PDF only when the two files
+sit in the same folder, so always say this with them, in these words:
+
+> Download both files into the same folder first, then drag the `.rdf` into
+> Zotero from there. If you open the `.rdf` straight from this chat, Zotero
+> imports the treaty without its PDF.
+
+If the user would rather skip that step and the Zoteus tools are available,
+offer the direct import below.
 
 ## Direct import with Zoteus
 
@@ -82,7 +89,9 @@ then drag the `.rdf` into Zotero.
 The user must always learn that an item has no PDF, so they can add it
 themselves. This applies when the script prints a line starting
 `PDF NOT ATTACHED:`, when `zotero_attach_file` fails, and when the `.rdf`
-reaches the user without the `.pdf` beside it.
+reaches the user without the `.pdf` beside it. If the user says the item
+came in without its PDF, the usual cause is a `.rdf` opened straight from
+the chat.
 
 Say it in the reply, not only in the log: which treaty, where the PDF is
 (the outputs folder, or its rm.coe.int link), and how to add it: in Zotero,
