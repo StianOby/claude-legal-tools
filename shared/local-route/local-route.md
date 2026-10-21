@@ -42,14 +42,19 @@ a cookie — so they are not asked for those and then told it cannot run.
    disappear, stop with message **A**.
 4. `device_bash` works → find the connected folder (section 3). None →
    if a `device_request_folder_access` tool exists, use it to ask the user to
-   connect one, then look again. Do not invent a path for the request: if it
-   needs one, use a folder you have seen exists (`get_device_info`), or let
-   the user pick. Right before the request, tell the user why in one line,
-   with message **B**'s second and third sentences: the folder is needed only
-   because the local shell will not start without one, and nothing is
-   written there unless they asked for a file. The user declines → stop with
-   **only B's first sentence** (they have just read the rest). No such tool →
-   stop with message **B** in full.
+   connect one, then look again. **The user chooses the folder; never
+   request one they did not pick.** If the tool can be called without a
+   path (check its schema) and then lets the user pick, do that. Otherwise
+   ask first, with your question tool if you have one, else in chat, and
+   wait for the answer. Offer the folders you have seen exist
+   (`get_device_info`, e.g. `~/Claude`) as options, plus "another folder"
+   for a path the user types. A dedicated folder is best (see section 3).
+   Then request exactly the folder they named. Right before the request,
+   tell the user why in one line, with message **B**'s second and third
+   sentences: the folder is needed only because the local shell will not
+   start without one, and nothing is written there unless they asked for a
+   file. The user declines → stop with **only B's first sentence** (they
+   have just read the rest). No such tool → stop with message **B** in full.
    (`device_bash` itself refuses to run with "No folders are connected …"
    until there is one.)
 
