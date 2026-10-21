@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import http.cookiejar
 import json
 import os
 import re
@@ -46,6 +47,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import calendar
 import time
 import urllib.error
 import urllib.parse
@@ -418,10 +420,19 @@ def build_index(*, refresh=False, polite_delay=0.4,
     _seed_index_if_needed()
     if _has_content(INDEX_PATH) and not refresh:
         return _read_json(INDEX_PATH)
+    # A rebuild must never shrink the index: a chapter whose page fails (or
+    # suddenly lists nothing) keeps its entries from the previous index, and
+    # the index keeps the previous date so the next miss tries again.
+    previous = _read_json(INDEX_PATH) if _has_content(INDEX_PATH) else {"treaties": []}
+    old_by_chapter = {}
+    for e in previous.get("treaties", []):
+        old_by_chapter.setdefault(e.get("chapter_int"), []).append(e)
     index = []
     chapters_seen = []
+    kept_old = []
     for ch in chapter_range:
         chapter_entries = []
+        failed = False
         # Chapter XI is split into sub-chapters A-E, each on its own page
         # (subid=A, B, ...). Other chapters return the same list for every
         # subid, so we only continue past A when the refs carry a letter.
@@ -430,8 +441,9 @@ def build_index(*, refresh=False, polite_delay=0.4,
             try:
                 page_html = http_get(url)
             except Exception as e:
-                print("  chapter %d%s: skipped (%s)" % (ch, subid if subid != "A" else "", e),
+                print("  chapter %d%s: failed (%s)" % (ch, subid if subid != "A" else "", e),
                       file=sys.stderr)
+                failed = True
                 break
             entries = parse_chapter_index(page_html, ch)
             time.sleep(polite_delay)
@@ -440,17 +452,33 @@ def build_index(*, refresh=False, polite_delay=0.4,
             chapter_entries.extend(entries)
             if not entries[0].subchapter:
                 break
+        old = old_by_chapter.get(ch, [])
+        if old and (failed or not chapter_entries):
+            print("  chapter %2d: kept %d treaties from the previous index (%s)"
+                  % (ch, len(old), index_date(previous)), file=sys.stderr)
+            chapters_seen.append(ch)
+            index.extend(old)
+            kept_old.append(ch)
+            continue
         if not chapter_entries:
             continue
         chapters_seen.append(ch)
         index.extend(asdict(e) for e in chapter_entries)
         print("  chapter %2d: %d treaties" % (ch, len(chapter_entries)), file=sys.stderr)
+    if not index or (previous.get("treaties") and len(kept_old) == len(chapters_seen)):
+        raise urllib.error.URLError("no chapter page could be fetched; the index is unchanged")
     payload = {
-        "fetched_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "fetched_utc": (previous.get("fetched_utc") if kept_old else None)
+        or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "source": "https://treaties.un.org/Pages/Treaties.aspx",
         "chapters": chapters_seen,
         "treaties": index,
     }
+    if kept_old:
+        payload["stale_chapters"] = kept_old
+        print("COVERAGE WARNING: chapters %s could not be refreshed and are as of %s; "
+              "the index keeps that date, so the next miss tries again."
+              % (", ".join(str(c) for c in kept_old), index_date(previous)), file=sys.stderr)
     _write_json(INDEX_PATH, payload)
     return payload
 
@@ -462,6 +490,41 @@ def load_index():
             "no cached index - run `untc.py index` first to build it."
         )
     return _read_json(INDEX_PATH)
+
+
+# A title search that finds nothing rebuilds an index older than this before
+# answering NO MATCH: a treaty deposited since the index was made would
+# otherwise be reported as "not deposited with the Secretary-General".
+INDEX_MAX_AGE_DAYS = 7
+
+
+def index_date(payload) -> str:
+    return (payload.get("fetched_utc") or "")[:10] or "an unknown date"
+
+
+def index_age_days(payload) -> float:
+    try:
+        t = calendar.timegm(time.strptime(payload["fetched_utc"], "%Y-%m-%dT%H:%M:%SZ"))
+    except (KeyError, ValueError, TypeError):
+        return float("inf")
+    return (time.time() - t) / 86400
+
+
+def concluded_after_index(row, payload, margin_days=30) -> bool:
+    """True if a UNTS hit was concluded after the MTDSG index was built
+    (less a margin). Only such a treaty can be missing from the index while
+    being deposited with the Secretary-General; anything older that is
+    SG-deposited is in it."""
+    m = re.match(r"(\d{2})/(\d{2})/(\d{4})$", (row.get("concluded") or "").strip())
+    built = payload.get("fetched_utc")
+    if not m or not built:
+        return True          # unknown dates: cannot rule it out
+    try:
+        concluded = calendar.timegm((int(m.group(3)), int(m.group(2)), int(m.group(1)), 0, 0, 0))
+        built_t = calendar.timegm(time.strptime(built, "%Y-%m-%dT%H:%M:%SZ"))
+    except (ValueError, OverflowError):
+        return True
+    return concluded >= built_t - margin_days * 86400
 
 
 def _norm_query(q: str) -> str:
@@ -498,6 +561,201 @@ def search_index(query, *, limit=10):
         scored.insert(0, (1000, by_ref[aliased_ref]))
     scored.sort(key=lambda x: (-x[0], len(x[1]["title"])))
     return scored[:limit]
+
+# ---------------------------------------------------------------------------
+# UNTS Online: live title search over every registered treaty
+# ---------------------------------------------------------------------------
+# The MTDSG index covers only the ~670 treaties deposited with the
+# Secretary-General. Everything else registered with the UN (bilaterals,
+# treaties with other depositaries: tens of thousands) is reached through
+# UNTS Online's title search, an ASP.NET form: GET it once for its hidden
+# state, then post the title. The result rows carry the full title in a
+# `title` attribute and an object id for showDetails.aspx, which gives the
+# UNTS volume and page (and so `text --vol/--page`). Treaties are registered
+# only once in force, so a treaty not yet in force is in MTDSG but not here.
+
+UNTS_SEARCH_URL = BASE + "/Pages/UNTSOnline.aspx?id=2&clang=_en"
+UNTS_DETAILS_URL = BASE + "/Pages/showDetails.aspx?objid=%s&clang=_en"
+_UNTS_P = "ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolderInnerPage$"
+UNTS_TITLE_MAX = 100          # the form's maxlength
+UNTS_MODES = {"phrase": "cnd3", "all": "cnd2", "any": "cnd1"}
+_unts_state = {"opener": None, "form": None}
+
+
+def _unts_opener():
+    if _unts_state["opener"] is None:
+        jar = http.cookiejar.CookieJar()
+        op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+        op.addheaders = [("User-Agent", USER_AGENT)]
+        _unts_state["opener"] = op
+    return _unts_state["opener"]
+
+
+def _hidden_fields(page_html):
+    out = {}
+    for m in re.finditer(r'<input[^>]+type="hidden"[^>]*>', page_html):
+        tag = m.group(0)
+        n = re.search(r'name="([^"]+)"', tag)
+        v = re.search(r'value="([^"]*)"', tag)
+        if n:
+            out[html.unescape(n.group(1))] = html.unescape(v.group(1)) if v else ""
+    return out
+
+
+def unts_query_text(title):
+    """A title cut to the form's 100 characters at a word boundary, without
+    a trailing parenthetical (MTDSG adds e.g. '(deposited in the archives
+    of ...)', which UNTS titles do not have)."""
+    t = re.sub(r"\s*\([^)]*\)\s*$", "", title or "").strip()
+    t = re.sub(r"\s+", " ", t)
+    if len(t) > UNTS_TITLE_MAX:
+        t = t[:UNTS_TITLE_MAX].rsplit(" ", 1)[0]
+    return t
+
+
+def unts_search(title, *, mode="phrase", timeout=120):
+    """One UNTS Online title search. Returns (record_count_text, rows) with
+    rows as {reg, title, objid, concluded, eif, type}; at most 500 rows
+    (the site's largest page)."""
+    op = _unts_opener()
+    for attempt in range(2):
+        if _unts_state["form"] is None:
+            _unts_state["form"] = op.open(UNTS_SEARCH_URL, timeout=60).read().decode("utf-8", "replace")
+        data = _hidden_fields(_unts_state["form"])
+        data.update({_UNTS_P + "txtTitle": unts_query_text(title), _UNTS_P + "Adv_srch": UNTS_MODES[mode],
+                     _UNTS_P + "btnSubmit": "Search", _UNTS_P + "drpPageSize": "500"})
+        req = urllib.request.Request(UNTS_SEARCH_URL, data=urllib.parse.urlencode(data).encode())
+        try:
+            page = op.open(req, timeout=timeout).read().decode("utf-8", "replace")
+            break
+        except urllib.error.HTTPError:
+            if attempt:
+                raise
+            _unts_state["form"] = None   # stale form state: fetch it again once
+    count = re.search(r"Record Count\s*:\s*([\d,+]+)", page)
+    return (count.group(1) if count else "0"), parse_unts_rows(page)
+
+
+def parse_unts_rows(page):
+    """Result rows from a UNTS Online page. The cell attributes vary between
+    responses (style="width:20%;" or width="20%"), so rows are read by cell
+    position: reg | title (full text in the title attribute) | details link |
+    concluded | in force | type | hidden cells."""
+    rows = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", page, re.S):
+        if "showDetails.aspx?objid=" not in tr:
+            continue
+        cells = re.findall(r"<td([^>]*)>(.*?)</td>", tr, re.S)
+        if len(cells) < 6:
+            continue
+        title_attr = re.search(r'title="([^"]*)"', cells[1][0])
+        objid = re.search(r"objid=([0-9a-f]+)", tr)
+        text = lambda i: html.unescape(re.sub(r"<[^>]+>", "", cells[i][1])).strip()
+        rows.append({"reg": text(0),
+                     "title": html.unescape(title_attr.group(1)).strip() if title_attr else text(1),
+                     "objid": objid.group(1) if objid else "",
+                     "concluded": text(3), "eif": text(4), "type": text(5)})
+    return rows
+
+
+def _title_key(s):
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+
+# MTDSG titles sometimes carry the circumstances of adoption, which UNTS
+# titles leave out.
+_TRAILING_CLAUSE = re.compile(r"\s+(?:adopted|done|signed|concluded|opened for signature)\b.*$", re.I)
+
+
+def unts_find(query, *, limit=10):
+    """Phrase search first, then 'all these words' if the phrase finds
+    nothing (punctuation and spacing differ between sources: 'Articles 23,27'
+    vs '23, 27'), then the phrase without a trailing 'adopted …' / 'done at …'
+    clause (MTDSG: 'Amendment to the Montreal Protocol … adopted by the Ninth
+    Meeting of the Parties'; UNTS: the title alone). Exact title matches
+    first, then titles starting with the query, then the site's order.
+    Tested against all 670 MTDSG titles (2026-10-21, tests/untc/
+    live_unts_coverage.py): 667 found with the exact title first (or, for UN
+    vehicle regulations, as a related record under the 1958 Agreement); the
+    3 misses are not registered (not in force) or annexes registered under
+    their parent convention.
+    Returns (mode, record_count_text, rows)."""
+    mode = "phrase"
+    count, rows = unts_search(query, mode=mode)
+    if not rows:
+        words = " ".join(w for w in _title_key(unts_query_text(query)).split() if len(w) > 3)
+        if words:
+            mode = "all"
+            count, rows = unts_search(words, mode=mode)
+    if not rows:
+        short = _TRAILING_CLAUSE.sub("", unts_query_text(query)).strip()
+        if short and short != unts_query_text(query):
+            mode = "phrase-short"
+            query = short
+            count, rows = unts_search(short, mode="phrase")
+    key = _title_key(unts_query_text(query))
+
+    def rank(r):
+        t = _title_key(r["title"])
+        return (0 if t == key else 1 if t.startswith(key) else 2)
+    rows = sorted(rows, key=rank)
+    return mode, count, rows[:limit]
+
+
+def _details_field(text, label, nxt):
+    m = re.search(re.escape(label) + r"\s*\|\s*(.*?)\s*\|\s*" + re.escape(nxt), text)
+    return m.group(1).strip(" |") if m else None
+
+
+def unts_details(objid):
+    """The UNTS record behind a search hit: registration number, title,
+    conclusion, entry into force, depositary, UNTS volume and page, and the
+    text PDFs. The participants table is left out (for a big multilateral it
+    is megabytes; MTDSG treaties have their status document instead)."""
+    if not re.fullmatch(r"[0-9a-f]{16}", objid or ""):
+        raise SystemExit("unts-details needs the 16-character object id a search hit shows (objid)")
+    url = UNTS_DETAILS_URL % objid
+    page = _unts_opener().open(url, timeout=120).read().decode("utf-8", "replace")
+    body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", page, flags=re.S)
+    text = html.unescape(re.sub(r"<[^>]+>", "|", body))
+    text = re.sub(r"\s*\|\s*(\|\s*)+", " | ", text)
+    i = text.find("Registration Number")
+    text = text[i:] if i >= 0 else text
+    vol = _details_field(text, "UNTS Volume Number", "Publication format") or ""
+    vm = re.match(r"(\d+)\s*\(p\.\s*(\d+)\)", vol)
+    pdfs = sorted(set(m for m in re.findall(r'href="([^"]+\.pdf)"', page)))
+    out = {
+        "objid": objid,
+        "registration_number": _details_field(text, "Registration Number", "Title"),
+        "title": _details_field(text, "Title", "Participant(s)"),
+        "conclusion": ", ".join(x.strip() for x in (_details_field(text, "Places/dates of conclusion", "EIF information")
+                                                    or "").replace("Place | Date |", "").split("|") if x.strip()) or None,
+        "entry_into_force": _details_field(text, "EIF information", "Authentic texts"),
+        "depositary": _details_field(text, "Depositary", "Registration Date"),
+        "registration_date": _details_field(text, "Registration Date", "Subject terms"),
+        "agreement_type": _details_field(text, "Agreement type", "UNTS Volume Number"),
+        "unts_volume": int(vm.group(1)) if vm else None,
+        "unts_page": int(vm.group(2)) if vm else None,
+        "unts_volume_raw": vol or None,
+        "text_pdfs": [p if p.startswith("http") else BASE + p for p in pdfs],
+        "details_url": url,
+    }
+    if out["unts_volume"] and out["unts_page"]:
+        out["text_command"] = "untc.py text --vol %d --page %d" % (out["unts_volume"], out["unts_page"])
+    out["mtdsg"] = "secretary-general of the united nations" in (out["depositary"] or "").lower()
+    if out["mtdsg"]:
+        out["note"] = ("Deposited with the UN Secretary-General, so it has an MTDSG status document "
+                       "(parties, reservations): find its MTDSG ref with `untc.py lookup \"<title>\"` "
+                       "(which rebuilds an old index if needed) and run `status <ref>`.")
+    return out
+
+
+def print_unts_rows(rows):
+    for r in rows:
+        print("  %-10s %s" % (r["reg"], r["title"]))
+        print("             -- concluded %s, in force %s, %s; details: untc.py unts-details %s"
+              % (r["concluded"] or "?", r["eif"] or "?", r["type"] or "?", r["objid"]))
+
 
 # ---------------------------------------------------------------------------
 # PDF text extraction
@@ -1233,6 +1491,58 @@ def cmd_lookup(args):
         print("             -- not deposited with the UN Secretary-General: no "
               "MTDSG status doc. Text: `untc.py text --vol %d --reg %s`" % (vol, reg))
     hits = search_index(args.query, limit=args.limit)
+    payload = load_index()
+    if q not in UNTS_ONLY and (not hits or hits[0][0] < 100):
+        # Not deposited with the Secretary-General (or not in this index):
+        # search every registered treaty live in UNTS Online.
+        try:
+            mode, count, rows = unts_find(args.query, limit=args.limit)
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            mode, count, rows = None, "0", []
+            print("UNTS Online title search failed (%s)." % e, file=sys.stderr)
+        # A multilateral hit concluded after the index was built may be a
+        # treaty deposited with the SG that the index predates (in force, so
+        # registered, but unknown to the index): rebuild an old index before
+        # calling it "not in MTDSG".
+        newer = [r for r in rows if "multilateral" in (r.get("type") or "").lower()
+                 and concluded_after_index(r, payload)]
+        if newer and index_age_days(payload) > INDEX_MAX_AGE_DAYS:
+            print("UNTS has multilateral treaties concluded after the MTDSG index (as of %s) "
+                  "was made (%s) - rebuilding the index from treaties.un.org (about a minute) "
+                  "before deciding they are not deposited with the Secretary-General ..."
+                  % (index_date(payload), ", ".join(r["reg"] for r in newer[:3])), file=sys.stderr)
+            try:
+                payload = build_index(refresh=True)
+                hits = search_index(args.query, limit=args.limit)
+                newer = [r for r in newer if concluded_after_index(r, payload)]
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                print("COVERAGE WARNING: could not rebuild the index (%s); it is as of %s. "
+                      "The UNTS hits concluded after that date may be deposited with the "
+                      "Secretary-General and have a status document - check `unts-details` "
+                      "(depositary) and tell the user." % (e, index_date(payload)), file=sys.stderr)
+        if rows and not (hits and hits[0][0] >= 100):
+            print("Not in the MTDSG index (as of %s), so no MTDSG status document. "
+                  "Registered in the UNTS (title search, %s match, %s record(s); "
+                  "best first):" % (index_date(payload), {"phrase": "phrase", "all": "all-words",
+                                                         "phrase-short": "shortened-phrase"}.get(mode, mode), count))
+            print_unts_rows(rows)
+            for r in newer:
+                print("  CAUTION: %s was concluded after the index date; if `unts-details %s` "
+                      "names the UN Secretary-General as depositary, it has an MTDSG status "
+                      "document after all." % (r["reg"], r["objid"]))
+            return
+        # Found nowhere: maybe newly deposited with the SG and not yet in force
+        # (so not registered yet). Only then is an old index worth rebuilding.
+        if not rows and index_age_days(payload) > INDEX_MAX_AGE_DAYS:
+            print("no match in the MTDSG index (as of %s) or in UNTS Online - rebuilding "
+                  "the index from treaties.un.org (about a minute) ..." % index_date(payload), file=sys.stderr)
+            try:
+                payload = build_index(refresh=True)
+                hits = search_index(args.query, limit=args.limit)
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                print("COVERAGE WARNING: could not rebuild the index (%s); searched the "
+                      "index as of %s. Treaties deposited since then are missing - tell "
+                      "the user." % (e, index_date(payload)), file=sys.stderr)
     if q in UNTS_ONLY:
         # The built-in entry is the answer; word overlaps with SG-deposited
         # titles (NATO -> the Baltic cetaceans agreement) only mislead.
@@ -1240,11 +1550,12 @@ def cmd_lookup(args):
         if not hits:
             return
     elif not hits or hits[0][0] < 100:
-        print("NO MATCH: no treaty deposited with the Secretary-General has "
-              "%r in its title. It may have another depositary: find its UNTS "
-              "citation (e.g. '34 UNTS 243' = volume 34, page 243) and run "
-              "`untc.py text --vol <volume> --page <page>`, or "
-              "`untc.py volume <volume> --search <word>`." % args.query.strip())
+        print("NO MATCH: %r is neither in the MTDSG index (as of %s) nor in a UNTS "
+              "Online title search. Try other words from the title (`untc.py "
+              "unts-search \"<words>\" --words`), or find its UNTS citation (e.g. "
+              "'34 UNTS 243' = volume 34, page 243) and run `untc.py text --vol "
+              "<volume> --page <page>`. A treaty not yet in force is not registered "
+              "in the UNTS." % (args.query.strip(), index_date(payload)))
         if hits:
             print("Titles sharing only some words (almost certainly NOT the "
                   "treaty asked for):")
@@ -1252,6 +1563,27 @@ def cmd_lookup(args):
         print("  %-10s  %s" % (h["ref"], h["title"]))
         if h.get("place_date"):
             print("              -- %s" % h["place_date"])
+
+
+def cmd_unts_search(args):
+    if args.words:
+        mode = "any" if args.any else "all"
+        count, rows = unts_search(args.query, mode=mode)
+        rows = rows[: args.limit]
+    else:
+        mode, count, rows = unts_find(args.query, limit=args.limit)
+    if args.json:
+        _print_json({"query": args.query, "mode": mode, "record_count": count, "results": rows})
+        return
+    if not rows:
+        print("no UNTS record has %r in its title (%s match)" % (args.query, mode))
+        return
+    print("%s record(s), %s match; showing %d, best first:" % (count, mode, len(rows)))
+    print_unts_rows(rows)
+
+
+def cmd_unts_details(args):
+    _print_json(unts_details(args.objid))
 
 
 def cmd_status(args):
@@ -1374,6 +1706,18 @@ def main(argv=None):
     p_look.add_argument("query")
     p_look.add_argument("--limit", type=int, default=10)
     p_look.set_defaults(func=cmd_lookup)
+
+    p_us = sub.add_parser("unts-search", help="live title search over all UNTS-registered treaties")
+    p_us.add_argument("query", help="title or part of it (up to 100 characters are used)")
+    p_us.add_argument("--words", action="store_true", help="match all these words instead of the phrase")
+    p_us.add_argument("--any", action="store_true", help="with --words: match any of the words")
+    p_us.add_argument("--limit", type=int, default=10)
+    p_us.add_argument("--json", action="store_true")
+    p_us.set_defaults(func=cmd_unts_search)
+
+    p_ud = sub.add_parser("unts-details", help="UNTS record of a search hit: volume, page, PDFs")
+    p_ud.add_argument("objid", help="the object id a search hit shows")
+    p_ud.set_defaults(func=cmd_unts_details)
 
     p_st = sub.add_parser("status", help="download MTDSG status doc")
     p_st.add_argument("ref", help="MTDSG ref like XXIII-1, IV-11-b or XI-B-16")

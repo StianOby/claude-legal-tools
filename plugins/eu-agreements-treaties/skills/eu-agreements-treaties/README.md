@@ -46,8 +46,6 @@ eu-agreements-treaties/
 ├── SKILL.md                         # the skill manifest Claude reads
 ├── README.md                        # you are here
 ├── NOTES.md                         # maintainer notes: Cloudflare finding, fixture checklist
-├── data/
-│   └── parties.json                 # the site's 256 party codes with short and long names
 ├── references/
 │   └── party-codes.md               # the non-ISO codes, EU entities, collisions
 └── scripts/

@@ -90,8 +90,9 @@ Greece. All ISO except where the table above says otherwise.
 
 ## Full list
 
-`data/parties.json` — 256 entries, `{code, name, long_name, names}`,
-parsed from the captured search form (`NOTES.md` §4). `long_name` is `null`
+The live list is always one call away in the tab: `await __cs.parties("<part of a name>")`
+(or `partiesDump()` for all of them). It had 256 entries,
+`{code, name, long_name, names}`, on 2026-10-21. `long_name` is `null`
 for 13 codes whose long form is blank on the site: `AC` Andean Pact, `ASE`
 ASEAN, `CS` Czechoslovakia, `DA` Dahomey, `GL` Greenland, `HK` Hong Kong,
 `HV` Upper-Volta, `MAL` Malgache, `MS` Mercosur, `PAC` Central Africa Party,

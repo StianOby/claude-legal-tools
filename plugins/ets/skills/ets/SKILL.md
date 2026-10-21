@@ -134,14 +134,13 @@ Concrete invocations:
 Available subcommands (`python3 scripts/coe.py --help` shows all):
 
 - `index [--refresh]` — the full index of all CoE treaties (~230
-  records). A snapshot ships with the skill in `data/index.json` and
-  is copied into the cache on first use, so no network call is needed
-  to start. `--refresh` re-downloads it (one POST). Any command that
-  is asked for a number missing from the cached index refreshes
-  automatically once before giving up, so new CETS numbers work
-  without manual intervention, and `text`/`report`/`signatures`/
-  `declarations`/`fetch` refresh it when it is more than 30 days old
-  (keeping the old one if the refresh fails).
+  records). It is fetched live on the first lookup in a session (one
+  POST; nothing ships with the skill), refreshed when more than 7 days
+  old, and once more whenever a number or a name matches nothing, so new
+  treaties are always found. `--refresh` forces it. If a refresh fails, stderr has a
+  `COVERAGE WARNING` naming the index used: tell the user that treaties
+  added after it may be missing. Signatures, ratifications and
+  declarations are always fetched live, never from the snapshot.
 - `lookup <query>` — fuzzy-search the cached index by name or number.
 - `text <ref>` — download + extract the treaty text (PDF, or HTML
   for the few translations that rm.coe.int publishes as web pages).
@@ -189,7 +188,7 @@ are UTF-8 and written atomically, so an interrupted download never
 leaves a truncated file behind that later looks cached.
 
 ```
-<cache>/index.json                              # entire treaty list (seeded from data/index.json)
+<cache>/index.json                              # entire treaty list (fetched live on first use)
 <cache>/treaties/<NNN>/meta.json                # promoted-fields meta
 <cache>/treaties/<NNN>/text.en.pdf              # or text.<lang>.html when only a web page exists
 <cache>/treaties/<NNN>/text.en.txt              # extracted plain text

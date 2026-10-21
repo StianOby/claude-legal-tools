@@ -80,9 +80,8 @@ tool should not be in the business of circumventing that.
 
 Consequences: no Python CLI, no bundled data snapshot (the JS cannot read
 local files, and pasting 300 KB into the tab is worse than one 1.6 MB
-same-origin fetch), no Claude Code CLI support. `data/parties.json` is the
-one data file worth shipping (stable, needed for the code-validation
-guidance) — see §4.
+same-origin fetch), no Claude Code CLI support. The party list is read
+live from the search form too; `parties.json` lives only in the tests (§4).
 
 ## 3. Fixture capture checklist (run once in Cowork)
 
@@ -135,21 +134,25 @@ in this repository:
 6. `cd tests && npm install && npm test`; fix parsers until green; pin the
    expected numbers in `run.js` to the capture date.
 
-## 4. Generating `data/parties.json`
+## 4. The `parties.json` test fixture
 
-`data/parties.json` (256 entries, `{code, name, long_name, names}`) is the
-output of `parsePartyList()` over `tests/eu-agreements-treaties/fixtures/search-form.html`, and
-`tests/eu-agreements-treaties/run.js` asserts that equality — so regenerating is
-`node -e` over the fixture, not a browser session:
+`tests/eu-agreements-treaties/fixtures/parties.json` (256 entries on
+2026-10-21, `{code, name, long_name, names}`) is the output of
+`parsePartyList()` over `fixtures/search-form.html`, and `run.js` asserts that
+equality. It is test data only — the helper reads the party list live from
+the search form, so a party the site adds works without any change here. It
+no longer ships with the skill (removed 2026-10-21; it went stale and needed
+a manual browser capture to refresh). To regenerate it after recapturing the
+form (§3), from the repo root:
 
 ```
-cd tests && node -e "
-const {parseHTML}=require('linkedom'), fs=require('fs'), cs=require('../scripts/browser/consilium.js');
+cd tests/eu-agreements-treaties && node -e "
+const {parseHTML}=require('linkedom'), fs=require('fs'), cs=require('../../plugins/eu-agreements-treaties/skills/eu-agreements-treaties/scripts/browser/consilium.js');
 const p=cs._internal.parsePartyList(parseHTML(fs.readFileSync('fixtures/search-form.html','utf8')).document);
-fs.writeFileSync('../data/parties.json', JSON.stringify(p,null,1)+'\n');"
+fs.writeFileSync('fixtures/parties.json', JSON.stringify(p,null,1)+String.fromCharCode(10));"
 ```
 
-To pick up new parties, recapture `search-form.html` (§3) and rerun. The
+There is no schedule for this; recapture only when the parser changes. The
 in-browser `partiesDump()` + `page()` route still works and produced the
 same code set on 2026-09-16, but the form fixture is the single source.
 `name` is the short form (what ratification tables print — "Czechia",
@@ -176,7 +179,7 @@ function trims to it. If the ceiling changes, change that one constant.
   keeps it local. `dateType: "ratification"` is refused for the same reason.
 - **Party codes from the ratification table's own markup.** The party cell is
   plain text; the only `partyid=` link is the declaration link. Codes come
-  from `data/parties.json` names instead, which is also why `detail(id,
+  from the live party list's names instead, which is also why `detail(id,
   "fr")` leaves most rows in `parties_without_code`.
 - **EUR-Lex fetching.** `detail()` emits an `eurlex_hint` from the OJ
   reference; the `eurlex` skill does the rest.

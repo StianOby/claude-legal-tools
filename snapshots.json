@@ -10,23 +10,6 @@
       "count_key": "treaties",
       "last_refreshed": "2026-10-14",
       "refresh": "d=$(mktemp -d) && UNTC_CACHE_DIR=$d python3 plugins/untc/skills/untc/scripts/untc.py index --refresh && cp \"$d/index.json\" plugins/untc/skills/untc/cache/index.json"
-    },
-    {
-      "name": "ets-index",
-      "plugin": "ets",
-      "path": "plugins/ets/skills/ets/data/index.json",
-      "source": "https://www.coe.int/en/web/conventions — api/traites/search (full treaty list)",
-      "last_refreshed": "2026-10-14",
-      "refresh": "d=$(mktemp -d) && ETS_CACHE_DIR=$d python3 plugins/ets/skills/ets/scripts/coe.py index --refresh && cp \"$d/index.json\" plugins/ets/skills/ets/data/index.json"
-    },
-    {
-      "name": "eu-agreements-parties",
-      "plugin": "eu-agreements-treaties",
-      "path": "plugins/eu-agreements-treaties/skills/eu-agreements-treaties/data/parties.json",
-      "source": "https://www.consilium.europa.eu/en/documents/treaties-agreements/ (search-form party checkboxes, via tests/eu-agreements-treaties/fixtures/search-form.html)",
-      "last_refreshed": "2026-09-16",
-      "refresh": null,
-      "refresh_manual": "Cowork only (site is behind a Cloudflare challenge): recapture tests/eu-agreements-treaties/fixtures/search-form.html in the built-in browser (NOTES.md §3), regenerate parties.json with the node one-liner (NOTES.md §4), run `cd tests && npm test`, then `snapshots.py mark eu-agreements-parties`."
     }
   ]
 }

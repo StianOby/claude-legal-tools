@@ -12,9 +12,9 @@ documents:
 See `SKILL.md` for the full description, triggers, and CLI table.
 
 Downloads are cached outside the skill folder, in `$ETS_CACHE_DIR` if
-set and otherwise `~/.cache/ets`. The bundled `data/index.json` seeds
-that cache so the first lookup needs no network call; a treaty number
-missing from it triggers an automatic refresh from the live API.
+set and otherwise `~/.cache/ets`. The treaty index is fetched live on
+first use (one request) and refreshed when older than 7 days or when a
+lookup finds nothing; no snapshot ships with the skill.
 
 ## Layout
 

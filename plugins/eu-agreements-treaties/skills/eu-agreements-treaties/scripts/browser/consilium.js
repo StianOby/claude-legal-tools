@@ -27,7 +27,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '0.1.13';
+  const HELPER_VERSION = '0.1.16';
   if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -279,7 +279,8 @@
       });
     }
 
-    // For saving as data/parties.json — compact, one object per code.
+    // The live party list as JSON, read with page() — compact, one object per
+    // code (same shape as the test fixture tests/eu-agreements-treaties/fixtures/parties.json).
     async function partiesDump() {
       const list = await loadParties({ force: true });
       if (list.error) return list;

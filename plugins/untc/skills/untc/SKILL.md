@@ -1,7 +1,7 @@
 ---
 name: untc
 description: |
-  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General; for treaties with another depositary (NATO, Geneva Conventions, Chicago Convention) the UNTS text only. Trigger on: a treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Genocide/Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS citation (e.g. 729 UNTS 161) or volume + registration number; verbs like fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force; casual phrasing counts. Prefer over web search. Do NOT trigger for: Norwegian law (lovdata-api); EU law (eurlex); ECHR / Council of Europe treaties (hudoc, ets); WIPO/WTO procedure; UN GA/SC resolutions; news about draft treaties; contractual reservation clauses.
+  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General; for treaties with another depositary (NATO, Geneva Conventions, Chicago Convention) the UNTS text only; any UN-registered treaty, bilaterals too, by title. Trigger on: a treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Genocide/Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS citation (e.g. 729 UNTS 161) or volume + registration number; verbs like fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force; casual phrasing counts. Prefer over web search. Do NOT trigger for: Norwegian law (lovdata-api); EU law (eurlex); ECHR / Council of Europe treaties (hudoc, ets); WIPO/WTO procedure; UN GA/SC resolutions; news about draft treaties; contractual reservation clauses.
 ---
 
 # UN Treaty Collection (UNTC) skill
@@ -100,14 +100,52 @@ Concrete invocations Claude should use:
 
 Available subcommands (`python3 scripts/untc.py --help` shows all):
 
-- `lookup <query>` — fuzzy-search the cached index by title or acronym.
-  Known acronyms (ICCPR, OPCAT, CRPD-OP, UNCLOS, Paris Agreement, ...)
-  resolve directly; UNTS-only treaties in the built-in list (NPT, Geneva
-  Conventions I–IV, Additional Protocols I–II, NATO, Chicago Convention,
-  Antarctic Treaty, Outer Space Treaty, Statute of the Council of Europe)
-  are reported with their volume/registration number. Output starting
-  `NO MATCH` means no SG-deposited title contains the query; any titles
-  listed under it merely share a word and are not the treaty.
+- `lookup <query>` — find a treaty by title or acronym, in three steps:
+  1. **MTDSG index** (bundled, ~670 treaties deposited with the UN
+     Secretary-General). Known acronyms (ICCPR, OPCAT, CRPD-OP, UNCLOS,
+     Paris Agreement, ...) resolve directly; UNTS-only treaties in the
+     built-in list (NPT, Geneva Conventions, NATO, Chicago Convention, ...)
+     are reported with their volume/registration number. A hit gives an
+     MTDSG ref, and so a status document.
+  2. **No hit → live UNTS Online title search** over every treaty
+     registered with the UN (bilaterals and treaties with other
+     depositaries: tens of thousands). Hits are printed as
+     `Not in the MTDSG index … Registered in the UNTS`, each with its
+     registration number, dates, type and `untc.py unts-details <objid>`.
+     These have no status document — with one exception the script guards
+     against: a treaty deposited with the Secretary-General *after* the
+     index was built. So when a multilateral hit was concluded after the
+     index date and the index is older than 7 days, `lookup` rebuilds the
+     index first and reports the MTDSG entry if there is one. If it could
+     not rebuild, the hit carries a `CAUTION` line: check its depositary
+     with `unts-details` before telling the user it has no status
+     document.
+  3. **Both miss → the index is rebuilt** if older than 7 days (about a
+     minute; this is the case of a treaty newly deposited with the
+     Secretary-General and not yet in force, which is not yet registered
+     in the UNTS), then searched again.
+  `NO MATCH` means none of the three found it; it names the index date.
+  Any titles listed under it merely share a word. If stderr has a
+  `COVERAGE WARNING` (the rebuild failed), tell the user that treaties
+  deposited after that date may be missing — never present an old index's
+  NO MATCH as "not deposited".
+- `unts-search "<title>" [--words [--any]] [--limit N] [--json]` — the
+  live UNTS Online title search on its own. Default: the exact phrase
+  (the first 100 characters of it), falling back to all its words; exact
+  title matches first. `--words` matches all words (`--any`: any word).
+  At most 500 records per search; narrow the words if `record_count` says
+  `500+`. Treaties are registered only once in force. Several hits can
+  share a title (the Montreal Protocol amendments are all "Amendment to the
+  Montreal Protocol …"): pick by conclusion date. Annexes, UN vehicle
+  regulations and many amendments are registered under their parent
+  agreement (an `A-` number), so the hit may be "Amendments to …" the
+  instrument asked for.
+- `unts-details <objid>` — the UNTS record of a search hit: registration
+  number, title, place and date of conclusion, entry into force,
+  depositary, UNTS volume and page, the text PDFs, and a ready
+  `text --vol N --page P` command. `"mtdsg": true` means the depositary
+  is the UN Secretary-General: the treaty has an MTDSG status document
+  after all, so run `lookup "<title>"` for its ref and then `status`.
 - `status <ref> [--lang en|fr]` — download + parse the MTDSG status doc.
   Writes `meta.json` with title, place/date, entry into force,
   registration date + number, UNTS volume + page, signatories, parties,
@@ -201,8 +239,12 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    Conventions): there is no status doc, so parties and reservations must
    come from the depositary. The text is still in the UNTS, and is often
    the best source for it: use `fetch NPT` / `fetch NATO` for the
-   built-in ones, otherwise `text --vol N --page P` from the
-   citation, or `volume N --search ...` to find the registration number.
+   built-in ones; otherwise `lookup "<title>"` (or `unts-search`) finds
+   it by title, `unts-details <objid>` gives volume and page, and
+   `text --vol N --page P` the text. With a citation, go straight to
+   `text --vol N --page P`, or `volume N --search ...` to find the
+   registration number. For a Norwegian bilateral, norges-traktater's
+   metadata often carries the UNTS citation.
 7. **Check the pages you were given before quoting a sliced text.** The
    output of `text` carries `printed_pages` — the folios the slice
    actually holds — and `resolved_from.entry` when a `--page` citation

@@ -107,9 +107,12 @@ Rules:
 
 ## Cached data snapshots
 
-Some skills ship data fetched from a live source (the untc and ets treaty
-indexes, the eu-agreements-treaties party list). Users get whatever was
-checked in, so these go stale silently. `snapshots.json` at the repo root
+Some skills ship data fetched from a live source (currently only the untc
+treaty index; the ets index and the eu-agreements-treaties party list were
+dropped on 2026-10-21 — both are now read live). Users get whatever was
+checked in, so these go stale silently. Ship a snapshot only when building
+the data live costs real time in every session (untc: a ~30 s crawl);
+otherwise fetch it live on first use. `snapshots.json` at the repo root
 lists every such file with its source, `last_refreshed` date and refresh
 command; `.github/scripts/snapshots.py` keeps them honest.
 
@@ -129,12 +132,21 @@ being worked on:
    `<plugin>: refresh <name> snapshot (YYYY-MM-DD, N records)` — separate
    from whatever feature work prompted the session.
 3. If a snapshot has `"refresh": null`, it needs a manual procedure
-   (`refresh_manual`; currently `eu-agreements-parties`, which can only be
-   captured from the Cowork built-in browser). Tell the user it is due and
+   (`refresh_manual`; none at present). Tell the user it is due and
    how; do not silently skip it. After the manual refresh, run
    `.github/scripts/snapshots.py mark <name>`.
 4. Do not refresh a snapshot that is not stale unless asked; a refresh is a
    network fetch and a data diff, not part of ordinary edits.
+
+**A snapshot is only a starting point, never the answer's limit.** Users
+must never miss a newer treaty or party because a skill read old data. So a
+skill that ships a snapshot must, at runtime, either refresh it from the live
+source before relying on it for "not found" (untc: a miss on an index
+older than 7 days rebuilds it), or read the live source directly (ets fetches
+its index live on first use; eu-agreements-treaties reads the party list from
+the live search form).
+If it cannot refresh, it must print a `COVERAGE WARNING` with the snapshot's
+date, and the SKILL.md must tell Claude to pass that on to the user.
 
 When a skill gains a new checked-in file that is generated from a live
 source, add an entry to `snapshots.json` in the same commit — `path`,

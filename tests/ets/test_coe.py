@@ -16,6 +16,11 @@ os.environ["ETS_CACHE_DIR"] = tempfile.mkdtemp()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "ets" / "skills" / "ets" / "scripts"))
 import coe  # noqa: E402
 
+# No index ships with the skill; tests start from a saved copy of the live one.
+FIXTURE_INDEX = Path(__file__).resolve().parent / "fixtures" / "index.json"
+coe.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+coe.INDEX_PATH.write_bytes(FIXTURE_INDEX.read_bytes())
+
 failures = 0
 
 
@@ -85,16 +90,38 @@ check("cache from before this change (no .url): fetched once", (len(downloads), 
 quiet(coe.download_document, "https://rm.coe.int/new", stem)
 check("… and then reused", len(downloads), 3)
 
-print("the cached index is refreshed when old")
-coe._seed_index_if_needed()
+print("the index is fetched live when there is none, and refreshed when old")
 refreshes = []
-coe.refresh_index = lambda lang="en": refreshes.append(1) or coe._load_json(coe.INDEX_PATH)
+
+
+def fake_refresh(lang="en"):
+    refreshes.append(1)
+    coe.INDEX_PATH.write_bytes(FIXTURE_INDEX.read_bytes())
+    return coe._load_json(coe.INDEX_PATH)
+
+
+coe.refresh_index = fake_refresh
+coe.INDEX_PATH.unlink()
+coe._INDEX_REFRESHED = False
 quiet(coe.resolve_treaty, "005")
-check("fresh index: no refresh", len(refreshes), 0)
+check("no cached index: fetched live on first use", len(refreshes), 1)
+coe._INDEX_REFRESHED = False
+quiet(coe.resolve_treaty, "005")
+check("fresh index: no refresh", len(refreshes), 1)
 old = time.time() - (coe.INDEX_MAX_AGE_DAYS + 1) * 86400
 os.utime(coe.INDEX_PATH, (old, old))
 quiet(coe.resolve_treaty, "005")
-check("index older than the limit: refreshed", len(refreshes), 1)
+check("index older than the limit: refreshed", len(refreshes), 2)
+
+print("a name that matches nothing refreshes once, then says what it searched")
+coe._INDEX_REFRESHED = False
+try:
+    quiet(coe.lookup_ref, "zzqx wyvp")
+    got = None
+except SystemExit as e:
+    got = str(e)
+check("one refresh on the miss", len(refreshes), 3)
+check("message names the index searched", bool(got and "searched the cached index from" in got), True)
 
 
 def failing_refresh(lang="en"):
@@ -102,8 +129,12 @@ def failing_refresh(lang="en"):
 
 
 coe.refresh_index = failing_refresh
+coe._INDEX_REFRESHED = False
+old = time.time() - (coe.INDEX_MAX_AGE_DAYS + 1) * 86400
+os.utime(coe.INDEX_PATH, (old, old))
 (ref, t), note = quiet(coe.resolve_treaty, "005")
-check("failed refresh keeps the cached index", (ref, "using the cached index" in note), ("005", True))
+check("failed refresh keeps the cached index, with a coverage warning",
+      (ref, "COVERAGE WARNING" in note and "using the cached index from" in note), ("005", True))
 
 # The data service redirecting to the coe.int portal (2026-10-07) or answering
 # HTML is an outage, reported with the URL that was called, not followed.

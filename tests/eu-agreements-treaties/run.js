@@ -35,7 +35,7 @@ const fixture = (name) => {
 const doc = (html) => parseHTML(html).document;
 
 // Shipped party list → name index, as detail() builds it at runtime.
-const PARTIES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'plugins', 'eu-agreements-treaties', 'skills', 'eu-agreements-treaties', 'data', 'parties.json'), 'utf8'));
+const PARTIES = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'parties.json'), 'utf8'));
 const INDEX = I.partyIndexOf(PARTIES);
 
 let passed = 0, skipped = 0;
@@ -278,7 +278,7 @@ function runFixtures() {
       assert.strictEqual(by.EC.name, 'Ecuador');
       assert.strictEqual(by.CE.long_name, 'European Community');
       assert.strictEqual(p.filter((x) => !x.long_name).length, 13);
-      // shipped data/parties.json is this parse of this fixture
+      // fixtures/parties.json is this parse of this fixture
       assert.deepStrictEqual(PARTIES, p);
     });
   } else skip('search form', 'tests/fixtures/search-form.html missing');

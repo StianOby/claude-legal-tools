@@ -63,9 +63,9 @@ _default_cache = Path.home() / ".cache" / "ets"
 CACHE_DIR = Path(os.environ.get("ETS_CACHE_DIR", _default_cache))
 TREATIES_DIR = CACHE_DIR / "treaties"
 INDEX_PATH = CACHE_DIR / "index.json"
-SEED_INDEX = Path(__file__).resolve().parent.parent / "data" / "index.json"
-# The cached index is refreshed when older than this (see resolve_treaty).
-INDEX_MAX_AGE_DAYS = 30
+# The cached index is fetched live on first use (no snapshot ships with the
+# skill) and refreshed when older than this (see current_index). One request.
+INDEX_MAX_AGE_DAYS = 7
 
 # If the Treaty Office ever moves the service, its treaty pages under
 # coe.int/en/web/conventions/ show the new address as
@@ -509,7 +509,20 @@ def lookup_ref(query):
     if alias:
         return (alias, 100, "alias")
     q = query.strip().lower()
-    idx = load_index_or_die()
+    idx = current_index()
+    best = _fuzzy_scores(idx, q)
+    if not best:
+        new = refresh_after_miss()
+        if new is not None:
+            best = _fuzzy_scores(new, q)
+    if not best:
+        raise SystemExit(f"No treaty matches '{query}' (searched {_index_description()}). "
+                         "Try `coe.py lookup ...`.")
+    best.sort(reverse=True)
+    return (best[0][1], int(best[0][0]), "fuzzy")
+
+
+def _fuzzy_scores(idx, q):
     best = []
     for t in idx:
         ref = t.get("Numero_traite")
@@ -525,22 +538,61 @@ def lookup_ref(query):
         contain = 1.0 if q in haystack else 0.0
         score = 100 * (inter / max(len(qw), 1)) + 50 * contain
         best.append((score, ref, t.get("Libelle_titre_ENG", "")))
-    if not best:
-        raise SystemExit(f"No treaty matches '{query}'. Try `coe.py lookup ...`.")
-    best.sort(reverse=True)
-    return (best[0][1], int(best[0][0]), "fuzzy")
+    return best
 
 
 # ---------------------------------------------------------------------------
 # Index
 # ---------------------------------------------------------------------------
 
-def _seed_index_if_needed() -> None:
-    """Copy the bundled snapshot to the cache dir if no live index exists yet."""
-    if _has_content(INDEX_PATH) or not SEED_INDEX.exists():
-        return
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    _write(INDEX_PATH, _read(SEED_INDEX))
+def _index_description() -> str:
+    try:
+        mtime = INDEX_PATH.stat().st_mtime
+    except OSError:
+        return "no index"
+    return "the cached index from " + time.strftime("%Y-%m-%d", time.localtime(mtime))
+
+
+def _coverage_warning(err) -> None:
+    print(f"COVERAGE WARNING: could not refresh the treaty index ({err}); using "
+          f"{_index_description()}. Treaties added since then are missing from name "
+          "lookups — tell the user.", file=sys.stderr)
+
+
+_INDEX_REFRESHED = False
+
+
+def current_index(lang=DEFAULT_LANG):
+    """The treaty index, fetched live when there is none yet and refreshed
+    when older than INDEX_MAX_AGE_DAYS. A failed refresh keeps the old index
+    and prints a coverage warning."""
+    global _INDEX_REFRESHED
+    idx = load_index_or_die(lang=lang)
+    age_days = (time.time() - INDEX_PATH.stat().st_mtime) / 86400
+    if age_days > INDEX_MAX_AGE_DAYS and not _INDEX_REFRESHED:
+        print(f"{_index_description()} is out of date — refreshing from the live API …", file=sys.stderr)
+        try:
+            idx = refresh_index(lang=lang)
+            _INDEX_REFRESHED = True
+        except (urllib.error.URLError, OSError, ValueError, ServiceUnavailable) as e:
+            _coverage_warning(e)
+    return idx
+
+
+def refresh_after_miss(lang=DEFAULT_LANG):
+    """A lookup found nothing: refresh once (unless already done in this run)
+    and return the new index, or None if nothing changed."""
+    global _INDEX_REFRESHED
+    if _INDEX_REFRESHED:
+        return None
+    print("no match in the cached index — refreshing from the live API …", file=sys.stderr)
+    try:
+        idx = refresh_index(lang=lang)
+        _INDEX_REFRESHED = True
+        return idx
+    except (urllib.error.URLError, OSError, ValueError, ServiceUnavailable) as e:
+        _coverage_warning(e)
+        return None
 
 
 def refresh_index(lang=DEFAULT_LANG):
@@ -565,7 +617,6 @@ def refresh_index(lang=DEFAULT_LANG):
 
 def cmd_index(args):
     """Build/refresh the master treaty index."""
-    _seed_index_if_needed()
     if _has_content(INDEX_PATH) and not args.refresh:
         idx = _load_json(INDEX_PATH)
         print(f"index already cached: {len(idx)} treaties at {INDEX_PATH}")
@@ -574,12 +625,19 @@ def cmd_index(args):
     refresh_index(lang=args.lang)
 
 
-def load_index_or_die():
-    _seed_index_if_needed()
+def load_index_or_die(lang=DEFAULT_LANG):
+    """The cached index; fetched live first if there is none (every new
+    cloud session starts without one). No snapshot ships with the skill."""
+    global _INDEX_REFRESHED
     if not _has_content(INDEX_PATH):
-        raise SystemExit(
-            "No cached index. Run: coe.py index"
-        )
+        try:
+            idx = refresh_index(lang=lang)
+            _INDEX_REFRESHED = True
+            return idx
+        except ServiceUnavailable:
+            raise
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            raise SystemExit(f"Could not fetch the treaty index from the Treaty Office ({e}).")
     return _load_json(INDEX_PATH)
 
 
@@ -596,22 +654,11 @@ def resolve_treaty(ref_query, lang=DEFAULT_LANG):
     URLs decide whether a cached PDF is still current), and when the number
     is not in it — new CETS numbers appear a few times a year. A failed
     age refresh keeps the old index."""
-    idx = load_index_or_die()
-    age_days = (time.time() - INDEX_PATH.stat().st_mtime) / 86400
-    if age_days > INDEX_MAX_AGE_DAYS:
-        print(f"cached index is {age_days:.0f} days old — refreshing from the live API …", file=sys.stderr)
-        try:
-            idx = refresh_index(lang=lang)
-        except (urllib.error.URLError, OSError, ValueError) as e:
-            print(f"refresh failed ({e}); using the cached index", file=sys.stderr)
+    idx = current_index(lang=lang)
     ref, _, _ = lookup_ref(ref_query)
     t = find_treaty_in_index(idx, ref)
     if t is None:
-        print(f"ref {ref} not in cached index — refreshing from the live API …", file=sys.stderr)
-        try:
-            idx = refresh_index(lang=lang)
-        except (urllib.error.URLError, OSError) as e:
-            raise SystemExit(f"ref {ref} not in index and refresh failed: {e}")
+        idx = refresh_after_miss(lang=lang) or idx
         t = find_treaty_in_index(idx, ref)
     if t is None:
         raise SystemExit(f"ref {ref} not in index (live index has {len(idx)} treaties, "
@@ -643,7 +690,20 @@ def write_meta(ref, treaty):
 
 def cmd_lookup(args):
     """Fuzzy / alias-based search of the cached index."""
-    idx = load_index_or_die()
+    idx = current_index()
+    hits = _lookup_hits(idx, args)
+    if not hits:
+        new = refresh_after_miss()
+        if new is not None:
+            hits = _lookup_hits(new, args)
+    if not hits:
+        print(f"no match for '{args.query}' (searched {_index_description()})")
+        return
+    for score, ref, title in hits[: args.limit]:
+        print(f"  {ref}  {title}")
+
+
+def _lookup_hits(idx, args):
     q = args.query.strip().lower()
     n = normalize_num(args.query)
     alias = _alias_for(args.query)
@@ -669,12 +729,7 @@ def cmd_lookup(args):
                 score += 5
         if score:
             scored[ref] = (score, label(t))
-    hits = sorted(((s, ref, lbl) for ref, (s, lbl) in scored.items()), reverse=True)
-    if not hits:
-        print(f"no match for '{args.query}'")
-        return
-    for score, ref, title in hits[: args.limit]:
-        print(f"  {ref}  {title}")
+    return sorted(((s, ref, lbl) for ref, (s, lbl) in scored.items()), reverse=True)
 
 
 def _pick_url(t, field: str, lang: str):
