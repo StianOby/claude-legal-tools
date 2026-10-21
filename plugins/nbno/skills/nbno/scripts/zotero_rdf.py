@@ -250,12 +250,15 @@ def _pdf_attachment(about: str, filename: str) -> str:
     )
 
 
-def _link_attachment(url: str, title: str) -> str:
-    """Web Link attachment (linkMode 3, Zotero's "linked URL")."""
+def _link_attachment(about: str, url: str, title: str) -> str:
+    """Web Link attachment (linkMode 3, Zotero's "linked URL"). Zotero saves
+    a link from the attachment's url, which the importer reads only from a
+    dcterms:URI identifier, as the export writes it. An rdf:resource is read
+    as a file path instead, and the link is then dropped without a word."""
     return (
-        f'<z:Attachment rdf:about="{_esc_attr(url)}">\n'
+        f'<z:Attachment rdf:about="{_esc_attr(about)}">\n'
         "  <z:itemType>attachment</z:itemType>\n"
-        f'  <rdf:resource rdf:resource="{_esc_attr(url)}"/>\n'
+        f"  {_uri(url)}\n"
         f"  {_el('dc:title', title)}\n"
         "  <z:linkMode>3</z:linkMode>\n"
         "  <link:type>text/html</link:type>\n"
@@ -284,7 +287,9 @@ def build_rdf(item: dict, pdf_filename: Optional[str] = None,
     if pdf_filename:
         attachments.append((pdf_filename, _pdf_attachment(pdf_filename, pdf_filename)))
     if link_url:
-        attachments.append((link_url, _link_attachment(link_url, link_title or link_url)))
+        link_about = f"#{item_id}_link"
+        attachments.append((link_about, _link_attachment(link_about, link_url,
+                                                         link_title or link_url)))
     parts += [f'  <link:link rdf:resource="{_esc_attr(a)}"/>' for a, _ in attachments]
     parts.append(f"</{_RESOURCE_TYPES[itype]}>")
     parts += [xml for _, xml in attachments]

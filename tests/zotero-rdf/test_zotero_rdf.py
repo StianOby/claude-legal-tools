@@ -122,6 +122,14 @@ root = ET.fromstring(rdf)
 atts = root.findall(Z + "Attachment")
 check("two attachments", [a.findtext(Z + "linkMode") for a in atts], ["1", "3"])
 check("web link title", atts[1].findtext(DC + "title"), "eBok (nb.no)")
+# Zotero saves a link from attachment.url, read only from a dcterms:URI; an
+# rdf:resource would be taken as a file path and the link silently dropped.
+check("web link url as dcterms:URI",
+      atts[1].findtext(f"{DC}identifier/{{http://purl.org/dc/terms/}}URI/{RDF}value"),
+      "https://www.nb.no/items/URN:NBN:no-nb_digibok_1")
+check("web link has no rdf:resource", atts[1].find(RDF + "resource"), None)
+check("PDF keeps its rdf:resource path",
+      atts[0].find(RDF + "resource").get(RDF + "resource"), "Eckhoff_(1997).pdf")
 check("book links both", len(root.find("{http://purl.org/net/biblio#}Book")
                              .findall("{http://purl.org/rss/1.0/modules/link/}link")), 2)
 
