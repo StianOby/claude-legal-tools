@@ -1,7 +1,7 @@
 ---
 name: untc
 description: |
-  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General; for treaties with another depositary (NATO, Geneva Conventions, Chicago Convention) the UNTS text only; any UN-registered treaty, bilaterals too, by title. Trigger on: a treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Genocide/Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS citation (e.g. 729 UNTS 161) or volume + registration number; verbs like fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force; casual phrasing counts. Prefer over web search. Do NOT trigger for: Norwegian law (lovdata-api); EU law (eurlex); ECHR / Council of Europe treaties (hudoc, ets); WIPO/WTO procedure; UN GA/SC resolutions; news about draft treaties; contractual reservation clauses.
+  Retrieve UN Treaty Collection source documents — UN Treaty Series (UNTS) treaty text or MTDSG status docs (parties, ratifications, reservations, declarations, objections) for treaties deposited with the UN Secretary-General; for treaties with another depositary (NATO, Geneva Conventions, Chicago Convention) the UNTS text only; any UN-registered treaty, bilaterals too, by title. Trigger on: a treaty by name/acronym (ICCPR, ICESCR, CAT, CRPD, CEDAW, CRC, VCLT, Genocide/Refugee Convention, Rome Statute, UNCLOS, NPT, CTBT, TPNW); an MTDSG ref like IV-4 or XXIII-1; a UNTS citation (729 UNTS 161) or volume + registration number; asks to fetch the text, what reservations did [state] make, list parties to, who ratified, when did X enter into force, add it to Zotero (RDF or Zoteus). Prefer over web search. Do NOT trigger for: Norwegian law (lovdata-api); EU law (eurlex); ECHR / Council of Europe treaties (hudoc, ets); WIPO/WTO procedure; UN GA/SC resolutions; news about draft treaties; contract clauses.
 ---
 
 # UN Treaty Collection (UNTC) skill
@@ -263,6 +263,17 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    (e.g. vol. 3370, the TPNW) are not yet published as PDFs; the error
    then gives the treaty's details page, where the certified true copy
    is linked. Never reconstruct treaty text from memory.
+
+## Zotero-ready treaties
+
+For "Zotero-ready", "Zotero RDF for the ICCPR", "add the VCLT to my Zotero
+library": read [`zotero-ready.md`](zotero-ready.md) first.
+`scripts/zotero_treaty.py <ref> --out DIR` (or `--objid <id>` for a treaty
+not deposited with the Secretary-General) writes the treaty as a Zotero
+statute item (`.rdf` + the English UNTS text as `.pdf`). With the Zoteus
+tools (`zotero_*`), the item can go straight into the library instead. **If
+the item ends up without its PDF, tell the user** (`zotero-ready.md`, "When
+the PDF is not attached").
 
 ## Citation
 

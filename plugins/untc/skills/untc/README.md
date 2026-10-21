@@ -34,12 +34,15 @@ ASP.NET search frontend.
 untc/
 ├── SKILL.md             # the skill manifest Claude reads
 ├── README.md            # you are here
+├── zotero-ready.md      # Zotero-ready treaties (RDF file or Zoteus)
 ├── requirements.txt     # pypdf
 ├── cache/
 │   └── index.json       # bundled snapshot of the MTDSG chapter index (670 treaties)
 ├── evals/
 └── scripts/
-    └── untc.py          # the CLI
+    ├── untc.py          # the CLI
+    ├── zotero_treaty.py # one treaty as a Zotero statute item (.rdf + .pdf)
+    └── zotero_rdf.py    # Zotero RDF + item JSON (copy of shared/zotero-rdf/)
 ```
 
 Nothing is written inside the skill folder. All downloads and extracted
