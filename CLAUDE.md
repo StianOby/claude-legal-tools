@@ -154,3 +154,125 @@ source, add an entry to `snapshots.json` in the same commit — `path`,
 the repo root, must leave the file in place) or `refresh: null` plus a
 `refresh_manual` description. Hand-written reference tables
 (`references/*.md`) are not snapshots.
+
+## Audience: Cowork only
+
+The skills are built for Claude Cowork (Claude Desktop), not the Claude Code
+CLI. The users are legal academics who install through Customize → Plugins /
+Skills, so CLI-only features (`/plugin install`, `dependencies`
+auto-install) cannot be assumed. Check every distribution mechanism against
+the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
+
+## Design rules
+
+- **Don't pin external dependencies.** Packages and servers the skills
+  install at run time (eurlex-mcp-server via npx; nbno, ocrmypdf etc. via
+  pip) use the bare name, with no version and not even `@latest`. Existing
+  `--upgrade` flags are fine. The maintainer prefers the newest upstream
+  release, and accepts the risk that upstream changes break something, over
+  stale packages. Don't propose pinning in reviews or fixes.
+- **Corpora: live lookup or a persistent local copy, never a session-only
+  cloud copy.** For a skill over a downloadable corpus (first case:
+  nem-vedtak), fetch a single known item live, with no cache and no question.
+  Cross-corpus search uses a local copy in a connected folder via the local
+  route; ask for it once. If the user declines a folder, say that search
+  needs the local copy and offer single lookups. A cloud copy is lost when
+  the session ends, so the whole corpus would be downloaded again in every
+  session.
+- **Personal data.** Before checking in any source data (snapshots, bundled
+  corpora, test fixtures), check it for personal data. Under the GDPR, a copy
+  in this public repo is a new publication with the repo owner as
+  controller. It also cannot easily be withdrawn: it stays in git history and
+  in every installed plugin copy, and proper removal needs a history rewrite.
+  Fetching or syncing live lets the source's removals and anonymisations
+  take effect. Prefer metadata-only bundles or live routes when the texts
+  name people. Anonymise fixtures the way `tests/nem-vedtak/fixtures/` does
+  ("Person A", "Person B", …).
+- **NEM-vedtak are not bundled** (decided 2026-10-14). The reasons: named
+  appellants would stay in the repo after NEM edits or withdraws a decision,
+  and there may be a database right (åvl. § 24, cf. Lovdata v.
+  Rettspraksis.no). Copyright is probably not a problem (åvl. § 14). Don't
+  propose bundling again unless the maintainer raises it. If they do, a
+  design is ready:
+  - bundled `data/` plus a `snapshots.json` entry
+  - `sync --base <bundle> --dir <scratch>` fetches only sitemap-lastmod
+    deltas (lastmod is per page and reliable; 158 pages carry a 2021
+    migration date)
+  - removed slugs are hidden at search time
+  - optionally, a scheduled GitHub Action refreshes the data and bumps the
+    version
+
+## Zotero-ready output
+
+Zotero-ready output is an RDF file or a direct import through the Zoteus MCP.
+It is added one skill at a time. The maintainer picks the order and makes
+the mapping decisions, so ask before building the next skill. The builder is
+`shared/zotero-rdf/zotero_rdf.py`. It turns Zotero item JSON into RDF that
+matches Zotero's own export translator, and it also writes `.zotero.json`
+for `zotero_create_items`. Each skill documents its route in its own
+`zotero-ready.md`.
+
+Rules:
+
+- Always tell the user when an item ends up without its PDF.
+- On the RDF route, the `.rdf` must sit beside the `.pdf`, because Zotero's
+  import never downloads a URL path. Every `.rdf` therefore comes with a
+  fixed message telling the user to download both files into one folder.
+- Lovdata material is out of scope for this repo.
+
+Status (2026-10-22):
+
+- **nbno**: done and live-tested 2026-10-21. Tested: the RDF import, the
+  Zoteus route (the Web Link as a `linked_url` child, PDF attachment, and on
+  a duplicate, an offer to add the PDF to the existing item) and the
+  local-route folder choice.
+- **ets**: done and live-tested 2026-10-21.
+- **untc**: done, not yet live-tested.
+- **eu-agreements-treaties**: done, not yet live-tested.
+
+Treaty mappings:
+
+- Treaty number "ETS No. 5" (no leading zeros).
+- Not in force: leave `dateEnacted` empty and add a dated "status:" line in
+  Extra.
+- Parent treaty in History.
+- URL field: the source's treaty page, not a Web Link attachment.
+- Registration number with its series (I-/II-/A-/LoN-) in Extra.
+- untc:
+  - UNTS volume/page in `code`/`codeNumber`/`pages`; LNTS and volume for
+    League treaties.
+  - Definitive entry into force only; a provisional date goes in Extra.
+  - MTDSG reference and depositary in Extra.
+- eu-agreements-treaties:
+  - Flow: `__cs.zotero(id)` in the browser gives a base64 record, and
+    `zotero_agreement.py --record-b64` matches it to the OJ publication in
+    Cellar (publications.europa.eu/webapi/rdf/sparql).
+  - OJ reference: `code` "EUT <OJ year> L" with `pages` "<issue>/<page>".
+    For act-by-act OJ (from October 2023): `code` "EUT L" with `pages`
+    "<year>/<number>". Always "EUT".
+  - URL is the ELI, or EUR-Lex by CELEX when there is no ELI.
+  - `dateEnacted` is the agreement-level entry into force.
+  - ELIs with an "(n)" suffix don't resolve on EUR-Lex. That is a bug in
+    EUR-Lex's resolver: keep the ELI and don't work around it.
+
+Still open:
+
+- How international cases (ECtHR, CJEU, EFTA Court, ICJ) are entered. The
+  group library has no examples.
+- Which treaty-number pattern to standardise on: `publicLawNumber` ("ETS No.
+  5") or `code`/`codeNumber`/`pages` as for UNCLOS.
+
+## Tool quirks when editing this repo
+
+- The Bash tool collapses a doubled backslash in its command text into a
+  single one, even inside a quoted heredoc. A Python patch script sent as
+  `python3 - <<'EOF'` therefore gets corrupted: an escaped `\b` in a regex
+  becomes a literal backspace, and an escaped `\n` becomes a real newline.
+  This once broke a regex in the icj skill. For any patch that contains
+  backslashes, write the script to a file with the Write tool and run it, or
+  build the backslash with `chr(92)`. In `re.sub` replacement strings, use a
+  plain `str.replace` instead.
+- The Write tool decodes a backslash-u escape in file content, just as
+  `javascript_tool` does with pasted helpers. Never pass a literal
+  backslash-u escape through a tool. Build it with `chr(92) + "u"` (Python)
+  or `String.fromCharCode(92)` (JS).
