@@ -30,6 +30,9 @@ check.
   application is recorded), and the full ratification table per party with
   the site's "empty cell inherits the agreement date" rule applied
 - Fetch a party's declaration or reservation text
+- Make a Zotero-ready item: the agreement's OJ publication is looked up in
+  the EU Publications Office's database (Cellar) for the CELEX number, ELI,
+  OJ page and English PDF
 - Look up and validate party codes before searching — the site's codes are
   not ISO 3166 (`A` Austria, `D` Germany, `SF` Finland, `IRL` Ireland, `UE`
   the EU, `CE` the European Community, and `EC` is Ecuador), and an unknown
@@ -46,16 +49,22 @@ eu-agreements-treaties/
 ├── SKILL.md                         # the skill manifest Claude reads
 ├── README.md                        # you are here
 ├── NOTES.md                         # maintainer notes: Cloudflare finding, fixture checklist
+├── zotero-ready.md                  # Zotero-ready agreements (RDF file or Zoteus)
 ├── references/
 │   └── party-codes.md               # the non-ISO codes, EU entities, collisions
 └── scripts/
+    ├── zotero_agreement.py          # one agreement as a Zotero statute item, via Cellar (.rdf + .pdf)
+    ├── zotero_rdf.py                # Zotero RDF + item JSON (copy of shared/zotero-rdf/)
     └── browser/
-        └── consilium.js             # pasted into the browser tab via javascript_tool
+        ├── consilium.js             # pasted into the browser tab via javascript_tool
+        └── paste.py                 # makes the stripped copy that is pasted (shared/browser-paste/)
 ```
 
 Parser tests and the captured fixture pages live in the repository at
 `tests/eu-agreements-treaties/` (dev only, not shipped; `npm ci && npm test`
-there).
+there), with `test_zotero_agreement.py` for the Zotero script and
+`live_cellar_match.py`, a network check of its OJ matching against the
+2026-10-21 probe of 37 agreements.
 
 There is no session/state directory and nothing is stored: the database is
 public, no login is involved, and the helper keeps its cache in the browser

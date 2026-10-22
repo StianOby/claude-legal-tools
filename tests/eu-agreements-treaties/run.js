@@ -159,6 +159,20 @@ const DETAIL_HTML = `<main><h1 class="gsc-title">Agreement on aviation</h1>
   </tbody>
   <tfoot><tr><td colspan="6">* When no dates are specified, the dates shown in "Entry into Force" (above left) and "Signature" (above right) apply, except in the case of acceding Parties.</td></tr></tfoot></table></main>`;
 
+// Seen in a probe of 37 agreements (2026-10-21): the act-numbered OJ since
+// October 2023 ("L, 2024/02604") and an issue with a letter ("C 74E") were
+// not parsed at all.
+test('parseOjLinks: act-numbered OJ references and issues with a letter', () => {
+  const html = '<div>'
+    + '<a href="https://eur-lex.europa.eu/legal-content/en/TXT/?uri=OJ:L_202402604">L, 2024/02604 (08/10/2024);</a>'
+    + '<a href="https://eur-lex.europa.eu/legal-content/en/TXT/?uri=OJ:C:2008:074E:TOC">C 74E (20/03/2008);</a>'
+    + '</div>';
+  const refs = I.parseOjLinks(doc(html).querySelector('div'));
+  assert.deepStrictEqual(refs[0].oj, { series: 'L', year: '2024', number: '02604', date: '2024-10-08' });
+  assert.ok(/one act per number/.test(refs[0].eurlex_hint));
+  assert.deepStrictEqual(refs[1].oj, { series: 'C', year: '2008', issue: '074E', date: '2008-03-20', part: 'TOC' });
+});
+
 test('parseDetail: h2/p fields, OJ link, table dates from data-sort-value, codes via party index, inheritance flags', () => {
   const r = I.parseDetail(doc(DETAIL_HTML), '2011036', INDEX);
   assert.strictEqual(r.title, 'Agreement on aviation');
@@ -167,7 +181,7 @@ test('parseDetail: h2/p fields, OJ link, table dates from data-sort-value, codes
   assert.strictEqual(r.signature_place, 'Luxembourg');
   assert.ok(/Provisional application/.test(r.observations));
   assert.strictEqual(r.oj_references.length, 1);
-  assert.deepStrictEqual(r.oj_references[0].oj, { series: 'L', year: '2016', issue: '141', part: 'TOC' });
+  assert.deepStrictEqual(r.oj_references[0].oj, { series: 'L', year: '2016', issue: '141', date: '2016-05-28', part: 'TOC' });
   assert.strictEqual(r.parties.length, 3, 'tfoot row must not become a party');
   const at = r.parties[0];
   assert.strictEqual(at.code, 'A');                            // from the declaration link
@@ -263,7 +277,7 @@ test('isChallengeHtml recognises the Cloudflare page', () => {
 })();
 
 // ---------------------------------------------------------------------------
-function runFixtures() {
+async function runFixtures() {
   console.log('fixtures (captured 2026-09-16; see NOTES.md §3 and fixtures/PROBES.md)');
 
   const form = fixture('search-form.html');
@@ -353,6 +367,27 @@ function runFixtures() {
       assert.deepStrictEqual(r.party_codes, ['UE', 'IS', 'LI', 'NO']);
     });
   } else skip('agreement 2016032', 'tests/fixtures/agreement-2016032.html missing');
+
+  if (d2016032) {
+    // zotero(): the compact record scripts/zotero_agreement.py takes, as
+    // base64 UTF-8 JSON (tests/eu-agreements-treaties/test_zotero_agreement.py
+    // decodes the same form).
+    cs._deps.fetch = async () => ({ status: 200, headers: { get: () => null }, text: async () => d2016032 });
+    cs.cache.parties = PARTIES;
+    try {
+      const z = await cs.zotero('2016032');
+      const rec = JSON.parse(Buffer.from(z.b64, 'base64').toString('utf8'));
+      assert.strictEqual(rec.id, '2016032');
+      assert.strictEqual(rec.signature, '2016-05-03');
+      assert.strictEqual(rec.entry_into_force, '2017-09-01');
+      assert.deepStrictEqual(rec.oj.map((o) => [o.series, o.year, o.issue, o.date]), [['L', '2016', '141', '2016-05-28']]);
+      assert.ok(/Provisional application/.test(rec.observations));
+      assert.ok(!('parties' in rec), 'only what the Zotero script needs');
+      passed++; console.log('  ok    (async) zotero(2016032): compact record as base64 JSON');
+    } catch (e) {
+      console.log('  FAIL  (async) zotero(2016032)'); console.log(String(e.stack || e).split('\n').slice(0, 6).join('\n')); process.exitCode = 1;
+    }
+  }
 
   const dfr = fixture('agreement-2016032-fr.html');
   if (dfr) {

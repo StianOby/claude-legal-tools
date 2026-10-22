@@ -27,7 +27,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '0.1.16';
+  const HELPER_VERSION = '0.2.0';
   if (root.window && root.window.__cs && root.window.__cs.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -605,19 +605,37 @@
       return null;
     }
 
+    // "L 141 (28/05/2016);", "C 74E (20/03/2008);", "L, 2024/02604 (08/10/2024);"
+    // -> {series, year, issue | number, date}; null for anything else.
+    function parseOjText(text) {
+      const d = (text || '').match(/\((\d{2})\/(\d{2})\/(\d{4})\)/);
+      const date = d ? `${d[3]}-${d[2]}-${d[1]}` : null;
+      let m = (text || '').match(/^([A-Z]),\s*(\d{4})\/(\d+)/);
+      if (m) return { series: m[1], year: m[2], number: m[3], date };
+      m = (text || '').match(/^([A-Z])\s+(\d+[A-Z]?)\b/);
+      if (m && date) return { series: m[1], year: d[3], issue: m[2], date };
+      return null;
+    }
+
     function parseOjLinks(container) {
       if (!container) return [];
       const out = [];
       for (const a of Array.from(container.querySelectorAll('a[href]'))) {
         const href = a.getAttribute('href');
         const abs = /^https?:/i.test(href) ? href : ORIGIN + href;
-        const m = href.match(/uri=OJ:([A-Z]):(\d{4}):(\d+):([A-Z]+)/i) || href.match(/uri=(CELEX:[^&]+)/i);
         const ref = { text: norm(a.textContent), url: abs };
-        if (m && m[4]) {
-          ref.oj = { series: m[1].toUpperCase(), year: m[2], issue: m[3], part: m[4] };
-          ref.eurlex_hint = `OJ ${m[1].toUpperCase()} ${m[3]}, ${m[2]} — table of contents at ${abs}; find the agreement's CELEX there and open it with the eurlex skill`;
-        } else if (m) {
-          ref.celex = m[1].replace(/^CELEX:/i, '');
+        ref.oj = parseOjText(ref.text);
+        // An issue can carry a letter ("C 74E"); since October 2023 the L
+        // and C series number each act ("L, 2024/02604"), with no issue.
+        const m = href.match(/uri=OJ:([A-Z]):(\d{4}):(\d+[A-Z]?):([A-Z]+)/i);
+        const c = href.match(/uri=(CELEX:[^&]+)/i);
+        if (m) ref.oj = Object.assign({}, ref.oj, { series: m[1].toUpperCase(), year: m[2], issue: m[3].toUpperCase(), part: m[4] });
+        if (ref.oj && ref.oj.number) {
+          ref.eurlex_hint = `OJ ${ref.oj.series}, ${ref.oj.year}/${ref.oj.number} (one act per number) at ${abs}; open it with the eurlex skill`;
+        } else if (ref.oj) {
+          ref.eurlex_hint = `OJ ${ref.oj.series} ${ref.oj.issue}, ${ref.oj.year} — table of contents at ${abs}; find the agreement's CELEX there and open it with the eurlex skill`;
+        } else if (c) {
+          ref.celex = c[1].replace(/^CELEX:/i, '');
           ref.eurlex_hint = `CELEX ${ref.celex} — open with the eurlex skill`;
         }
         out.push(ref);
@@ -897,6 +915,25 @@
       return { ok: true, url: loc.href, parties: p.length, page_title: norm(doc.title), searchUrl: SEARCH_URL };
     }
 
+    // What scripts/zotero_agreement.py needs, and nothing else. `b64` is the
+    // record as base64 (UTF-8 JSON): it goes on the command line as
+    // --record-b64 untouched, where titles with quotes would not.
+    async function zotero(id) {
+      const d = await detail(id, 'en');
+      if (d.error) return d;
+      const rec = {
+        id: d.id, title: d.title, is_proces_verbal: d.is_proces_verbal,
+        signature: d.signature, signature_place: d.signature_place,
+        entry_into_force: d.entry_into_force, observations: d.observations,
+        oj: (d.oj_references || []).map((o) => Object.assign({ text: o.text }, o.oj || {})),
+        url: d.url,
+      };
+      const bytes = new TextEncoder().encode(JSON.stringify(rec));
+      let bin = '';
+      for (const b of bytes) bin += String.fromCharCode(b);
+      return { b64: btoa(bin), title: d.title, is_proces_verbal: d.is_proces_verbal };
+    }
+
     return {
       VERSION: HELPER_VERSION,
       PAGE_SIZE,
@@ -911,6 +948,7 @@
       find,
       detail,
       details,
+      zotero,
       declaration,
       page,
       capture,

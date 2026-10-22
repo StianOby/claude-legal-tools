@@ -4,7 +4,7 @@ description: >
   Use when the user needs the EU-side status of an international agreement
   concluded by the EU, EC, EEC, Euratom or EU member states — signature,
   ratification/notification per party, entry into force, provisional
-  application, declarations/reservations, or the OJ reference — from the
+  application, declarations/reservations, the OJ reference, or a Zotero item — from the
   Council of the EU Treaties Office database (consilium.europa.eu).
   Triggers: "has the
   EU ratified", "which member states have notified", "when did X enter into
@@ -77,6 +77,7 @@ for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skil
 |---|---|
 | Reading `consilium.js` from `{SKILL_DIR}` | cloud sandbox (`Bash`) |
 | Everything that touches consilium.europa.eu (`ready`, `search`, `detail`, …) | browser pane |
+| Zotero-ready items: `scripts/zotero_agreement.py` (EU Publications Office, Cellar) | cloud sandbox (`Bash`) |
 | Local shell | not used |
 
 Cowork runs in the cloud: `Bash` has Anthropic's IP, not the user's; only the browser pane is
@@ -143,10 +144,21 @@ cloud" and use the browser pane. Never suggest a VPN.
 | "the French title of 2016032" | `await __cs.detail("2016032", "fr")` |
 | more rows of a search | `await __cs.items(key, 60)` with the `key` the search returned |
 | rest of a long declaration | `await __cs.page(key, 1)` |
+| "Zotero-ready copy of 2016032" / "add it to my Zotero" | read [`zotero-ready.md`](zotero-ready.md) first: `await __cs.zotero("2016032")`, then `scripts/zotero_agreement.py --record-b64 …` |
 
 Every call returns ≤ 45 000 characters. Search results come back as a
 summary (`total`, `shown`, first rows, `key`); page through with `items()`
 rather than asking for everything.
+
+## Zotero-ready agreements
+
+For "Zotero-ready", "Zotero RDF for the EEA Agreement", "add 2016032 to my Zotero
+library": read [`zotero-ready.md`](zotero-ready.md) first. `__cs.zotero(id)` in the
+tab gives the record; `scripts/zotero_agreement.py` finds the agreement's OJ
+publication in Cellar (CELEX, ELI, page, English PDF) and writes a Zotero statute
+item (`.rdf` + `.pdf`), or the item goes straight into the library with Zoteus.
+**If the item ends up without its PDF or OJ citation, tell the user**
+(`zotero-ready.md`).
 
 ## Result fields
 
@@ -163,7 +175,8 @@ the user when you report a count.
 ```
 id, title, is_proces_verbal
 signature, signature_place, entry_into_force        # agreement level
-oj_references: [{text, url, oj:{series,year,issue,part}, eurlex_hint}]
+oj_references: [{text, url, oj:{series, year, issue | number, date, part}, eurlex_hint}]
+                                                    # number: the act-by-act OJ since Oct 2023 ("L, 2024/02604")
 observations                                        # provisional application lives here
 parties: [{name, code, acceding, signature, signature_inherited, inherited_signature,
            notification, entry_into_force, entry_into_force_inherited,

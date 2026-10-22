@@ -60,6 +60,8 @@ combine with `all: ["NO"]` for the counterparty.
 | `CS` / `CZ` | Czechoslovakia / Czechia | both, for anything spanning 1993 |
 | `CG` / `CGP` | Congo / People's Republic of the Congo | — |
 | `KV` / `KVO` | two Kosovo entries (with and without the UNSCR 1244 footnote) | search both |
+| `UNK` | UNMIK (United Nations Interim Administration Mission in Kosovo), which signed for Kosovo in the 2000s | with `KV`/`KVO` for Kosovo's older agreements |
+| `OLP` / `PLO` | Palestinian Authority / Palestine Liberation Organisation | `OLP` for the Authority, `PLO` for the PLO (the site has no `PS` code) |
 | `SZ` / `SWZ` | Swaziland / Eswatini | both |
 | `MK` / `AYM` | North Macedonia / former Yugoslav Republic of Macedonia | both |
 
