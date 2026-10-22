@@ -84,8 +84,16 @@ always open Zotero on request.
 - **eu-agreements-treaties**: done and live-tested 2026-10-22 (2016032,
   2024009, the 1972 Accession Treaty). Cellar is reached from the cloud
   sandbox.
-- Not started: norges-traktater; the case-law skills (blocked on the open
-  question below).
+- **Deferred by the maintainer (2026-10-22); don't propose these until they
+  raise them:**
+  - norges-traktater: may be solved in lovdata-zotero (if it exposes the
+    treaty metadata) rather than here.
+  - hudoc, eurlex (case law), efta-court, icj: blocked on the open question
+    below.
+  - nem-vedtak: niche, and how NEM decisions are entered in Zotero is
+    undecided.
+- Not candidates: lovdata-api and lovdata-pro (Lovdata, out of scope);
+  kildesjekk (reads Zotero rather than producing items for it).
 
 ## Mappings
 
@@ -136,4 +144,6 @@ Treaties (Zotero `statute`):
 ## Still open
 
 - How international cases (ECtHR, CJEU, EFTA Court, ICJ) are entered. The
-  group library has no examples.
+  group library has no examples, and the maintainer has not yet developed
+  style support for them or decided whether it is feasible, so no field
+  mappings exist.
