@@ -25,7 +25,7 @@ tekster - eksempler":
                  act-by-act OJ (since October 2023)
     pages        "93/40" (issue/first page); "2024/2603" in the act-by-act OJ
     dateEnacted  the agreement-level entry into force; empty when not in force
-    url          the ELI
+    url          the ELI (EUR-Lex by CELEX when there is none)
     extra        type: treaty / available-date: <signature> / provisional
                  application / status / CELEX / Consilium ID / depositary
 
@@ -217,6 +217,37 @@ SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?ojnum ?ojyear ?ojid WHERE {
     return out
 
 
+def works_in_issue(ref: dict) -> dict:
+    """Every act published in an OJ issue ("oj:JOL_1988_319_R"), for the
+    agreements whose CELEX number no date predicts: the sector-4 conventions
+    numbered after their decision (Lugano 1988: 41988A0592) and primary law
+    (the 1994 Accession Treaty: 11994N/TXT). Fast: an exact match on the
+    issue's id (0.2 s, 2026-10-22)."""
+    if ref.get("number") or not ref.get("issue"):
+        return {}
+    m = re.fullmatch(r"0*(\d+)([A-Z]?)", ref["issue"])
+    if not m:
+        return {}
+    ojid = f"oj:JO{ref['series']}_{ref['year']}_{int(m.group(1)):03d}{m.group(2)}_R"
+    q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?ojnum ?ojyear ?ojid WHERE {{
+  VALUES ?ojid0 {{ "{ojid}"^^<{XSD}string> "{ojid}" }}
+  ?ojr0 cdm:work_id_document ?ojid0 .
+  ?work cdm:resource_legal_published_in_official-journal ?ojr0 ;
+        cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
+  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language {ENG} ;
+        cdm:expression_title ?title .
+  OPTIONAL {{ ?work cdm:resource_legal_eli ?eli }}
+  OPTIONAL {{ ?work cdm:resource_legal_date_signature ?sig }}
+  OPTIONAL {{ ?man cdm:manifestation_manifests_expression ?expr ;
+                  cdm:manifestation_official-journal_part_page_first ?page }}{_OJ_ISSUE.format()}
+}}"""
+    out = {}
+    for b in sparql(q):
+        out.setdefault(b["celex"]["value"], {k: v["value"] for k, v in b.items()})
+    return out
+
+
 def english_pdf_url(celex: str) -> Optional[str]:
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
 SELECT ?mtype ?item WHERE {{
@@ -249,7 +280,9 @@ def similarity(ours: str, theirs: str) -> float:
     """Cellar appends parts after " - " ("Agreement on the European Economic
     Area - Final Act - …", "… - Protocol 1 …") and sometimes shortens
     ("Air Transport Agreement"); compare the head, and count a title that
-    is the start of the other as a strong match."""
+    is the start of the other as a strong match. Older acts carry their
+    reference first ("88/592/EEC: Convention on jurisdiction …")."""
+    theirs = re.sub(r"^\d{2,4}/\d+/[A-Za-z(), ]+:\s+", "", theirs or "")
     a, full, head = key(ours), key(theirs), key(theirs.split(" - ")[0])
     if a in (full, head):
         return 1.0
@@ -331,9 +364,26 @@ def pick(rec: dict, works: dict) -> tuple:
     ranked.sort(reverse=True)
     sig_ok, sim, _, _, celex = ranked[0]
     # 0.6: a related agreement signed the same day scored 0.50 (2014030).
-    if not ((sig_ok and sim >= 0.6) or sim >= 0.8):
-        return None, None, False
-    return celex, works[celex], sig_ok and sim >= 0.8
+    if (sig_ok and sim >= 0.6) or sim >= 0.8:
+        # A part of a treaty ("11994N/TTE/02", p. 13, its Article 2) carries
+        # the treaty's title too; the item is for the whole text, /TXT (p. 9).
+        # The CELEX number ties the two together; only a conflicting
+        # signature date rules the whole text out (its title differs).
+        part = re.fullmatch(r"(1\d{4}[A-Z]+)/.+", celex)
+        whole = f"{part.group(1)}/TXT" if part else None
+        if whole and whole != celex and whole in works and not (
+                sig and works[whole].get("sig") and works[whole]["sig"] != sig):
+            return whole, works[whole], False
+        return celex, works[celex], sig_ok and sim >= 0.8
+    # Primary law: an accession treaty's issue holds dozens of parts (/PRO/,
+    # /DCL/, annexes) under titles unlike the database's ("Treaty between
+    # the Kingdom of Belgium … concerning the accession …" / "ACT concerning
+    # the conditions of accession …"). With the signature date confirmed,
+    # its text is the /TXT work. Always reported as a match to check.
+    txt = [r for r in ranked if r[0] and re.fullmatch(r"1\d{4}[A-Z]+/TXT", r[4])]
+    if txt:
+        return txt[0][4], works[txt[0][4]], False
+    return None, None, False
 
 
 # --------------------------------------------------------------------------
@@ -388,11 +438,17 @@ def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
                      f"database: {listed}); add the citation by hand")
     if rec.get("entry_into_force"):
         item["dateEnacted"] = rec["entry_into_force"]
-    if (work or {}).get("eli"):
-        item["url"] = work["eli"]
+    # The ELI, even where EUR-Lex fails to resolve it: on 2026-10-22 an ELI
+    # with a sequence suffix ("…/2016/837(1)/oj", the first agreement under
+    # Council Decision 2016/837) landed on "No results found", although
+    # EUR-Lex shows that ELI on the agreement's own page. That is EUR-Lex's
+    # bug to fix; the item keeps the identifier.
+    eli = (work or {}).get("eli")
+    if eli:
+        item["url"] = eli
     elif celex:
-        # Older agreements have no ELI; the EUR-Lex address by CELEX is the
-        # stable link to the same text.
+        # Some older agreements have no ELI; the EUR-Lex address by CELEX is
+        # the stable link to the same text.
         item["url"] = f"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:{celex}"
     else:
         item["url"] = rec.get("url")
@@ -440,6 +496,12 @@ def find_match(rec: dict) -> Optional[tuple]:
     celex, work, sure = pick(rec, works)
     if not celex and rec.get("signature"):
         celex, work, sure = pick(rec, works_signed_on(rec["signature"]))
+    if not celex:
+        in_issues = {}
+        for r in refs:
+            in_issues.update(works_in_issue(r))
+        if in_issues:
+            celex, work, sure = pick(rec, in_issues)
     return (celex, work, sure) if celex else None
 
 
@@ -495,7 +557,7 @@ def main(argv=None) -> int:
                 if data.startswith(b"%PDF"):
                     pdf_name = f"{base}.pdf"
                     (out_dir / pdf_name).write_bytes(data)
-                    print(f"[pdf] {out_dir / pdf_name}")
+                    print(f"[pdf] {out_dir / pdf_name}  ({len(data) / 2**20:.1f} MiB)")
                 else:
                     missing = "Cellar did not return a PDF"
         except OSError as e:

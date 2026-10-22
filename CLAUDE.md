@@ -173,7 +173,8 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   stale packages. Don't propose pinning in reviews or fixes.
 - **Corpora: live lookup or a persistent local copy, never a session-only
   cloud copy.** For a skill over a downloadable corpus (first case:
-  nem-vedtak), fetch a single known item live, with no cache and no question.
+  nem-vedtak; why it is not bundled: `docs/nem-vedtak.md`), fetch a single
+  known item live, with no cache and no question.
   Cross-corpus search uses a local copy in a connected folder via the local
   route; ask for it once. If the user declines a folder, say that search
   needs the local copy and offer single lookups. A cloud copy is lost when
@@ -188,79 +189,26 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   take effect. Prefer metadata-only bundles or live routes when the texts
   name people. Anonymise fixtures the way `tests/nem-vedtak/fixtures/` does
   ("Person A", "Person B", …).
-- **NEM-vedtak are not bundled** (decided 2026-10-14). The reasons: named
-  appellants would stay in the repo after NEM edits or withdraws a decision,
-  and there may be a database right (åvl. § 24, cf. Lovdata v.
-  Rettspraksis.no). Copyright is probably not a problem (åvl. § 14). Don't
-  propose bundling again unless the maintainer raises it. If they do, a
-  design is ready:
-  - bundled `data/` plus a `snapshots.json` entry
-  - `sync --base <bundle> --dir <scratch>` fetches only sitemap-lastmod
-    deltas (lastmod is per page and reliable; 158 pages carry a 2021
-    migration date)
-  - removed slugs are hidden at search time
-  - optionally, a scheduled GitHub Action refreshes the data and bumps the
-    version
 
 ## Zotero-ready output
 
-Zotero-ready output is an RDF file or a direct import through the Zoteus MCP.
-It is added one skill at a time. The maintainer picks the order and makes
-the mapping decisions, so ask before building the next skill. The builder is
-`shared/zotero-rdf/zotero_rdf.py`. It turns Zotero item JSON into RDF that
-matches Zotero's own export translator, and it also writes `.zotero.json`
-for `zotero_create_items`. Each skill documents its route in its own
-`zotero-ready.md`.
+Several skills can make a Zotero item (an RDF file, or a direct import via
+the Zoteus MCP), built by `shared/zotero-rdf/zotero_rdf.py`, each skill's
+route in its own `zotero-ready.md`. **Before any Zotero work, read
+`docs/zotero-ready.md`**: how it is built, how a skill is added, the mapping
+decisions, testing against the local Zotero API, and status. The rules:
 
-Rules:
-
+- Added one skill at a time; the maintainer picks the order and makes the
+  mapping decisions, so ask before building the next skill.
 - Always tell the user when an item ends up without its PDF.
-- On the RDF route, the `.rdf` must sit beside the `.pdf`, because Zotero's
-  import never downloads a URL path. Every `.rdf` therefore comes with a
-  fixed message telling the user to download both files into one folder.
+- On the RDF route the `.rdf` must sit beside the `.pdf` (Zotero's import
+  never downloads a URL path), so every `.rdf` comes with a fixed message
+  telling the user to download both files into one folder.
+- Duplicate checks search by identifier, never by title.
+- For very old sources, don't add workarounds for quirks in a single item;
+  look for fixes that help a whole class of items, and leave the rest with a
+  note asking the user to add the field by hand.
 - Lovdata material is out of scope for this repo.
-
-Status (2026-10-22):
-
-- **nbno**: done and live-tested 2026-10-21. Tested: the RDF import, the
-  Zoteus route (the Web Link as a `linked_url` child, PDF attachment, and on
-  a duplicate, an offer to add the PDF to the existing item) and the
-  local-route folder choice.
-- **ets**: done and live-tested 2026-10-21.
-- **untc**: done, not yet live-tested.
-- **eu-agreements-treaties**: done, not yet live-tested.
-
-Treaty mappings:
-
-- Treaty number "ETS No. 5" (no leading zeros).
-- Not in force: leave `dateEnacted` empty and add a dated "status:" line in
-  Extra.
-- Parent treaty in History.
-- URL field: the source's treaty page, not a Web Link attachment.
-- Registration number with its series (I-/II-/A-/LoN-) in Extra.
-- untc:
-  - UNTS volume/page in `code`/`codeNumber`/`pages`; LNTS and volume for
-    League treaties.
-  - Definitive entry into force only; a provisional date goes in Extra.
-  - MTDSG reference and depositary in Extra.
-- eu-agreements-treaties:
-  - Flow: `__cs.zotero(id)` in the browser gives a base64 record, and
-    `zotero_agreement.py --record-b64` matches it to the OJ publication in
-    Cellar (publications.europa.eu/webapi/rdf/sparql).
-  - OJ reference: `code` "EUT <OJ year> L" with `pages` "<issue>/<page>".
-    For act-by-act OJ (from October 2023): `code` "EUT L" with `pages`
-    "<year>/<number>". Always "EUT".
-  - URL is the ELI, or EUR-Lex by CELEX when there is no ELI.
-  - `dateEnacted` is the agreement-level entry into force.
-  - ELIs with an "(n)" suffix don't resolve on EUR-Lex. That is a bug in
-    EUR-Lex's resolver: keep the ELI and don't work around it.
-
-Still open:
-
-- How international cases (ECtHR, CJEU, EFTA Court, ICJ) are entered. The
-  group library has no examples.
-- Which treaty-number pattern to standardise on: `publicLawNumber` ("ETS No.
-  5") or `code`/`codeNumber`/`pages` as for UNCLOS.
 
 ## Tool quirks when editing this repo
 

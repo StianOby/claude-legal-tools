@@ -119,6 +119,32 @@ celex, _, _ = za.pick(croatia, {"22014A0611(01)": w(
     "2014-04-11", "0005")})
 check("a related agreement signed the same day is not enough (2014030)", celex, None)
 check("all-capitals titles have no names to compare", za.names(PROBE["2010035"]["title"]), set())
+lugano_issue = {"41988A0592": w("88/592/EEC: Convention on jurisdiction and the enforcement of judgments in civil "
+                                "and commercial matters - Done at Lugano on 16 September 1988", page="0009"),
+                "31988D0591": w("88/591/ECSC, EEC, Euratom: Council Decision of 24 October 1988 establishing a Court "
+                                "of First Instance", type_="D", page="0001")}
+celex, _, _ = za.pick({"title": PROBE["1988055"]["title"], "signature": "1988-09-16"}, lugano_issue)
+check("a reference prefix is no part of the title (Lugano 1988, found by its OJ issue)", celex, "41988A0592")
+acc94 = {"11994N/TXT": w("ACT concerning the conditions of accession of the Kingdom of Norway, the Republic of Austria, "
+                         "the Republic of Finland and the Kingdom of Sweden and the adjustments to the Treaties",
+                         "1994-06-24", "0009"),
+         "11994N/TTE/02": w("TREATY between the Kingdom of Belgium, the Kingdom of Denmark, … concerning the accession "
+                            "of the Kingdom of Norway, the Republic of Austria, the Republic of Finland and the Kingdom "
+                            "of Sweden to the European Union - Article 2", "1994-06-24", "0013"),
+         "11994N/PRO/03": w("ACT concerning the conditions of accession … - Protocol No 3", "1994-06-24", "0352")}
+treaty94 = {"title": "Treaty between the Kingdom of Belgium, the Kingdom of Denmark, … concerning the accession of the "
+                     "Kingdom of Norway, the Republic of Austria, the Republic of Finland and the Kingdom of Sweden to "
+                     "the European Union", "signature": "1994-06-24"}
+celex, _, sure = za.pick(treaty94, acc94)
+check("a part of a treaty gives way to its whole text, /TXT, flagged (1994 accession)", (celex, sure), ("11994N/TXT", False))
+celex, _, _ = za.pick({"title": "Treaty concerning the accession of Norway", "signature": "1994-06-24"},
+                      {"11994N/TXT": acc94["11994N/TXT"], "11994N/PRO/03": acc94["11994N/PRO/03"]})
+check("primary law with an unlike title: /TXT when the signature date agrees", celex, "11994N/TXT")
+celex, _, _ = za.pick({"title": "Treaty concerning the accession of Norway", "signature": "1972-01-22"},
+                      {"11972B/TXT": w("Documents concerning the accession to the European Communities of the Kingdom "
+                                       "of Denmark, Ireland, the Kingdom of Norway and the United Kingdom", "1970-04-22",
+                                       "0005")})
+check("…but not against Cellar's own signature date (1972: 1970-04-22 in Cellar; not worked around)", celex, None)
 
 print("citation and item")
 check("old OJ from Cellar's issue", za.oj_citation("21972A1219(01)", w("x", page="0002", ojnum="133", ojyear="1973",
@@ -135,7 +161,13 @@ item, notes = za.build_item(rec, ("22016A0528(01)", w(
     ojnum="141", ojyear="2016", ojid="oj:JOL_2016_141_R_0002"), True), today=TODAY)
 check("item as the library's Dublin/Schengen pattern", {k: item[k] for k in ("code", "pages", "dateEnacted", "url", "language")},
       {"code": "EUT 2016 L", "pages": "141/3", "dateEnacted": "2017-09-01",
+       # The ELI is kept although EUR-Lex fails to resolve suffixed ones (2026-10-22).
        "url": "http://data.europa.eu/eli/agree_internation/2016/837(1)/oj", "language": "English"})
+eea_item, _ = za.build_item(PROBE["1992045"], ("21994A0103(01)", w(
+    "Agreement on the European Economic Area - Final Act", "1992-05-02", "0003",
+    eli="http://data.europa.eu/eli/agree_internation/1994/1/oj", ojnum="1", ojyear="1994", ojid="oj:JOL_1994_001_R"), True),
+    today=TODAY)
+check("a plain ELI is used too (EEA)", eea_item["url"], "http://data.europa.eu/eli/agree_internation/1994/1/oj")
 check("extra", item["extra"].split("\n"), ["type: treaty", "available-date: 2016-05-03",
                                            "provisional application: 2016-08-01", "CELEX: 22016A0528(01)",
                                            "Consilium: 2016032"])

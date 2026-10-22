@@ -62,6 +62,33 @@ sit in the same folder, so always say this with them, in these words:
 If the user would rather skip that step and the Zoteus tools are available,
 offer the direct import below.
 
+### A PDF over 30 MiB
+
+The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
+`SendUserFile` and `device_commit_files` take. The PDF then cannot leave the
+cloud sandbox, so:
+
+1. **Prefer the Zoteus route** if its tools are available: Zotero downloads
+   the PDF itself from `pdf.url`, whatever its size.
+2. Otherwise put both files in the connected folder, the PDF fetched from
+   the user's own computer (not yet tested in Cowork):
+   - copy the `.rdf` there as in **Attaching a PDF that is only in the
+     cloud**, steps 1 and 3–5 (the folder `<folder>\ets\`);
+   - load `device_bash` (ToolSearch `select:mcp__remote-devices__device_bash`)
+     and download the PDF into the same folder, under the name the `.rdf`
+     expects. rm.coe.int refuses `curl`'s default request (403) and serves
+     the one the skill sends:
+     `curl -fsSL -A "ets-skill/0.2 (treaty research tool, Python-urllib)" -H "Accept: application/pdf,*/*" -o "$HOME/mnt/<folder name>/ets/<base>.pdf" "<pdf.url>"`
+     (`$HOME/mnt/<folder name>/` is the connected folder as the local shell
+     sees it; `ls -d "$HOME"/mnt/*/` lists it);
+   - tell the user to drag the `.rdf` into Zotero from that folder.
+3. If neither works, deliver the `.rdf` alone, give the PDF link
+   (`pdf.url`), and say the PDF must be downloaded into the same folder as
+   the `.rdf` before the import, or added to the item afterwards.
+
+Treaty texts on rm.coe.int are small (100–500 KB for the ones tried), so
+this is rare.
+
 ## Direct import with Zoteus
 
 1. `zotero_whoami`. If the desktop app is not reachable, Zoteus writes
@@ -70,11 +97,17 @@ offer the direct import below.
    collection (group: numeric `library_id` from `zotero_groups` with
    `library_type: "group"`; collection keys from `zotero_list_collections`
    for that library).
-3. **Duplicates:** `zotero_search_items` with the treaty number as printed
-   ("ETS No. 5") and a title word, without `itemType` (statute titles are in
-   `nameOfAct`, so hits may show as "(untitled)"). If an existing item looks
-   like the same treaty, show it and ask: add the PDF to it, or create a new
-   item.
+3. **Duplicates:** search by the treaty number, not the title: titles of
+   treaties are generic and a full-text search for one gives hundreds of hits.
+   `zotero_search_items` with `q` = the number **with double quotes around
+   it as part of the query** (`"ETS No. 5"`) and `itemType: "statute"`. Unquoted, Zotero matches
+   each word on its own, and every CoE treaty has "ETS" and "No" (20 hits for
+   `ETS No. 5`, 2 for `"ETS No. 5"`, tested against a real library
+   2026-10-22). It also finds items entered by hand, which carry the number
+   in the same field. Confirm a hit by its Public Law Number before calling
+   it a duplicate (`"ETS No. 5"` also matches "ETS No. 5" inside a longer
+   text). If it is the same treaty, show it and ask: add the PDF to it, or
+   create a new item.
 4. **Ask before writing:** "Save *<title>* (<number>) to <library /
    collection>?"
 5. `zotero_create_items` with the `items` array from the JSON unchanged (add

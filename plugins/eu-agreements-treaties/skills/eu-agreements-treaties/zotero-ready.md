@@ -11,6 +11,14 @@ Schengen items in the shared group library *Norsk henvisningsstandard for
 rettsvitenskapelige tekster – eksempler*: `code` "EUT 2001 L", `pages`
 "93/40", the ELI as URL.
 
+An ELI with a sequence suffix, such as `…/2016/837(1)/oj` (the first
+agreement published with Council Decision 2016/837), lands on "No results
+found" in EUR-Lex (seen 2026-10-22), although EUR-Lex shows that ELI on the
+agreement's own page. It is EUR-Lex's bug, and the item keeps the ELI. If
+the user reports the link as broken, say so and give the EUR-Lex address by
+CELEX (`https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:<CELEX>`,
+the CELEX is in Extra) as a working link for now.
+
 There are two routes. Unless the user has already said which they want, ask
 once: an RDF file to drag into Zotero, or straight into their library (only
 offer the second when the Zoteus tools, `zotero_*`, are available).
@@ -49,7 +57,7 @@ What the item holds:
 | Code | `EUT <OJ year> <series>`; `EUT L` in the act-by-act OJ (since October 2023) | EUT 2016 L |
 | Pages | `<issue>/<first page>`; `<year>/<act number>` in the act-by-act OJ | 141/3 |
 | Date Enacted | the agreement-level entry into force; **empty when not in force** | 2017-09-01 |
-| URL | the ELI; EUR-Lex by CELEX for older agreements without one | http://data.europa.eu/eli/agree_internation/2016/837(1)/oj |
+| URL | the ELI; the EUR-Lex address by CELEX for older agreements without one | http://data.europa.eu/eli/agree_internation/2016/837(1)/oj |
 | Language | English | English |
 | Extra | `type: treaty`, `available-date: <signature>`, `provisional application: <date>`, `status: …` when not in force, `CELEX: …`, `Consilium: <id>`, `depositary: …` | type: treaty / available-date: 2016-05-03 / provisional application: 2016-08-01 / CELEX: 22016A0528(01) / Consilium: 2016032 |
 
@@ -57,11 +65,16 @@ How the OJ publication is found: the database lists every OJ reference of an
 agreement — its text, but also Council decisions, notices of entry into
 force, corrigenda and amendments, and sometimes with a wrong date. The script
 looks up every act in those issues, and the agreements signed that day, and
-picks the agreement itself by signature date and title. In a probe of 34
-agreements from 1972 to 2026 it found 30, all correctly; the 4 it left
-without a citation were right to be left (the 1972 Accession Treaty, Lugano
-1988, an exchange of letters not published on its own, an agreement not yet
-in Cellar). It prefers no citation to a wrong one.
+picks the agreement itself by signature date and title. When that finds
+nothing, it reads every act published in the OJ issues themselves: that
+finds conventions numbered after their decision (Lugano 1988) and primary
+law such as the 1994 Accession Treaty, whose whole text (`11994N/TXT`) it
+takes over the treaty's separately catalogued parts; a primary-law match is
+always reported as one to check. In a probe of 34 agreements from 1972 to
+2026 it found 32, all correctly. It left two without a citation, rightly:
+an exchange of letters not published on its own, and the 1972 Accession
+Treaty, whose signature date Cellar has wrong (1970-04-22). It prefers no
+citation to a wrong one.
 
 Lines starting `NOTE:` are for the user; pass them on:
 
@@ -94,6 +107,29 @@ sit in the same folder, so always say this with them, in these words:
 If the user would rather skip that step and the Zoteus tools are available,
 offer the direct import below.
 
+### A PDF over 30 MiB
+
+The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
+`SendUserFile` and `device_commit_files` take (the EEA Agreement with its
+annexes is 37 MiB). The PDF then cannot leave the cloud sandbox, so:
+
+1. **Prefer the Zoteus route** if its tools are available: Zotero downloads
+   the PDF itself from `pdf.url`, whatever its size.
+2. Otherwise put both files in the connected folder, the PDF fetched from
+   the user's own computer (not yet tested in Cowork):
+   - copy the `.rdf` there as in **Attaching a PDF that is only in the
+     cloud**, steps 1 and 3–5 (the folder `<folder>\eu-agreements-treaties\`);
+   - load `device_bash` (ToolSearch `select:mcp__remote-devices__device_bash`)
+     and download the PDF into the same folder, under the name the `.rdf`
+     expects:
+     `curl -fsSL -o "$HOME/mnt/<folder name>/eu-agreements-treaties/<base>.pdf" "<pdf.url>"`
+     (`$HOME/mnt/<folder name>/` is the connected folder as the local shell
+     sees it; `ls -d "$HOME"/mnt/*/` lists it);
+   - tell the user to drag the `.rdf` into Zotero from that folder.
+3. If neither works, deliver the `.rdf` alone, give the PDF link
+   (`pdf.url`), and say the PDF must be downloaded into the same folder as
+   the `.rdf` before the import, or added to the item afterwards.
+
 ## Direct import with Zoteus
 
 1. `zotero_whoami`. If the desktop app is not reachable, Zoteus writes
@@ -102,11 +138,16 @@ offer the direct import below.
    collection (group: numeric `library_id` from `zotero_groups` with
    `library_type: "group"`; collection keys from `zotero_list_collections`
    for that library).
-3. **Duplicates:** `zotero_search_items` with a distinctive title word and
-   the OJ year or CELEX, without `itemType` (statute titles are in
-   `nameOfAct`, so hits may show as "(untitled)"). If an existing item looks
-   like the same agreement, show it and ask: add the PDF to it, or create a
-   new item.
+3. **Duplicates:** search by an identifier, not the title: titles of
+   agreements are generic and a full-text search for one gives hundreds of
+   hits. `zotero_search_items` with `q` = the CELEX without its sequence
+   (`22016A0528`) and `itemType: "statute"`; then the Consilium ID
+   (`2016032`). Both found exactly the item in a real library (2026-10-22).
+   An item entered by hand has neither, so if both find nothing, search the
+   OJ citation's issue/page (`141/3`) and a distinctive title word.
+   Confirm a hit by its Code and Pages before calling it a duplicate. If it
+   is the same agreement, show it and ask: add the PDF to it, or create a new
+   item.
 4. **Ask before writing:** "Save *<title>* (<code> <pages>) to <library /
    collection>?"
 5. `zotero_create_items` with the `items` array from the JSON unchanged (add

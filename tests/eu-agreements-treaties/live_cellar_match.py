@@ -17,8 +17,8 @@ sys.path.insert(0, str(SKILL / "scripts"))
 import zotero_agreement as za  # noqa: E402
 
 EXPECTED = {
-    "1972004": None,              # Accession Treaty 1972: primary law (sector 1, other numbering)
-    "1988055": None,              # Lugano 1988: sector 4, numbered outside the date scheme
+    "1972004": None,              # Accession Treaty 1972: Cellar has the wrong signature date (1970-04-22)
+    "1988055": "41988A0592",      # Lugano 1988: sector 4, found by its OJ issue
     "1989038": "21989A1013(03)", "1989084": "21990A0421(03)", "1993016": "21993A0501(05)",
     "1995044": "21995A0808(01)", "1999025": "21999A0710(02)", "2002082": "22002A1217(01)",
     "2003104": "22004A0429(04)", "2004060": "22004A1209(01)", "2006042": "22006A1212(01)",
@@ -26,7 +26,7 @@ EXPECTED = {
     "2014030": None,              # exchange of letters not in Cellar on its own
     "2016032": "22016A0528(01)", "2017003": "22019A0128(01)", "2019005": "22020A0303(01)",
     "2024009": "22024A02603",
-    "2026004": None,              # the Iceland agreement is not in Cellar yet (Norway's is: no match)
+    "2026004": "22026A02350",     # the Iceland agreement, in Cellar since 2026-10-21 (before: no match, not Norway's)
     "2006052": "22006A1016(01)", "2010035": "22013A0226(01)", "2018049": "22019A0524(02)",
     "2009066": "22012A0413(01)", "1992045": "21994A0103(01)", "1994093": "21994A1231(52)",
     "1978002": "21975A1114(01)", "1972002": "21972A1219(01)", "1993118": "21994A0625(01)",

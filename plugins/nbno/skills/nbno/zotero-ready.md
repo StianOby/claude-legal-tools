@@ -253,6 +253,28 @@ from `<that folder>`; the PDF next to it is attached automatically." If the
 user would rather skip that step and the Zoteus tools are available, offer
 the direct import below.
 
+### A PDF over 30 MiB
+
+The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
+`SendUserFile` and `device_commit_files` take. The PDF then cannot leave the
+cloud sandbox, so:
+
+nb.no has no public PDF link, so Zoteus cannot fetch it either. A shrunk
+book of a few hundred pages is often over the limit (about 60 MB for 500
+pages).
+
+- **A local-route book** (`NORWAY` / `NB`) is made in the connected folder
+  already: it never needs to leave the sandbox. Tell the user to drag the
+  `.rdf` into Zotero from `<connected folder>/nbno/<id>/`, or attach the PDF
+  by path in the Zoteus route.
+- **A book made in the cloud sandbox** (`EVERYWHERE`): offer to make it
+  again on the user's computer, through the local route (SKILL.md
+  **Routing**, step 2 — the same commands; the item is open to every IP, so
+  only the place it is made changes). The PDF and `.rdf` then end up
+  together in the connected folder. If the local route cannot run, deliver
+  the `.rdf` alone and give the nb.no link: the user can download the book
+  there and attach it to the item.
+
 ## Direct import with Zoteus
 
 Use this route when the `zotero_*` tools are present and the user wants the
@@ -266,9 +288,10 @@ and `pdf`. Then:
    collection. For a group, take its numeric `library_id` from
    `zotero_groups` and pass it with `library_type: "group"`. Take collection
    keys from `zotero_list_collections` for the same library.
-3. **Duplicates.** `zotero_search_items` with the surname and a title word.
-   If an existing item looks like the same book, show it and ask before
-   creating another.
+3. **Duplicates.** `zotero_search_items` with the ISBN when the item has
+   one (it also finds copies entered by hand), otherwise the surname and a
+   title word, with `itemType: "book"`. If an existing item
+   looks like the same book, show it and ask before creating another.
 4. **Ask before writing:** "Save *<title>* (<year>) to <library / collection>?"
 5. `zotero_create_items` with the `items` array from the JSON unchanged (add
    `collections` if a collection was chosen). Note the new item's key.

@@ -75,6 +75,38 @@ sit in the same folder, so always say this with them, in these words:
 If the user would rather skip that step and the Zoteus tools are available,
 offer the direct import below.
 
+### A PDF over 30 MiB
+
+The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
+`SendUserFile` and `device_commit_files` take. The PDF then cannot leave the
+cloud sandbox, so:
+
+**A per-treaty file** (the JSON's `pdf` has a `url` on treaties.un.org):
+
+1. **Prefer the Zoteus route** if its tools are available: Zotero downloads
+   the PDF itself from `pdf.url`, whatever its size.
+2. Otherwise put both files in the connected folder, the PDF fetched from
+   the user's own computer (not yet tested in Cowork):
+   - copy the `.rdf` there as in **Attaching a PDF that is only in the
+     cloud**, steps 1 and 3–5 (the folder `<folder>\untc\`);
+   - load `device_bash` (ToolSearch `select:mcp__remote-devices__device_bash`)
+     and download the PDF into the same folder, under the name the `.rdf`
+     expects:
+     `curl -fsSL -o "$HOME/mnt/<folder name>/untc/<base>.pdf" "<pdf.url>"`
+     (`$HOME/mnt/<folder name>/` is the connected folder as the local shell
+     sees it; `ls -d "$HOME"/mnt/*/` lists it);
+   - tell the user to drag the `.rdf` into Zotero from that folder.
+3. If neither works, deliver the `.rdf` alone, give the PDF link
+   (`pdf.url`), and say the PDF must be downloaded into the same folder as
+   the `.rdf` before the import, or added to the item afterwards.
+
+**A text cut from a volume PDF** (the output says `[pdf] pages … of the UNTS
+volume PDF`) has no link of its own, and Zoteus cannot help. Deliver the
+`.rdf` alone and give the user the volume PDF's link and the page range the
+output printed, so they can save those pages as a PDF next to the `.rdf`
+(any PDF viewer's "print to PDF" with a page range does it) or attach them
+to the item afterwards. Say that the cut is too large to hand over.
+
 ## Direct import with Zoteus
 
 1. `zotero_whoami`. If the desktop app is not reachable, Zoteus writes
@@ -83,11 +115,17 @@ offer the direct import below.
    collection (group: numeric `library_id` from `zotero_groups` with
    `library_type: "group"`; collection keys from `zotero_list_collections`
    for that library).
-3. **Duplicates:** `zotero_search_items` with the short title or a title
-   word plus the UNTS volume, without `itemType` (statute titles are in
-   `nameOfAct`, so hits may show as "(untitled)"). If an existing item looks
-   like the same treaty, show it and ask: add the PDF to it, or create a new
-   item.
+3. **Duplicates:** search by the registration number, not the title: titles
+   of treaties are generic and a full-text search for one gives hundreds of
+   hits. `zotero_search_items` with `q` = the number **without its series**
+   (`18232`, not `I-18232`: the one-letter prefix makes Zotero miss it) and
+   `itemType: "statute"`. That also finds items entered by hand, whose UNTS
+   PDF link carries the number (UNCLOS: `31363`; tested against a real
+   library 2026-10-22). A League of Nations treaty's number is too short to
+   search on: use the short title or a distinctive title word instead.
+   Confirm a hit by its UNTS volume and page before calling it a duplicate.
+   If it is the same treaty, show it and ask: add the PDF to it, or create a
+   new item.
 4. **Ask before writing:** "Save *<title>* (<citation>) to <library /
    collection>?"
 5. `zotero_create_items` with the `items` array from the JSON unchanged (add
