@@ -38,7 +38,7 @@ from typing import Any
 
 BASE = "https://eftacourt.int"
 REST = f"{BASE}/wp-json/wp/v2/cases"
-USER_AGENT = "efta-court-skill/1.1.8 (+https://github.com/StianOby/claude-legal-tools)"
+USER_AGENT = "efta-court-skill/1.1.9 (+https://github.com/StianOby/claude-legal-tools)"
 PROCEDURE_CODES = ("AO", "INF", "DA")
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
 # The case index is refreshed from the REST API when it is older than this,
@@ -730,10 +730,14 @@ def get_document(case: str, doc_type: str | None, lang: str,
     if not _has_content(pdf_p):
         download(chosen["url"], pdf_p)
     txt_p = pdf_p.with_suffix(".txt")
-    if not _has_content(txt_p):
+    method_p = pdf_p.with_suffix(".extract")
+    current = _has_content(method_p) and _read(method_p).strip() == EXTRACT_METHOD
+    if not _has_content(txt_p) or not current:
         text = extract_pdf_text(pdf_p)
         if text:
             _write(txt_p, text)
+            if shutil.which("pdftotext"):
+                _write(method_p, EXTRACT_METHOD)
         else:
             txt_p = None
     return pdf_p, txt_p
@@ -792,30 +796,27 @@ def _choose_doc(docs: list[dict], doc_type: str, lang: str) -> dict | None:
     return candidates[0]
 
 
-# pdftotext joins a word hyphenated across a line break and drops the hyphen,
-# also where the hyphen belongs ("intra-\nCommunity" -> "intraCommunity",
-# Cowork run 12). A lower-case prefix glued to a capitalised word is put back.
-_LOST_HYPHEN = re.compile(
-    r"\b(intra|extra|inter|non|anti|pan|post|pre|pro|self|cross|sub|co|ex"
-    r"|quasi|semi|supra|trans|ultra|multi|re)(?=[A-Z])")
-
-
-def restore_hyphens(text: str) -> str:
-    return _LOST_HYPHEN.sub(r"\1-", text)
+# How the cached .txt was made, written to <stem>.extract beside it. Text
+# from an older method is extracted again: up to 1.1.8 pdftotext ran in its
+# default mode, which joins each paragraph into one line and drops the hyphen
+# at a line break even where it belongs ("C-\n67" -> "C67", "non-\nprofit"
+# -> "nonprofit").
+EXTRACT_METHOD = "pdftotext -raw"
 
 
 def extract_pdf_text(pdf: Path) -> str | None:
     # pdftotext (poppler) first: on the 1990s judgments pypdf splits words at
-    # irregular letter spacing ("statut ory", "intr a-EEA"; Cowork run 11).
+    # irregular letter spacing ("statut ory", "intr a-EEA"; Cowork run 11),
+    # and on modern ones too. -raw keeps the PDF's lines and hyphens as
+    # printed; reading order matched the default mode on E-1/94, E-14/15 and
+    # E-8/22 apart from page numbers (2026-10-23).
     # Its "Syntax Error … default config" chatter goes to stderr; drop it.
     if shutil.which("pdftotext"):
         out = pdf.with_suffix(".txt")
-        subprocess.run(["pdftotext", str(pdf), str(out)], check=False,
+        subprocess.run(["pdftotext", "-raw", "-enc", "UTF-8", str(pdf), str(out)], check=False,
                        stderr=subprocess.DEVNULL)
         if _has_content(out):
-            text = restore_hyphens(_read(out))
-            _write(out, text)
-            return text
+            return _read(out)
     # Then pypdf
     try:
         from pypdf import PdfReader  # type: ignore
@@ -902,6 +903,18 @@ def cmd_list(args: argparse.Namespace) -> None:
               + (f"  {r['parties']}" if r.get("parties") else ""))
 
 
+def phrase_re(q: str) -> re.Pattern:
+    """Match q in text that keeps the PDF's line breaks: a space matches any
+    whitespace, and a word may break at a hyphen and a line end
+    ("state\\naid", "recog-\\nnition", "intra-\\nCommunity")."""
+    brk = r"(?:-[ \t]*\n\s*)?"
+    parts = []
+    for word in q.split():
+        chars = [r"-\s*" if c == "-" else re.escape(c) for c in word]
+        parts.append(brk.join(chars))
+    return re.compile(r"\s+".join(parts))
+
+
 def cmd_search(args: argparse.Namespace) -> None:
     idx = get_index()
     rows = _filter_rows(idx["cases"], _year_arg(args.year), args.country, None)
@@ -931,9 +944,10 @@ def cmd_search(args: argparse.Namespace) -> None:
                     body = _read(txt).lower()
                 except Exception:
                     continue
-                if q in body:
-                    i = body.find(q)
-                    snippet = "…" + body[max(0, i - 60): i + 120].replace("\n", " ") + "…"
+                m = phrase_re(q).search(body)
+                if m:
+                    i = m.start()
+                    snippet = "…" + re.sub(r"\s+", " ", body[max(0, i - 60): i + 120]) + "…"
                     break
         if snippet:
             hits.append((r, snippet))

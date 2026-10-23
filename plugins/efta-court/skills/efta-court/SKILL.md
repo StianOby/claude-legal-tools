@@ -202,6 +202,11 @@ python3 scripts/efta_court.py search "fundamental rights" --full-text
 grep -i "keyword" ~/.cache/efta-court/cases/E-X-YY/judgment-EN.txt
 ```
 
+The `.txt` keeps the PDF's lines as printed, hyphens at line ends
+included ("non-\nprofit", "recog-\nnition"). `search --full-text` matches
+across those breaks; a plain `grep` for a phrase does not, so grep for
+one distinctive word, or use `grep -iPzo 'state\s+aid'`.
+
 If you already know the subject area, narrow step 1 first:
 - `list --procedure AO --year 2024` for advisory opinions
 - `list --country NO` for Norway-only referrals
@@ -285,6 +290,9 @@ or the list number if there is no date. `get` prints the path; use that.
    extracted from the older PDFs (1990s) can split words at odd letter
    spacing ("statut ory", "intr a-EEA"): join such fragments when quoting,
    and if a word is unclear, check it in the PDF rather than guessing.
+   When quoting across a line break, join the lines; a hyphen at a line
+   end is kept where the word has one ("non-profit") and dropped where it
+   only splits the word ("recognition").
    EFTA Court judgments are paragraph-numbered — keep the numbering when
    quoting (e.g. *Holship*, para 90).
 3. Cite using the form: *Case E-14/15 Holship Norge AS v Norsk

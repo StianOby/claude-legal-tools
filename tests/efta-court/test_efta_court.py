@@ -123,11 +123,11 @@ check("fresh index", ec._index_age({"fetched_at": ec._now_iso()}) < 5, True)
 check("old index", ec._index_age({"fetched_at": "2020-01-01T00:00:00Z"}) > ec.INDEX_TTL, True)
 check("missing timestamp counts as stale", ec._index_age({}), float("inf"))
 
-print("restore_hyphens(): hyphens pdftotext drops at line breaks")
-check("intraCommunity", ec.restore_hyphens("of intraCommunity trade"), "of intra-Community trade")
-check("nonEEA", ec.restore_hyphens("nonEEA States"), "non-EEA States")
-check("ordinary words untouched", ec.restore_hyphens("Pro forma, interest, Contracting Parties, prevent"),
-      "Pro forma, interest, Contracting Parties, prevent")
+print("phrase_re(): full-text search across the PDF's line breaks")
+body = "the state\naid rules, recog-\nnition of intra-\ncommunity trade, case c-\n67/14"
+for q, want in [("state aid", True), ("recognition", True), ("intra-community", True),
+                ("c-67/14", True), ("aid rules", True), ("stateaid", False), ("state rules", False)]:
+    check(repr(q), bool(ec.phrase_re(q).search(body)), want)
 
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)
