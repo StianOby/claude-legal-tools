@@ -38,6 +38,7 @@ Quote dates and party names exactly as the site gives them.
 | Who has ratified / notified, and when? Provisional application? | **this skill** |
 | What does the agreement say? | `eurlex`, via the OJ reference `detail()` returns |
 | Norwegian entry into force, Stortinget consent, Norwegian text | `norges-traktater` |
+| Whether an EU act is incorporated into the EEA Agreement, EEA Joint Committee Decisions | `eea-lex` |
 | UN-deposited multilateral treaties | `untc` |
 | Council of Europe conventions | `ets` |
 

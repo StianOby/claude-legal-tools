@@ -543,6 +543,10 @@ reservasjoner og innsigelser fra alle stater.
 
 ### 3. EØS/EU-rettsakter → `eurlex`
 
+Om en EU-rettsakt er tatt inn i EØS-avtalen og når, EØS-komiteens
+beslutninger (også de som ennå ikke er i EU-tidende) og EFTAs oppdaterte
+vedlegg og protokoller → `eea-lex`.
+
 ### 4. Lovdata Pro → `lovdata-pro`
 
 Krever abonnement og Claude Desktop med Cowork. Dokumentet hentes med

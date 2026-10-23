@@ -1,4 +1,7 @@
-# eea-lex — plan (approved in outline 2026-10-23, not yet built)
+# eea-lex — plan (approved in outline 2026-10-23; 0.1.0 built the same day)
+
+Status: plan steps 1–5 are done in `plugins/eea-lex/` (0.1.0) and
+`tests/eea-lex/`. What the build found is under "Build findings" at the end.
 
 A skill over EFTA's EEA-Lex (`https://www.efta.int/eea-lex`) and the EEA legal
 texts EFTA publishes. eurlex already covers EU texts, so this skill covers what
@@ -75,8 +78,12 @@ Rules for the script:
   Annex IX lacks `media/`, so scrape them live). Protocols are linked from
   `/about-efta/legal-documents/adopted-joint-committee-decisions/105046`.
   The version date is printed in the PDF page header.
-- Art. 103 constitutional-requirements and awaited-notifications lists are
-  linked from `/legal-texts/eea`. The URL is still to be found.
+- Art. 103 lists, linked from `/about-efta/legal-documents/eea-legal-texts`
+  (`/legal-texts/eea` redirects there):
+  `…/other-legal-documents/list-of-constitutional-requirements/list-of-constitutional-requirements.pdf`
+  (report 5.2.1, every JCD since 2004 with requirements indicated) and
+  `…/other-legal-documents/list-of-awaited-notifications/list-awaited-notifications.pdf`
+  (report 5.2.2, still awaited; regenerated daily). The skill reads 5.2.2.
 
 ## Plan
 
@@ -101,3 +108,31 @@ Rules for the script:
    description ≤ 1024 characters), efta-court, eu-agreements-treaties,
    norges-traktater (one routing line each); marketplace description.
 5. Run `snapshots.py check` first; `plugin validate` at the end.
+
+## Build findings (2026-10-23)
+
+- **The yearly JCD lists lag, irregularly.** The 2026 list was dated
+  1.10.2026 (to JCD 287/2026) while JCD PDFs ran to 317/2026, adopted that
+  day; the 2025 list was still the one of 5.12.2025, so its OJ column was
+  empty for JCDs Cellar already had (232/2025 = 2026/221). `jcd` therefore
+  takes a JCD missing from the list from its PDF, and lets Cellar, not the
+  list, say whether it is in the OJ.
+- **Cellar lookup:** works with `work_date_document` = adoption date and the
+  number in the English title (NBSP after "No"; the 1990s titles write
+  "No 10/95"); about 0.2 s.
+- **List layouts:** 2006–2026 share one layout (report 5.1). The parser
+  matches EFTA's printed totals exactly for 2009–2026 and to within two acts
+  for 2006–2008. 1994–2005 use an older table that pdftotext scrambles (a
+  row read for 11/2005 belonged to another decision), so `jcd` does not read
+  those lists and uses the JCD PDF and Cellar instead. Quirks the parser
+  handles: "232//2025", five-digit CELEX numbers (32024D06842), an act with
+  no CELEX number (JCD 218/2026), reports without a "Report no:" line
+  (2010).
+- **pypdf** gives one table cell per line; after rejoining the row-start
+  cells, it gives the same rows and CELEX numbers as `pdftotext -raw`.
+- **Annex texts are updated within the day:** Annex XIII carried
+  23.10.2026 on 23.10.2026. Entries print CELEX numbers as `32016 R 0679`
+  (since 2000) or `387 L 0372`; footnotes `{n}` name the amending JCD.
+- **Keyword search ranks poorly for numbers:** `keyword=2016/679` puts the
+  GDPR below its implementing decisions, so `factsheet` builds the CELEX
+  from the citation and searches only as a fallback.

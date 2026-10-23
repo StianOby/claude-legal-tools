@@ -1,0 +1,47 @@
+{
+  "skill_name": "eea-lex",
+  "evals": [
+    {
+      "id": 1,
+      "name": "gdpr-eea-status",
+      "prompt": "Når ble personvernforordningen (GDPR) tatt inn i EØS-avtalen, og når trådte den i kraft for Norge? Oppgi EØS-komiteens beslutning med riktig sitat.",
+      "expected_output": "Answer in Norwegian from the EEA-Lex factsheet for 32016R0679 and `jcd 154/2018`: JCD No 154/2018 of 6 July 2018 (Annex XI, Protocol 37), in force in the EEA on 20 July 2018 (Liechtenstein fulfilled Art. 103 on 19.7.2018); EU compliance date 25.5.2018 given separately; citation with OJ L 183, 19.7.2018, p. 23 and the Cellar CELEX 22018D1022; Norwegian form 'EØS-komiteens beslutning nr. 154/2018'. Notes that EEA-Lex is for information only.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "jcd-not-yet-in-oj",
+      "prompt": "I need the text of EEA Joint Committee Decision No 287/2026 on CBAM. Is it in the Official Journal yet, and how should I cite it?",
+      "expected_output": "Runs `jcd 287/2026 --text`: adopted 25.9.2026, amends Protocol 10 (and Protocol 31) for Regulation (EU) 2023/956; Cellar has no record, so it is not yet in the OJ; quotes from EFTA's PDF and cites it as not yet published with the EFTA PDF URL. Checks `pending103 --jcd 287/2026` and reports that Iceland's constitutional requirements are awaited if the list still says so.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "annex-adaptations",
+      "prompt": "How is Article 45 of the GDPR adapted for the EFTA States in the EEA Agreement? Quote the adaptation.",
+      "expected_output": "Runs `agreement annex XI --find 32016R0679`, gives the version date of EFTA's Annex XI, quotes adaptation (e) on Article 45 (the new paragraph 1a on adequacy decisions pending incorporation) from point 5e, names Decision 154/2018 from the footnote, and says EFTA's consolidated annex is not the authentic text.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "art103-norway",
+      "prompt": "Which EEA Joint Committee Decisions are currently waiting for Norway's constitutional requirements under Article 103?",
+      "expected_output": "Runs `pending103 --state NO` and lists each JCD with adoption date, end of the six-month period, the annex and the acts, giving the report date of EFTA's list and the list's 'date of delay' without interpreting it.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "proposal-status",
+      "prompt": "Is the EU's proposed Critical Medicines Act (COM(2025) 102) being considered for the EEA?",
+      "expected_output": "Searches EEA-Lex (keyword COM(2025) 102), finds the proposal card (EEA-Lex id 327538, status 'Proposed act with possible EEA relevance'), explains that proposals have no factsheet, and does not invent a JCD or EEA date.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "routing-not-this-skill",
+      "prompt": "What did the EFTA Court say in Holship about Article 31 EEA?",
+      "expected_output": "Does not use eea-lex; routes to the efta-court skill.",
+      "files": []
+    }
+  ]
+}

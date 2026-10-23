@@ -4,7 +4,7 @@
     "name": "Stian Øby Johansen",
     "url": "https://github.com/StianOby"
   },
-  "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, Consilium, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
+  "description": "Skills for retrieving and verifying legal sources: Lovdata, EUR-Lex, Consilium, HUDOC, ICJ, EFTA Court, EEA-Lex, UNTC, ETS, Norges traktater, Nasjonalbiblioteket.",
   "plugins": [
     {
       "name": "eu-agreements-treaties",
@@ -27,6 +27,18 @@
         "efta",
         "eea",
         "case-law"
+      ]
+    },
+    {
+      "name": "eea-lex",
+      "source": "./plugins/eea-lex",
+      "description": "EEA-Lex: EEA status of EU acts, EEA Joint Committee Decisions and the current EEA Agreement texts, from EFTA",
+      "category": "legal-research",
+      "keywords": [
+        "eea",
+        "efta",
+        "joint-committee-decisions",
+        "eea-agreement"
       ]
     },
     {

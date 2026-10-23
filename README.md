@@ -7,6 +7,7 @@ These skills each connect Claude to a single legal database. Install the ones yo
 
 | Skill | What it does |
 |---|---|
+| [`eea-lex`](plugins/eea-lex/skills/eea-lex/README.md) | EEA status of EU acts (EEA-Lex), EEA Joint Committee Decisions including those not yet in the OJ, and the current EEA Agreement annexes and protocols, from EFTA |
 | [`efta-court`](plugins/efta-court/skills/efta-court/README.md) | EFTA Court judgments |
 | [`ets`](plugins/ets/skills/ets/README.md) | Council of Europe treaty series |
 | [`eu-agreements-treaties`](plugins/eu-agreements-treaties/skills/eu-agreements-treaties/README.md) | EU-side treaty status (ratification, entry into force, declarations) from the Council of the EU Treaties Office database |

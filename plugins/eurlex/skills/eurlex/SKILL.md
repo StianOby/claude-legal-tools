@@ -1,7 +1,7 @@
 ---
 name: eurlex
 description: |
-  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (*__eurlex_* tools; the user installs it separately) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
+  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (*__eurlex_* tools; the user installs it separately) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); EEA status of EU acts, EEA JCDs (eea-lex); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
 # eurlex — using the EUR-Lex MCP well
@@ -139,6 +139,9 @@ language is also printed at the end of the judgment) and quote both.
 
 ## Scope boundaries
 
-EEA law as applied by the EFTA Court → `efta-court`. ECHR case law → `hudoc`.
+EEA law as applied by the EFTA Court → `efta-court`. Whether and when an EU
+act was incorporated into the EEA Agreement, EEA Joint Committee Decisions
+not yet in the OJ, EFTA's consolidated EEA annexes → `eea-lex` (it gives the
+CELEX of a JCD that is in the OJ; quote that here). ECHR case law → `hudoc`.
 Council of Europe treaties → `ets`. Norwegian implementation of EU/EEA acts
 → `lovdata-api` / `lovdata-pro`; Norway's treaty commitments → `norges-traktater`.

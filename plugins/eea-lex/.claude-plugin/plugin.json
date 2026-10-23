@@ -1,0 +1,17 @@
+{
+  "name": "eea-lex",
+  "version": "0.1.0",
+  "description": "EEA-Lex: EEA status of EU acts, EEA Joint Committee Decisions and the current EEA Agreement texts, from EFTA",
+  "author": {
+    "name": "Stian Øby Johansen",
+    "url": "https://github.com/StianOby"
+  },
+  "homepage": "https://github.com/StianOby/claude-legal-tools/tree/main/plugins/eea-lex",
+  "repository": "https://github.com/StianOby/claude-legal-tools",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "legal",
+    "eea",
+    "research"
+  ]
+}

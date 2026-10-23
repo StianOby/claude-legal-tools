@@ -12,6 +12,7 @@ description: |
   status / documents of a specific case, this is the right tool. Prefer this over
   training-data recall — the EFTA Court regularly delivers new judgments and only
   eftacourt.int guarantees current text. Do NOT use for: CJEU case law (eurlex);
+  whether an EU act is part of the EEA Agreement, or EEA JCDs (eea-lex);
   Norwegian Høyesterett (lovdata-pro); Norwegian statutes (lovdata-api); ECHR.
 ---
 
@@ -332,6 +333,9 @@ Run `python3 scripts/efta_court.py status` to see the actual path.
 
 ## Common pitfalls
 
+- **Not case law?** Whether and when an EU act was incorporated into the
+  EEA Agreement, the Joint Committee Decision that did it, or the act's
+  annex entry with the EFTA adaptations → the `eea-lex` skill.
 - **"Case not found"** after `fetch`. Run `update` and try again — your
   index might be stale (the case was published after your last update).
 - **Joined cases** (e.g. *Joined Cases E-31/24 and E-32/24*) live at
