@@ -20,8 +20,10 @@ EØS-notatbasen (regjeringen.no; Norway-only, open over plain HTTP, rich notes).
 
 `www.efta.int` is behind a Cloudflare managed challenge that is applied only
 to clients whose User-Agent starts with `Mozilla/`. A plain tool UA
-(`eea-lex-skill/<version>`, curl's default, `Python-urllib/3.x`) gets real HTML
-and PDFs, both from the Cowork cloud sandbox and from a residential IP. Any
+(`eea-lex-skill/<version>`, curl's default) gets real HTML and PDFs, both from
+the Cowork cloud sandbox and from a residential IP. Python's default
+`Python-urllib/3.x` passed from the cloud but got a plain 403 from a
+residential IP, so always set the skill's own UA. Any
 `Mozilla/…` UA, browser-like or not, gets a 403 with `cf-mitigated: challenge`,
 on every path including PDFs and `robots.txt`. (Probes from the cloud sandbox
 and the maintainer's PC, 2026-10-23.)

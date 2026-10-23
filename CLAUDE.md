@@ -189,6 +189,17 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   take effect. Prefer metadata-only bundles or live routes when the texts
   name people. Anonymise fixtures the way `tests/nem-vedtak/fixtures/` does
   ("Person A", "Person B", …).
+- **Honest User-Agent in scripts.** Send `<skill>-skill/<version>
+  (+https://github.com/StianOby/claude-legal-tools)`. The UA must never start
+  with `Mozilla/` or `Python-urllib/`. Cloudflare rules judge the UA together
+  with the client. www.efta.int challenges every `Mozilla/…` UA and lets an
+  honest tool UA through; efta.int, rm.coe.int and HUDOC refuse a UA that
+  starts with `Python-urllib/` (probes 2026-10-23, `docs/eea-lex.md`). Don't
+  fake a browser UA or a browser TLS fingerprint to get past a check. Before
+  calling a host "blocked", test it with the honest UA, from the cloud
+  sandbox as well (it can differ from a residential IP). Consilium, ICJ
+  PDFs and HUDOC (some of the time) challenge every UA, and lovdata.no
+  blocks Anthropic's cloud by IP, so for those the browser route stays.
 
 ## Zotero-ready output
 
