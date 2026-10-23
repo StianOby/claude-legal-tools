@@ -38,7 +38,7 @@ from typing import Any
 
 BASE = "https://eftacourt.int"
 REST = f"{BASE}/wp-json/wp/v2/cases"
-USER_AGENT = "Mozilla/5.0 (efta-court-skill; +https://eftacourt.int/cases/)"
+USER_AGENT = "efta-court-skill/1.1.8 (+https://github.com/StianOby/claude-legal-tools)"
 PROCEDURE_CODES = ("AO", "INF", "DA")
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
 # The case index is refreshed from the REST API when it is older than this,

@@ -41,7 +41,7 @@ BASE = "https://www.forskningsetikk.no"
 LIST_PATH = "/om-oss/komiteer-og-utvalg/nem/sok-i-nems-vedtak/"
 LIST_URL = BASE + LIST_PATH
 SITEMAP_URL = BASE + "/sitemaps/forskningsetikk/no/content.xml"
-UA = "Mozilla/5.0 (compatible; claude-legal-tools nem-vedtak; +https://github.com/StianOby/claude-legal-tools)"
+UA = "nem-vedtak-skill/0.3.5 (+https://github.com/StianOby/claude-legal-tools)"
 PAGE_SIZE = 10
 
 # List-page filter parameter -> front-matter key. Institusjon (ni) and
