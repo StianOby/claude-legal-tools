@@ -37,16 +37,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 from pathlib import Path
 
+from source_text import SPACES, fold, finish, mark_emphasis, mark_lists
+
 BASE = "https://www.forskningsetikk.no"
 LIST_PATH = "/om-oss/komiteer-og-utvalg/nem/sok-i-nems-vedtak/"
 LIST_URL = BASE + LIST_PATH
 SITEMAP_URL = BASE + "/sitemaps/forskningsetikk/no/content.xml"
-UA = "nem-vedtak-skill/0.3.6 (+https://github.com/StianOby/claude-legal-tools)"
+UA = "nem-vedtak-skill/0.3.7 (+https://github.com/StianOby/claude-legal-tools)"
 PAGE_SIZE = 10
 # How a decision's text is converted. A decision in the copy with another
 # (or no) text_format is fetched again on the next sync. 2 (0.3.6): soft
 # hyphens are kept, PDF text keeps its printed lines (pdftotext -raw).
-TEXT_FORMAT = 2
+# 3 (0.3.7): *italic* and **bold**, <ol> numbers as the page draws them.
+TEXT_FORMAT = 3
 
 # List-page filter parameter -> front-matter key. Institusjon (ni) and
 # Førsteinstans (nfi) are on the decision pages themselves.
@@ -97,9 +100,17 @@ def list_url(params):
 
 # ---------------------------------------------------------------- parsing
 
-def clean(s):
-    s = html.unescape(s).replace("\xa0", " ").replace(" ", " ")
+def unescape(s):
+    """Entities decoded; non-breaking spaces become plain ones (CLAUDE.md)."""
+    return html.unescape(s).translate(SPACES)
+
+
+def squeeze(s):
     return re.sub(r"[ \t\r\f\v]+", " ", s).strip()
+
+
+def clean(s):
+    return squeeze(unescape(s))
 
 
 def strip_tags(s):
@@ -122,20 +133,28 @@ def file_name(saksnr, slug):
     return f"{head}_{tail}.md"
 
 
-def html_to_md(fragment):
-    """Body HTML of a decision -> Markdown with ## section headings."""
+def html_to_md(fragment, emphasis=True):
+    """Body HTML of a decision -> Markdown with ## section headings,
+    *italic* and **bold** (emphasis=False: plain, for metadata fields)."""
     s = re.sub(r"<(script|style)\b.*?</\1>", "", fragment, flags=re.S | re.I)
+    # Headings lose their tags here (emphasis included): the line is marked
+    # as a heading already. Entities are decoded once, below.
+    def heading(inner):
+        return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", inner)).strip()
+
     s = re.sub(r"<h2[^>]*class=\"[^\"]*h3[^\"]*\"[^>]*>(.*?)</h2>",
-               lambda m: "\n\n### " + strip_tags(m.group(1)) + "\n\n", s, flags=re.S | re.I)
+               lambda m: "\n\n### " + heading(m.group(1)) + "\n\n", s, flags=re.S | re.I)
     s = re.sub(r"<h([1-6])[^>]*>(.*?)</h\1>",
-               lambda m: "\n\n" + "#" * max(2, int(m.group(1))) + " " + strip_tags(m.group(2)) + "\n\n",
+               lambda m: "\n\n" + "#" * max(2, int(m.group(1))) + " " + heading(m.group(2)) + "\n\n",
                s, flags=re.S | re.I)
-    s = re.sub(r"<li[^>]*>", "\n- ", s, flags=re.I)
+    if emphasis:
+        s = mark_emphasis(s)
+    s = mark_lists(s)
     s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
     s = re.sub(r"</?(p|div|ul|ol|table|tr|blockquote|dl|dt|dd)\b[^>]*>", "\n\n", s, flags=re.I)
     s = re.sub(r"</t[dh]>", " | ", s, flags=re.I)
-    s = re.sub(r"<[^>]+>", "", s)
-    lines = [clean(l) for l in s.split("\n")]
+    s = finish(unescape(re.sub(r"<[^>]+>", "", s)))
+    lines = [squeeze(l) for l in s.split("\n")]
     out, blank = [], True
     for l in lines:
         if not l:
@@ -175,7 +194,7 @@ def parse_page(page, url):
             links = [strip_tags(a) for a in re.findall(r"<a[^>]*>(.*?)</a>", dd, flags=re.S)]
             meta[key] = links if key in ("institusjon", "forsteinstans") and links else \
                 ([strip_tags(dd)] if key in ("institusjon", "forsteinstans") else
-                 re.sub(r"\n{2,}", "\n", html_to_md(dd)).strip())
+                 re.sub(r"\n{2,}", "\n", html_to_md(dd, emphasis=False)).strip())
     pdf = re.search(r'href="([^"]+\.pdf)"', c, flags=re.I)
     meta["pdf"] = urllib.parse.urljoin(BASE, html.unescape(pdf.group(1))) if pdf else None
     # Body: everything after the metadata block / PDF box.
@@ -543,7 +562,7 @@ def cmd_search(a):
     if a.regex:
         pats = [re.compile(t, re.I | re.S) for t in a.terms]
     else:  # phrase: case-insensitive, any whitespace between words
-        pats = [re.compile(r"\s+".join(map(re.escape, t.split())), re.I) for t in a.terms]
+        pats = [re.compile(r"\s+".join(map(re.escape, fold(t).split())), re.I) for t in a.terms]
     filters = [(["utfall"], a.utfall), (["emneord"], a.emneord), (["prinsipper"], a.prinsipp),
                (["helseforskningsloven", "andre_lover", "henvisninger"], a.lov),
                (["forsteinstans"], a.forsteinstans), (["institusjon"], a.institusjon),
@@ -554,9 +573,9 @@ def cmd_search(a):
             continue
         if not all(field_ok(meta, k, n) for k, n in filters):
             continue
-        # The text keeps the site's soft hyphens ("helse\xadundersøkelsene");
-        # search it without them so a typed word matches.
-        secs = [(h, t.replace("\xad", "")) for h, t in sections(body)
+        # The text keeps the site's soft hyphens ("helse\xadundersøkelsene")
+        # and emphasis (*…*); search it without them so a typed phrase matches.
+        secs = [(h, fold(t)) for h, t in sections(body)
                 if not a.section or norm(a.section) in norm(h)]
         if a.section and not secs:
             continue

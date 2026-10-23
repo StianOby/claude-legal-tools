@@ -14,13 +14,16 @@ import re
 from html.parser import HTMLParser
 from typing import Iterable, Iterator, Optional
 
+from source_text import SPACES, emphasis as emphasis_mark, finish
+
 _VOID = {
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
     "meta", "param", "source", "track", "wbr",
 }
 # Opening one of these while the same tag is still open implicitly closes it.
 _AUTO_CLOSE = {"p", "li", "option", "tr", "td", "th"}
-# HTML's own whitespace, the only kind a browser collapses (not U+00A0).
+# HTML's own whitespace, which a browser collapses (U+00A0 is made a plain
+# space first: CLAUDE.md).
 _HTML_WS = re.compile(r"[ \t\n\r\f]+")
 # Elements a browser lays out as blocks: their text never runs into the
 # text around them.
@@ -85,21 +88,28 @@ class Node:
         hits = self.find_all(tag, class_, limit=1)
         return hits[0] if hits else None
 
-    def get_text(self, sep: str = " ") -> str:
+    def get_text(self, sep: str = " ", emphasis: bool = False) -> str:
         """The text as a browser renders it: inline tags leave no trace,
-        <br> is a line break, HTML whitespace collapses (U+00A0 stays,
-        except at the edges of a line), and block elements are joined with
-        `sep`. Footnote numbers (see _footnote_label) become "[fn N]"."""
+        <br> is a line break, whitespace collapses (non-breaking spaces
+        become plain ones), and block elements are joined with `sep`.
+        Footnote numbers (see _footnote_label) become "[fn N]". With
+        emphasis, <i>/<em> and <b>/<strong> become *…* and **…** (for
+        document text; metadata such as titles stays plain)."""
         blocks: list[str] = []
         cur: list[str] = []
 
         def visit(n: "Node") -> None:
             if n.tag is None:
-                cur.append(_HTML_WS.sub(" ", n.text or ""))
+                cur.append(_HTML_WS.sub(" ", (n.text or "").translate(SPACES)))
             elif n.tag == "br":
                 cur.append("\n")
             elif (label := _footnote_label(n)) is not None:
                 cur.append(f"[fn {label}]")
+            elif emphasis and emphasis_mark(n.tag, False):
+                cur.append(emphasis_mark(n.tag, False))
+                for c in n.children:
+                    visit(c)
+                cur.append(emphasis_mark(n.tag, True))
             elif n.tag in _BLOCK:
                 flush()
                 for c in n.children:
@@ -110,7 +120,7 @@ class Node:
                     visit(c)
 
         def flush() -> None:
-            lines = [ln.strip() for ln in "".join(cur).split("\n")]
+            lines = [ln.strip(" ") for ln in finish("".join(cur)).split("\n")]
             while lines and not lines[0]:
                 lines.pop(0)
             while lines and not lines[-1]:

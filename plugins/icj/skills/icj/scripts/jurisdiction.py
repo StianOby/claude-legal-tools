@@ -52,12 +52,12 @@ def _get_text_block(root: Node) -> str:
             capture = True
             continue
         if capture and el.tag in ("p", "li", "h2", "h3", "h4"):
-            t = el.get_text()
+            t = el.get_text(emphasis=el.tag in ("p", "li"))
             if t:
                 parts.append(t)
     if parts:
         return "\n\n".join(parts)
-    return main.get_text("\n")
+    return main.get_text("\n", emphasis=True)
 
 
 # --- /states-entitled-to-appear -----------------------------------------
@@ -90,7 +90,7 @@ def states(*, force_refresh: bool = False) -> dict:
             )
     intro = []
     for p in main.find_all("p", limit=4):
-        t = p.get_text()
+        t = p.get_text(emphasis=True)
         if t and len(t) > 30:
             intro.append(t)
     return {
@@ -144,7 +144,7 @@ def treaties(*, force_refresh: bool = False, year: Optional[int] = None,
     items: list[dict] = []
     intro: list[str] = []
     for p in main.find_all("p", limit=6):
-        t = p.get_text()
+        t = p.get_text(emphasis=True)
         if t and len(t) > 30:
             intro.append(t)
     last_year = ""

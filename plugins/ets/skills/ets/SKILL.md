@@ -202,6 +202,11 @@ leaves a truncated file behind that later looks cached.
 <cache>/treaties/<NNN>/declarations.en.txt
 ```
 
+Text taken from HTML (declarations, and treaty texts that exist only as a
+web page) keeps the source's emphasis as `*italic*` and `**bold**`; it is
+part of the text, so keep it in quotations. A plain `grep` for a phrase can
+miss it across a marker: grep for a single word or the state name.
+
 `signatures.en.txt` is a plain table. Each row carries the dates
 plus a small flag tag — `R` (state has filed reservations), `D`
 (declarations), `O` (objections to other states' reservations),

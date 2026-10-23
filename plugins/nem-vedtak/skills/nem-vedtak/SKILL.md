@@ -147,12 +147,12 @@ nem.py search --dir D "biobank" --json --limit 200                # machine-read
 - Phrases match across line breaks and any whitespace; `--regex` takes
   Python regexes (case-insensitive). Words are not stemmed: search
   `samtykke` and `samtykket` separately, or use a regex (`samtykk\w*`).
-- The files keep the site's text as it is, soft hyphens (U+00AD) included:
-  about one decision in ten has words like "helse­undersøkelsene" with an
-  invisible hyphen inside. `search` ignores them; a plain `grep` on the
-  files does not, so search with `nem.py search` rather than `grep`. Copies
-  synced before 0.3.6 had them removed; the next `sync` fetches those
-  decisions again.
+- The files keep the site's text as it is: *italic* and **bold** as on the
+  page (part of the text: keep them in quotations), numbered lists with
+  their numbers, and soft hyphens (U+00AD; about one decision in ten has
+  words like "helse­undersøkelsene" with an invisible hyphen inside).
+  `search` ignores the emphasis markers and soft hyphens; a plain `grep` on
+  the files does not, so search with `nem.py search` rather than `grep`.
 - Filters match a substring of the field, case-insensitively, and combine
   with AND: `--utfall`, `--emneord`, `--prinsipp`, `--lov` (helseforskningsloven
   chapters, other statutes and the free-text Henvisninger),

@@ -55,6 +55,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from source_text import SPACES, finish, mark_emphasis, mark_lists
+
 # ---------------------------------------------------------------------------
 # Paths and constants
 # ---------------------------------------------------------------------------
@@ -386,13 +388,24 @@ def download_document(url, stem: Path):
 # Text extraction
 # ---------------------------------------------------------------------------
 
+# How an HTML document's .txt is made, written to <stem>.format beside it; a
+# .txt from an older converter is made again. 2 (ets 1.2.4): inline tags
+# leave no space, *italic*/**bold**, list numbers, " | " between table cells.
+HTML_TEXT_FORMAT = "2"
+
+
 def _html_to_text(raw: str) -> str:
+    """Text as the browser shows it (CLAUDE.md, "Source text")."""
     raw = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", raw)
+    raw = re.sub(r"[\r\n\t]+", " ", raw)  # a newline in the markup is a space
+    raw = mark_lists(mark_emphasis(raw))
     raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
-    raw = re.sub(r"(?i)</(p|div|h\d|li|tr)>", "\n", raw)
-    raw = re.sub(r"<[^>]+>", " ", raw)
-    raw = _html.unescape(raw)
-    lines = [re.sub(r"[ \t ]+", " ", ln).strip() for ln in raw.splitlines()]
+    raw = re.sub(r"(?i)</?(p|div|h\d|tr|table|ul|ol|dl|dt|dd|blockquote|section|article)\b[^>]*>",
+                 "\n", raw)
+    raw = re.sub(r"(?i)</t[dh]>", " | ", raw)
+    raw = re.sub(r"<[^>]+>", "", raw)
+    raw = finish(_html.unescape(raw).translate(SPACES))
+    lines = [re.sub(r"[ \t]+", " ", ln).strip().strip("|").strip() for ln in raw.splitlines()]
     text = "\n".join(lines)
     return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
 
@@ -403,10 +416,14 @@ def extract_text(doc_path: Path, kind: str):
     output than pypdf; fall back to pypdf. HTML pages are stripped
     directly. Returns the .txt path, or None if no extractor worked."""
     txt_path = doc_path.with_suffix(".txt")
-    if _has_content(txt_path):
-        return txt_path
     if kind == "html":
-        _write(txt_path, _html_to_text(_read(doc_path)))
+        fmt_path = doc_path.with_suffix(".format")
+        if not (_has_content(txt_path) and _has_content(fmt_path)
+                and _read(fmt_path).strip() == HTML_TEXT_FORMAT):
+            _write(txt_path, _html_to_text(_read(doc_path)))
+            _write(fmt_path, HTML_TEXT_FORMAT)
+        return txt_path
+    if _has_content(txt_path):
         return txt_path
     pdftotext = shutil.which("pdftotext")
     if pdftotext:
@@ -856,14 +873,10 @@ def cmd_signatures(args):
 
 
 def _strip_html(s):
+    """A declaration's HTML as text, by the same rules as the documents."""
     if not isinstance(s, str):
         return ""
-    s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
-    s = re.sub(r"</p>", "\n\n", s, flags=re.I)
-    s = re.sub(r"<[^>]+>", "", s)
-    s = _html.unescape(s)
-    s = re.sub(r"\n{3,}", "\n\n", s)
-    return s.strip()
+    return _html_to_text(s).strip()
 
 
 def _article_key(art: str):

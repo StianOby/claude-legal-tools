@@ -58,6 +58,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
 
+from source_text import EM, EM_END, STRONG, STRONG_END, finish, superscript
+
 # ---------------------------------------------------------------------------
 # Paths and constants
 # ---------------------------------------------------------------------------
@@ -84,7 +86,7 @@ WEB_URL = f"{BASE}/eng?i="  # human-friendly URL Claude should cite
 # string passes reliably, so _http_get() only detects a challenge and says so.
 # $HUDOC_USER_AGENT overrides the string.
 USER_AGENT = os.environ.get("HUDOC_USER_AGENT") or (
-    "hudoc-skill/1.3.0 (+https://github.com/StianOby/claude-legal-tools)"
+    "hudoc-skill/1.4.0 (+https://github.com/StianOby/claude-legal-tools)"
 )
 
 # Default field set: everything the HUDOC UI itself exposes for a result row,
@@ -641,7 +643,78 @@ _HTML_NAMED = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'", "nbsp
 # become the glyph a reader sees; these are the ones judgments use for
 # bullets and footnote marks.
 _SYMBOL_CHARS = {0xF02A: "*", 0xF09F: "•", 0xF0A7: "▪", 0xF0B7: "•", 0xF0D8: "➢", 0xF0FC: "✓"}
-_TEXT_FIXES = {0xA0: " ", 0x09: " ", 0x0D: " ", **_SYMBOL_CHARS}
+_TEXT_FIXES = {0xA0: " ", 0x202F: " ", 0x09: " ", 0x0D: " ", **_SYMBOL_CHARS}
+
+# Emphasis and superscript. HUDOC's Word converter sets them with classes
+# from the page's <style> (".sA36B60A1 { font-family:Arial; font-style:italic }"),
+# on spans and on whole paragraphs, and turns them off again inside
+# ("font-style:normal"). Each element's style is its parent's, then the
+# tag's own (<i>, <b>, <sup>), its classes in style-sheet order, and its
+# style attribute. Text in italic/bold becomes *…*/**…** (source_text.finish);
+# raised text that is not a footnote reference is written as superscript.
+_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+         "track", "wbr"}
+_SUP, _SUP_END = chr(6), chr(7)
+# Version of html_to_text's output, kept in judgment.format beside a text
+# made from HTML; a different (or missing) one is rebuilt by fetch_text.
+TEXT_FORMAT = "2"
+_CSS_RULE = re.compile(r"\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}", re.A)
+
+
+def _css_props(decl: str) -> dict:
+    """{"i", "b", "sup"}: the ones these CSS declarations set, True or False."""
+    out = {}
+    m = re.search(r"font-style\s*:\s*([A-Za-z]+)", decl, re.A)
+    if m:
+        out["i"] = m.group(1).lower() in ("italic", "oblique")
+    m = re.search(r"font-weight\s*:\s*([A-Za-z0-9]+)", decl, re.A)
+    if m:
+        w = m.group(1).lower()
+        out["b"] = w in ("bold", "bolder") or (w.isdigit() and int(w) >= 600)
+    m = re.search(r"vertical-align\s*:\s*([A-Za-z-]+)", decl, re.A)
+    if m:
+        out["sup"] = m.group(1).lower() == "super"
+    return out
+
+
+def _css_classes(html: str) -> dict:
+    """class name -> (position in the style sheet, props) for the page's <style>."""
+    css = "".join(re.findall(r"<style[^>]*>([\s\S]*?)</style>", html, re.I | re.A))
+    out: dict = {}
+    for n, m in enumerate(_CSS_RULE.finditer(css)):
+        props = _css_props(m.group(2))
+        if props:
+            out[m.group(1)] = (n, {**out.get(m.group(1), (0, {}))[1], **props})
+    return out
+
+
+def _element_style(tag: str, attrs: str, parent: tuple, classes: dict) -> tuple:
+    style = {"i": parent[0], "b": parent[1], "sup": parent[2]}
+    if tag in ("i", "em"):
+        style["i"] = True
+    elif tag in ("b", "strong"):
+        style["b"] = True
+    elif tag == "sup":
+        style["sup"] = True
+    for _, props in sorted((classes[c] for c in (_attr(attrs, "class") or "").split(" ") if c in classes),
+                           key=lambda rule: rule[0]):
+        style.update(props)
+    style.update(_css_props(_attr(attrs, "style") or ""))
+    return style["i"], style["b"], style["sup"]
+
+
+def _styled(text: str, style: tuple) -> str:
+    i, b, sup = style
+    if sup:
+        return _SUP + text + _SUP_END
+    return (EM if i else "") + (STRONG if b else "") + text + (STRONG_END if b else "") + (EM_END if i else "")
+
+
+def _resolve(s: str) -> str:
+    """Superscripts written out, then emphasis markers (source_text.finish)."""
+    s = s.replace(_SUP_END + _SUP, "")
+    s = re.sub(_SUP + "([^" + _SUP_END + "]*)" + _SUP_END, lambda m: superscript(m.group(1)), s)
+    return finish(s)
 
 
 def _html_unescape(s: str) -> str:
@@ -677,7 +750,7 @@ def _list_label(n: int, kind: str) -> str:
 
 
 def _clean_block(s: str) -> str:
-    lines = (re.sub(r" {2,}", " ", line).strip(" ") for line in s.translate(_TEXT_FIXES).split("\n"))
+    lines = (re.sub(r" {2,}", " ", line).strip(" ") for line in _resolve(s.translate(_TEXT_FIXES)).split("\n"))
     return "\n".join(line for line in lines if line)
 
 
@@ -707,6 +780,8 @@ def html_to_text(html: str) -> str:
     ref: Optional[str] = None   # id of the footnote link we are in
     ref_text: list[str] = []    # its printed label
     printed: dict[str, str] = {}  # footnote id -> its printed label
+    classes = _css_classes(html)
+    stack: list[tuple] = [("", False, False, False)]  # open elements: (tag, italic, bold, sup)
 
     def flush() -> None:
         text = _clean_block("".join(parts))
@@ -721,7 +796,10 @@ def html_to_text(html: str) -> str:
                 continue
             # A newline in the markup is plain whitespace; only <br> breaks a line.
             text = _html_unescape(re.sub(r"[\r\n]+", " ", text))
-            (ref_text if ref else parts).append(text)
+            if ref:
+                ref_text.append(text)
+            else:
+                parts.append(_styled(text, stack[-1][1:]))
             continue
         if tag is None:
             continue  # comment
@@ -729,6 +807,13 @@ def html_to_text(html: str) -> str:
         if tag in ("style", "script"):
             skip += -1 if closing else 1
             continue
+        if closing:
+            for k in range(len(stack) - 1, 0, -1):
+                if stack[k][0] == tag:
+                    del stack[k:]
+                    break
+        elif tag not in _VOID and not m.group(4):
+            stack.append((tag, *_element_style(tag, attrs, stack[-1][1:], classes)))
         if tag == "a":
             if closing:
                 if ref:
@@ -835,6 +920,13 @@ def fetch_text(itemid: str) -> Path:
         # hyphens. Rebuild that text from the HTML.
         old_docx.unlink()
         txt_path.unlink(missing_ok=True)
+    format_path = d / "judgment.format"
+    html_cached = d / "judgment.html"
+    if _has_content(txt_path) and _has_content(html_cached) and (
+            not format_path.exists() or format_path.read_text(encoding="utf-8").strip() != TEXT_FORMAT):
+        # Converted by an older html_to_text (1.3.0: no emphasis): rebuild
+        # from the cached HTML, without fetching it again.
+        txt_path.unlink()
     if _has_content(txt_path):
         return txt_path
 
@@ -844,6 +936,7 @@ def fetch_text(itemid: str) -> Path:
         html_path = fetch_html(itemid)
         text = html_to_text(html_path.read_text(encoding="utf-8", errors="replace"))
         _write_text(txt_path, text)
+        _write_text(format_path, TEXT_FORMAT)
         return txt_path
     except ChallengeError:
         raise

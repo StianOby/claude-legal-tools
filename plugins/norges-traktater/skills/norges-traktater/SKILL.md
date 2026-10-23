@@ -356,6 +356,11 @@ se «Kall»), hentet fra Lovdatas offentlige side. Hvis Lovdata ikke har
 publisert teksten offentlig (typisk nyere bilaterale eller tekniske avtaler),
 svarer hjelperen `available: false` — se «Når kroppen er tom» nedenfor.
 
+Kursiv og fet står som på siden, `*…*` og `**…**` (f.eks. «*De kontraherende
+parter*, *som erkjenner* …» i Folkemordkonvensjonen). Uthevingen er en del av
+teksten: behold den i sitater (som kursiv/fet i svaret). Merkene kan stå inne
+i en frase, så let etter enkeltord når du søker i teksten.
+
 ### Hent én bestemt artikkel
 
 ```js

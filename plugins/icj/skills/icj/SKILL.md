@@ -114,7 +114,7 @@ This is the headline use case the user described — e.g. *would Norway's and Fi
 5. **Map reservations to the dispute.** Common reservation categories: disputes covered by another method of settlement; disputes arising before a date X; disputes with members of the Commonwealth; disputes concerning the law of the sea (e.g. Norway's UNCLOS carve-out); disputes concerning national defence or military activities; disputes that the state notifies in advance.
 6. **Conclude.** Either the dispute fits within both declarations (compulsory jurisdiction available); or it does not, in which case the parties would need a special agreement or another jurisdictional treaty.
 
-Always quote the relevant reservation language verbatim from the declaration text — paraphrasing reservations changes their legal effect.
+Always quote the relevant reservation language verbatim from the declaration text — paraphrasing reservations changes their legal effect. The text keeps the Court's emphasis as `*italic*` and `**bold**` (e.g. "*ipso facto*"); it is part of the text, so keep it in quotations. A plain `grep` for a phrase can miss it across a marker: grep for a single word.
 
 ## How to ground answers
 

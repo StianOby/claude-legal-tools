@@ -44,7 +44,7 @@ MINI_TEXT = (
     "1/01\n\n"
     "Person A\n\n"
     "FOR THESE REASONS, THE COURT\n\n"
-    "1. Holds, unanimously, that there has been a violation of Article 8;\n\n"
+    "1. *Holds*, unanimously, that there has been a violation of Article 8;\n\n"
     "FOOTNOTES\n\n"
     "[fn *] See Smith v. Norway, no. 1/01. Second paragraph of the note.\n\n"
     "[fn *] Case-law cited.\n\n"
@@ -97,7 +97,8 @@ def route(answers, before=None):
 
 
 check("HTML is the text source",
-      route({"html": html.encode("utf-8"), "pdf": PDF}), (MINI_TEXT, ["html"], ["judgment.html", "judgment.txt"]))
+      route({"html": html.encode("utf-8"), "pdf": PDF}),
+      (MINI_TEXT, ["html"], ["judgment.format", "judgment.html", "judgment.txt"]))
 check("no HTML (204, empty): the PDF",
       route({"html": b"", "pdf": PDF}), ("PDF TEXT\n", ["html", "pdf"], ["judgment.pdf", "judgment.txt"]))
 check("a challenge is never a reason to use the PDF",
@@ -106,10 +107,26 @@ check("neither: an error",
       route({"html": b"", "pdf": b""}), ("error", ["html", "pdf"], []))
 check("text cached by 1.2.x (DOCX beside it) is rebuilt",
       route({"html": html.encode("utf-8"), "pdf": PDF}, {"judgment.docx": "PK", "judgment.txt": "old"}),
-      (MINI_TEXT, ["html"], ["judgment.html", "judgment.txt"]))
+      (MINI_TEXT, ["html"], ["judgment.format", "judgment.html", "judgment.txt"]))
 check("cached text is reused",
-      route({"html": html.encode("utf-8"), "pdf": PDF}, {"judgment.html": "<p>x</p>", "judgment.txt": "cached"}),
-      ("cached", [], ["judgment.html", "judgment.txt"]))
+      route({"html": html.encode("utf-8"), "pdf": PDF},
+            {"judgment.html": "<p>x</p>", "judgment.txt": "cached", "judgment.format": hudoc.TEXT_FORMAT}),
+      ("cached", [], ["judgment.format", "judgment.html", "judgment.txt"]))
+check("text from an older converter (1.3.0) is rebuilt from the cached HTML",
+      route({"html": html.encode("utf-8"), "pdf": PDF}, {"judgment.html": "<p><i>x</i></p>", "judgment.txt": "x"}),
+      ("*x*\n", [], ["judgment.format", "judgment.html", "judgment.txt"]))
+check("PDF text is not rebuilt", route({"html": b"", "pdf": PDF}, {"judgment.txt": "PDF TEXT\n"}),
+      ("PDF TEXT\n", [], ["judgment.txt"]))
+
+print("emphasis and superscript from HUDOC's classes")
+STYLED = ('<style>.sI { font-family:Arial; font-style:italic } .sB { font-weight:bold }'
+          ' .sN { font-style:normal } .sU { vertical-align:super; font-size:6pt }</style>'
+          '<p class="sB">A. <span class="sI">Bulk</span> interception</p>'
+          '<p class="sI">see <span class="sN">Klass</span>, cited above</p>'
+          '<p>the 1<span class="sU">st</span> and 10<span class="sU">-</span><span class="sU">3</span>'
+          ' <span class="sI">ipso&nbsp;facto </span>(a)</p>')
+check("classes, overrides, superscript", hudoc.html_to_text(STYLED),
+      "**A. *Bulk* interception**\n\n*see* Klass*, cited above*\n\nthe 1^st^ and 10⁻³ *ipso facto* (a)\n")
 
 if failures:
     print("\n%d failure(s)" % len(failures))

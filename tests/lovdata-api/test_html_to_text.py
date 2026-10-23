@@ -66,6 +66,20 @@ check(
 print("Exponents")
 check("m²", lovdata._html_to_text("inntil 20 m<sup>2</sup> på hver"), "inntil 20 m² på hver")
 check("cm³", lovdata._html_to_text("5 g/cm<sup>3</sup> som"), "5 g/cm³ som")
+check("negative exponent", lovdata._html_to_text("10<sup>-1</sup> Bq"), "10⁻¹ Bq")
+check("no Unicode superscript", lovdata._html_to_text("Merke<sup>TM</sup>"), "Merke^TM^")
+
+# --------------------------------------------------------------------------
+# Emphasis is part of the text (CLAUDE.md): Lovdata's <i>/<strong> become
+# *…*/**…**, as in nl-19321107-000 («vekslen på ny <i>in blanco</i>»).
+# --------------------------------------------------------------------------
+
+print("Emphasis")
+check("italic", lovdata._html_to_text("endossere vekslen på ny <i>in blanco</i> eller"),
+      "endossere vekslen på ny *in blanco* eller")
+check("bold table header", lovdata._html_to_text("<table><tr><th><strong>Sats</strong></th><td>5 %</td></tr></table>"),
+      "**Sats** | 5 %")
+check("non-breaking space", lovdata._html_to_text("§&nbsp;3"), "§ 3")
 
 if failures:
     print("\n%d failure(s)" % len(failures))

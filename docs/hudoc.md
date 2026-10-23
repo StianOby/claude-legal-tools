@@ -38,9 +38,11 @@ decision (001-252272) and an old item (001-1).
 The repo-wide rule in CLAUDE.md (set 2026-10-23, from this work): take the
 text out of the markup, show what the reader sees, and change nothing else.
 Here, the converter never adds, normalises or replaces the Court's
-characters, with one exception: non-breaking spaces (see below). Search
-tolerance belongs in the search (the browser helper's `grep()` matches a
-typed "-" against a non-breaking hyphen), not in the text.
+characters. It writes out what the page draws (list numbers, emphasis,
+superscript) and turns non-breaking spaces into plain ones (see below).
+Search tolerance belongs in the search (the browser helper's `grep()`
+matches a typed "-" against a non-breaking hyphen and skips emphasis
+markers), not in the text.
 
 ## Quirks of the HTML, and how the converter handles them
 
@@ -64,10 +66,11 @@ typed "-" against a non-breaking hyphen), not in the text.
   spacers) are dropped. Every other character is kept: non-breaking hyphens
   (U+2011, as in "paragraphs 142‑49") and soft hyphens stay.
 
-## Exception: non-breaking spaces become plain spaces
+## Non-breaking spaces become plain spaces
 
-The repo's rule would keep non-breaking spaces (U+00A0). hudoc turns them
-into plain spaces, by the maintainer's decision (2026-10-23):
+hudoc turns non-breaking spaces (U+00A0, U+202F) into plain spaces. This
+began as a hudoc exception and became the repo-wide rule (CLAUDE.md), by
+the maintainer's decision (2026-10-23), for these reasons:
 
 - **Most are layout, not text.** Big Brother Watch has 2,853. About 60 %
   imitate Word's tabs and indents: two after every paragraph number
@@ -80,10 +83,40 @@ into plain spaces, by the maintainer's decision (2026-10-23):
 - **Nothing a reader sees is lost.** A non-breaking space only stops a line
   break; plain text has no line wrapping to stop.
 
-Non-breaking *hyphens* are not part of the exception: they are kept, and
+Non-breaking *hyphens* are not spaces: they are kept, and
 SKILL.md tells Claude to search them with `.` in a UTF-8 locale. A
 comparison of the two treatments, with excerpts, was published as an
 artifact during the 1.3.0 work.
+
+## Emphasis and superscript (1.4.0)
+
+Italic and bold are part of a judgment's meaning (case names, Latin terms,
+the operative "*Holds*", the Court's own emphasis in quotations), and an
+exact citation keeps them, so the text writes them as `*italic*` and
+`**bold**` (maintainer's decision, 2026-10-23; the markers follow
+`shared/source-text/source_text.py`). HUDOC's Word converter never uses
+`<i>` or `<b>`: it sets `font-style:italic` and `font-weight:bold` in classes
+of the page's `<style>` (`.sA36B60A1 { font-family:Arial; font-style:italic }`),
+on spans and on whole paragraphs (italic headings), and turns them off
+inside (`font-style:normal`). The converter reads those classes and keeps a
+stack of open elements, so each piece of text gets the style a browser
+would give it. Raised text (`vertical-align:super`) that is not a footnote
+reference becomes superscript (`1^st^`, `10⁻³`).
+
+On Soering, Big Brother Watch and a legal summary, removing the markers
+gives back the 1.3.0 text exactly (Big Brother Watch: about 1,560 marker
+characters). Numbered section headings are italic or bold ("*1. Bulk
+interception*"), so 52 headings in Big Brother Watch no longer pass for
+the start of a judgment paragraph. `paragraph()` tests its heading pattern
+on the text without markers. Underline (`text-decoration:underline`) is not
+marked, and `text-transform:uppercase` is not applied: the letters stay as
+typed, since the heading's style already shows that it is a heading
+(maintainer's decision, 2026-10-23).
+
+Text cached by 1.3.0 (no `judgment.format` beside it) is rebuilt from the
+cached HTML on the next `fetch`, without asking HUDOC again.
+
+## Python and browser converters
 
 `html_to_text` in `hudoc.py` and `htmlToText` in `scripts/browser/hudoc.js`
 walk the markup with the same token regex (not a DOM parser) so their output

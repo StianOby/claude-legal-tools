@@ -32,7 +32,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.3.0';
+  const HELPER_VERSION = '1.4.0';
   if (root.window && root.window.__hd && root.window.__hd.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -346,7 +346,7 @@
     // else is changed.
     // Same table as _TEXT_FIXES in hudoc.py.
     const TEXT_FIXES = new Map([
-      [0xa0, ' '], [0x09, ' '], [0x0d, ' '],
+      [0xa0, ' '], [0x202f, ' '], [0x09, ' '], [0x0d, ' '],
       [0xf02a, '*'], [0xf09f, '•'], [0xf0a7, '▪'], [0xf0b7, '•'], [0xf0d8, '➢'], [0xf0fc, '✓'],
     ]);
     const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
@@ -385,13 +385,119 @@
       return String(n);
     }
 
+    // Emphasis and superscript (mirrors hudoc.py and source_text.py): classes
+    // from the page's <style>, inherited and overridden element by element;
+    // italic/bold text becomes *…*/**…**, raised text that is not a footnote
+    // reference becomes superscript.
+    const EM = String.fromCharCode(2); const EM_END = String.fromCharCode(3);
+    const STRONG = String.fromCharCode(4); const STRONG_END = String.fromCharCode(5);
+    const SUP = String.fromCharCode(6); const SUP_END = String.fromCharCode(7);
+    const MARKERS = EM + EM_END + STRONG + STRONG_END;
+    const WS = ' \t\r\f\v';
+    const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+    const SUP_CHARS = new Map(Array.from('0123456789+-−=()', (c, k) => [c, '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁻⁼⁽⁾'[k]]));
+
+    function cssProps(decl) {
+      const out = {};
+      let m = decl.match(/font-style\s*:\s*([A-Za-z]+)/);
+      if (m) out.i = ['italic', 'oblique'].includes(m[1].toLowerCase());
+      m = decl.match(/font-weight\s*:\s*([A-Za-z0-9]+)/);
+      if (m) {
+        const w = m[1].toLowerCase();
+        out.b = w === 'bold' || w === 'bolder' || (/^[0-9]+$/.test(w) && Number(w) >= 600);
+      }
+      m = decl.match(/vertical-align\s*:\s*([A-Za-z-]+)/);
+      if (m) out.sup = m[1].toLowerCase() === 'super';
+      return out;
+    }
+
+    function cssClasses(html) {
+      let css = '';
+      for (const s of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) css += s[1];
+      const out = new Map();
+      let n = 0;
+      for (const r of css.matchAll(/\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
+        const props = cssProps(r[2]);
+        if (Object.keys(props).length) out.set(r[1], [n, Object.assign({}, (out.get(r[1]) || [0, {}])[1], props)]);
+        n += 1;
+      }
+      return out;
+    }
+
+    function elementStyle(tag, attrs, parent, classes) {
+      const style = { i: parent[0], b: parent[1], sup: parent[2] };
+      if (tag === 'i' || tag === 'em') style.i = true;
+      else if (tag === 'b' || tag === 'strong') style.b = true;
+      else if (tag === 'sup') style.sup = true;
+      const rules = (attr(attrs, 'class') || '').split(' ').filter((c) => classes.has(c)).map((c) => classes.get(c));
+      rules.sort((x, y) => x[0] - y[0]);
+      for (const [, props] of rules) Object.assign(style, props);
+      Object.assign(style, cssProps(attr(attrs, 'style') || ''));
+      return [style.i, style.b, style.sup];
+    }
+
+    function styled(text, style) {
+      const [i, b, sup] = style;
+      if (sup) return SUP + text + SUP_END;
+      return (i ? EM : '') + (b ? STRONG : '') + text + (b ? STRONG_END : '') + (i ? EM_END : '');
+    }
+
+    function superscript(text) {
+      const core = text.replace(/^[ \t\r\f\v\n]+|[ \t\r\f\v\n]+$/g, '');
+      if (!core) return text;
+      const at = text.indexOf(core);
+      const lead = text.slice(0, at); const trail = text.slice(at + core.length);
+      if (Array.from(core).every((c) => SUP_CHARS.has(c))) return lead + Array.from(core, (c) => SUP_CHARS.get(c)).join('') + trail;
+      return `${lead}^${core}^${trail}`;
+    }
+
+    // *italic*, **bold**, nested as Markdown nests them; spaces go outside the
+    // markers and no marker spans a line (source_text.finish).
+    function finish(text) {
+      if (!Array.from(MARKERS).some((c) => text.includes(c))) return text;
+      const out = []; const opened = []; let ws = [];
+      let italic = 0; let bold = 0;
+      const closeTo = (target) => {
+        let keep = 0;
+        while (keep < opened.length && target.has(opened[keep])) keep += 1;
+        for (let k = opened.length - 1; k >= keep; k -= 1) out.push(opened[k]);
+        opened.length = keep;
+      };
+      for (const c of text) {
+        if (c === EM) { italic += 1; continue; }
+        if (c === EM_END) { italic = Math.max(0, italic - 1); continue; }
+        if (c === STRONG) { bold += 1; continue; }
+        if (c === STRONG_END) { bold = Math.max(0, bold - 1); continue; }
+        if (c === '\n') { closeTo(new Set()); out.push(...ws); ws = []; out.push(c); continue; }
+        if (WS.includes(c)) { ws.push(c); continue; }
+        const target = new Set();
+        if (bold > 0) target.add('**');
+        if (italic > 0) target.add('*');
+        closeTo(target);
+        out.push(...ws); ws = [];
+        for (const mark of ['**', '*']) {
+          if (target.has(mark) && !opened.includes(mark)) { out.push(mark); opened.push(mark); }
+        }
+        out.push(c);
+      }
+      closeTo(new Set());
+      out.push(...ws);
+      return out.join('');
+    }
+
+    function resolveMarks(s) {
+      s = s.split(SUP_END + SUP).join('');
+      s = s.replace(new RegExp(SUP + '([^' + SUP_END + ']*)' + SUP_END, 'g'), (_, t) => superscript(t));
+      return finish(s);
+    }
+
     function cleanBlock(s) {
       let fixed = '';
       for (const ch of s) {
         const r = TEXT_FIXES.get(ch.codePointAt(0));
         fixed += r === undefined ? ch : r;
       }
-      return fixed.split('\n').map((line) => line.replace(/ {2,}/g, ' ').replace(/^ +| +$/g, '')).filter(Boolean).join('\n');
+      return resolveMarks(fixed).split('\n').map((line) => line.replace(/ {2,}/g, ' ').replace(/^ +| +$/g, '')).filter(Boolean).join('\n');
     }
 
     // One block per paragraph, blocks separated by a blank line, <br> kept as
@@ -406,6 +512,8 @@
       let divs = 0; let note = null; let noteDepth = 0; let skip = 0;
       let ref = null; let refText = [];
       const printed = new Map(); // footnote id -> its printed label
+      const classes = cssClasses(html);
+      const stack = [['', false, false, false]]; // open elements: [tag, italic, bold, sup]
       const NUL = String.fromCharCode(0); const SOH = String.fromCharCode(1);
       const flush = () => {
         const text = cleanBlock(parts.join(''));
@@ -422,12 +530,20 @@
         if (m[5] !== undefined) {
           if (skip) continue;
           const text = htmlUnescape(m[5].replace(/[\r\n]+/g, ' '));
-          (ref ? refText : parts).push(text);
+          if (ref) refText.push(text);
+          else parts.push(styled(text, stack[stack.length - 1].slice(1)));
           continue;
         }
         if (m[2] === undefined) continue; // comment
         const closing = m[1] === '/'; const tag = m[2].toLowerCase(); const attrs = m[3];
         if (tag === 'style' || tag === 'script') { skip += closing ? -1 : 1; continue; }
+        if (closing) {
+          for (let k = stack.length - 1; k > 0; k -= 1) {
+            if (stack[k][0] === tag) { stack.length = k; break; }
+          }
+        } else if (!VOID.has(tag) && !m[4]) {
+          stack.push([tag, ...elementStyle(tag, attrs, stack[stack.length - 1].slice(1), classes)]);
+        }
         if (tag === 'a') {
           if (closing) {
             if (ref) {
@@ -636,10 +752,13 @@
       const text = cache.items[itemid].text;
       let re;
       try {
-        // The text keeps the Court's non-breaking hyphens: a typed "-"
-        // matches either.
-        const source = regex ? term : String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')
-          .replace(/-/g, '[-' + String.fromCharCode(0x2011) + ']');
+        // The text keeps the Court's non-breaking hyphens (a typed "-"
+        // matches either) and its emphasis (*…*, **…**, which may sit
+        // anywhere inside a phrase: skipped between any two characters).
+        const glue = '\\*{0,3}';
+        const char = (c) => (c === '-' ? '[-' + String.fromCharCode(0x2011) + ']' : c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const source = regex ? term : String(term).replace(/\*/g, '').trim().split(/\s+/)
+          .map((w) => Array.from(w, char).join(glue)).join(glue + '\\s+' + glue);
         re = new RegExp(source, 'gi');
       } catch (e) {
         return { error: 'not_found', detail: `invalid regex: ${term}` };
@@ -676,7 +795,7 @@
         if (new RegExp(`^${n + count}\\.\\s`).test(bl[i]) || /^(FOR THESE REASONS|PAR CES MOTIFS|FOOTNOTES$)/.test(bl[i])) { to = i; break; }
       }
       let chunk = bl.slice(from, to);
-      while (chunk.length > 1 && HEADING_RE.test(chunk[chunk.length - 1])) chunk = chunk.slice(0, -1);
+      while (chunk.length > 1 && HEADING_RE.test(chunk[chunk.length - 1].replace(/\*/g, ''))) chunk = chunk.slice(0, -1);
       const full = chunk.join('\n\n');
       const res = { itemid, paragraph: n, count, text: full };
       while (JSON.stringify(res).length > PAGE_SIZE - 800) {

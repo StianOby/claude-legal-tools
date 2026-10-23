@@ -150,6 +150,9 @@ Every call returns ≤ 45 000 characters. Search results come back as a
 summary (`total`, `shown`, first rows, `key`); page through with `items()`
 rather than asking for everything.
 
+A declaration's text keeps the page's lines and its emphasis as `*italic*`
+and `**bold**`. The emphasis is part of the wording: keep it when quoting.
+
 ## Zotero-ready agreements
 
 For "Zotero-ready", "Zotero RDF for the EEA Agreement", "add 2016032 to my Zotero

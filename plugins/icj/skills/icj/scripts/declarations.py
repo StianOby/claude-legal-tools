@@ -61,7 +61,7 @@ def index(*, force_refresh: bool = False) -> dict:
     # Pull the introductory paragraph(s)
     intro_parts = []
     for p in main.find_all("p", limit=8):
-        t = p.get_text()
+        t = p.get_text(emphasis=True)
         if t and len(t) > 30:
             intro_parts.append(t)
     return {
@@ -121,9 +121,9 @@ def show(name_or_code: str, *, force_refresh: bool = False) -> dict:
         if not started or el.tag is None:
             continue
         if el.tag in ("p", "li"):
-            t = el.get_text()
+            t = el.get_text(emphasis=True)
             # Stop when we hit the secondary navigation block.
-            if t in ("Jurisdiction", "Top Menu", "Footer menu"):
+            if t.strip("*") in ("Jurisdiction", "Top Menu", "Footer menu"):
                 break
             if t:
                 parts.append(t)

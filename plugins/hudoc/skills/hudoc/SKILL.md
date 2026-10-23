@@ -34,9 +34,12 @@ This skill talks to `hudoc.echr.coe.int` to retrieve five things:
    the Court puts in footnotes are greppable too. N is the label printed in
    the judgment, so cite it as it stands; a symbol note ("*", as on the
    Registry's notes in old judgments) is `[fn *]`. Where the same label
-   occurs twice, the markers and the notes pair up in order. The text is
-   otherwise the Court's, character for character. Automatically retries on
-   server errors (HTTP 500+).
+   occurs twice, the markers and the notes pair up in order. Italic and bold
+   are kept as `*italic*` and `**bold**` (case names, Latin, the operative
+   "*Holds*", emphasis in quotations), and raised text that is not a
+   footnote as superscript (`1^st^`, `10⁻³`). The text is otherwise the
+   Court's, character for character. Automatically retries on server errors
+   (HTTP 500+).
 4. **The official PDF** — for the user to keep, read and annotate (see
    **The user wants the PDF**).
 5. **Citations** — every ECtHR case the judgment relies on, parsed from the
@@ -156,10 +159,12 @@ On HTTP 5xx errors, it retries up to 3 times with exponential backoff
 2. Read the text file (path is in the JSON output). Cite paragraph numbers
    directly — the text preserves paragraph breaks, so you can find
    "**88. Article 3 (art. 3) makes no provision...**" by grepping for
-   `^88\.` or for the `§ 88` style. Numbered section headings
-   ("1. Bulk interception") also start a line with a number; the judgment
-   paragraph is the block of running text.
-3. Quote sparingly and accurately. Append the source URL when citing.
+   `^88\.` or for the `§ 88` style. Numbered section headings are usually
+   italic or bold ("*1. Bulk interception*") and so do not match `^1\.`;
+   one that does is still a heading, not the judgment paragraph.
+3. Quote sparingly and accurately, with the Court's emphasis: it is part of
+   the text (a quotation that drops or adds italics is not exact). Append
+   the source URL when citing.
 
 If the user gave only a partial name and you're unsure which case they
 meant, run `search` first and show 3-5 candidates before fetching.
@@ -312,8 +317,10 @@ grep -n "^88\." "$C"/items/*/judgment.txt
 The text keeps the Court's non-breaking hyphens ("paragraphs 142‑49",
 "ECHR 2006‑XI"), which plain `grep` does not match with a typed "-": put
 `.` in its place and run grep in a UTF-8 locale, where `.` matches the
-multi-byte character (`LC_ALL=C.UTF-8 grep -n "142.49"`). The browser
-helper's `grep()` matches either.
+multi-byte character (`LC_ALL=C.UTF-8 grep -n "142.49"`). Emphasis markers
+can sit inside a phrase (`*see* Klass*, cited above*`), so grep for one or
+two distinctive words, or allow them: `grep -nE "see\**\s+\**Klass"`. The
+browser helper's `grep()` matches either hyphen and skips the markers.
 
 This cache-then-grep workflow is much faster than re-querying HUDOC when you
 already have the documents, and it avoids context-window pressure from large

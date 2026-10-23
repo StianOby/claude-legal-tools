@@ -41,8 +41,12 @@ check("<br> is a line break, inline tags add no space", p.get_text(),
       "22 February 2017\n\n1. The Government accepts as compulsory ipso facto, other than:\n\n(i) any dispute;")
 check("blocks are joined with sep",
       _html.parse("<td><div>A</div><div>B</div></td>").find("td").get_text(), "A B")
-check("U+00A0 inside a line stays, at the edges it goes",
-      _html.parse("<td>\xa0(Mexico v.\xa0Ecuador)\xa0</td>").find("td").get_text(), "(Mexico v.\xa0Ecuador)")
+check("U+00A0 becomes a plain space",
+      _html.parse("<td>\xa0(Mexico v.\xa0Ecuador)\xa0</td>").find("td").get_text(), "(Mexico v. Ecuador)")
+p = _html.parse("<p>accepts as compulsory <em>ipso facto</em> and <strong>without</strong> special</p>").find("p")
+check("emphasis for document text", p.get_text(emphasis=True),
+      "accepts as compulsory *ipso facto* and **without** special")
+check("plain by default (metadata)", p.get_text(), "accepts as compulsory ipso facto and without special")
 p = _html.parse('<div><p>it is open<a href="#1"><sup>1</sup></a>. The form</p>'
                 '<p><a id="1"></a><sup>1</sup> In the following cases</p>'
                 '<p>the 1<sup>st</sup> and m<sup>2</sup></p></div>').find("div")

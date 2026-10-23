@@ -200,7 +200,7 @@ in" and other "hearsay" *must be avoided*. You must *never* check a source or ve
 Here you include the reference itself, as it is formulated in the text.
 
 ## The "quoted text" column
-Shall only be filled in for direct quotations. Fill in the entire quotation from the text verbatim, including the quotation marks (""/«»). Preserve any italicisation, emphasis, or original punctuation in the source comparison too — these matter for verbatim checks.
+Shall only be filled in for direct quotations. Fill in the entire quotation from the text verbatim, including the quotation marks (""/«»), with its emphasis written as `*italic*` and `**bold**`. Preserve italicisation, emphasis and original punctuation in the source comparison too — these matter for verbatim checks (see "Correspondence rules").
 
 You must check that all direct quotations are reproduced verbatim from the cited source. Check every single quote with a reference, regardless of length. Do *not* limit yourself to checking only substantive quotes. Quotes as short as a single word must be checked against the source referenced.
 
@@ -254,6 +254,7 @@ Where there is a direct quotation, you must:
 			- the unbracketed text matches the source exactly,
 			- bracketed insertions accurately reflect what they replace or clarify (or are a faithful [sic]),
 			- the omission marked by the ellipsis does not change the sense of the passage.
+	- Check the emphasis too: italics or bold that the quotation lacks, adds or puts on other words is "Quotation not verbatim", normally of "medium severity". Emphasis the author added or removed and flagged ("emphasis added", "min uthevelse") is a convention like brackets; check that the flag matches the change. Read the manuscript's emphasis from the DOCX formatting, or from the page image for a PDF. The skills that read HTML show the source's emphasis as `*…*` and `**…**`; text from a PDF or OCR shows none, so it cannot establish an emphasis discrepancy — say in the description that emphasis could not be compared.
 	- If relevant, you must also check whether the quotation supports the claim made in the text.
 
 For all references without a direct quote, you must:

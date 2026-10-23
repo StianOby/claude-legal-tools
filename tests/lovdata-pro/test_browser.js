@@ -102,6 +102,11 @@ async function main() {
   check('hit offset points at the match', big.substr(g.hits[3].offset, 5), 'sitat');
   const g2 = await lp.grep('NOU/forarbeid/nou-2022-8', 'sitat', 20, 5);
   check('small grep is not truncated', [g2.matches, g2.hits.length, g2.truncated], [4000, 5, undefined]);
+  lp.cache['HR/avgjorelse/hr-2016-2554-p'] = { title: 'Holship', metadata: {}, toc: [],
+    fullText: 'Jeg viser til *Holship*-dommen og **særlig** til *Rt. 2015 s. 93* avsnitt 40.' };
+  const ge = await lp.grep('HR/avgjorelse/hr-2016-2554-p', 'Holship-dommen og særlig', 10);
+  check('grep: a phrase across emphasis markers', ge.matches, 1);
+  check('grep: typed markers are ignored', (await lp.grep('HR/avgjorelse/hr-2016-2554-p', '*Rt. 2015 s. 93*')).matches, 1);
 
   console.log('search()');
   // Old results on screen; the new query changes the hash at once but

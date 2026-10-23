@@ -69,6 +69,13 @@ check("no metadata in body", "Person A" in body or "Last ned PDF" in body, False
 check("no nbsp", "\xa0" in body or " " in body, False)
 
 check("soft hyphen kept", nem.html_to_md("<p>helse&shy;undersøkelsene</p>"), "helse\xadundersøkelsene\n")
+check("emphasis kept", nem.html_to_md("<p><strong>Stikkord</strong>: <em>Risiko-nytte</em>&nbsp;m.m.</p>"),
+      "**Stikkord**: *Risiko-nytte* m.m.\n")
+check("no emphasis in headings", nem.html_to_md("<h2><strong>Vedtak</strong></h2><p>x</p>"), "## Vedtak\n\nx\n")
+check("ol numbers", nem.html_to_md('<ol><li>a</li><li>b</li></ol><ol type="a" start="3"><li>c</li></ol>'),
+      "1. a\n2. b\n\nc. c\n")
+check("ul bullets", nem.html_to_md("<ul><li>a</li><li>b</li></ul>"), "- a\n- b\n")
+check("metadata plain", nem.html_to_md("<em>Person A</em>", emphasis=False), "Person A\n")
 
 print("decision page (older formats)")
 meta, body = nem.parse_page(fixture("vedtak_2010-202_ii.html"), nem.LIST_URL + "laring-av-feil-ved-legevakt-ii/")

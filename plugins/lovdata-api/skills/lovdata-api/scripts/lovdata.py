@@ -53,6 +53,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from source_text import SPACES, finish, mark_emphasis, superscript
+
 # --- Konfigurasjon -----------------------------------------------------------
 
 SKILL_DIR = Path(__file__).parent.parent  # skrivebeskyttet referansekatalog
@@ -383,9 +385,8 @@ def _list_marker(m: re.Match) -> str:
 # sammen med et tall foran (se tests/lovdata-api/test_html_to_text.py i repoet).
 _FN_REF = re.compile(r'<sup[^>]*\bclass="footnotereference"[^>]*>(.*?)</sup>', re.I | re.S)
 _FN_LABEL = re.compile(r'<span[^>]*\bclass="footnoteLabel"[^>]*>(.*?)</span>', re.I | re.S)
-# Øvrige <sup> er eksponenter (m<sup>2</sup>, cm<sup>3</sup>).
+# Øvrige <sup> er eksponenter (m<sup>2</sup>, cm<sup>3</sup>): m², ellers ^TM^.
 _SUP = re.compile(r"<sup>([^<]*)</sup>", re.I)
-_SUPERSCRIPT = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
 
 
 def _fn_marker(m: re.Match) -> str:
@@ -397,8 +398,9 @@ def _html_to_text(chunk: str) -> str:
     # Fotnoter: «protokoll 3[fn 5]» i teksten, «[fn 5] Gjelder ...» i fotnoten
     chunk = _FN_REF.sub(_fn_marker, chunk)
     chunk = _FN_LABEL.sub(_fn_marker, chunk)
-    chunk = _SUP.sub(lambda m: m.group(1).translate(_SUPERSCRIPT)
-                     if m.group(1).isdigit() else "^" + m.group(1), chunk)
+    chunk = _SUP.sub(lambda m: superscript(html.unescape(m.group(1))), chunk)
+    # Kursiv og fet: *in blanco*, **…** (source_text.finish nedenfor)
+    chunk = mark_emphasis(chunk)
     # Listepunkter: skriv ut markøren (a., 1., ...) før teksten
     chunk = re.sub(r'<li[^>]*\sdata-name="([^"]+)"[^>]*>', _list_marker, chunk, flags=re.I)
     # Blokknivå-tagger blir linjeskift; inline-tagger (span, a, ...) fjernes sporløst
@@ -407,7 +409,7 @@ def _html_to_text(chunk: str) -> str:
     chunk = re.sub(r"</(td|th)>", " | ", chunk, flags=re.I)
     chunk = re.sub(r"<br\s*/?>", "\n", chunk, flags=re.I)
     text = re.sub(r"<[^>]+>", "", chunk)
-    text = html.unescape(text).replace("\xa0", " ")
+    text = finish(html.unescape(text).translate(SPACES))
 
     text = re.sub(r"[ \t]+", " ", text)
     lines: list[str] = []

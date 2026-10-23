@@ -242,7 +242,8 @@ await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
 
 `grep(path, term, ctx, max, regex)` tolker `term` **bokstavelig** (og lar
 mellomrom matche linjeskift), så «§ 4-6 (2)» og «art. 8(1)» virker som de
-står. Send `true` som femte argument for et ekte regulært uttrykk. Svaret er
+står, og den hopper over uthevingsmerkene (`*`, `**`) inne i en frase. Send
+`true` som femte argument for et ekte regulært uttrykk (det ser merkene). Svaret er
 `{matches, hits}`: `matches` er antall treff i hele dokumentet, `hits` de
 første `max` av dem med `{i, sectionTitle, offset, snippet}`. `offset` er
 der treffet står i teksten `page()` leser, så `page(path, offset - 2000)`
@@ -325,6 +326,13 @@ Bruk standard norsk juridisk siteringsform i svaret til brukeren:
 
 Sitater beholdes på originalt norsk, i anførselstegn («…» eller "…"). Legg
 gjerne til oversettelse/forklaring på brukerens språk etter sitatet.
+
+Teksten har kildens kursiv og fet som `*…*` og `**…**` (sakstitler, latinske
+uttrykk, rettens egne uthevinger i sitater). Uthevingen er en del av teksten:
+et sitat som mister eller legger til kursiv er ikke eksakt, så behold den
+(som kursiv/fet i svaret). Overskrifter (`## …`) er uten uthevingsmerker.
+Hevet skrift står som Unicode der det finnes («20 m²»), ellers `^TM^`;
+fotnoter som `[fn N]` i teksten og ved fotnoten.
 
 **Aldri parafraser fra hukommelsen.** Hent dokumentet via `__lp.load`/
 `section`/`page` og siter fra det. Eldre dommer endres riktignok ikke — men

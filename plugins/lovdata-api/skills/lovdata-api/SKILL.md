@@ -327,6 +327,12 @@ Fotnoter står som `[fn N]` i teksten og `[fn N] …` i fotnoteteksten under
 bestemmelsen («protokoll 3[fn 5]» = protokoll 3, fotnote 5). Ta ikke med
 markøren i sitater; `[fn N]` er fra scriptet, ikke fra lovteksten.
 
+Kursiv og fet står som i Lovdata: `*in blanco*`, `**…**` (mest i tabeller og
+latinske uttrykk). Uthevingen er en del av teksten: behold den i sitater
+(som kursiv/fet i svaret). Hevet skrift står som Unicode der det finnes
+(«20 m²», «10⁻¹»), ellers `^TM^`. `find` ser bort fra uthevingen; et `grep`
+direkte i teksten gjør det ikke, så søk på enkeltord eller bruk `find`.
+
 ---
 
 ## Hvor lagres data og state?

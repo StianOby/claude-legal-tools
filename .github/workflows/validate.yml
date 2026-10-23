@@ -101,6 +101,8 @@ jobs:
           node run.js
           echo "== again, on the copy shared/browser-paste/paste.py makes"
           node -r ../browser-helpers/stripped_preload.js run.js
+          echo "== lovdata-pro toText() on a DOM (uses the same linkedom)"
+          node ../lovdata-pro/dom.js
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code

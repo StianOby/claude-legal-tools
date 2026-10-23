@@ -102,6 +102,11 @@ Rules:
   outside its own folder. Edit only the canonical copy, then run
   `.github/scripts/check-shared.py --fix` and bump every plugin whose copy
   changed. The mapping lives in that script; CI fails if a copy differs.
+  `shared/source-text/source_text.js` is embedded *inside* the browser
+  helpers that use it (between its marker comments): after editing it, run
+  `node .github/scripts/embed-source-text.js` and bump those helpers'
+  `HELPER_VERSION` and plugins; `tests/source-text/test_source_text.js`
+  fails while a copy differs.
   Keep `pack_for_local.sh` in step with the repo URL: the local route
   downloads scripts from `main` on GitHub and checks them by sha256.
 
@@ -175,15 +180,38 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   source document into text, it takes the text out of the markup, shows
   what the reader sees, and changes nothing else. Take the rendition closest
   to what the source itself displays (e.g. HUDOC's reading-view HTML, not a
-  home-made extraction from its DOCX). Write out what the page draws but the
-  markup leaves implicit (list numbers, Symbol-font glyphs, printed footnote
-  labels), and collapse only the markup's own whitespace (source line
-  breaks, runs of ordinary spaces), as a browser does. Never add, normalise
-  or replace the source's characters or labels, not even to make text easier
-  to grep (non-breaking spaces and hyphens stay): put that tolerance in the
-  search instead. An exception needs the maintainer's decision and a note
-  in the skill's doc (hudoc normalises non-breaking spaces; why:
-  `docs/hudoc.md`, which is also the worked example).
+  home-made extraction from its DOCX), and collapse whitespace as a browser
+  does (a line break in the markup is a space; inline tags leave no trace).
+  Never add, normalise or replace the source's characters or labels, not
+  even to make text easier to grep (non-breaking and soft hyphens stay): put
+  that tolerance in the search instead, and tell Claude in SKILL.md where a
+  plain `grep` falls short. Write out what the page draws but the markup
+  leaves implicit, always in these forms:
+  - **Non-breaking spaces** (U+00A0, U+202F) become plain spaces: they are
+    layout, not text, and break typed searches (`docs/hudoc.md`).
+  - **Footnote markers:** `[fn N]` in the text and before the note, N as
+    printed.
+  - **Lists:** the number the page draws for an `<ol>` item (start, type,
+    `value` respected; a source's own label such as Lovdata's `data-name`
+    first), `- ` or `•` for a bullet.
+  - **Tables:** a row per line, cells separated by ` | `.
+  - **Headings:** `#`/`##` at line start where a skill marks them; no
+    emphasis markers inside a heading.
+  - **Emphasis:** italic `*…*`, bold `**…**`, nested as Markdown nests them.
+    It is part of the text (an exact quotation keeps it; kildesjekk reports
+    a mismatch), so every skill that reads HTML keeps it, including
+    emphasis set by CSS (hudoc). Markers hug the words (spaces outside) and
+    never span a line. Metadata fields (titles, parties) stay plain. Text
+    from PDFs and OCR has no emphasis.
+  - **Superscript:** Unicode superscript where every character has one
+    (`m²`, `10⁻¹`), else `^text^`.
+  The rules live in `shared/source-text/` (`source_text.py` for the Python
+  skills; `source_text.js`, embedded in the browser helpers by
+  `.github/scripts/embed-source-text.js`); use them rather than writing new
+  ones. Underline is not marked, and CSS `text-transform` is not applied:
+  letters stay as typed (a heading's style already shows it is a heading).
+  A further exception needs the maintainer's decision and a note in the
+  skill's doc; `docs/hudoc.md` is the worked example.
 - **Corpora: live lookup or a persistent local copy, never a session-only
   cloud copy.** For a skill over a downloadable corpus (first case:
   nem-vedtak; why it is not bundled: `docs/nem-vedtak.md`), fetch a single

@@ -44,7 +44,7 @@ const MINI_TEXT =
   '1/01\n\n' +
   'Person A\n\n' +
   'FOR THESE REASONS, THE COURT\n\n' +
-  '1. Holds, unanimously, that there has been a violation of Article 8;\n\n' +
+  '1. *Holds*, unanimously, that there has been a violation of Article 8;\n\n' +
   'FOOTNOTES\n\n' +
   '[fn *] See Smith v. Norway, no. 1/01. Second paragraph of the note.\n\n' +
   '[fn *] Case-law cited.\n\n' +
@@ -83,6 +83,15 @@ function stub({ html = MINI_HTML, queryStatus = 200, queryBody = null, htmlStatu
   check('mini.html', hd._internal.htmlToText(MINI_HTML), MINI_TEXT);
   check('CRLF in the markup is whitespace too', hd._internal.htmlToText(MINI_HTML.replace('his\nwife', 'his\r\nwife')), MINI_TEXT);
   check('converting twice gives the same text', hd._internal.htmlToText(MINI_HTML), MINI_TEXT);
+  // Same markup and text as STYLED in tests/hudoc/test_html.py.
+  const STYLED = '<style>.sI { font-family:Arial; font-style:italic } .sB { font-weight:bold }' +
+    ' .sN { font-style:normal } .sU { vertical-align:super; font-size:6pt }</style>' +
+    '<p class="sB">A. <span class="sI">Bulk</span> interception</p>' +
+    '<p class="sI">see <span class="sN">Klass</span>, cited above</p>' +
+    '<p>the 1<span class="sU">st</span> and 10<span class="sU">-</span><span class="sU">3</span>' +
+    ' <span class="sI">ipso&nbsp;facto </span>(a)</p>';
+  check('classes, overrides, superscript', hd._internal.htmlToText(STYLED),
+    '**A. *Bulk* interception**\n\n*see* Klass*, cited above*\n\nthe 1^st^ and 10⁻³ *ipso facto* (a)\n');
 
   console.log('Reference forms');
   const rc = hd._internal.referenceClause;
@@ -159,6 +168,10 @@ function stub({ html = MINI_HTML, queryStatus = 200, queryBody = null, htmlStatu
   check('grep: literal, whitespace-tolerant, with paragraph number', [g.total, g.hits[0].paragraph], [1, 2]);
   check('grep: regex metacharacters are literal', (await hd.grep('001-4', '(a)')).total, 1);
   check('grep: a typed hyphen finds a non-breaking one', (await hd.grep('001-4', '142-49')).total, 1);
+  hd.cache.items['001-em'] = { meta: {}, text: 'The Court **finds**, *see* Klass*, cited above*, a violation.\n' };
+  const ge = await hd.grep('001-em', 'see Klass, cited above', 5);
+  check('grep: a phrase across emphasis markers', [ge.total, ge.hits[0].snippet.includes('*see* Klass')], [1, true]);
+  check('grep: typed markers are ignored', (await hd.grep('001-em', '**finds**')).total, 1);
   check('not loaded', (await hd.page('001-999')).error, 'not_loaded');
 
   // A long text full of quotes and newlines: JSON escaping must not push a

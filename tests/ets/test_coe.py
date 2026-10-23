@@ -163,5 +163,19 @@ except coe.ServiceUnavailable as e:
 check("HTML body is ServiceUnavailable", got, "answered text/html, not JSON")
 check("JSON body is parsed", coe._api_json(FakeResponse(b'{"a": 1}'), api_url), {"a": 1})
 
+print("HTML documents: text as the browser shows it")
+HTML = ("<html><body><h1>Title</h1>\n<p>Article\n1 of the <i>Convention</i>, see <b>Rule</b>&nbsp;39.</p>"
+        '<ol type="a"><li>first</li><li>second</li></ol><ul><li>x</li></ul>'
+        "<table><tr><td>A</td><td><em>B</em></td></tr></table><p>wo<span>rd</span></p></body></html>")
+check("converted", coe._html_to_text(HTML),
+      "Title\n\nArticle 1 of the *Convention*, see **Rule** 39.\n\na. first\nb. second\n\n- x\n\nA | *B*\n\nword\n")
+with tempfile.TemporaryDirectory() as d:
+    doc = Path(d) / "text.en.html"
+    doc.write_text(HTML, encoding="utf-8")
+    (Path(d) / "text.en.txt").write_text("Article 1 of the Convention , see Rule 39.\n", encoding="utf-8")
+    txt = coe.extract_text(doc, "html")
+    check("text from an older converter is made again", "*Convention*" in txt.read_text(encoding="utf-8"), True)
+    check("format recorded", (Path(d) / "text.en.format").read_text(encoding="utf-8"), coe.HTML_TEXT_FORMAT)
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)
