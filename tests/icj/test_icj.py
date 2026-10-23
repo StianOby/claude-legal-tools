@@ -16,6 +16,7 @@ os.environ["ICJ_CACHE_DIR"] = tempfile.mkdtemp()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "plugins" / "icj" / "skills" / "icj" / "scripts"))
 
 import _common  # noqa: E402
+import _html  # noqa: E402
 import cases  # noqa: E402
 import icj  # noqa: E402
 
@@ -30,6 +31,23 @@ def check(name, got, want):
         print(f"  FAIL {name}: got {got!r}, want {want!r}")
         failures += 1
 
+
+print("get_text renders like a browser")
+# Markup as on /declarations/gb and /basis-of-jurisdiction (2026-10-23).
+p = _html.parse("<p>22 February 2017<br>\n <br>\n1. The Government accepts as "
+                "compulsory <em>ipso facto</em>, other than:<br>\n <br>\n(i) any "
+                "dispute;<br>\n</p>").find("p")
+check("<br> is a line break, inline tags add no space", p.get_text(),
+      "22 February 2017\n\n1. The Government accepts as compulsory ipso facto, other than:\n\n(i) any dispute;")
+check("blocks are joined with sep",
+      _html.parse("<td><div>A</div><div>B</div></td>").find("td").get_text(), "A B")
+check("U+00A0 inside a line stays, at the edges it goes",
+      _html.parse("<td>\xa0(Mexico v.\xa0Ecuador)\xa0</td>").find("td").get_text(), "(Mexico v.\xa0Ecuador)")
+p = _html.parse('<div><p>it is open<a href="#1"><sup>1</sup></a>. The form</p>'
+                '<p><a id="1"></a><sup>1</sup> In the following cases</p>'
+                '<p>the 1<sup>st</sup> and m<sup>2</sup></p></div>').find("div")
+check("footnote numbers become [fn N], other <sup> stays", p.get_text("\n"),
+      "it is open[fn 1]. The form\n[fn 1] In the following cases\nthe 1st and m2")
 
 print("resolve_state")
 for inp, want in [("uk", "gb"), ("UK", "gb"), ("United Kingdom", "gb"), ("no", "no"),

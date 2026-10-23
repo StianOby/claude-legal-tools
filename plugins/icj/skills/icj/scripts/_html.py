@@ -20,7 +20,16 @@ _VOID = {
 }
 # Opening one of these while the same tag is still open implicitly closes it.
 _AUTO_CLOSE = {"p", "li", "option", "tr", "td", "th"}
-_WS = re.compile(r"\s+")
+# HTML's own whitespace, the only kind a browser collapses (not U+00A0).
+_HTML_WS = re.compile(r"[ \t\n\r\f]+")
+# Elements a browser lays out as blocks: their text never runs into the
+# text around them.
+_BLOCK = {
+    "address", "article", "aside", "blockquote", "caption", "dd", "div", "dl",
+    "dt", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4",
+    "h5", "h6", "header", "hr", "li", "main", "nav", "ol", "p", "pre",
+    "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul",
+}
 
 
 class Node:
@@ -76,15 +85,47 @@ class Node:
         hits = self.find_all(tag, class_, limit=1)
         return hits[0] if hits else None
 
-    def get_text(self, sep: str = " ", strip: bool = True) -> str:
+    def get_text(self, sep: str = " ") -> str:
+        """The text as a browser renders it: inline tags leave no trace,
+        <br> is a line break, HTML whitespace collapses (U+00A0 stays,
+        except at the edges of a line), and block elements are joined with
+        `sep`. Footnote numbers (see _footnote_label) become "[fn N]"."""
+        blocks: list[str] = []
+        cur: list[str] = []
+
+        def visit(n: "Node") -> None:
+            if n.tag is None:
+                cur.append(_HTML_WS.sub(" ", n.text or ""))
+            elif n.tag == "br":
+                cur.append("\n")
+            elif (label := _footnote_label(n)) is not None:
+                cur.append(f"[fn {label}]")
+            elif n.tag in _BLOCK:
+                flush()
+                for c in n.children:
+                    visit(c)
+                flush()
+            else:
+                for c in n.children:
+                    visit(c)
+
+        def flush() -> None:
+            lines = [ln.strip() for ln in "".join(cur).split("\n")]
+            while lines and not lines[0]:
+                lines.pop(0)
+            while lines and not lines[-1]:
+                lines.pop()
+            if lines:
+                blocks.append("\n".join(lines))
+            cur.clear()
+
         if self.tag is None:
-            pieces = [self.text or ""]
+            visit(self)
         else:
-            pieces = [n.text or "" for n in self.iter() if n.tag is None]
-        if strip:
-            pieces = [_WS.sub(" ", p).strip() for p in pieces]
-            pieces = [p for p in pieces if p]
-        return sep.join(pieces)
+            for c in self.children:
+                visit(c)
+        flush()
+        return sep.join(blocks)
 
     def decompose(self) -> None:
         if self.parent is not None:
@@ -95,6 +136,28 @@ class Node:
         if self.tag is None:
             return f"Text({self.text!r})"
         return f"<{self.tag} {self.attrs}>"
+
+
+def _footnote_label(n: Node) -> Optional[str]:
+    """The number of a footnote <sup>, else None. The basis-of-jurisdiction
+    page marks a reference <a href="#1"><sup>1</sup></a> and starts the note
+    <a id="1"></a><sup>1</sup>; written as "[fn 1]" both pair up for citing
+    (the same form as the hudoc and lovdata-api skills)."""
+    if n.tag != "sup" or len(n.children) != 1 or n.children[0].tag is not None:
+        return None
+    label = (n.children[0].text or "").strip()
+    if not label.isdigit():
+        return None
+    p = n.parent
+    if p is not None and p.tag == "a" and p.get("href", "").startswith("#"):
+        return label
+    if p is not None:
+        i = p.children.index(n)
+        prev = next((c for c in reversed(p.children[:i])
+                     if c.tag is not None or (c.text or "").strip()), None)
+        if prev is not None and prev.tag == "a" and prev.get("id"):
+            return label
+    return None
 
 
 class _Builder(HTMLParser):
