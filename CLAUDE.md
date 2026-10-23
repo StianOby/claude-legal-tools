@@ -171,6 +171,19 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   `--upgrade` flags are fine. The maintainer prefers the newest upstream
   release, and accepts the risk that upstream changes break something, over
   stale packages. Don't propose pinning in reviews or fixes.
+- **Source text: as little conversion as possible.** When a skill turns a
+  source document into text, it takes the text out of the markup, shows
+  what the reader sees, and changes nothing else. Take the rendition closest
+  to what the source itself displays (e.g. HUDOC's reading-view HTML, not a
+  home-made extraction from its DOCX). Write out what the page draws but the
+  markup leaves implicit (list numbers, Symbol-font glyphs, printed footnote
+  labels), and collapse only the markup's own whitespace (source line
+  breaks, runs of ordinary spaces), as a browser does. Never add, normalise
+  or replace the source's characters or labels, not even to make text easier
+  to grep (non-breaking spaces and hyphens stay): put that tolerance in the
+  search instead. An exception needs the maintainer's decision and a note
+  in the skill's doc (hudoc normalises non-breaking spaces; why:
+  `docs/hudoc.md`, which is also the worked example).
 - **Corpora: live lookup or a persistent local copy, never a session-only
   cloud copy.** For a skill over a downloadable corpus (first case:
   nem-vedtak; why it is not bundled: `docs/nem-vedtak.md`), fetch a single
