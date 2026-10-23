@@ -1,0 +1,85 @@
+►B EUROPAPARLAMENTS- OG RÅDSFORORDNING (EU) 2016/679
+av 27. april 2016
+om vern av fysiske personer i forbindelse med behandling av personopplysninger og om fri
+utveksling av slike opplysninger samt om oppheving av direktiv 95/46/EF (generell
+personvernforordning)
+(EØS-tillegget nr. 46 av 19.7.2018, s. 6)
+Konsolidert tekst – bare for informasjonsformål
+Rettet ved:
+►C1 Rettelser (2022/EOS/3/3) EØS-tillegget nr. 13 av 3.3.2022, s. 2181
+32016R0679 Konsolidert tekst: 3.3.2022 1
+e) lagres slik at det ikke er mulig å identifisere de registrerte i lengre perioder enn det som er nødvendig for formålene som
+personopplysningene behandles for; personopplysninger kan lagres i lengre perioder dersom de utelukkende vil bli
+behandlet for arkivformål i allmennhetens interesse, for formål knyttet til vitenskapelig eller historisk forskning eller for
+statistiske formål i samsvar med artikkel 89 nr. 1, forutsatt at det gjennomføres egnede tekniske og organisatoriske tiltak
+som kreves i henhold til denne forordning for å sikre de registrertes rettigheter og friheter («lagringsbegrensning»),
+f) behandles på en måte som sikrer tilstrekkelig sikkerhet for personopplysningene, herunder vern mot uautorisert eller ulovlig
+behandling og mot utilsiktet tap, ødeleggelse eller skade, ved bruk av egnede tekniske eller organisatoriske tiltak
+(«integritet og konfidensialitet»).
+2. Den behandlingsansvarlige er ansvarlig for og skal kunne påvise at nr. 1 overholdes («ansvar»).
+Artikkel 6
+Behandlingens lovlighet
+1. Behandlingen er bare lovlig dersom og i den grad minst ett av følgende vilkår er oppfylt:
+a) den registrerte har samtykket til behandling av sine personopplysninger for ett eller flere spesifikke formål,
+b) behandlingen er nødvendig for å oppfylle en avtale som den registrerte er part i, eller for å gjennomføre tiltak på den
+registrertes anmodning før en avtaleinngåelse,
+c) behandlingen er nødvendig for å oppfylle en rettslig forpliktelse som påhviler den behandlingsansvarlige,
+d) behandlingen er nødvendig for å verne den registrertes eller en annen fysisk persons vitale interesser,
+e) behandlingen er nødvendig for å utføre en oppgave i allmennhetens interesse eller utøve offentlig myndighet som den
+behandlingsansvarlige er pålagt,
+f) behandlingen er nødvendig for formål knyttet til de berettigede interessene som forfølges av den behandlingsansvarlige
+eller en tredjepart, med mindre den registrertes interesser eller grunnleggende rettigheter og friheter går foran og krever
+vern av personopplysninger, særlig dersom den registrerte er et barn.
+Nr. 1 bokstav f) får ikke anvendelse på behandling som utføres av offentlige myndigheter som ledd i utførelsen av deres
+oppgaver.
+2. Medlemsstatene kan opprettholde eller innføre mer spesifikke bestemmelser for å tilpasse anvendelsen av reglene for
+behandling i denne forordning med henblikk på å sikre samsvar med nr. 1 bokstav c) og e) ved nærmere å fastsette mer
+spesifikke krav til behandlingen samt andre tiltak som har som mål å sikre en lovlig og rettferdig behandling, herunder i
+forbindelse med andre særlige behandlingssituasjoner som nevnt i kapittel IX.
+3. Grunnlaget for behandlingen nevnt i nr. 1 bokstav c) og e) skal fastsettes i
+a) unionsretten eller
+b) medlemsstatens nasjonale rett som den behandlingsansvarlige er underlagt.
+Formålet med behandlingen skal være fastsatt i nevnte rettslige grunnlag eller, når det gjelder behandlingen nevnt i nr. 1
+bokstav e), være nødvendig for å utføre en oppgave i allmennhetens interesse eller utøve offentlig myndighet som den
+behandlingsansvarlige er pålagt. Nevnte rettslige grunnlag kan inneholde særlige bestemmelser for å tilpasse anvendelsen av
+reglene i denne forordning, blant annet de generelle vilkårene som skal gjelde for lovligheten av den behandlingsansvarliges
+behandling, hvilken type opplysninger som skal behandles, berørte registrerte, enhetene som personopplysningene kan utleveres
+til, og formålene med dette, formålsbegrensning, lagringsperioder samt behandlingsaktiviteter og framgangsmåter for
+behandling, herunder tiltak for å sikre lovlig og rettferdig behandling, slik som dem fastsatt med henblikk på andre særlige
+32016R0679 Konsolidert tekst: 3.3.2022 37
+behandlingssituasjoner som nevnt i kapittel IX. Unionsretten eller medlemsstatenes nasjonale rett skal oppfylle et mål i
+allmennhetens interesse og stå i et rimelig forhold til det berettigede målet som søkes oppnådd.
+4. Dersom behandlingen for et annet formål enn det som personopplysningene er blitt samlet inn for, ikke bygger på den
+registrertes samtykke eller på unionsretten eller medlemsstatenes nasjonale rett som utgjør et nødvendig og forholdsmessig
+tiltak i et demokratisk samfunn for å sikre oppnåelse av målene nevnt i artikkel 23 nr. 1, skal den behandlingsansvarlige for å
+avgjøre om behandlingen for et annet formål er forenlig med formålet som personopplysningene opprinnelig ble samlet inn for,
+blant annet ta hensyn til følgende:
+a) enhver forbindelse mellom formålene som personopplysningene er blitt samlet inn for, og formålene med den tiltenkte
+viderebehandlingen,
+b) i hvilken sammenheng personopplysningene er blitt samlet inn, særlig med hensyn til forholdet mellom de registrerte og
+den behandlingsansvarlige,
+c) personopplysningenes art, især om særlige kategorier av personopplysninger behandles, i henhold til artikkel 9, eller om
+personopplysninger om straffedommer og lovovertredelser behandles, i henhold til artikkel 10,
+d) de mulige konsekvensene av den tiltenkte viderebehandlingen for de registrerte,
+e) om det foreligger nødvendige garantier, som kan omfatte kryptering eller pseudonymisering.
+Artikkel 7
+Vilkår for samtykke
+1. Dersom behandlingen bygger på samtykke, skal den behandlingsansvarlige kunne påvise at den registrerte har samtykket
+til behandling av personopplysninger om vedkommende.
+2. Dersom den registrertes samtykke gis i forbindelse med en skriftlig erklæring som også gjelder andre forhold, skal
+anmodningen om samtykke framlegges på en måte som gjør at den tydelig kan skilles fra nevnte andre forhold, i en forståelig
+og lett tilgjengelig form og på et klart og enkelt språk. Deler av en slik erklæring som er i strid med denne forordning, skal ikke
+være bindende.
+3. Den registrerte skal ha rett til å trekke tilbake sitt samtykke til enhver tid. Dersom samtykket trekkes tilbake, skal det ikke
+påvirke lovligheten av behandlingen som bygger på samtykket før det trekkes tilbake. Før det gis samtykke, skal den registrerte
+opplyses om dette. Det skal være like enkelt å trekke tilbake som å gi samtykke.
+4. Ved vurdering av om et samtykke er gitt frivillig skal det tas størst mulig hensyn til blant annet om oppfyllelse av en
+avtale, herunder om yting av en tjeneste, er gjort betinget av samtykke til behandling av personopplysninger som ikke er
+nødvendig for å oppfylle nevnte avtale.
+Artikkel 8
+Vilkår for barns samtykke i forbindelse med informasjonssamfunnstjenester
+1. Dersom artikkel 6 nr. 1 bokstav a) får anvendelse i forbindelse med tilbud om informasjonssamfunnstjenester direkte til et
+barn, er behandling av et barns personopplysninger lovlig dersom barnet er minst 16 år. Dersom barnet er under 16 år, er slik
+behandling lovlig bare dersom og i den grad samtykke er gitt eller godkjent av den som har foreldreansvar for barnet.
+For disse formål kan medlemsstatene ved lov fastsette en lavere aldersgrense, forutsatt at den ikke er lavere enn 13 år.
+32016R0679 Konsolidert tekst: 3.3.2022 38

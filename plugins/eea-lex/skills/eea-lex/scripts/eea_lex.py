@@ -43,7 +43,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 USER_AGENT = f"eea-lex-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 BASE = "https://www.efta.int"
 LEX = f"{BASE}/eea-lex"
@@ -175,8 +175,14 @@ def _request(url: str, *, accept: str = "*/*", timeout: int = 60) -> bytes:
     raise AssertionError("unreachable")
 
 
+_PAGES: dict[str, str] = {}
+
+
 def fetch_text(url: str) -> str:
-    return _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="replace")
+    """An HTML page; a page already fetched in this run is reused."""
+    if url not in _PAGES:
+        _PAGES[url] = _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="replace")
+    return _PAGES[url]
 
 
 def cached_file(p: Path, url: str, max_age: float, *, refresh: bool = False) -> Path:
@@ -1106,6 +1112,140 @@ def agreement_summary(results: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Icelandic and Norwegian translations of EU acts (EEA Supplement)
+#
+# The factsheet links each act's translation. Two kinds occur: the pages of
+# the EEA Supplement as printed (header "Nr. 21/917 EØS-tillegget …", so the
+# printed Supplement page is known), and EFTA's consolidated text
+# ("Konsolidert tekst – bare for informasjonsformål", footer "32016R0679
+# Konsolidert tekst: 3.3.2022"), which carries corrections and amendments
+# and has no Supplement pagination (Norwegian GDPR, 2026-10-23).
+
+TRANSLATIONS = {"NO": ("no", "Norwegian"), "IS": ("is", "Icelandic")}
+_SUPPL_HEADER = re.compile(r"(?:EØS-tillegget|EES-viðbætir)")
+_SUPPL_PAGE = re.compile(r"Nr\.\s*(\d+)/(\d+)")
+_ARTICLE_HEAD = {"NO": lambda n: rf"^Artikkel {n}$", "IS": lambda n: rf"^{n}\. gr\.$"}
+_ANY_ARTICLE = {"NO": re.compile(r"^Artikkel \d+[a-z]?$"), "IS": re.compile(r"^\d+[a-z]?\. gr\.$")}
+_PART_HEAD = re.compile(r"^(?:KAPITTEL|AVSNITT|KAFLI|ÞÁTTUR|VEDLEGG|VIÐAUKI)\b")
+
+
+def translation_link(fs: dict, lang: str) -> dict | None:
+    flag, name = TRANSLATIONS[lang]
+    for d in fs.get("documents", []):
+        if d["flag"] == flag:
+            for ln in d["links"]:
+                if ln["label"].startswith(f"Legal act in {name}"):
+                    return ln
+    return None
+
+
+def supplement_page(page: str) -> str:
+    """'No 21, p. 917' from a page of the EEA Supplement as printed."""
+    lines = [ln.strip() for ln in page.strip().splitlines() if ln.strip()]
+    for ln in lines[:2] + lines[-2:]:
+        if _SUPPL_HEADER.search(ln) and (m := _SUPPL_PAGE.search(ln)):
+            return f"No {m.group(1)}, p. {m.group(2)}"
+    return ""
+
+
+def describe_translation(text: str, celex: str) -> dict:
+    pages = text.split("\f")
+    if supplement_page(pages[0]):
+        return {"kind": "supplement", "consolidated_as_of": ""}
+    m = re.search(rf"^{re.escape(celex)}\s+\D*?(\d{{1,2}}\.\d{{1,2}}\.\d{{4}})", text[:30000], re.M)
+    orig = re.search(r"\((EØS-tillegget[^)]*|EES-viðbæti[^)]*)\)", text[:3000])
+    return {"kind": "consolidated", "consolidated_as_of": iso_date(m.group(1)) if m else "",
+            "published_in": orig.group(1) if orig else ""}
+
+
+def _is_furniture(line: str, celex: str) -> bool:
+    """Page headers and footers inside an article."""
+    return bool(_SUPPL_HEADER.search(line) and _SUPPL_PAGE.search(line)) or line.startswith(celex) \
+        or bool(re.fullmatch(r"\d{4}/E[ØE]S/\d+/\d+", line))
+
+
+def find_article(text: str, lang: str, n: str, celex: str) -> dict | None:
+    lines = text.split("\n")
+    head = re.compile(_ARTICLE_HEAD[lang](re.escape(n)))
+    for i, ln in enumerate(lines):
+        if head.match(ln.lstrip("\f").strip()):
+            out, pages = [], []
+            page_no = text.count("\f", 0, sum(len(x) + 1 for x in lines[:i])) + 1
+            for j in range(i, min(len(lines), i + 400)):
+                cur = lines[j]
+                if "\f" in cur:
+                    page_no += cur.count("\f")
+                s = cur.lstrip("\f").strip()
+                if j > i and (_ANY_ARTICLE[lang].match(s) or _PART_HEAD.match(s)):
+                    break
+                if not s or _is_furniture(s, celex):
+                    continue
+                out.append(s)
+                if page_no not in pages:
+                    pages.append(page_no)
+            return {"article": n, "text": "\n".join(out), "pdf_pages": pages}
+    return None
+
+
+def get_translation(act: str, lang: str, article: str | None, find: str | None, max_hits: int,
+                    refresh: bool) -> dict:
+    celex = resolve_act(act)
+    fs = fetch_factsheet(celex)
+    link = translation_link(fs, lang)
+    if not link:
+        raise SystemExit(f"The EEA-Lex factsheet of {celex} links no {TRANSLATIONS[lang][1]} translation of the act "
+                         f"({fs['url']}). It may not be published yet; see the factsheet's documents.")
+    pdf = cached_file(cache_dir() / "translations" / f"{celex}-{lang}.pdf", link["url"], 7 * DAY, refresh=refresh)
+    text = extract_pdf_text(pdf)
+    out: dict[str, Any] = {"celex": celex, "lang": lang, "label": link["label"], "url": link["url"],
+                           "factsheet": fs["url"], "pdf": str(pdf),
+                           "text_file": str(pdf.with_suffix(".txt")) if text else ""}
+    if not text:
+        out["note"] = "Text extraction failed: install poppler-utils (pdftotext) or pypdf."
+        return out
+    out.update(describe_translation(text, celex))
+    pages = text.split("\f")
+    if article:
+        art = find_article(text, lang, article.strip(), celex)
+        if art:
+            art["supplement_pages"] = [p for p in (supplement_page(pages[k - 1]) for k in art["pdf_pages"]
+                                                   if k - 1 < len(pages)) if p]
+        out["article_hit"] = art
+    if find:
+        hits = find_in_text(text, find, max_hits)
+        for h in hits:
+            h["supplement_page"] = supplement_page(pages[h["page"] - 1]) if h["page"] - 1 < len(pages) else ""
+        out["hits"] = hits
+    return out
+
+
+def translation_summary(t: dict) -> str:
+    lines = [f"{t['celex']} — {TRANSLATIONS[t['lang']][1]} translation", "=" * 70,
+             f"EEA-Lex label: {t['label']}", f"URL:  {t['url']}", f"TEXT: {t['text_file'] or '-'}"]
+    if t.get("kind") == "supplement":
+        lines.append("Kind: the EEA Supplement pages as printed (pinpoints below give the Supplement page).")
+    elif t.get("kind") == "consolidated":
+        lines.append(f"Kind: EFTA's CONSOLIDATED text, for information only, as of {t.get('consolidated_as_of') or '?'}"
+                     f" (first published: {t.get('published_in') or '?'}). It includes later corrections and "
+                     "amendments and has no Supplement page numbers.")
+    if t.get("note"):
+        lines.append(f"[note] {t['note']}")
+    if "article_hit" in t:
+        a = t["article_hit"]
+        if not a:
+            lines.append("Article not found as a heading in the text; use --find or read the text file.")
+        else:
+            where = ", ".join(a.get("supplement_pages") or []) or f"PDF p. {', '.join(map(str, a['pdf_pages']))}"
+            lines += [f"--- Article {a['article']} ({where})", a["text"]]
+    for h in t.get("hits", []):
+        lines.append(f"--- PDF p. {h['page']}" + (f" = Supplement {h['supplement_page']}" if h.get("supplement_page") else ""))
+        lines += h["excerpt"].splitlines()
+    if "hits" in t and not t["hits"]:
+        lines.append("No match.")
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
 # Art. 103: JCDs awaiting constitutional requirements
 
 _AWAIT_ROW = re.compile(rf"^(\d+) (\d{{3}})/+(\d{{4}}) ({_DATE}) ({_DATE})(?: (.*))?$")
@@ -1203,12 +1343,14 @@ def cmd_pending103(args) -> None:
 # ---------------------------------------------------------------------------
 # Commands
 
-def cmd_factsheet(args) -> None:
-    ident = args.act.strip()
+def resolve_act(act: str) -> str:
+    """The factsheet id (CELEX) of an act given as CELEX, citation, EEA-Lex
+    URL or node id. Exits listing the keyword hits when there is no single
+    match."""
+    ident = act.strip()
     if m := re.search(r"/eea-lex/([^/?#\s]+)", ident):
         ident = m.group(1)
-    celex = None
-    if m := CELEX_RE.match(ident):
+    if CELEX_RE.match(ident):
         celex = ident.upper()
     elif re.fullmatch(r"\d{5,7}", ident):
         try:
@@ -1216,28 +1358,31 @@ def cmd_factsheet(args) -> None:
         except NotFound:
             raise SystemExit(f"EEA-Lex item {ident} has no factsheet (proposals redirect to themselves). "
                              "Use `search` to see its listing card.")
-        celex = ident
+        return ident
     else:
         celex = act_to_celex(ident)
-    fs = None
     if celex:
         try:
-            fs = fetch_factsheet(celex)
+            fetch_text(f"{LEX}/{celex.lower()}")
+            return celex
         except NotFound:
             print(f"[note] no factsheet at {LEX}/{celex.lower()}; trying the keyword search", file=sys.stderr)
-    if fs is None:
-        found, items = _celex_from_keyword(ident)
-        if not found:
-            if not items:
-                raise SystemExit(f"EEA-Lex has nothing for {args.act!r}. The act may have no EEA relevance, "
-                                 "or not be registered yet.")
-            print(f"No single factsheet for {args.act!r}. EEA-Lex keyword hits:")
-            for it in items[:12]:
-                print(f"  {it['id']:12} {it['document'] + '  ' if it['document'] else ''}{it['title'][:150]}")
-            print("Run `factsheet <CELEX>` for one of them. Items without a CELEX number are proposals, "
-                  "which have no factsheet.")
-            sys.exit(1)
-        fs = fetch_factsheet(found)
+    found, items = _celex_from_keyword(ident)
+    if found:
+        return found
+    if not items:
+        raise SystemExit(f"EEA-Lex has nothing for {act!r}. The act may have no EEA relevance, "
+                         "or not be registered yet.")
+    print(f"No single factsheet for {act!r}. EEA-Lex keyword hits:")
+    for it in items[:12]:
+        print(f"  {it['id']:12} {it['document'] + '  ' if it['document'] else ''}{it['title'][:150]}")
+    print("Run the command again with one of these CELEX numbers. Items without a CELEX number are "
+          "proposals, which have no factsheet.")
+    sys.exit(1)
+
+
+def cmd_factsheet(args) -> None:
+    fs = fetch_factsheet(resolve_act(args.act))
     if args.json:
         print(json.dumps(fs, indent=2, ensure_ascii=False))
     else:
@@ -1301,6 +1446,17 @@ def cmd_agreement(args) -> None:
         print(agreement_summary(res))
 
 
+def cmd_translation(args) -> None:
+    lang = args.lang.upper()
+    if lang not in TRANSLATIONS:
+        raise SystemExit("--lang takes NO or IS.")
+    t = get_translation(args.act, lang, args.article, args.find, args.max, args.refresh)
+    if args.json:
+        print(json.dumps(t, indent=2, ensure_ascii=False))
+    else:
+        print(translation_summary(t))
+
+
 def cmd_status(args) -> None:
     d = cache_dir()
     print(f"cache dir: {d}")
@@ -1347,6 +1503,14 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--find", help="CELEX number (shows the annex entry and its footnotes) or a phrase.")
     a.add_argument("--max", type=int, default=10, help="Maximum hits per part (default 10).")
 
+    t = sub.add_parser("translation", parents=[common],
+                       help="Norwegian or Icelandic translation of an EU act (EEA Supplement, via EEA-Lex).")
+    t.add_argument("act", help='CELEX or citation, as for factsheet.')
+    t.add_argument("--lang", default="NO", help="NO (default) or IS.")
+    t.add_argument("--article", help="Print this article (e.g. 6, 17a).")
+    t.add_argument("--find", help="A phrase to find (e.g. from a quotation).")
+    t.add_argument("--max", type=int, default=10, help="Maximum hits (default 10).")
+
     q = sub.add_parser("pending103", parents=[common], help="JCDs awaiting constitutional requirements (Art. 103).")
     q.add_argument("--state", help="IS, LI or NO.")
     q.add_argument("--jcd", help="Only this JCD (NNN/YYYY).")
@@ -1361,7 +1525,8 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     handlers = {"factsheet": cmd_factsheet, "search": cmd_search, "facets": cmd_facets, "jcd": cmd_jcd,
-                "agreement": cmd_agreement, "pending103": cmd_pending103, "status": cmd_status}
+                "agreement": cmd_agreement, "translation": cmd_translation, "pending103": cmd_pending103,
+                "status": cmd_status}
     try:
         handlers[args.cmd](args)
     except Challenged as e:

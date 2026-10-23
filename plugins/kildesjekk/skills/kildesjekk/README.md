@@ -2,7 +2,7 @@
 
 A Claude skill that verifies every reference and quotation in an academic legal
 text against the original sources. The skill checks sources across Zotero,
-Lovdata, EUR-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, the
+Lovdata, EUR-Lex, EEA-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS, Norges traktater, the
 Council of the EU Treaties Office database, and Nasjonalbiblioteket, then
 produces an `.xlsx` worklist with per-reference status, severity-coded
 discrepancies, and a metadata sheet.
@@ -68,6 +68,7 @@ For the skill to work you need:
 
 | Skill | Purpose |
 |---|---|
+| [`eea-lex`](../eea-lex/README.md) | What EUR-Lex lacks on the EEA side: an act's EEA status and EEA dates, Joint Committee Decisions not yet in the OJ, the current EEA annexes, Art. 103, and the Norwegian/Icelandic text of EU acts |
 | [`efta-court`](../efta-court/README.md) | EFTA Court decisions |
 | [`ets`](../ets/README.md) | Council of Europe treaty database (CETS/ETS) |
 | [`eu-agreements-treaties`](../eu-agreements-treaties/README.md) | EU-side status of agreements concluded by or with the EU (signature, ratification, entry into force, declarations) from the Council of the EU Treaties Office database |

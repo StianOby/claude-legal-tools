@@ -1,7 +1,7 @@
 ---
 name: eea-lex
 description: |
-  Use when the user needs the EEA side of an EU act or the EEA Agreement itself, from EFTA (efta.int): whether and when an EU regulation, directive or decision was incorporated into the EEA Agreement, its EEA-Lex status (proposed, under scrutiny, draft JCD, pending, in force, repealed), its annex or protocol, EEA Joint Committee Decisions (JCDs) incl. those not yet in the OJ, the current annexes, protocols and main text with the EFTA adaptations, and JCDs awaiting constitutional requirements (Art. 103). Triggers: EEA-Lex, EØS-komiteens beslutning, JCD 154/2018, "er forordningen tatt inn i EØS-avtalen?", "is the AI Act EEA-relevant?", "when did the GDPR enter into force in the EEA?", vedlegg XI til EØS-avtalen, Protocol 31, "which JCDs await Norway's constitutional requirements?". Do NOT use for: the text of EU acts or CJEU case law (eurlex); EFTA Court cases (efta-court); Norwegian implementing law (lovdata-api); Norway's treaty register (norges-traktater); EU-side treaty status (eu-agreements-treaties).
+  Use when the user needs the EEA side of an EU act or the EEA Agreement itself, from EFTA (efta.int): whether and when an EU regulation, directive or decision was incorporated into the EEA Agreement, its EEA-Lex status, its annex or protocol, EEA Joint Committee Decisions (JCDs) incl. those not yet in the OJ, the current annexes, protocols and main text with the EFTA adaptations, the Norwegian/Icelandic text of EU acts, and JCDs awaiting constitutional requirements (Art. 103). Triggers: EEA-Lex, EØS-komiteens beslutning, JCD 154/2018, "er forordningen tatt inn i EØS-avtalen?", "is the AI Act EEA-relevant?", "when did the GDPR enter into force in the EEA?", vedlegg XI til EØS-avtalen, Protocol 31, "which JCDs await Norway's constitutional requirements?". Do NOT use for: the text of EU acts or CJEU case law (eurlex); EFTA Court cases (efta-court); Norwegian implementing law (lovdata-api); Norway's treaty register (norges-traktater); EU-side treaty status (eu-agreements-treaties).
 ---
 
 # EEA-Lex — EEA status of EU acts, Joint Committee Decisions, EEA Agreement texts
@@ -21,6 +21,7 @@ at EFTA:
 | Acts by status, annex, protocol, type, year or keyword (proposals too) | EEA-Lex search | `search` |
 | A JCD: adoption, confirmed entry into force, OJ and EEA Supplement refs, annex, acts; whether it is in the OJ yet (Cellar); its text | EFTA's yearly JCD lists, JCD PDFs, Cellar | `jcd` |
 | The current main text, annexes and protocols (EFTA's consolidated versions), an act's annex entry with its adaptations and the footnote naming the JCD | EFTA's agreement PDFs | `agreement` |
+| The Norwegian or Icelandic text of an EU act (EEA Supplement translation, or EFTA's consolidated translation), an article or a phrase in it | the translation PDF linked from the factsheet | `translation` |
 | JCDs whose entry into force waits for a state's constitutional requirements (Art. 103), per state | EFTA report 5.2.2 (regenerated daily) | `pending103` |
 
 One CLI, standard library only: `scripts/eea_lex.py` (`python3`, ≥ 3.9).
@@ -72,6 +73,8 @@ Run from `{SKILL_DIR}`; every command takes `--json`, and `--refresh` to ignore 
 | "What does Protocol 31 say about X?" | `python3 scripts/eea_lex.py agreement protocol 31 --find "X"` |
 | Article of the main part | `python3 scripts/eea_lex.py agreement main --find "Article 102"` |
 | "Which JCDs await Norway's constitutional requirements?" | `python3 scripts/eea_lex.py pending103 --state NO` |
+| "Hvordan lyder personvernforordningen artikkel 6 på norsk?" | `python3 scripts/eea_lex.py translation 32016R0679 --article 6` |
+| Check a Norwegian quotation from an EU act | `python3 scripts/eea_lex.py translation 32019L1152 --find "tydelige og forutsigbare arbeidsvilkår"` |
 
 ### `factsheet <act>`
 
@@ -138,6 +141,26 @@ one). `--find 32016R0679` prints the act's whole annex entry, with its
 `--find "phrase"` prints a few lines around each hit with the page number.
 For anything longer, read the `.txt` file.
 
+### `translation <act> [--lang NO|IS] [--article N | --find "phrase"]`
+
+Downloads the translation the factsheet links ("Legal act in Norwegian: EEA
+Suppl. No 21, 1.4.2026, p. 917-933") and extracts it. `--article 6` prints
+that article (to the next article or chapter heading); `--find` prints the
+lines around each hit. The output says which **kind** of copy EFTA serves:
+
+- **the EEA Supplement as printed**: page headers carry the Supplement page
+  ("Nr. 21/917"), and the output gives "Supplement No 21, p. 917" for each
+  hit. This is the published Norwegian/Icelandic text.
+- **EFTA's consolidated text** ("Konsolidert tekst – bare for
+  informasjonsformål", with its date; the Norwegian GDPR, as of 3.3.2022): it
+  includes later corrections and amendments, carries markers such as `►B`,
+  `►C1` and `◄`, and has no Supplement page numbers. Ignore the markers when
+  comparing a quotation; a difference may come from a correction made after
+  the text the author quotes, so say so rather than calling it an error.
+
+No translation linked → the factsheet says nothing about one; the script
+stops and says so. The text is UTF-8 with the PDF's line breaks.
+
 ### `pending103 [--state IS|LI|NO] [--jcd NNN/YYYY]`
 
 EFTA report 5.2.2: every JCD whose entry into force waits for at least one
@@ -170,8 +193,35 @@ interpret it.
    Lines keep the PDF's breaks; join them when quoting.
 5. Link the factsheet, the JCD PDF or the annex PDF you used.
 6. **Answer in the user's language.** For Norwegian users, the factsheet has
-   the Norwegian title of the act and links to the Norwegian translation and
-   the Norwegian JCD (`--lang NO`).
+   the Norwegian title of the act, `translation` the Norwegian text, and
+   `jcd --text --lang NO` the Norwegian JCD.
+
+## Checking a claim or quotation
+
+Which source counts, when the task is to verify what someone wrote (a source
+check, a citation):
+
+- **Incorporation and stage**: the factsheet. EUR-Lex's "Text with EEA
+  relevance" says nothing about incorporation.
+- **EEA dates**: the factsheet history and `jcd`. A JCD in the OJ gives only
+  a conditional date ("provided that all the notifications under Article
+  103(1) … have been made"); the confirmed date is EFTA's. EU and EEA dates
+  differ: an EEA claim that matches only the EU date is wrong.
+- **A JCD's text and citation**: in the OJ (Cellar has it) → EUR-Lex under
+  the CELEX `jcd` gives, which is the authentic text; not yet → EFTA's PDF,
+  and an OJ reference cited for it is wrong.
+- **An annex or protocol point**: `agreement … --find`, which shows today's
+  point. A point since renumbered or deleted was right at its date; it is
+  only wrong if presented as current. Quote an adaptation from the JCD that
+  introduced it (named in the footnote), not from the consolidated annex.
+- **Pending constitutional requirements**: `pending103`, plus the factsheet
+  history for those already fulfilled.
+- **Norwegian or Icelandic wording of an EU act**: `translation`, never the
+  English text. In a consolidated copy, a difference that a correction listed
+  at its top explains is not a misquotation; say which correction. Supplement
+  page pinpoints can be checked only in a Supplement copy.
+- **EEA Supplement references**: the JCD's from `jcd`, the act
+  translation's from the factsheet's document links.
 
 ## When efta.int blocks the script
 
@@ -196,5 +246,5 @@ OJ status was not checked.
 `$EEA_LEX_CACHE_DIR`, else `$XDG_CACHE_HOME/eea-lex`, `%LOCALAPPDATA%\eea-lex`
 or `~/.cache/eea-lex` (`status` prints it). Factsheets and searches are
 always live; facets, list indexes and agreement texts are kept for a day, the
-current year's JCD list for a day, older lists for 30 days, JCD PDFs
-indefinitely, the Art. 103 report for six hours.
+current year's JCD list for a day, older lists for 30 days, translations
+for 7 days, JCD PDFs indefinitely, the Art. 103 report for six hours.

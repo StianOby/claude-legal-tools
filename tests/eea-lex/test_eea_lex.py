@@ -142,6 +142,25 @@ check("pre-2000 CELEX form", old["excerpt"].startswith("1. 387 L 0372"), True)
 check("'as amended by' indent kept", "32009 L 0114" in old["excerpt"], True)
 check("phrase across line break", bool(el.find_in_text(text, "Protocol 1 on horizontal adaptations")), True)
 
+print("translations")
+sup = fixture("translation_32019L1152-NO_pages.txt")
+check("Supplement copy", el.describe_translation(sup, "32019L1152")["kind"], "supplement")
+check("Supplement pages", [el.supplement_page(p) for p in sup.split("\f")],
+      ["No 21, p. 917", "No 21, p. 925", "No 21, p. 926"])
+art = el.find_article(sup, "NO", "2", "32019L1152")
+check("Artikkel 2 found", (art["pdf_pages"], art["text"].splitlines()[:2]), ([2], ["Artikkel 2", "Definisjoner"]))
+check("page headers left out", any("EØS-tillegget til Den europeiske" in x for x in art["text"].splitlines()), False)
+con = fixture("translation_32016R0679-NO_pages.txt")
+check("consolidated copy", el.describe_translation(con, "32016R0679"),
+      {"kind": "consolidated", "consolidated_as_of": "2022-03-03",
+       "published_in": "EØS-tillegget nr. 46 av 19.7.2018, s. 6"})
+art = el.find_article(con, "NO", "6", "32016R0679")
+check("Artikkel 6 ends before Artikkel 7", (art["pdf_pages"], art["text"].splitlines()[-1].startswith("e) om det foreligger")),
+      ([2, 3], True))
+check("consolidated footer left out", any(x.startswith("32016R0679") for x in art["text"].splitlines()), False)
+check("no Artikkel 99", el.find_article(con, "NO", "99", "32016R0679"), None)
+check("translation link", el.translation_link(fs, "NO")["url"].endswith("/norwegian/n32016R0679.pdf"), True)
+
 print("JCD PDF headers and Cellar")
 check("317/2026", el.jcd_pdf_header(fixture("jcd_317-2026_p1.txt"), 317, 2026)["adoption"], "2026-10-23")
 h = el.jcd_pdf_header(fixture("jcd_010-1995_p1.txt"), 10, 1995)

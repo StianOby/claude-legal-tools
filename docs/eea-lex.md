@@ -136,3 +136,20 @@ Rules for the script:
 - **Keyword search ranks poorly for numbers:** `keyword=2016/679` puts the
   GDPR below its implementing decisions, so `factsheet` builds the CELEX
   from the citation and searches only as a fallback.
+
+## 0.2.0 and kildesjekk (2026-10-23)
+
+- `translation <act> [--lang NO|IS] [--article N | --find …]` reads the
+  Norwegian/Icelandic translation the factsheet links. Two kinds occur: the
+  EEA Supplement pages as printed (header "Nr. 21/917 EØS-tillegget …",
+  so pinpoints map to Supplement pages; e.g. Directive 2019/1152 NO, GDPR IS)
+  and EFTA's consolidated text ("Konsolidert tekst – bare for
+  informasjonsformål", footer "32016R0679 Konsolidert tekst: 3.3.2022";
+  GDPR NO), with ►/◄ markers and no Supplement pages. The links redirect
+  twice (https → http → https), inside the 3-hop limit.
+- kildesjekk 1.5.0 gets an EEA step for eea-lex and reorders its steps:
+  Norwegian statutes, preparatory works and case law, then EU law, the EEA
+  step, the EFTA Court, then treaties, ICJ, ECtHR and books as before (see
+  its overview for the numbers). The EEA step is only for what EUR-Lex lacks: EEA status and dates, JCDs (in the OJ →
+  back to eurlex; not yet → EFTA PDF), annex/protocol pointers, Art. 103
+  claims, the Norwegian/Icelandic wording of EU acts, EEA Supplement refs.

@@ -4,8 +4,8 @@
     python worklist.py validate Kildesjekk_<documentname>.xlsx [--final] [--json]
 
 This reads the worklist and reports every row that breaks one of the
-invariants in SKILL.md ("Row invariants"), plus the status counts that §16
-asks for. It never writes to the file.
+invariants in SKILL.md ("Row invariants"), plus the status counts that its
+"Final verification" step asks for. It never writes to the file.
 
 What it can and cannot tell you: it checks the *shape* of the worklist -
 that the permitted values are used, that a "source unavailable" row carries
@@ -289,7 +289,8 @@ def check_metadata(book, rows, path, report, final):
     if name and stem.lower().startswith("kildesjekk_"):
         if _norm(Path(name).stem) != _norm(stem[len("kildesjekk_"):]):
             report.note("the file is %s but Metadata calls the document %r; "
-                        "SKILL.md §2 asks for the two to match" % (Path(path).name, name))
+                        'SKILL.md ("Worklist and output initialization") asks '
+                        "for the two to match" % (Path(path).name, name))
 
     date = meta.get(_norm("date of source check"), "")
     if date and not re.match(r"^\d{4}-\d{2}-\d{2}", date):
@@ -312,7 +313,7 @@ def summarise(rows, report, final):
     if checked.get("no"):
         message = ("%d row(s) still have checked = no" % checked["no"])
         if final:
-            report.bad("unchecked", 0, message + "; §16 requires this to be 0")
+            report.bad("unchecked", 0, message + "; the final verification requires this to be 0")
         else:
             report.note(message + " (still to do)")
 
@@ -364,7 +365,7 @@ def main(argv=None):
     v = sub.add_parser("validate", help="check a worklist against the row invariants")
     v.add_argument("path")
     v.add_argument("--final", action="store_true",
-                   help="also apply the §16 end-of-job rules (no row may be "
+                   help="also apply the end-of-job rules of the final verification step (no row may be "
                         "left unchecked)")
     v.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args(argv)

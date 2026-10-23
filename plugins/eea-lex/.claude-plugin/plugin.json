@@ -1,6 +1,6 @@
 {
   "name": "eea-lex",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "EEA-Lex: EEA status of EU acts, EEA Joint Committee Decisions and the current EEA Agreement texts, from EFTA",
   "author": {
     "name": "Stian Øby Johansen",

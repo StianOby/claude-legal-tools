@@ -15,6 +15,12 @@ EFTA's own sources on www.efta.int:
   adaptations and the footnote naming the JCD.
 - **Article 103**: JCDs waiting for an EFTA State's constitutional
   requirements.
+- **Norwegian and Icelandic text of EU acts** (EUR-Lex has neither): the
+  translation EFTA links, an article or a phrase in it. The output says
+  whether it is the EEA Supplement as printed (with its page numbers) or
+  EFTA's consolidated text, and as of which date.
+
+Used by `kildesjekk` (its EEA step) only for what EUR-Lex does not hold.
 
 See `SKILL.md` for the workflow. Quick test:
 
@@ -23,6 +29,7 @@ python3 scripts/eea_lex.py factsheet "Regulation 2016/679"
 python3 scripts/eea_lex.py jcd 154/2018
 python3 scripts/eea_lex.py agreement annex XI --find 32016R0679
 python3 scripts/eea_lex.py pending103 --state NO
+python3 scripts/eea_lex.py translation 32016R0679 --article 6
 ```
 
 ## Layout
