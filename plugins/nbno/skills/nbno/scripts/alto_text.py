@@ -18,14 +18,18 @@ to the physical size ALTO records, the same thing nb.no's own "PDF with text"
 downloads contain. The page images are not touched, so shrink_pdf.py works
 on the result as usual.
 
-The text layer uses Helvetica with WinAnsi encoding and a flat 500-unit
-width for every glyph, so a word is stretched to its box with Tz without
-needing font metrics. Characters outside WinAnsi (Greek, for instance)
-become "?" in the text layer.
+The text layer uses an embedded glyphless Type0 font (Identity-H, a
+ToUnicode map back to Unicode) with a flat 500-unit width, so a word is
+stretched to its box with Tz without needing font metrics, and every ALTO
+character reaches the text layer as it is, Sámi and Greek included. (Up to
+nbno 1.4.7 a WinAnsi Helvetica turned anything outside cp1252 into "?".)
+The text is invisible, so no glyph is ever drawn from the font.
 """
 from __future__ import annotations
 
+import base64
 import xml.etree.ElementTree as ET
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -41,6 +45,19 @@ _UNIT_TO_PT = {"mm10": 72 / 254, "inch1200": 72 / 1200}
 
 _FONT_NAME = "/FNbAlto"
 _GLYPH_WIDTH = 0.5   # every glyph is 500/1000 em wide in our font dict
+
+# A TrueType font with one empty glyph, 500 of 1000 units wide (built with
+# fontTools' FontBuilder; zlib + base64). Embedded so no viewer looks for a
+# font it does not have; every CID maps to this glyph, the way Tesseract's
+# GlyphLessFont does it.
+_GLYPHLESS_TTF_Z = base64.b64decode(
+    "eNqVUL1OwzAYPCdB/MPC0DJlYGAoIKGqExILpEslpDIwUquEZEiaKEmlZkNMDB3gCeABeAAGBp6E"
+    "CUHZC2u5OKHQioWzvs++s325GALAAi6gwzw63tk9eD40AbFJtdX2ZYglWOR98orjpedQEI9Zc215"
+    "tlU6ueP6nlVzKejv4pPrF9aG6yc9MVTnr9gML2jL4v5Dxn3ZC6FxQMyRmx3p2+XbcpX8iTwKgzhh"
+    "LkKrZn7IsrIubyqvp6t7H9D1Qbb7JhZbv+cCeuacf45EnczT5MoExLd3AQ3T0MVQXGMGBv6JfaKw"
+    "GPz0CZjjZJrKDayxCzUbKCldJRqNVE2mN1ArFIHl8V9omCWjizFPZT135FrDCrbrXhq6DTuOraCT"
+    "NG2n68kIdXhIEcJFAzZiDgsBOkjQJHfQ5b5E9OfrTL8mvgAltEKU"
+)
 
 
 class AltoPage:
@@ -147,11 +164,41 @@ def fetch_alto_pages(urn: str, canvases: List[str], read: Callable[[str], bytes]
     return out
 
 
-def _pdf_hex(text: str) -> str:
-    return "<" + text.encode("cp1252", errors="replace").hex() + ">"
+def _extra_cids(altos) -> Dict[str, int]:
+    """CIDs for the characters outside the BMP (two UTF-16 units, so no
+    one-to-one CID): numbered from 0xD800, a range no BMP character uses."""
+    chars = sorted({c for a in altos for _lv, _lh, words in a.lines
+                    for *_box, t in words for c in t if ord(c) > 0xFFFF})
+    return {c: 0xD800 + i for i, c in enumerate(chars[:0x800])}
 
 
-def _text_ops(page: AltoPage, w_pt: float, h_pt: float) -> bytes:
+def _pdf_hex(text: str, extra: Dict[str, int]) -> str:
+    # Identity-H: one 2-byte CID per character, the CID being the code point
+    # (or its slot in `extra`); the ToUnicode map turns it back.
+    return "<" + "".join("%04x" % (ord(c) if ord(c) <= 0xFFFF else extra.get(c, 0xFFFD))
+                         for c in text) + ">"
+
+
+def _to_unicode(extra: Dict[str, int]) -> bytes:
+    """ToUnicode CMap: CID n → U+n for the BMP (bfrange entries may only
+    vary in the last byte, so one per high byte), plus `extra`."""
+    ranges = [f"<{h:02x}00> <{h:02x}ff> <{h:02x}00>" for h in range(256) if not 0xD8 <= h <= 0xDF]
+    chars = [f"<{cid:04x}> <{c.encode('utf-16-be').hex()}>" for c, cid in extra.items()]
+    out = ["/CIDInit /ProcSet findresource begin", "12 dict begin", "begincmap",
+           "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def",
+           "/CMapName /Adobe-Identity-UCS def", "/CMapType 2 def",
+           "1 begincodespacerange", "<0000> <ffff>", "endcodespacerange"]
+    for i in range(0, len(ranges), 100):
+        block = ranges[i:i + 100]
+        out += [f"{len(block)} beginbfrange", *block, "endbfrange"]
+    for i in range(0, len(chars), 100):
+        block = chars[i:i + 100]
+        out += [f"{len(block)} beginbfchar", *block, "endbfchar"]
+    out += ["endcmap", "CMapName currentdict /CMap defineresource pop", "end", "end"]
+    return ("\n".join(out) + "\n").encode("ascii")
+
+
+def _text_ops(page: AltoPage, w_pt: float, h_pt: float, extra: Dict[str, int]) -> bytes:
     sx, sy = w_pt / page.width, h_pt / page.height
     ops = ["BT", "3 Tr"]
     for lv, lh, words in page.lines:
@@ -166,7 +213,7 @@ def _text_ops(page: AltoPage, w_pt: float, h_pt: float) -> bytes:
             if i + 1 < len(words):
                 t += " "
             ops.append(f"{_FONT_NAME} {fs:.2f} Tf {tz:.1f} Tz "
-                       f"1 0 0 1 {x * sx:.2f} {baseline:.2f} Tm {_pdf_hex(t)} Tj")
+                       f"1 0 0 1 {x * sx:.2f} {baseline:.2f} Tm {_pdf_hex(t, extra)} Tj")
     ops.append("ET")
     return ("\n".join(ops) + "\n").encode("ascii")
 
@@ -181,13 +228,29 @@ def apply_alto(pdf_path, page_canvases: List[Optional[str]],
     "words", "resized"}.
     """
     import pikepdf
-    from pikepdf import Array, Dictionary, Name
+    from pikepdf import Array, Dictionary, Name, Stream, String
 
     pdf = pikepdf.open(str(pdf_path), allow_overwriting_input=True)
+    extra = _extra_cids(altos.values())
+    width = int(_GLYPH_WIDTH * 1000)
+    ttf = Stream(pdf, _GLYPHLESS_TTF_Z, Filter=Name.FlateDecode,
+                 Length1=len(zlib.decompress(_GLYPHLESS_TTF_Z)))
+    descriptor = Dictionary(
+        Type=Name.FontDescriptor, FontName=Name.GlyphLessFont, Flags=4,
+        FontBBox=Array([0, 0, width, 1000]), ItalicAngle=0, Ascent=1000,
+        Descent=0, CapHeight=1000, StemV=80, FontFile2=pdf.make_indirect(ttf),
+    )
+    cid_to_gid = Stream(pdf, zlib.compress(bytes(2 * 65536), 9), Filter=Name.FlateDecode)
+    cidfont = Dictionary(
+        Type=Name.Font, Subtype=Name.CIDFontType2, BaseFont=Name.GlyphLessFont,
+        CIDSystemInfo=Dictionary(Registry=String("Adobe"), Ordering=String("Identity"), Supplement=0),
+        FontDescriptor=pdf.make_indirect(descriptor), DW=width,
+        CIDToGIDMap=pdf.make_indirect(cid_to_gid),
+    )
     font = pdf.make_indirect(Dictionary(
-        Type=Name.Font, Subtype=Name.Type1, BaseFont=Name.Helvetica,
-        Encoding=Name.WinAnsiEncoding, FirstChar=32, LastChar=255,
-        Widths=Array([int(_GLYPH_WIDTH * 1000)] * 224),
+        Type=Name.Font, Subtype=Name.Type0, BaseFont=Name.GlyphLessFont,
+        Encoding=Name("/Identity-H"), DescendantFonts=Array([pdf.make_indirect(cidfont)]),
+        ToUnicode=pdf.make_stream(_to_unicode(extra)),
     ))
     stats = {"pages_with_text": 0, "words": 0, "resized": 0}
     for page, canvas in zip(pdf.pages, page_canvases):
@@ -214,7 +277,7 @@ def apply_alto(pdf_path, page_canvases: List[Optional[str]],
         if not alto.lines:
             continue
         page.add_resource(font, Name.Font, Name(_FONT_NAME))
-        page.contents_add(pdf.make_stream(_text_ops(alto, w_pt, h_pt)))
+        page.contents_add(pdf.make_stream(_text_ops(alto, w_pt, h_pt, extra)))
         stats["pages_with_text"] += 1
         stats["words"] += alto.words
     pdf.save(str(pdf_path))
