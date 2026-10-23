@@ -68,6 +68,8 @@ check("subheading kept", "### Kort om prosjektet" in body, True)
 check("no metadata in body", "Person A" in body or "Last ned PDF" in body, False)
 check("no nbsp", "\xa0" in body or " " in body, False)
 
+check("soft hyphen kept", nem.html_to_md("<p>helse&shy;undersøkelsene</p>"), "helse\xadundersøkelsene\n")
+
 print("decision page (older formats)")
 meta, body = nem.parse_page(fixture("vedtak_2010-202_ii.html"), nem.LIST_URL + "laring-av-feil-ved-legevakt-ii/")
 check("saksnr", meta["saksnr"], "2010/202")
@@ -154,8 +156,20 @@ with tempfile.TemporaryDirectory() as d:
     out = run("sync", "--dir", d, "--no-facets")
     check("changed lastmod refetched", [c for c in calls if c.endswith(B + "/")], [nem.LIST_URL + B + "/"])
 
+    idx = json.loads((Path(d) / "index.json").read_text(encoding="utf-8"))
+    del idx["vedtak"][A]["text_format"]  # as written by 0.3.5 and older
+    (Path(d) / "index.json").write_text(json.dumps(idx), encoding="utf-8")
+    calls.clear()
+    out = run("sync", "--dir", d, "--no-facets")
+    check("older text format refetched", [c for c in calls if c.endswith("/") and c != nem.LIST_URL],
+          [nem.LIST_URL + A + "/"])
+
+    fa = Path(d) / "vedtak" / "2026-052_faktoranalyse-av-core-om.md"
+    fa.write_text(fa.read_text(encoding="utf-8").replace("pasientgruppe", "pasient\xadgruppe"), encoding="utf-8")
     out = json.loads(run("search", "--dir", d, "sårbar   pasientgruppe", "--json"))
-    check("phrase across whitespace", [h["saksnr"] for h in out["hits"]], ["2026/52"])
+    check("phrase across whitespace and soft hyphen", [h["saksnr"] for h in out["hits"]], ["2026/52"])
+    out = json.loads(run("search", "--dir", d, "--regex", r"sårbar\s+pasientgruppe", "--json"))
+    check("regex across soft hyphen", [h["saksnr"] for h in out["hits"]], ["2026/52"])
     out = json.loads(run("search", "--dir", d, "nem la vekt", "--json", "--snippets", "1"))
     snip = out["hits"][0]["snippets"][0]
     check("snippet keeps case + section", (snip["section"], "NEM la vekt" in snip["text"]), ("Sammendrag", True))

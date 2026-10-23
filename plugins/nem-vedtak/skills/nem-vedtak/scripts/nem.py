@@ -41,8 +41,12 @@ BASE = "https://www.forskningsetikk.no"
 LIST_PATH = "/om-oss/komiteer-og-utvalg/nem/sok-i-nems-vedtak/"
 LIST_URL = BASE + LIST_PATH
 SITEMAP_URL = BASE + "/sitemaps/forskningsetikk/no/content.xml"
-UA = "nem-vedtak-skill/0.3.5 (+https://github.com/StianOby/claude-legal-tools)"
+UA = "nem-vedtak-skill/0.3.6 (+https://github.com/StianOby/claude-legal-tools)"
 PAGE_SIZE = 10
+# How a decision's text is converted. A decision in the copy with another
+# (or no) text_format is fetched again on the next sync. 2 (0.3.6): soft
+# hyphens are kept, PDF text keeps its printed lines (pdftotext -raw).
+TEXT_FORMAT = 2
 
 # List-page filter parameter -> front-matter key. Institusjon (ni) and
 # Førsteinstans (nfi) are on the decision pages themselves.
@@ -94,7 +98,7 @@ def list_url(params):
 # ---------------------------------------------------------------- parsing
 
 def clean(s):
-    s = html.unescape(s).replace("\xa0", " ").replace(" ", " ").replace("\xad", "")
+    s = html.unescape(s).replace("\xa0", " ").replace(" ", " ")
     return re.sub(r"[ \t\r\f\v]+", " ", s).strip()
 
 
@@ -280,9 +284,11 @@ def sections(body):
 # ---------------------------------------------------------------- sync
 
 def pdf_text(pdf_path):
+    # -raw: the default mode joins each paragraph into one line and drops a
+    # hyphen at a line break even where the word has one ("non-\nprofit").
     if not shutil.which("pdftotext"):
         return None
-    r = subprocess.run(["pdftotext", "-enc", "UTF-8", str(pdf_path), "-"],
+    r = subprocess.run(["pdftotext", "-raw", "-enc", "UTF-8", str(pdf_path), "-"],
                        capture_output=True, text=True, encoding="utf-8")
     return r.stdout if r.returncode == 0 else None
 
@@ -394,6 +400,7 @@ def cmd_sync(a):
 
     todo = [s for s, v in sm.items()
             if a.force or s not in ved or ved[s].get("lastmod") != v["lastmod"]
+            or ved[s].get("text_format") != TEXT_FORMAT
             or not (root / "vedtak" / ved[s]["file"]).exists()]
     done, failed, timed_out, seen = 0, [], False, set()
 
@@ -407,7 +414,7 @@ def cmd_sync(a):
         (root / "vedtak" / fn).write_text(render_md(meta, body), encoding="utf-8")
         if old and old != fn:
             print(f"note: {old} renamed to {fn}; the old file is left in place")
-        ved[slug] = {k: meta.get(k) for k in FM_ORDER} | {"file": fn}
+        ved[slug] = {k: meta.get(k) for k in FM_ORDER} | {"file": fn, "text_format": TEXT_FORMAT}
 
     with ThreadPoolExecutor(a.workers) as ex:
         futs = {ex.submit(fetch_decision, s, sm[s]["url"], root): s for s in todo}
@@ -547,7 +554,9 @@ def cmd_search(a):
             continue
         if not all(field_ok(meta, k, n) for k, n in filters):
             continue
-        secs = [(h, t) for h, t in sections(body)
+        # The text keeps the site's soft hyphens ("helse\xadundersøkelsene");
+        # search it without them so a typed word matches.
+        secs = [(h, t.replace("\xad", "")) for h, t in sections(body)
                 if not a.section or norm(a.section) in norm(h)]
         if a.section and not secs:
             continue
