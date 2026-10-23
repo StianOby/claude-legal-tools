@@ -148,5 +148,5 @@ full citation graph.
   the metadata is sparse; use `languageisocode` to filter and accept
   that some fields will be empty.
 - Pinpoint paragraph anchors inside the rendered HTML view are not in
-  the JSON API. Use the extracted DOCX text and grep for `^N\.` to find
+  the JSON API. Use the extracted text and grep for `^N\.` to find
   paragraph N.

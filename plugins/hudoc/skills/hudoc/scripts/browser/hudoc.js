@@ -7,7 +7,7 @@
 // plain JSON-serialisable objects no larger than PAGE_SIZE characters, and
 // never throw to the caller — errors come back as
 // {error: 'wrong_origin' | 'challenge' | 'http_<n>' | 'fetch_failed' |
-//         'not_json' | 'no_match' | 'no_docx' | 'bad_docx' | 'not_loaded' |
+//         'not_json' | 'no_match' | 'no_html' | 'bad_html' | 'not_loaded' |
 //         'not_found', detail}.
 //
 // Why a browser helper: HUDOC sits behind Cloudflare, which answers a script
@@ -19,9 +19,10 @@
 // one comes back anyway.
 //
 // It mirrors scripts/hudoc.py: the same query endpoint and field list, the
-// same resolve() scoring, and the same DOCX-to-text conversion (paragraphs
-// separated by a blank line, footnotes as [fn N] plus a FOOTNOTES block), so
-// text read here and text read from the CLI cache match line for line.
+// same resolve() scoring, and the same HTML-to-text conversion of the page
+// HUDOC's reading view shows (paragraphs separated by a blank line, footnotes
+// as [fn N] plus a FOOTNOTES block), so text read here and text read from
+// the CLI cache match line for line.
 //
 // Also exported for Node (CommonJS) so the pure parts can be unit-tested —
 // see the repo's tests/hudoc/test_browser.js.
@@ -31,7 +32,7 @@
 // the tab — pasted before a skill update — is replaced, dropping its cache;
 // the same version is left alone.
 (function (root) {
-  const HELPER_VERSION = '1.2.4';
+  const HELPER_VERSION = '1.3.0';
   if (root.window && root.window.__hd && root.window.__hd.VERSION === HELPER_VERSION) return;
 
   const api = (() => {
@@ -40,8 +41,11 @@
     const PAGE_SIZE = 45000;
     const ORIGIN = 'https://hudoc.echr.coe.int';
     const QUERY_PATH = '/app/query/results';
-    const DOCX_PATH = '/app/conversion/docx/';
+    const HTML_PATH = '/app/conversion/docx/html/body';
     const WEB_URL = ORIGIN + '/eng?i=';
+    // Direct link to the official PDF (see pdf_url in hudoc.py): the way to
+    // hand the user a PDF copy, opened in their own browser.
+    const pdfUrl = (id) => `${ORIGIN}/app/conversion/pdf/?library=ECHR&id=${encodeURIComponent(id)}&filename=${encodeURIComponent(id)}.pdf`;
     const SITE_FILTER = '(contentsitename=ECHR)';
 
     const DEFAULT_FIELDS = [
@@ -329,112 +333,157 @@
       return out;
     }
 
-    // --- DOCX -> text (mirrors docx_to_text in scripts/hudoc.py) -------------
+    // --- HTML -> text (mirrors html_to_text in scripts/hudoc.py) ------------
 
-    // Minimal ZIP reader: the central directory gives each entry's method and
-    // sizes (the local headers of streamed zips may carry zeros), the local
-    // header gives where the data starts. Deflate goes through the browser's
-    // own DecompressionStream.
-    async function unzipEntries(buf, wanted) {
-      const bytes = new Uint8Array(buf);
-      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      let eocd = -1;
-      for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
-        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-      }
-      if (eocd < 0) throw new Error('no end-of-central-directory record');
-      const count = dv.getUint16(eocd + 10, true);
-      let p = dv.getUint32(eocd + 16, true);
-      const out = {};
-      const dec = new TextDecoder('utf-8');
-      for (let n = 0; n < count; n++) {
-        if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('bad central directory entry');
-        const method = dv.getUint16(p + 10, true);
-        const csize = dv.getUint32(p + 20, true);
-        const nameLen = dv.getUint16(p + 28, true);
-        const extraLen = dv.getUint16(p + 30, true);
-        const commentLen = dv.getUint16(p + 32, true);
-        const local = dv.getUint32(p + 42, true);
-        const name = dec.decode(bytes.subarray(p + 46, p + 46 + nameLen));
-        p += 46 + nameLen + extraLen + commentLen;
-        if (!wanted.includes(name)) continue;
-        const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
-        const data = bytes.subarray(start, start + csize);
-        if (method === 0) out[name] = dec.decode(data);
-        else if (method === 8) {
-          const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-          out[name] = dec.decode(await new Response(stream).arrayBuffer());
-        } else throw new Error(`unsupported compression method ${method} for ${name}`);
-      }
-      return out;
-    }
+    // Both sides walk the markup with the same token regex, not a DOM, so the
+    // text matches character for character (and Node can test it).
+    const HTML_TOKEN_RE = /<!--[\s\S]*?-->|<(\/?)([A-Za-z][\w:.-]*)([^>]*?)(\/?)>|([^<]+)/g;
+    const HTML_BLOCK = new Set(['p', 'div', 'li', 'tr', 'td', 'th', 'table', 'hr', 'ol', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+    const HTML_NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: String.fromCharCode(0xa0) };
+    // Whitespace (non-breaking spaces included: hudoc's documented exception,
+    // see _TEXT_FIXES in hudoc.py), and Word Symbol/Wingdings characters
+    // (private-use code points) used for bullets and footnote marks; nothing
+    // else is changed.
+    // Same table as _TEXT_FIXES in hudoc.py.
+    const TEXT_FIXES = new Map([
+      [0xa0, ' '], [0x09, ' '], [0x0d, ' '],
+      [0xf02a, '*'], [0xf09f, '•'], [0xf0a7, '▪'], [0xf0b7, '•'], [0xf0d8, '➢'], [0xf0fc, '✓'],
+    ]);
+    const ROMAN = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+      [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
 
-    function xmlUnescape(s) {
-      return s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, e) => {
+    function htmlUnescape(s) {
+      return s.replace(/&(#[xX][0-9a-fA-F]+|#\d+|[A-Za-z]+);/g, (m, e) => {
         if (e[0] === '#') return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10));
-        return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[e.toLowerCase()];
+        const named = HTML_NAMED[e.toLowerCase()];
+        return named === undefined ? m : named;
       });
     }
 
-    // Walks WordprocessingML as a token stream. Text comes only from <w:t>;
-    // <w:tab/> is a space; a footnote reference with id > 0 becomes " [fn N]";
-    // a paragraph nested inside another (text box) joins the outer one, as
-    // ElementTree's iter() does in the Python version. Returns
-    // [{text, footnote}] per top-level paragraph, `footnote` being the id of
-    // the enclosing <w:footnote> (null in the document body).
-    function wordParagraphs(xml) {
-      const re = /<(\/?)([A-Za-z][\w:.-]*)([^>]*?)(\/?)>|([^<]+)/g;
-      const paras = [];
-      let depth = 0; let inT = false; let parts = []; let footnote = null;
+    function attr(attrs, name) {
+      const m = attrs.match(new RegExp('\\b' + name + '="([^"]*)"'));
+      return m ? m[1] : null;
+    }
+
+    function listLabel(n, kind) {
+      if (kind === 'I' || kind === 'i') {
+        let out = '';
+        for (const [value, numeral] of ROMAN) {
+          while (n >= value) { out += numeral; n -= value; }
+        }
+        return kind === 'I' ? out : out.toLowerCase();
+      }
+      if (kind === 'A' || kind === 'a') {
+        let out = '';
+        while (n > 0) {
+          const r = (n - 1) % 26;
+          n = Math.floor((n - 1) / 26);
+          out = String.fromCharCode(kind.charCodeAt(0) + r) + out;
+        }
+        return out;
+      }
+      return String(n);
+    }
+
+    function cleanBlock(s) {
+      let fixed = '';
+      for (const ch of s) {
+        const r = TEXT_FIXES.get(ch.codePointAt(0));
+        fixed += r === undefined ? ch : r;
+      }
+      return fixed.split('\n').map((line) => line.replace(/ {2,}/g, ' ').replace(/^ +| +$/g, '')).filter(Boolean).join('\n');
+    }
+
+    // One block per paragraph, blocks separated by a blank line, <br> kept as
+    // a single newline; <ol start="2" type="I"> numbers written out; footnote
+    // references as " [fn N]" with N the label as printed, and the notes
+    // under a FOOTNOTES heading.
+    function htmlToText(html) {
+      const blocks = [];
+      const notes = new Map();
+      let parts = [];
+      const lists = [];
+      let divs = 0; let note = null; let noteDepth = 0; let skip = 0;
+      let ref = null; let refText = [];
+      const printed = new Map(); // footnote id -> its printed label
+      const NUL = String.fromCharCode(0); const SOH = String.fromCharCode(1);
+      const flush = () => {
+        const text = cleanBlock(parts.join(''));
+        parts = [];
+        if (!text) return;
+        if (note) {
+          if (!notes.has(note)) notes.set(note, []);
+          notes.get(note).push(text);
+        } else blocks.push(text);
+      };
+      HTML_TOKEN_RE.lastIndex = 0;
       let m;
-      while ((m = re.exec(xml))) {
+      while ((m = HTML_TOKEN_RE.exec(html))) {
         if (m[5] !== undefined) {
-          if (inT && depth > 0) parts.push(xmlUnescape(m[5]));
+          if (skip) continue;
+          const text = htmlUnescape(m[5].replace(/[\r\n]+/g, ' '));
+          (ref ? refText : parts).push(text);
           continue;
         }
-        const closing = m[1] === '/'; const tag = m[2]; const attrs = m[3]; const selfClosing = m[4] === '/';
-        if (tag === 'w:p') {
+        if (m[2] === undefined) continue; // comment
+        const closing = m[1] === '/'; const tag = m[2].toLowerCase(); const attrs = m[3];
+        if (tag === 'style' || tag === 'script') { skip += closing ? -1 : 1; continue; }
+        if (tag === 'a') {
           if (closing) {
-            depth -= 1;
-            if (depth === 0) { paras.push({ text: parts.join('').trim(), footnote }); parts = []; }
-          } else if (!selfClosing) depth += 1;
-        } else if (tag === 'w:t') {
-          inT = !closing && !selfClosing;
-        } else if (tag === 'w:tab' && depth > 0 && !closing) {
-          parts.push(' ');
-        } else if (tag === 'w:footnoteReference' && depth > 0) {
-          const id = (attrs.match(/w:id="(-?\d+)"/) || [])[1];
-          if (id && Number(id) > 0) parts.push(` [fn ${id}]`);
-        } else if (tag === 'w:footnote') {
-          if (closing) footnote = null;
-          else footnote = Number((attrs.match(/w:id="(-?\d+)"/) || [])[1]);
+            if (ref) {
+              const label = cleanBlock(refText.join('')).replace(/^\[+|\]+$/g, '').replace(/^ +| +$/g, '');
+              if (label && !printed.has(ref)) printed.set(ref, label);
+            }
+            ref = null;
+            continue;
+          }
+          const href = attr(attrs, 'href') || '';
+          const r = href.match(/^#_ftn(?:ref)?(\d+)$/);
+          if (r) {
+            ref = r[1]; refText = [];
+            // Placeholder for the body marker; the label is only final once
+            // every footnote has been seen.
+            if (!href.startsWith('#_ftnref')) parts.push(' ' + NUL + ref + SOH);
+          }
+          continue;
+        }
+        if (tag === 'br') { parts.push('\n'); continue; }
+        if (!HTML_BLOCK.has(tag)) continue;
+        flush();
+        if (tag === 'div') {
+          if (closing) {
+            divs -= 1;
+            if (note && divs < noteDepth) note = null;
+          } else {
+            divs += 1;
+            const id = (attr(attrs, 'id') || '').match(/^_ftn(\d+)$/);
+            if (id) {
+              note = id[1]; noteDepth = divs;
+            }
+          }
+        } else if (tag === 'ol' || tag === 'ul') {
+          if (closing) lists.pop();
+          else {
+            const start = attr(attrs, 'start');
+            const kind = tag === 'ul' ? '•' : (attr(attrs, 'type') || '1');
+            lists.push([kind, start && /^\d+$/.test(start) ? Number(start) : 1]);
+          }
+        } else if (tag === 'li' && !closing && lists.length) {
+          const top = lists[lists.length - 1];
+          parts.push(top[0] === '•' ? '• ' : listLabel(top[1], top[0]) + '. ');
+          top[1] += 1;
         }
       }
-      return paras;
-    }
-
-    function docxXmlToText(documentXml, footnotesXml) {
-      const out = wordParagraphs(documentXml).map((p) => p.text).filter(Boolean);
-      const notes = [];
-      if (footnotesXml) {
-        const byId = new Map();
-        for (const p of wordParagraphs(footnotesXml)) {
-          if (!(p.footnote > 0)) continue; // separator / continuation pseudo-notes
-          if (!byId.has(p.footnote)) byId.set(p.footnote, []);
-          if (p.text) byId.get(p.footnote).push(p.text);
-        }
-        for (const [id, texts] of byId) {
-          if (texts.length) notes.push(`[fn ${id}] ${texts.join(' ')}`);
-        }
+      flush();
+      // The printed label; Word's footnote id only if none was printed.
+      const label = (id) => printed.get(id) || id;
+      const out = blocks.slice();
+      if (notes.size) {
+        out.push('FOOTNOTES');
+        for (const [id, texts] of notes) out.push(`[fn ${label(id)}] ${texts.join(' ')}`);
       }
-      if (notes.length) out.push('FOOTNOTES', ...notes);
-      return out.join('\n\n') + '\n';
-    }
-
-    async function docxToText(buf) {
-      const e = await unzipEntries(buf, ['word/document.xml', 'word/footnotes.xml']);
-      if (!e['word/document.xml']) throw new Error('no word/document.xml in the DOCX');
-      return docxXmlToText(e['word/document.xml'], e['word/footnotes.xml']);
+      const text = out.join('\n\n') + '\n';
+      return text.replace(new RegExp(NUL + '([0-9]+)' + SOH, 'g'), (_, id) => `[fn ${label(id)}]`);
     }
 
     // --- numbered paragraphs ------------------------------------------------
@@ -481,7 +530,7 @@
       if (bad) return bad;
       const r = await resolveRow(ref, { ...opts, fields: SEARCH_FIELDS.concat(['ecli', 'article']) });
       if (r.error) return r;
-      return { ...r.row, source_url: WEB_URL + r.row.itemid };
+      return { ...r.row, source_url: WEB_URL + r.row.itemid, pdf_url: pdfUrl(r.row.itemid) };
     }
 
     async function metadata(ref, opts = {}) {
@@ -489,7 +538,7 @@
       if (bad) return bad;
       const r = await resolveRow(ref, opts);
       if (r.error) return r;
-      return fitRow({ ...r.row, source_url: WEB_URL + r.row.itemid });
+      return fitRow({ ...r.row, source_url: WEB_URL + r.row.itemid, pdf_url: pdfUrl(r.row.itemid) });
     }
 
     async function citations(ref, opts = {}) {
@@ -501,7 +550,7 @@
       return fitRows({ itemid: r.row.itemid, docname: r.row.docname, cited_count: cited.length, cited }, 'cited');
     }
 
-    // Fetch the official DOCX and convert it to text in the page. The text is
+    // Fetch the HTML of HUDOC's reading view and convert it to text in the page. The text is
     // cached here by itemid; read it with page(), grep() and paragraph().
     async function load(ref, opts = {}) {
       const bad = checkOrigin();
@@ -516,25 +565,23 @@
       }
       const id = meta.itemid;
       if (!cache.items[id]) {
-        const url = `${DOCX_PATH}?library=ECHR&id=${encodeURIComponent(id)}&filename=${encodeURIComponent(id)}.docx`;
-        let res, buf;
+        const url = `${HTML_PATH}?library=ECHR&id=${encodeURIComponent(id)}`;
+        let res, body;
         try {
           res = await deps.fetch(url, { credentials: 'include' });
-          buf = await res.arrayBuffer();
+          body = await res.text();
         } catch (e) {
           return { error: 'fetch_failed', detail: String((e && e.message) || e) };
         }
-        const head = new Uint8Array(buf.slice(0, 2));
-        if (!(res.ok && head[0] === 0x50 && head[1] === 0x4b)) {
-          const text = new TextDecoder().decode(new Uint8Array(buf.slice(0, 4000)));
-          if (isChallenge(res.status, text)) return { error: 'challenge', detail: 'Cloudflare "Just a moment…" page' };
-          return { error: 'no_docx', detail: `HTTP ${res.status}, ${buf.byteLength} bytes, not a DOCX — HUDOC may hold this item as PDF only (${WEB_URL + id})` };
+        if (isChallenge(res.status, body)) return { error: 'challenge', detail: 'Cloudflare "Just a moment…" page' };
+        if (!(res.ok && /<(?:p|div|li|td)[\s>]/.test(body))) {
+          return { error: 'no_html', detail: `HTTP ${res.status}, ${body.length} characters, no HTML text — HUDOC may hold this item as PDF only (${pdfUrl(id)})` };
         }
         let text;
         try {
-          text = await docxToText(buf);
+          text = htmlToText(body);
         } catch (e) {
-          return { error: 'bad_docx', detail: String((e && e.message) || e) };
+          return { error: 'bad_html', detail: String((e && e.message) || e) };
         }
         cache.items[id] = { meta, text };
       }
@@ -552,6 +599,7 @@
         numberedBlocks: numbered,
         pages: Math.ceil(text.length / PAGE_SIZE),
         source_url: WEB_URL + id,
+        pdf_url: pdfUrl(id),
       };
     }
 
@@ -579,7 +627,8 @@
       return out;
     }
 
-    // `term` is literal (spaces match any whitespace) unless regex = true.
+    // `term` is literal (spaces match any whitespace, a hyphen also a
+    // non-breaking one) unless regex = true.
     // Each hit carries the number of the judgment paragraph it falls in.
     async function grep(itemid, term, ctx = 400, max = 15, regex = false) {
       const bad = requireLoaded(itemid);
@@ -587,7 +636,10 @@
       const text = cache.items[itemid].text;
       let re;
       try {
-        const source = regex ? term : String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+        // The text keeps the Court's non-breaking hyphens: a typed "-"
+        // matches either.
+        const source = regex ? term : String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')
+          .replace(/-/g, '[-' + String.fromCharCode(0x2011) + ']');
         re = new RegExp(source, 'gi');
       } catch (e) {
         return { error: 'not_found', detail: `invalid regex: ${term}` };
@@ -652,7 +704,7 @@
       paragraph,
       // exposed for unit tests / debugging only:
       _deps: deps,
-      _internal: { referenceClause, appnosIn, respondentCode, nameMatches, scoreKey, compareKeys, parseScl, unzipEntries, wordParagraphs, docxXmlToText, docxToText, queryUrl, isChallenge, paragraphStarts },
+      _internal: { referenceClause, appnosIn, respondentCode, nameMatches, scoreKey, compareKeys, parseScl, htmlToText, queryUrl, isChallenge, paragraphStarts },
     };
   })();
 

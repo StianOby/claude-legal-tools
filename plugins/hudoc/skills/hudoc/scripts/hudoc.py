@@ -2,22 +2,26 @@
 """
 hudoc.py — Pure-HTTP CLI for the European Court of Human Rights HUDOC database.
 
-HUDOC has no official API documentation, but it exposes two stable endpoints
+HUDOC has no official API documentation, but it exposes stable endpoints
 (undocumented but used by every browser session against hudoc.echr.coe.int):
 
   GET /app/query/results       JSON metadata + Lucene-style search.
                                REQUIRES the X-Requested-With: XMLHttpRequest
                                header — the CDN serves a 404 without it.
-  GET /app/conversion/{docx,pdf}/?library=ECHR&id=<itemid>
-                               Document download. No auth needed.
+  GET /app/conversion/docx/html/body?library=ECHR&id=<itemid>
+                               The HTML HUDOC's reading view shows; the
+                               text source. No auth needed.
+  GET /app/conversion/pdf/?library=ECHR&id=<itemid>
+                               The official PDF; text fallback for
+                               PDF-only items. No auth needed.
 
 Subcommands:
   search    Lucene-style query, returns JSON list of itemids + metadata.
   resolve   Map a "human" reference (case name, application number) to an
             itemid. Pick the best language version + originating body.
   metadata  Full metadata for a known itemid or resolved reference.
-  fetch     Download the official PDF or DOCX, plus extract plain text from
-            the DOCX (no auth, no Selenium).
+  fetch     Extract the plain text of a judgment (from HUDOC's HTML, or the
+            PDF when there is no HTML), or download the official PDF.
   citations List every ECtHR case this judgment cites (parsed from the
             `scl` Strasbourg-case-law field).
   show      cat the cached extracted text of a previously fetched item.
@@ -39,6 +43,7 @@ artifact.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import re
@@ -49,11 +54,9 @@ import urllib.request
 import urllib.error
 import shutil
 import subprocess
-import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
-from xml.etree import ElementTree as ET
 
 # ---------------------------------------------------------------------------
 # Paths and constants
@@ -67,7 +70,10 @@ SEARCH_DIR = CACHE_DIR / "searches"
 BASE = "https://hudoc.echr.coe.int"
 QUERY_URL = f"{BASE}/app/query/results"
 PDF_URL = f"{BASE}/app/conversion/pdf/"
-DOCX_URL = f"{BASE}/app/conversion/docx/"
+# The HTML that HUDOC's own reading view shows. HUDOC renders it from the
+# DOCX with a full Word converter, so heading and list numbers, line breaks
+# and non-breaking hyphens come out right — the text source of choice.
+HTML_URL = f"{BASE}/app/conversion/docx/html/body"
 WEB_URL = f"{BASE}/eng?i="  # human-friendly URL Claude should cite
 
 # Cloudflare in front of HUDOC sometimes answers "Just a moment…" (HTTP 403)
@@ -78,7 +84,7 @@ WEB_URL = f"{BASE}/eng?i="  # human-friendly URL Claude should cite
 # string passes reliably, so _http_get() only detects a challenge and says so.
 # $HUDOC_USER_AGENT overrides the string.
 USER_AGENT = os.environ.get("HUDOC_USER_AGENT") or (
-    "hudoc-skill/0.2 (+https://github.com/StianOby/claude-legal-tools; legal research)"
+    "hudoc-skill/1.3.0 (+https://github.com/StianOby/claude-legal-tools)"
 )
 
 # Default field set: everything the HUDOC UI itself exposes for a result row,
@@ -158,6 +164,19 @@ def _write_text(p: Path, text: str) -> None:
 # HTTP plumbing
 # ---------------------------------------------------------------------------
 
+class ChallengeError(RuntimeError):
+    """HUDOC's Cloudflare answered with a "Just a moment…" page."""
+
+
+def _decoded(resp) -> bytes:
+    """Body of a response, un-gzipped if the server compressed it. The HTML
+    rendition of a judgment is about four times smaller gzipped."""
+    raw = resp.read()
+    if (resp.headers.get("Content-Encoding") or "").lower() == "gzip":
+        raw = gzip.decompress(raw)
+    return raw
+
+
 def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -> bytes:
     """GET with the magic XHR header. Returns raw bytes. Retries on 500 errors."""
     req = urllib.request.Request(
@@ -165,6 +184,7 @@ def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -
         headers={
             "User-Agent": USER_AGENT,
             "Accept": accept,
+            "Accept-Encoding": "gzip",
             "Referer": f"{BASE}/eng",
             # Without this header the CDN serves a 404 page for /app/query/*
             # and a few other endpoints. With it, the JSON API just works.
@@ -176,7 +196,7 @@ def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -
         attempt += 1
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
-                return resp.read()
+                return _decoded(resp)
         except urllib.error.HTTPError as e:
             # Retry on 500+ server errors; give up on client errors (4xx)
             if e.code >= 500 and attempt <= retries:
@@ -184,10 +204,10 @@ def _http_get(url: str, *, accept: str = "application/json", retries: int = 3) -
                 print(f"HTTP {e.code}, retrying in {wait}s ({attempt}/{retries})...", file=sys.stderr)
                 time.sleep(wait)
                 continue
-            raw = e.read()
+            raw = _decoded(e)
             if e.code == 403 and (b"Just a moment" in raw
                                   or (e.headers.get("cf-mitigated") or "").lower() == "challenge"):
-                raise RuntimeError(
+                raise ChallengeError(
                     "HUDOC answered with a Cloudflare challenge page (HTTP 403, "
                     "\"Just a moment…\"), not data. This is not a missing document: "
                     "try again in a few minutes, and tell the user if it persists."
@@ -552,11 +572,20 @@ def _load_metadata(itemid: str) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Document download (PDF / DOCX / extracted text)
+# Document download (PDF / HTML / extracted text)
 # ---------------------------------------------------------------------------
 
 def _download(url: str) -> bytes:
     return _http_get(url, accept="*/*")
+
+
+def pdf_url(itemid: str) -> str:
+    """Direct link to the official PDF. Opened in the user's own browser,
+    which HUDOC's Cloudflare lets through, it saves the file as
+    <itemid>.pdf — the way to hand over a PDF when the script is challenged."""
+    return PDF_URL + "?" + urllib.parse.urlencode(
+        {"library": "ECHR", "id": itemid, "filename": f"{itemid}.pdf"}
+    )
 
 
 def fetch_pdf(itemid: str) -> Path:
@@ -566,14 +595,7 @@ def fetch_pdf(itemid: str) -> Path:
     p = _item_dir(itemid) / "judgment.pdf"
     if _has_content(p):
         return p
-    url = (
-        PDF_URL
-        + "?"
-        + urllib.parse.urlencode(
-            {"library": "ECHR", "id": itemid, "filename": f"{itemid}.pdf"}
-        )
-    )
-    data = _download(url)
+    data = _download(pdf_url(itemid))
     if not data.startswith(b"%PDF"):
         raise RuntimeError(
             f"HUDOC returned no PDF for {itemid} ({len(data)} bytes, "
@@ -583,96 +605,195 @@ def fetch_pdf(itemid: str) -> Path:
     return p
 
 
-def fetch_docx(itemid: str) -> Path:
-    """Download the official DOCX; validated as a real ZIP container before
-    caching so an HTML error page can never poison later runs."""
-    p = _item_dir(itemid) / "judgment.docx"
+def fetch_html(itemid: str) -> Path:
+    """Download the HTML rendition HUDOC's reading view shows. The endpoint
+    answers 204 with an empty body when the item has none (PDF-only items),
+    so anything that is not markup is refused before it is cached."""
+    p = _item_dir(itemid) / "judgment.html"
     if _has_content(p):
-        if zipfile.is_zipfile(p):
-            return p
-        p.unlink()  # stale invalid cache entry from an older version
-    url = (
-        DOCX_URL
-        + "?"
-        + urllib.parse.urlencode(
-            {"library": "ECHR", "id": itemid, "filename": f"{itemid}.docx"}
-        )
-    )
+        return p
+    url = HTML_URL + "?" + urllib.parse.urlencode({"library": "ECHR", "id": itemid})
     data = _download(url)
-    if not data.startswith(b"PK"):
+    if not re.search(rb"<(?:p|div|li|td)[\s>]", data[:200000]):
         raise RuntimeError(
-            f"HUDOC returned no DOCX for {itemid} ({len(data)} bytes, "
+            f"HUDOC returned no HTML for {itemid} ({len(data)} bytes, "
             f"starts {data[:20]!r})"
         )
     _write_bytes(p, data)
     return p
 
 
-def docx_to_text(docx_path: Path) -> str:
+# --- HTML -> text (mirrored by htmlToText in scripts/browser/hudoc.js) -----
+#
+# The two must give the same text, character for character, so both walk the
+# markup with the same token regex instead of a real HTML parser (re.A: JS
+# regexes treat \d and \w as ASCII).
+
+_HTML_TOKEN = re.compile(r"<!--[\s\S]*?-->|<(/?)([A-Za-z][\w:.-]*)([^>]*?)(/?)>|([^<]+)", re.A)
+_HTML_BLOCK = {"p", "div", "li", "tr", "td", "th", "table", "hr", "ol", "ul",
+               "h1", "h2", "h3", "h4", "h5", "h6"}
+_HTML_NAMED = {"amp": "&", "lt": "<", "gt": ">", "quot": '"', "apos": "'", "nbsp": chr(0xA0)}
+# The text keeps the Court's characters, non-breaking hyphens and soft
+# hyphens included. Whitespace collapses as in a browser, and non-breaking
+# spaces become plain ones: a documented exception to the repo's rule, since
+# most of them only imitate Word's tabs (docs/hudoc.md). Characters from
+# Word's Symbol/Wingdings fonts, which arrive as private-use code points,
+# become the glyph a reader sees; these are the ones judgments use for
+# bullets and footnote marks.
+_SYMBOL_CHARS = {0xF02A: "*", 0xF09F: "•", 0xF0A7: "▪", 0xF0B7: "•", 0xF0D8: "➢", 0xF0FC: "✓"}
+_TEXT_FIXES = {0xA0: " ", 0x09: " ", 0x0D: " ", **_SYMBOL_CHARS}
+
+
+def _html_unescape(s: str) -> str:
+    def one(m: re.Match) -> str:
+        e = m.group(1)
+        if e[0] == "#":
+            return chr(int(e[2:], 16) if e[1] in "xX" else int(e[1:]))
+        return _HTML_NAMED.get(e.lower(), m.group(0))
+    return re.sub(r"&(#[xX][0-9a-fA-F]+|#\d+|[A-Za-z]+);", one, s, flags=re.A)
+
+
+def _attr(attrs: str, name: str) -> Optional[str]:
+    m = re.search(r"\b" + name + r'="([^"]*)"', attrs, re.A)
+    return m.group(1) if m else None
+
+
+def _list_label(n: int, kind: str) -> str:
+    if kind in ("I", "i"):
+        out = ""
+        for value, numeral in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+                               (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")):
+            while n >= value:
+                out += numeral
+                n -= value
+        return out if kind == "I" else out.lower()
+    if kind in ("A", "a"):
+        out = ""
+        while n > 0:
+            n, r = divmod(n - 1, 26)
+            out = chr(ord(kind) + r) + out
+        return out
+    return str(n)
+
+
+def _clean_block(s: str) -> str:
+    lines = (re.sub(r" {2,}", " ", line).strip(" ") for line in s.translate(_TEXT_FIXES).split("\n"))
+    return "\n".join(line for line in lines if line)
+
+
+def html_to_text(html: str) -> str:
     """
-    Extract plain text from a HUDOC DOCX without external deps.
-    Walks word/document.xml, joins paragraphs with newlines, and preserves
-    paragraph breaks so paragraph numbers ("§ 47") are easy to find.
+    Plain text from HUDOC's HTML rendition: one block per paragraph, blocks
+    separated by a blank line, a line break inside a paragraph kept as a
+    single newline. Numbers that the HTML leaves to the browser (headings in
+    <ol start="2" type="I">) are written out. Nothing else is changed: the
+    characters are the Court's, non-breaking hyphens included; only
+    non-breaking spaces become plain ones (see _TEXT_FIXES).
 
-    Footnotes (word/footnotes.xml) are appended as a numbered list under a
-    "FOOTNOTES" heading, and each footnote reference in the body is marked
-    [fn N], so citations that the Court puts in footnotes remain greppable.
+    Footnotes are appended as a list under a "FOOTNOTES" heading, and each
+    footnote reference in the body is marked [fn N], so citations that the
+    Court puts in footnotes remain greppable. N is the label printed in the
+    judgment ("12", or "*" for a Registry note), exactly as printed; where a
+    label occurs twice, the markers and the notes pair up in order.
     """
-    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-    with zipfile.ZipFile(docx_path) as z:
-        with z.open("word/document.xml") as f:
-            tree = ET.parse(f)
-        footnotes_xml = z.read("word/footnotes.xml") if "word/footnotes.xml" in z.namelist() else None
+    blocks: list[str] = []
+    notes: dict[str, list[str]] = {}
+    parts: list[str] = []
+    lists: list[list] = []      # [kind, next number] per open <ol>/<ul>
+    divs = 0                    # <div> depth
+    note: Optional[str] = None  # id of the footnote <div> we are in
+    note_depth = 0
+    skip = 0                    # inside <style>/<script>
+    ref: Optional[str] = None   # id of the footnote link we are in
+    ref_text: list[str] = []    # its printed label
+    printed: dict[str, str] = {}  # footnote id -> its printed label
 
-    def para_text(para) -> str:
-        parts = []
-        for el in para.iter():
-            if el.tag == W + "t":
-                parts.append(el.text or "")
-            elif el.tag == W + "tab":
-                parts.append(" ")
-            elif el.tag == W + "footnoteReference":
-                fid = el.get(W + "id")
-                if fid and int(fid) > 0:
-                    parts.append(f" [fn {fid}]")
-        return "".join(parts).strip()
-
-    def top_level_paragraphs(root):
-        # A paragraph inside a text box is nested in another paragraph, whose
-        # para_text() already includes it; iter() visits both, so skip the
-        # inner one rather than print its text twice.
-        paras = list(root.iter(W + "p"))
-        nested = {id(q) for p in paras for q in p.iter(W + "p") if q is not p}
-        return [p for p in paras if id(p) not in nested]
-
-    out_paragraphs = []
-    for para in top_level_paragraphs(tree.getroot()):
-        text = para_text(para)
+    def flush() -> None:
+        text = _clean_block("".join(parts))
+        parts.clear()
         if text:
-            out_paragraphs.append(text)
+            (notes.setdefault(note, []) if note else blocks).append(text)
 
-    notes = []
-    if footnotes_xml:
-        froot = ET.fromstring(footnotes_xml)
-        for fn in froot.iter(W + "footnote"):
-            fid = fn.get(W + "id")
-            if not fid or int(fid) <= 0:
-                continue  # separator / continuation pseudo-notes
-            body = " ".join(t for t in (para_text(p) for p in top_level_paragraphs(fn)) if t)
-            if body:
-                notes.append(f"[fn {fid}] {body}")
+    for m in _HTML_TOKEN.finditer(html):
+        closing, tag, attrs, text = m.group(1), m.group(2), m.group(3), m.group(5)
+        if text is not None:
+            if skip:
+                continue
+            # A newline in the markup is plain whitespace; only <br> breaks a line.
+            text = _html_unescape(re.sub(r"[\r\n]+", " ", text))
+            (ref_text if ref else parts).append(text)
+            continue
+        if tag is None:
+            continue  # comment
+        tag = tag.lower()
+        if tag in ("style", "script"):
+            skip += -1 if closing else 1
+            continue
+        if tag == "a":
+            if closing:
+                if ref:
+                    label = re.sub(r"^\[+|\]+$", "", _clean_block("".join(ref_text))).strip(" ")
+                    if label and ref not in printed:
+                        printed[ref] = label
+                ref = None
+                continue
+            href = _attr(attrs, "href") or ""
+            m_ref = re.fullmatch(r"#_ftn(?:ref)?(\d+)", href, re.A)
+            if m_ref:
+                ref, ref_text = m_ref.group(1), []
+                if not href.startswith("#_ftnref"):
+                    # Placeholder for the body marker; the label is only
+                    # final once every footnote has been seen.
+                    parts.append(f" {chr(0)}{ref}{chr(1)}")
+            continue
+        if tag == "br":
+            parts.append("\n")
+            continue
+        if tag not in _HTML_BLOCK:
+            continue
+        flush()
+        if tag == "div":
+            if closing:
+                divs -= 1
+                if note and divs < note_depth:
+                    note = None
+            else:
+                divs += 1
+                m_note = re.fullmatch(r"_ftn(\d+)", _attr(attrs, "id") or "", re.A)
+                if m_note:
+                    note, note_depth = m_note.group(1), divs
+        elif tag in ("ol", "ul"):
+            if closing:
+                if lists:
+                    lists.pop()
+            else:
+                start = _attr(attrs, "start")
+                kind = "•" if tag == "ul" else (_attr(attrs, "type") or "1")
+                lists.append([kind, int(start) if start and re.fullmatch(r"[0-9]+", start) else 1])
+        elif tag == "li" and not closing and lists:
+            kind, n = lists[-1]
+            parts.append("• " if kind == "•" else _list_label(n, kind) + ". ")
+            lists[-1][1] = n + 1
+    flush()
+
+    # The printed label; Word's footnote id only if none was printed.
+    def label(fid: str) -> str:
+        return printed.get(fid) or fid
+
+    out = list(blocks)
     if notes:
-        out_paragraphs.append("FOOTNOTES")
-        out_paragraphs.extend(notes)
-    return "\n\n".join(out_paragraphs) + "\n"
+        out.append("FOOTNOTES")
+        out.extend(f"[fn {label(fid)}] {' '.join(texts)}" for fid, texts in notes.items())
+    text = "\n\n".join(out) + "\n"
+    return re.sub(chr(0) + "([0-9]+)" + chr(1), lambda m: f"[fn {label(m.group(1))}]", text)
 
 
 def pdf_to_text(pdf_path: Path) -> str:
     """
-    Extract plain text from a PDF. Used only when the DOCX rendition is not
-    available. Tries pypdf (pip install pypdf), then the poppler `pdftotext`
+    Extract plain text from a PDF. Used only when HUDOC has no HTML
+    rendition. Tries pypdf (pip install pypdf), then the poppler `pdftotext`
     binary. Page structure is kept but paragraph numbering is less reliable
-    than in the DOCX extraction.
+    than in the HTML extraction.
     """
     try:
         from pypdf import PdfReader  # type: ignore
@@ -702,30 +823,42 @@ def pdf_to_text(pdf_path: Path) -> str:
 
 def fetch_text(itemid: str) -> Path:
     """
-    Get the text of a judgment. Tries DOCX first (better formatting),
-    falls back to PDF if DOCX fails.
+    Get the text of a judgment: from the HTML rendition HUDOC's reading view
+    shows, or from the official PDF when HUDOC has no HTML (PDF-only items).
     """
-    txt_path = _item_dir(itemid) / "judgment.txt"
+    d = _item_dir(itemid)
+    txt_path = d / "judgment.txt"
+    old_docx = d / "judgment.docx"
+    if old_docx.exists():
+        # Left by a version before 1.3.0, whose text came from a home-made
+        # DOCX extraction that lost heading numbers and non-breaking
+        # hyphens. Rebuild that text from the HTML.
+        old_docx.unlink()
+        txt_path.unlink(missing_ok=True)
     if _has_content(txt_path):
         return txt_path
 
-    # Try DOCX first (preserves paragraph structure)
+    # A Cloudflare challenge says nothing about whether the HTML exists, so
+    # it is never a reason to settle for the PDF's weaker text.
     try:
-        docx_path = fetch_docx(itemid)
-        text = docx_to_text(docx_path)
+        html_path = fetch_html(itemid)
+        text = html_to_text(html_path.read_text(encoding="utf-8", errors="replace"))
         _write_text(txt_path, text)
         return txt_path
-    except Exception as e:
-        print(f"DOCX extraction failed: {e}; trying PDF fallback...", file=sys.stderr)
+    except ChallengeError:
+        raise
+    except (RuntimeError, ValueError) as e:
+        print(f"HTML extraction failed: {e}; trying PDF fallback...", file=sys.stderr)
 
-    # Fallback to PDF
     try:
         pdf_path = fetch_pdf(itemid)
         text = pdf_to_text(pdf_path)
         _write_text(txt_path, text)
         return txt_path
-    except Exception as e:
-        raise RuntimeError(f"Both DOCX and PDF extraction failed for {itemid}: {e}") from None
+    except ChallengeError:
+        raise
+    except RuntimeError as e:
+        raise RuntimeError(f"Both HTML and PDF extraction failed for {itemid}: {e}") from None
 
 
 # ---------------------------------------------------------------------------
@@ -820,9 +953,12 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
     fmt = args.format
     if fmt == "pdf":
-        p = fetch_pdf(itemid)
-    elif fmt == "docx":
-        p = fetch_docx(itemid)
+        try:
+            p = fetch_pdf(itemid)
+        except ChallengeError as e:
+            raise ChallengeError(
+                f"{e} The user can download the PDF in their own browser: {pdf_url(itemid)}"
+            ) from None
     elif fmt == "text":
         p = fetch_text(itemid)
     else:
@@ -848,6 +984,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
             "format": fmt,
             "path": str(target),
             "source_url": WEB_URL + itemid,
+            "pdf_url": pdf_url(itemid),
         }, indent=2, ensure_ascii=False))
     return 0
 
@@ -921,9 +1058,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                     help="Bypass cache and re-fetch from HUDOC.")
     sp.set_defaults(func=cmd_metadata)
 
-    sp = sub.add_parser("fetch", help="Download the judgment as PDF/DOCX/text.")
+    sp = sub.add_parser("fetch", help="Get the judgment as text or as the official PDF.")
     sp.add_argument("reference")
-    sp.add_argument("--format", choices=("pdf", "docx", "text"), default="text")
+    sp.add_argument("--format", choices=("pdf", "text"), default="text")
     sp.add_argument("-o", "--output",
                     help="Also copy the result to this path (e.g. outputs/judgment.pdf).")
     sp.add_argument("--print", action="store_true",

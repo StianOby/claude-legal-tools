@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Tests for scripts/browser/hudoc.js (the in-page fallback helper). No
 // network and no npm dependencies: fetch and location are stubbed, and the
-// DOCX fixtures are tiny synthetic files (one deflated, one stored) with the
-// constructs the converter has to handle — tabs, entities, footnote
-// references, a text box, separator pseudo-footnotes.
+// HTML fixture is a tiny synthetic page in the markup HUDOC's reading view
+// serves, with the constructs the converter has to handle — entities,
+// non-breaking spaces and hyphens, <ol start type> headings, Symbol-font
+// bullets, line breaks, a table, footnote references and footnote <div>s.
 //
-// The conversion must match docx_to_text() in scripts/hudoc.py character for
-// character; tests/test_docx.py checks the same fixtures on the Python side.
+// The conversion must match html_to_text() in scripts/hudoc.py character for
+// character; tests/test_html.py checks the same fixture on the Python side.
 //
 // Run with `node tests/hudoc/test_browser.js`.
 
@@ -25,18 +26,29 @@ function check(name, got, want) {
   else { console.log(`  FAIL ${name}: got ${g}, want ${w}`); failures += 1; }
 }
 
+// Same string as MINI_TEXT in tests/test_html.py. The Court's non-breaking
+// hyphens stay as they are.
+const NBH = String.fromCharCode(0x2011);
 const MINI_TEXT =
   'CASE OF TEST v. NORWAY\n\n' +
-  '1. The applicant & his wife complained [fn 1].\n\n' +
-  '(a) a sub-paragraph that belongs to paragraph 1\n\n' +
-  'II.  ALLEGED VIOLATION OF ARTICLE 8\n\n' +
-  '2. The Court reiterates “margin of appreciation” [fn 2].\n\n' +
-  'A text box: inside\n\n' +
+  '1. The applicant & his wife complained [fn *].\n\n' +
+  '(a) a sub-paragraph that belongs to paragraph 1 [fn 1]\n\n' +
+  'II. ALLEGED VIOLATION OF ARTICLE 8\n\n' +
+  '2. The Court reiterates “margin of appreciation” [fn *], see paragraphs 142' + NBH + '49 and ECHR 2006' + NBH + 'XI.\n\n' +
+  '• A bulleted point\n\n' +
+  'a. first lettered point\n\n' +
+  'b. second lettered point\n\n' +
+  'Mr A. Judge, President,\nMr B. Judge, judges,\n\n' +
+  'Application no.\n\n' +
+  'Applicant\n\n' +
+  '1/01\n\n' +
+  'Person A\n\n' +
   'FOR THESE REASONS, THE COURT\n\n' +
   '1. Holds, unanimously, that there has been a violation of Article 8;\n\n' +
   'FOOTNOTES\n\n' +
-  '[fn 1] See Smith v. Norway, no. 1/01. Second paragraph of the note.\n\n' +
-  '[fn 2] Case-law cited.\n';
+  '[fn *] See Smith v. Norway, no. 1/01. Second paragraph of the note.\n\n' +
+  '[fn *] Case-law cited.\n\n' +
+  '[fn 1] The first numbered note.\n';
 
 const ROWS = [
   { itemid: '003-1', docname: 'Press release', doctype: 'PR', doctypebranch: 'GRANDCHAMBER', languageisocode: 'ENG', kpdate: '2021-05-25T00:00:00' },
@@ -47,13 +59,10 @@ const ROWS = [
   { itemid: '001-5', docname: 'CASE OF X v. Y (dec.)', doctype: 'HEDEC', doctypebranch: 'ADMISSIBILITY', languageisocode: 'ENG', kpdate: '2015-01-01T00:00:00' },
 ];
 
-function buf(file) {
-  const b = fs.readFileSync(path.join(FIX, file));
-  return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
-}
+const MINI_HTML = fs.readFileSync(path.join(FIX, 'mini.html'), 'utf8');
 
-// Stub the page: query answers with ROWS, the DOCX endpoint with `docx`.
-function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, docxStatus = 200 } = {}) {
+// Stub the page: query answers with ROWS, the HTML endpoint with `html`.
+function stub({ html = MINI_HTML, queryStatus = 200, queryBody = null, htmlStatus = 200 } = {}) {
   const seen = [];
   hd._deps.location = () => ({ origin: 'https://hudoc.echr.coe.int' });
   hd._deps.fetch = async (url) => {
@@ -62,17 +71,18 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
       const body = queryBody || JSON.stringify({ resultcount: ROWS.length, results: ROWS.map((c) => ({ columns: c })) });
       return { ok: queryStatus === 200, status: queryStatus, text: async () => body };
     }
-    const b = docxStatus === 200 ? docx : new TextEncoder().encode('<html><title>Just a moment...</title></html>').buffer;
-    return { ok: docxStatus === 200, status: docxStatus, arrayBuffer: async () => b };
+    const b = htmlStatus === 403 ? '<html><title>Just a moment...</title></html>' : (htmlStatus === 200 ? html : '');
+    return { ok: htmlStatus >= 200 && htmlStatus < 300, status: htmlStatus, text: async () => b };
   };
   for (const k of Object.keys(hd.cache.items)) delete hd.cache.items[k];
   return seen;
 }
 
 (async () => {
-  console.log('DOCX conversion (must match hudoc.py docx_to_text)');
-  check('deflated zip', await hd._internal.docxToText(buf('mini.docx')), MINI_TEXT);
-  check('stored zip', await hd._internal.docxToText(buf('mini-stored.docx')), MINI_TEXT);
+  console.log('HTML conversion (must match hudoc.py html_to_text)');
+  check('mini.html', hd._internal.htmlToText(MINI_HTML), MINI_TEXT);
+  check('CRLF in the markup is whitespace too', hd._internal.htmlToText(MINI_HTML.replace('his\nwife', 'his\r\nwife')), MINI_TEXT);
+  check('converting twice gives the same text', hd._internal.htmlToText(MINI_HTML), MINI_TEXT);
 
   console.log('Reference forms');
   const rc = hd._internal.referenceClause;
@@ -134,18 +144,21 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
   const seen = stub();
   const info = await hd.load('X v. Y');
   check('load summary', [info.itemid, info.totalChars, info.numberedBlocks], ['001-4', MINI_TEXT.length, 3]);
-  check('DOCX URL carries filename=', seen.some((u) => u === '/app/conversion/docx/?library=ECHR&id=001-4&filename=001-4.docx'), true);
+  // Same link as pdf_url() in hudoc.py.
+  check('PDF link for the user', info.pdf_url, 'https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-4&filename=001-4.pdf');
+  check('HTML URL', seen.some((u) => u === '/app/conversion/docx/html/body?library=ECHR&id=001-4'), true);
   const p1 = await hd.paragraph('001-4', 1);
   check('paragraph 1 with its sub-paragraph, heading dropped',
-    p1.text, '1. The applicant & his wife complained [fn 1].\n\n(a) a sub-paragraph that belongs to paragraph 1');
+    p1.text, '1. The applicant & his wife complained [fn *].\n\n(a) a sub-paragraph that belongs to paragraph 1 [fn 1]');
   check('restarted numbering is flagged', /also starts 1 later block/.test(p1.note), true);
+  const p2 = (await hd.paragraph('001-4', 2)).text;
   check('paragraph 2 stops at FOR THESE REASONS',
-    (await hd.paragraph('001-4', 2)).text,
-    '2. The Court reiterates “margin of appreciation” [fn 2].\n\nA text box: inside');
+    [p2.startsWith('2. The Court reiterates'), p2.endsWith('Person A'), p2.split('\n\n').length], [true, true, 9]);
   check('missing paragraph', (await hd.paragraph('001-4', 9)).error, 'not_found');
   const g = await hd.grep('001-4', 'margin of  appreciation', 10);
   check('grep: literal, whitespace-tolerant, with paragraph number', [g.total, g.hits[0].paragraph], [1, 2]);
   check('grep: regex metacharacters are literal', (await hd.grep('001-4', '(a)')).total, 1);
+  check('grep: a typed hyphen finds a non-breaking one', (await hd.grep('001-4', '142-49')).total, 1);
   check('not loaded', (await hd.page('001-999')).error, 'not_loaded');
 
   // A long text full of quotes and newlines: JSON escaping must not push a
@@ -163,8 +176,10 @@ function stub({ docx = buf('mini.docx'), queryStatus = 200, queryBody = null, do
   check('pages cover the whole text', off + (await hd.page('001-big', off)).text.length, 12000 * 10);
 
   console.log('Errors');
-  stub({ docxStatus: 403 });
-  check('challenge on the DOCX', (await hd.load('X v. Y')).error, 'challenge');
+  stub({ htmlStatus: 403 });
+  check('challenge on the HTML', (await hd.load('X v. Y')).error, 'challenge');
+  stub({ htmlStatus: 204 });
+  check('no HTML (PDF-only item)', (await hd.load('X v. Y')).error, 'no_html');
   stub({ queryStatus: 403, queryBody: '<title>Just a moment...</title>' });
   check('challenge on the query', (await hd.search('article:"8"')).error, 'challenge');
   hd._deps.location = () => ({ origin: 'https://www.example.org' });

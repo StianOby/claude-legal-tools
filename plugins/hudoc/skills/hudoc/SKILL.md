@@ -26,13 +26,19 @@ This skill talks to `hudoc.echr.coe.int` to retrieve five things:
    respondent state, conclusion, court instance, importance, date.
 2. **Structured metadata** — itemid, ECLI, doctypebranch, conclusion,
    articles invoked, importance level, language, date, separate opinions.
-3. **The full text of a judgment** — extracted from the official DOCX (or PDF
-   as fallback), with paragraph breaks preserved so paragraph numbering
-   ("§ 47", "paragraph 88") is searchable. Footnotes are appended under a
+3. **The full text of a judgment** — extracted from the HTML that HUDOC's own
+   reading view shows (or the PDF for PDF-only items), with paragraph breaks
+   preserved so paragraph numbering ("§ 47", "paragraph 88") is searchable,
+   and heading numbers ("II.", "A.") written out. Footnotes are appended under a
    `FOOTNOTES` heading and referenced in the body as `[fn N]`, so citations
-   the Court puts in footnotes are greppable too. Automatically retries on
+   the Court puts in footnotes are greppable too. N is the label printed in
+   the judgment, so cite it as it stands; a symbol note ("*", as on the
+   Registry's notes in old judgments) is `[fn *]`. Where the same label
+   occurs twice, the markers and the notes pair up in order. The text is
+   otherwise the Court's, character for character. Automatically retries on
    server errors (HTTP 500+).
-4. **The official PDF** — for citing and archiving.
+4. **The official PDF** — for the user to keep, read and annotate (see
+   **The user wants the PDF**).
 5. **Citations** — every ECtHR case the judgment relies on, parsed from the
    `scl` (Strasbourg case-law cited) metadata field.
 
@@ -49,9 +55,9 @@ The skill is one self-contained Python CLI, `scripts/hudoc.py`, plus an
 in-page helper for the built-in browser that takes over when HUDOC's
 Cloudflare check blocks the CLI (see **Fallback: the built-in browser**
 below). No
-third-party packages for the normal DOCX path — only the standard library
-(`urllib`, `zipfile`, `xml.etree`); `pypdf` or poppler's `pdftotext` is
-needed only for the rare PDF-only documents. Run it from this skill's
+third-party packages for the normal HTML path — only the standard library;
+`pypdf` or poppler's `pdftotext` is needed only for the rare PDF-only
+documents. Run it from this skill's
 directory (`{SKILL_DIR}`, below). The cache is *not* in the skill folder: it lives in
 `$HUDOC_CACHE_DIR` if set, otherwise `~/.cache/hudoc/items/<itemid>/`.
 Every `fetch` prints the absolute `path` of the file it wrote — use that
@@ -91,7 +97,7 @@ query `Claude_Browser` and `max_results` 64, and use whatever prefix comes back.
 | The text by appno | `python3 scripts/hudoc.py fetch 14038/88 --format text` |
 | The text by ECLI | `python3 scripts/hudoc.py fetch ECLI:CE:ECHR:1989:0707JUD001403888 --format text` |
 | An admissibility decision (not the later GC judgment) | `python3 scripts/hudoc.py fetch 36813/97 --doctype ADMISSIBILITY --format text` |
-| The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o <outputs-dir>/case.pdf`, then share the file (see **Where each step runs**) |
+| The official PDF | `python3 scripts/hudoc.py fetch <ref> --format pdf -o <outputs-dir>/<name>.pdf`, then share the file; if challenged, give the user `pdf_url` (see **The user wants the PDF**) |
 | Just the metadata (no full text) | `python3 scripts/hudoc.py metadata <ref>` |
 | Cases cited by this judgment | `python3 scripts/hudoc.py citations <ref>` |
 | Filtered search | `python3 scripts/hudoc.py search '(article:"8") AND (respondent:"NOR") AND (doctypebranch:GRANDCHAMBER)' -n 20` |
@@ -121,37 +127,60 @@ GC over Chamber over Committee, English over French, most recent rehearing).
 
 ## Mental model
 
-HUDOC has no official API documentation, but two stable endpoints exist:
+HUDOC has no official API documentation, but these stable endpoints exist:
 
 ```
 GET /app/query/results          JSON metadata + Lucene-style search.
                                 Requires X-Requested-With: XMLHttpRequest
                                 — the script handles this automatically.
-GET /app/conversion/{docx,pdf}/?library=ECHR&id=<itemid>
-                                Document download. No auth.
+GET /app/conversion/docx/html/body?library=ECHR&id=<itemid>
+                                The HTML of HUDOC's reading view. No auth.
+GET /app/conversion/pdf/?library=ECHR&id=<itemid>
+                                The official PDF. No auth.
 ```
 
-**Text extraction strategy:** When you request text, the script tries DOCX
-first (better paragraph structure for legal paragraph numbering), then falls
-back to PDF if DOCX fails. On HTTP 5xx errors, it retries up to 3 times with
-exponential backoff (1s, 2s, 4s).
+**Text extraction strategy:** When you request text, the script converts
+the HTML of HUDOC's reading view — what a reader on hudoc.echr.coe.int
+sees — and falls back to the PDF only when HUDOC has no HTML for the item.
+On HTTP 5xx errors, it retries up to 3 times with exponential backoff
+(1s, 2s, 4s).
 
 ## Workflow guidance
 
 ### The user names a specific case
 
 1. `python3 scripts/hudoc.py fetch "<reference>" --format text`. This
-   resolves → fetches the DOCX (or PDF if DOCX fails) → extracts plain text
+   resolves → fetches the HTML (or the PDF if there is none) → extracts plain text
    → caches everything. Stdout shows the resolved itemid, docname, appno, date,
    court branch, and source URL. On server errors, retries automatically.
 2. Read the text file (path is in the JSON output). Cite paragraph numbers
    directly — the text preserves paragraph breaks, so you can find
-   "**88.   Article 3 (art. 3) makes no provision...**" by grepping for
-   `^88\.` or for the `§ 88` style.
+   "**88. Article 3 (art. 3) makes no provision...**" by grepping for
+   `^88\.` or for the `§ 88` style. Numbered section headings
+   ("1. Bulk interception") also start a line with a number; the judgment
+   paragraph is the block of running text.
 3. Quote sparingly and accurately. Append the source URL when citing.
 
 If the user gave only a partial name and you're unsure which case they
 meant, run `search` first and show 3-5 candidates before fetching.
+
+### The user wants the PDF
+
+Users keep PDFs on their own computer (e.g. in Zotero) to read and
+annotate, so deliver the file when asked:
+
+1. `python3 scripts/hudoc.py fetch "<reference>" --format pdf -o /mnt/user-data/outputs/<name>.pdf`,
+   with a readable `<name>` such as `Soering v. the United Kingdom (14038-88)`,
+   then share it with `SendUserFile`.
+2. If that fails with a Cloudflare challenge, do not retry or switch to the
+   browser helper for this: give the user the direct link, which the error
+   message and every `fetch` output (`pdf_url`) carry — e.g.
+   `https://hudoc.echr.coe.int/app/conversion/pdf/?library=ECHR&id=001-57619&filename=001-57619.pdf`.
+   Opened in their own browser, HUDOC lets it through and the PDF is saved
+   to their computer. If even the lookup is challenged, the browser helper's
+   `resolve()`/`load()` return the same `pdf_url`.
+3. "HUDOC returned no PDF" means the item has none (some decisions and
+   recent judgments): say so; the text may still be available.
 
 ### The user wants filtered search
 
@@ -280,6 +309,12 @@ grep -l "FOR THESE REASONS" "$C"/items/*/judgment.txt
 grep -n "^88\." "$C"/items/*/judgment.txt
 ```
 
+The text keeps the Court's non-breaking hyphens ("paragraphs 142‑49",
+"ECHR 2006‑XI"), which plain `grep` does not match with a typed "-": put
+`.` in its place and run grep in a UTF-8 locale, where `.` matches the
+multi-byte character (`LC_ALL=C.UTF-8 grep -n "142.49"`). The browser
+helper's `grep()` matches either.
+
 This cache-then-grep workflow is much faster than re-querying HUDOC when you
 already have the documents, and it avoids context-window pressure from large
 search result JSON.
@@ -353,14 +388,15 @@ dismissed") all matter for legal accuracy.
 $HUDOC_CACHE_DIR or ~/.cache/hudoc/
   items/<itemid>/
     meta.json        Parsed metadata from /app/query/results
-    judgment.docx    Official DOCX from /app/conversion/docx/
+    judgment.html    HTML of HUDOC's reading view, from /app/conversion/docx/html/body
     judgment.pdf     Official PDF from /app/conversion/pdf/
-    judgment.txt     Plain-text extraction of the DOCX (footnotes appended)
+    judgment.txt     Plain-text extraction of the HTML, or of the PDF for
+                     PDF-only items (footnotes appended)
 ```
 
-Files are written atomically and validated (a DOCX must be a ZIP, a PDF must
-start with `%PDF`), so an HTML error page from HUDOC is never cached as a
-document.
+Files are written atomically and validated (the HTML must contain document
+markup, a PDF must start with `%PDF`), so an empty answer or an error page
+from HUDOC is never cached as a document.
 
 `meta.json` is what `metadata` writes; it's the most useful starting point
 for factual questions (parties, conclusion, articles, separate opinions,
@@ -379,7 +415,7 @@ or "source unavailable" because of one.**
 
 In Claude Desktop with Cowork, switch to the built-in browser, which HUDOC
 lets through. The helper `scripts/browser/hudoc.js` makes the same requests
-as the script from inside a HUDOC tab, and converts the judgment's DOCX to
+as the script from inside a HUDOC tab, and converts the judgment's HTML to
 the same text the script would have cached — same paragraph breaks, same
 `[fn N]` footnote markers — so paragraph numbers match either way.
 
@@ -469,7 +505,7 @@ the script right now and to try again in a few minutes.
   semicolon-separated.
 - **French-only judgments** — Some Chamber judgments against francophone
   states (France, Belgium, Luxembourg, Switzerland, Monaco) were never
-  translated into English. The script will return a French DOCX or PDF
+  translated into English. The script will return the French text or PDF
   without error; there is no English version to fall back to. If the
   extracted text is entirely in French and the user expected English, check
   `languageisocode` in `meta.json` and note this to the user. To search for
