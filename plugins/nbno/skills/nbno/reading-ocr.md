@@ -78,9 +78,9 @@ machine-readable text rather than a visual check.
 `scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf for books
 whose OCR does not fit one bash call. That is most books: on a 2-vCPU
 Cowork sandbox Tesseract manages about **13 pages a minute**, so a 400-page
-book takes about 30 minutes over roughly 12 calls. Its input must be a
-full-resolution PDF: `zotero_book.py --no-ocr` leaves the pages unshrunk for
-this reason.
+book takes about 30 minutes over roughly 12 calls. Its input must be an
+unshrunk PDF (bitonal pages OCR worse): `zotero_book.py --no-ocr` leaves
+the pages unshrunk for this reason.
 
 1. Split input into per-page PDFs (cached under
    `<pdf_dir>/.ocr_cache/<stem>/<hash>/pages/`).
@@ -110,11 +110,11 @@ even when a 600 s timeout was requested. Still request a long tool timeout (e.g.
 lines, and a pipe replaces the script's exit code with `tail`'s: a failed
 or partial run then reports 0. If you must pipe, read `${PIPESTATUS[0]}`.
 
-**After exit 0, shrink.** The chunked flow works on full-resolution pages,
-so the merged PDF is several hundred MB. Run this in its own bash call:
-`python {SKILL_DIR}/scripts/shrink_pdf.py --pdf "$PDF" --in-place`. It takes
-about 30 s per 100 pages. `--in-place` keeps the filename the Zotero RDF
-points at.
+**After exit 0, shrink.** The chunked flow works on unshrunk pages, so the
+merged PDF is ~100 MB for 400 pages. Run this in its own bash call:
+`python {SKILL_DIR}/scripts/shrink_pdf.py --pdf "$PDF" --in-place` (add
+`--mode grey` if the user wants grey tones kept). It takes about 15 s per
+100 pages. `--in-place` keeps the filename the Zotero RDF points at.
 
 Leave `--jobs` at its default (half the usable CPUs, at most 4 — 1 on a
 2-vCPU sandbox). Each worker runs Ghostscript plus multi-threaded Tesseract;
@@ -148,28 +148,49 @@ debugging.
 
 ## Shrinking the output — `shrink_pdf.py`
 
-OCR'd PDFs from the IIIF-tile path are often huge (700–900 MB for a
-~300-page book) because each page is embedded as a lossless Flate-PNG.
-**Do not re-OCR to shrink** — the text layer is already correct and
-re-OCR'ing wastes minutes per book. Instead, recompress the embedded
-images in place:
+An unshrunk book is ~250 KB a page at half size (several hundred MB at
+full size). **Do not re-OCR to shrink** — the text layer is already
+correct and re-OCR'ing wastes minutes per book. Instead, recompress the
+embedded images:
 
 ```bash
-python {SKILL_DIR}/scripts/shrink_pdf.py --pdf book.pdf
+python {SKILL_DIR}/scripts/shrink_pdf.py --pdf book.pdf [--mode grey]
 ```
 
-Defaults are tuned for **~60 MB on a 500-page text-heavy book**
-(`--quality 60 --max-width 800`, about 120 KB/page; text stays crisp on
-screen). `--quality 50 --max-width 700` is ~25 % smaller but soft on small
-print; `--quality 70 --max-width 900` gives more detail at ~35 % more.
-Grayscale conversion and background whitening were measured and do not
-help (paper texture, not colour, is what costs bytes).
+Modes, measured on three law books (1907, 1964, 1997) on 2026-10-23:
 
-This walks each page's image XObjects, re-encodes as JPEG at the given
-quality, and replaces the streams. The OCR text layer, page tree, and
-bookmarks are untouched. 1-bit monochrome images are skipped (JPEG would
-grow them and degrade them visibly). On a typical IIIF-tile book the
-defaults take ~30 s per 100 pages.
+| `--mode` | text pages | KB/page | 400 pages | use for |
+| --- | --- | --- | --- | --- |
+| `bitonal` (default) | black and white, CCITT G4 (lossless), scaled up 2× from half size | ~60 | ~25 MB | everything, unless grey tones matter |
+| `grey` | greyscale JPEG q60 at the downloaded size | ~200 | ~80 MB | pencil notes, stamps, illustrations the user cares about |
+| `jpeg` | JPEG q60 at 800 px (the pre-1.5 default) | ~110 | ~45 MB | only if asked; soft on small print |
+
+How `bitonal` works:
+
+- **Thresholding is adaptive** (Sauvola: each pixel against its own
+  ~2.7 mm surroundings), so yellowed paper, uneven light and the shadow
+  near the spine come out white, and faint print stays black. A global
+  threshold fails on exactly those old pages.
+- **Picture pages stay JPEG.** A page where more than 1 % of the ~11 mm
+  blocks are mostly mid-grey (covers, photos, marbled endpapers) is kept
+  as a greyscale JPEG, or colour for colour covers. Text, line drawings,
+  maps and tables have mid-grey only at the edges of strokes and go
+  bitonal. The outermost blocks are ignored, as old scans have a dark edge.
+- **Pages below 100 dpi stay JPEG**: thresholding nb.no's quarter-size
+  pages (~70 dpi) makes letters blotchy.
+- **What it loses:** grey tones on text pages. Pencil underlining turns
+  into solid black lines, stamps into outlines, and a small photo on a text
+  page (under 1 % of the page) turns into black and white. Say so when you
+  deliver the PDF if the book has annotations; offer `--shrink-mode grey`.
+- **Not JBIG2.** JBIG2 would be ~30 % smaller still, but needs the
+  jbig2enc program, which neither Cowork nor Windows has and which has to
+  be built from source. Its lossy mode can swap similar characters (the
+  Xerox 6/8 case), which a legal source cannot risk. G4 needs only Pillow.
+
+This walks each page's image XObjects and replaces the streams. The OCR
+text layer, page tree and bookmarks are untouched. 1-bit images are
+skipped, so running it twice leaves bitonal pages alone. It takes about
+15 s per 100 pages.
 
 **Probe-and-extrapolate.** Before each run, `shrink_pdf.py` recompresses
 one middle page and prints the estimated total output size
@@ -179,18 +200,18 @@ than a guess. Pass `--probe-only` to print just the estimate and exit
 without writing.
 
 **Never overwrites the input by default.** Output goes to a sibling
-`<stem>_q60_w800.pdf` (the filename encodes the settings). Re-encoding
-an already-shrunk file compounds JPEG artefacts, so leaving the
-high-quality master in place lets you experiment with settings
-non-destructively. Use `--in-place` to overwrite.
+`<stem>_<mode>.pdf` (the filename encodes the settings). Re-encoding an
+already-shrunk file compounds JPEG artefacts, so leaving the unshrunk
+master in place lets you experiment with settings non-destructively. Use
+`--in-place` to overwrite.
 
-`zotero_book.py` runs this step by default, with the same defaults
-(`--shrink-quality 60 --shrink-max-width 800`), after OCR. It rewrites the
-PDF in place because the Zotero RDF points at the canonical filename, and
-keeps no full-resolution copy unless you pass `--shrink-keep-master`
-(saved as `<basename>.original.pdf`). `--no-shrink` skips the step; the
-orchestrator then prints a hint if the PDF exceeds `--shrink-threshold-mb`
-(default 150).
+`zotero_book.py` runs this step by default after OCR (`--shrink-mode`,
+`--shrink-quality`). It rewrites the PDF in place because the Zotero RDF
+points at the canonical filename, and keeps no unshrunk copy unless you
+pass `--shrink-keep-master` or OCR failed (saved as
+`<basename>.original.pdf`). `--no-shrink` skips the step; the orchestrator
+then prints a hint if the PDF exceeds `--shrink-threshold-mb` (default
+150).
 
 ## Canvas numbers vs printed pages
 

@@ -106,7 +106,7 @@ def singleshot(base, width, hdr, timeout=30.0):
 
 
 zb._fetch_page_singleshot = singleshot
-zb._fetch_page_tiled = lambda base, info, hdr: None
+zb._fetch_page_tiled = lambda base, info, hdr, scale=1: None
 assembled = {}
 
 
@@ -167,6 +167,52 @@ try:
     check("start beyond the manifest", "no error", "SystemExit")
 except SystemExit:
     check("start beyond the manifest", True, True)
+
+print("download_via_iiif: page size and tiles")
+seen = {"single": [], "tiled": []}
+
+
+def single_rec(base, scale, hdr, timeout=30.0):
+    seen["single"].append(scale)
+    return jpeg("gray"), (100, 140)
+
+
+def tiled_rec(base, info, hdr, scale=1):
+    seen["tiled"].append(scale)
+    return jpeg("gray")
+
+
+zb._fetch_page_singleshot = single_rec
+zb._fetch_page_tiled = tiled_rec
+zb._assemble_pages_to_pdf = lambda paths, out: None
+with redirect_stdout(io.StringIO()):
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=2)
+check("default: half size, one request per page", (seen["single"], seen["tiled"]), ([2, 2], []))
+seen = {"single": [], "tiled": []}
+with redirect_stdout(io.StringIO()):
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=2,
+                         public_domain=False)
+check("not public domain: straight to half-size tiles", (seen["single"], seen["tiled"]), ([], [2, 2]))
+seen = {"single": [], "tiled": []}
+with redirect_stdout(io.StringIO()):
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=1,
+                         size="full", tiles="always")
+check("--size full --tiles always: full-size tiles", seen["tiled"], [1])
+# A canvas 400 px wide: half size should be 200, so a 100 px answer is a
+# silent downsample and the page is fetched again as tiles.
+_manifest = zb._fetch_manifest
+zb._fetch_manifest = lambda cid, hdr: {"sequences": [{"canvases": [
+    {"@id": "x/p1", "width": 400, "images": [{"resource": {"service": {"@id": "https://iiif/p1"}}}]}]}]}
+seen = {"single": [], "tiled": []}
+with redirect_stdout(io.StringIO()):
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=1)
+check("downsampled answer -> tiles", (seen["single"], seen["tiled"]), ([2], [2]))
+zb._fetch_manifest = _manifest
+try:
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", size="huge")
+    check("rejects an unknown size", "no error", "ValueError")
+except ValueError:
+    check("rejects an unknown size", True, True)
 
 print("rescale_pdf_pages: poster PDF -> book size")
 try:

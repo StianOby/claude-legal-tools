@@ -61,12 +61,16 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      optional and rarely available) the in-process
      `ThreadPoolExecutor(12)` downloader takes over. It
      tries both manifest endpoints (`/items/…` 404s on many items,
-     including plain digibok, and `/iiif/URN:…` serves them), reads
-     `info.json` to pick a width the resolver will actually serve, verifies
-     returned dimensions, and falls back to native-resolution
-     `regionByPx` tiles (1024×1024) when the single-shot request is
-     refused or silently downsampled. `--tiles always` forces tiled mode
-     for every page; `--tiles never` disables fallback.
+     including plain digibok, and `/iiif/URN:…` serves them) and fetches
+     every page at **half size** (`--size half`, ~1100 px wide, ~145 dpi):
+     one request per page for public-domain items, four server-scaled
+     `regionByPx` tiles for the rest (nb.no gives them no single image
+     above quarter size), and tiles wherever a single image is refused or
+     silently downsampled. `--size full` fetches the scan's own size (12
+     tiles a page, 3× the time); only when the user asks for full
+     resolution. Half size OCRed within 0.4 % of full size on three law
+     books (2026-10-23). `--tiles always` forces tiles for every page;
+     `--tiles never` disables them.
    - **Which path runs:** the IIIF downloader is the default and needs no
      credential for public-domain or (from Norway) Bokhylla items. The
      `nbno_run.sh` wrapper runs only when `--cookie` is given without
@@ -99,16 +103,29 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    - System package required: `tesseract-ocr`. The language model is
      fetched if missing. If it cannot be fetched, the script falls back to
      `eng` with a warning.
-   - Uses `--skip-text` so already-OCRed pages aren't re-processed.
+   - Uses `--skip-text` so already-OCRed pages aren't re-processed, and
+     `--output-type pdf` (a plain PDF; ocrmypdf's default PDF/A needs
+     Ghostscript and extra pikepdf modules, and re-encodes the pages).
    - Pass `--no-ocr` to skip. This **also skips the shrink** unless you add
-     `--shrink`. Shrinking first would leave 800 px pages that OCR badly. A
+     `--shrink`: bitonal pages OCR worse than the downloaded ones. A
      book of more than about 30 pages will not OCR within one Cowork bash
      call (Tesseract does about 13 pages a minute, and calls die at about
      178 s). For those, download with `--no-ocr`, run
      `scripts/ocr_chunked.py` (one call per chunk), then
      `shrink_pdf.py --in-place`. The quality is the same, and the per-page
      cache makes it resumable.
-7. **Emit the Zotero RDF** via `scripts/zotero_rdf.py` (shared with other
+   - If OCR fails, the run goes on (exit 5): the PDF is shrunk and
+     delivered without a text layer, and the unshrunk PDF is kept as
+     `<basename>.original.pdf` so the OCR can be retried without a new
+     download (SKILL.md Step 4, **OCR failed**).
+7. **Shrink** the page images with `scripts/shrink_pdf.py`
+   (`--shrink-mode`, see the table below). The default, `bitonal`, turns
+   text pages into sharp black and white (lossless CCITT G4, scaled up 2×
+   from the half-size pages, ~60 KB a page) and keeps covers, photos and
+   marbled endpapers as JPEG. `grey` keeps every page as a greyscale JPEG
+   at the downloaded size (~200 KB a page) for books where grey tones
+   matter: pencil notes, stamps, illustrations.
+8. **Emit the Zotero RDF** via `scripts/zotero_rdf.py` (shared with other
    skills; the canonical copy is `shared/zotero-rdf/` in the repo). It also
    writes `<basename>.zotero.json`: the same item as Zotero JSON, for the
    Zoteus route. The RDF references the PDF by its bare filename, so the
@@ -131,7 +148,9 @@ items stay in the cloud sandbox as below.
 
 **Exit codes:** 0 done; 3 some pages are placeholders (re-run to fill them);
 5 OCR failed — the PDF (without a text layer) and the RDF are still written,
-so deliver them and say the PDF is not searchable.
+and the unshrunk pages are kept as `<basename>.original.pdf`: tell the user,
+try to fix the cause and retry from that copy (SKILL.md Step 4, **OCR
+failed**); if it cannot be fixed, deliver and say the PDF is not searchable.
 
 **Part of a book:** `--start N --stop M` (1-based canvas numbers, inclusive,
 as in `nbno_run.sh`; not printed page numbers). The files get a
@@ -146,21 +165,24 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR"
 
-# Bokhylla book from a Norwegian IP — no credential at all, but tiles-only.
-# (No --cookie, so this runs the IIIF path; expect a "[dl] using fast IIIF"
-# line. Before 2026-09 it silently ran the wrapper and ignored --tiles.)
+# Bokhylla book from a Norwegian IP — no credential at all. Not public
+# domain, so pages come as tiles (the script decides; no flag needed).
 python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" \
-  --tiles always --resize 1024
+  --id URN:NBN:no-nb_digibok_2009010704007 \
+  --out "$OUT_DIR"
 
 # FEIDE-licensed book: nbsso only (no bearer), after the user has taken the
 # digital loan in a browser. See SKILL.md Step 0.
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2014050705024 \
   --out "$OUT_DIR" \
-  --nbsso "nbsso=$NBSSO" \
-  --tiles always --resize 1024
+  --nbsso "nbsso=$NBSSO"
+
+# Grey tones kept (pencil notes, stamps, illustrations): greyscale JPEG pages
+python {SKILL_DIR}/scripts/zotero_book.py \
+  --id URN:NBN:no-nb_digibok_2009010704007 \
+  --out "$OUT_DIR" \
+  --shrink-mode grey
 
 # Same book, slower wrapper path (no in-process IIIF; --cookie selects it)
 python {SKILL_DIR}/scripts/zotero_book.py \
@@ -174,8 +196,8 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --out "$OUT_DIR" \
   --no-ocr
 
-# Big book: download with --no-ocr in one call (full resolution: --no-ocr
-# skips the shrink too), then OCR in chunks.
+# Big book: download with --no-ocr in one call (--no-ocr skips the shrink
+# too, so the OCR sees the downloaded pages), then OCR in chunks.
 python {SKILL_DIR}/scripts/zotero_book.py \
   --id URN:NBN:no-nb_digibok_2008051600041 \
   --out "$OUT_DIR" \
@@ -187,41 +209,28 @@ python {SKILL_DIR}/scripts/zotero_book.py \
 python {SKILL_DIR}/scripts/ocr_chunked.py \
     --pdf "$OUT_DIR/Author_Title_(Year).pdf"
 
-# After exit 0, shrink in its own call (keeps the filename the RDF uses):
+# After exit 0, shrink in its own call (keeps the filename the RDF uses;
+# add --mode grey if the book was fetched with --shrink-mode grey in mind):
 python {SKILL_DIR}/scripts/shrink_pdf.py \
     --pdf "$OUT_DIR/Author_Title_(Year).pdf" --in-place
-
-# In-copyright content where the resolver downsamples single-shot requests.
-# --tiles always forces native-res tiles for every page (slower but correct).
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" \
-  --nbsso "nbsso=$NBSSO" \
-  --tiles always
-
-# Same again, but recompress images after OCR — typical result is ~50%
-# smaller with no OCR variance.
-python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" \
-  --nbsso "nbsso=$NBSSO" \
-  --tiles always
 ```
 
 New flags worth knowing about:
 
 | flag | purpose |
 | --- | --- |
-| `--tiles {auto,always,never}` | IIIF fallback strategy. `auto` (default) tiles on 403 or silent downsample; `always` tiles every page; `never` disables fallback. **`always` ignores `--resize`** — tiles are fetched at each canvas's native resolution, so pages come out full-size whatever width you asked for. |
+| `--size {half,full}` | IIIF page size. `half` (default): ~1100 px wide, ~145 dpi, enough for OCR and the bitonal shrink. `full`: the scan's own size, 3× the requests; only when the user asks for full resolution. |
+| `--tiles {auto,always,never}` | IIIF tile strategy. `auto` (default): one request per page for public-domain items, tiles for the rest and wherever one request is refused or downsampled; `always` tiles every page; `never` disables tiles. |
 | `--ocr-jobs N`   | parallel jobs for ocrmypdf (default: half the usable CPUs, at most 4) |
 | `--force-auth`   | skip the `accessInfo` pre-check and the page-tile probe; attempt the chosen path regardless |
 | `--ocr {auto,nb,tesseract}` | where the text layer comes from. `auto` (default): nb.no's own OCR when the item serves it (public-domain books), else Tesseract. `nb`: the same, but warn loudly on fallback. `tesseract`: always OCR ourselves. |
-| `--no-ocr`       | no text layer at all, and no shrink (unless `--shrink`), so `ocr_chunked.py` gets full-resolution pages afterwards |
+| `--no-ocr`       | no text layer at all, and no shrink (unless `--shrink`), so `ocr_chunked.py` gets the downloaded pages afterwards |
 | `--ocr-langs L`  | Tesseract languages (default `nor`; fetched from tessdata_fast when missing) |
-| `--no-shrink`    | keep full-resolution page images. By default they are recompressed as JPEG after OCR (~60 MB for a 500-page book; lossy). Use only when the user asks for full resolution. |
-| `--shrink-quality N` | JPEG quality for the shrink (default 60 — about 120 KB/page on text-heavy nb.no scans) |
-| `--shrink-max-width N` | resize images wider than N px before re-encoding (default 800). 0 disables resizing. `--shrink-max-width 700 --shrink-quality 50` is ~25 % smaller but soft on small print; `900`/`70` gives more detail. |
-| `--shrink-keep-master` | also keep the full-resolution OCRed PDF as `<basename>.original.pdf` (often 300–800 MB), so you can re-shrink with other settings without re-downloading |
+| `--shrink-mode {bitonal,grey,jpeg}` | `bitonal` (default): text pages as black-and-white CCITT G4, covers and photo pages as JPEG; ~25 MB for 400 pages. Faint pencil turns black and stamps become outlines. `grey`: greyscale JPEG at the downloaded size, ~80 MB for 400 pages — when the user wants grey tones kept. `jpeg`: the pre-1.5 shrink (JPEG at 800 px, soft on small print). |
+| `--no-shrink`    | keep the downloaded page images as they are (~250 KB a page) |
+| `--shrink-quality N` | JPEG quality for JPEG-encoded pages (default 60) |
+| `--shrink-max-width N` | `--shrink-mode jpeg` only: resize images wider than N px (default 800; 0 disables) |
+| `--shrink-keep-master` | also keep the unshrunk OCRed PDF as `<basename>.original.pdf` (~100 MB for 400 pages), so you can re-shrink with other settings without re-downloading. Kept anyway when OCR fails. |
 | `--shrink-threshold-mb N` | with `--no-shrink`, print a hint when the output exceeds N MB (default 150; 0 disables) |
 
 Output:
@@ -232,13 +241,13 @@ $OUT_DIR/
                                     # (unless --no-shrink)
   AUTHOR_TITLE_(YEAR).rdf           # Zotero RDF — drag-and-drop import
   AUTHOR_TITLE_(YEAR).zotero.json   # the same item for Zoteus; not for the user
-  AUTHOR_TITLE_(YEAR).original.pdf  # only with --shrink-keep-master:
-                                    # full-resolution OCRed master
+  AUTHOR_TITLE_(YEAR).original.pdf  # only with --shrink-keep-master, or
+                                    # when OCR failed: the unshrunk PDF
 ```
 
-The `.original.pdf` exists only if you asked for it. It is never referenced
-by the RDF; once the user is happy with the shrunk PDF, delete it to free
-300–800 MB. Give the user the `.pdf` and `.rdf` only.
+The `.original.pdf` is never referenced by the RDF. When OCR failed, it is
+the copy to retry the OCR on; otherwise delete it once the user is happy
+with the shrunk PDF. Give the user the `.pdf` and `.rdf` only.
 
 The `.rdf` finds the PDF only when the two files sit in the same folder, so
 always say this when you hand them over, in these words:
@@ -259,9 +268,10 @@ The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
 `SendUserFile` and `device_commit_files` take. The PDF then cannot leave the
 cloud sandbox, so:
 
-nb.no has no public PDF link, so Zoteus cannot fetch it either. A shrunk
-book of a few hundred pages is often over the limit (about 60 MB for 500
-pages).
+nb.no has no public PDF link, so Zoteus cannot fetch it either. With the
+default bitonal shrink a book stays under the limit up to about 500 pages
+(~25 MB for 400); `--shrink-mode grey` (~80 MB for 400 pages) and very long
+books go over it.
 
 - **A local-route book** (`NORWAY` / `NB`) is made in the connected folder
   already: it never needs to leave the sandbox. Tell the user to drag the

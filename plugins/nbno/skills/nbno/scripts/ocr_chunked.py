@@ -360,8 +360,11 @@ def _ocr_page(ocrmypdf_bin: str, src: Path, dst: Path,
               languages: str, env: dict) -> Tuple[Path, int, str]:
     """OCR a single-page PDF. Returns (dst, returncode, tail of stderr)."""
     proc = subprocess.run(
+        # --output-type pdf: plain PDF, not PDF/A (see run_ocrmypdf in
+        # zotero_book.py).
         [ocrmypdf_bin, "--language", languages, "--skip-text",
-         "--optimize", "1", "--jobs", "1", "--quiet", str(src), str(dst)],
+         "--optimize", "1", "--output-type", "pdf", "--jobs", "1", "--quiet",
+         str(src), str(dst)],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env,
         text=True, errors="replace",
     )

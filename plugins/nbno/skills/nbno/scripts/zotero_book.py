@@ -10,8 +10,9 @@ Run from the nbno skill's scripts/ folder (or copy alongside nbno_run.sh):
         --out /path/to/outputs/folder \\
         [--cookie auto | --cookie /path/cookie.txt] \\
         [--nbsso "nbsso=<value>"] [--bearer "<token>"] \\
-        [--resize 75] \\
-        [--ocr auto|nb|tesseract] [--no-ocr]
+        [--size half|full] \\
+        [--ocr auto|nb|tesseract] [--no-ocr] \\
+        [--shrink-mode bitonal|grey|jpeg]
 
 Auth, in short: `api.nb.no` authenticates by cookie, so `--nbsso` alone is
 enough and `--bearer` is optional (kept for older DevTools captures that
@@ -23,8 +24,8 @@ What it produces:
 
     <out>/AUTHOR_TITLE_(YEAR).pdf      — searchable (nb.no's own OCR where
                                          available, else Tesseract nor)
-                                         and shrunk
-                                         (800 px, JPEG q60) by default
+                                         and shrunk (bitonal text pages,
+                                         JPEG covers/photos) by default
     <out>/AUTHOR_TITLE_(YEAR).rdf      — Zotero RDF, references the PDF
                                          as an imported-file attachment
                                          and the nb.no URL as a Web Link
@@ -42,18 +43,22 @@ Pipeline:
      stop on a 403 — every page would fail the same way.
      Then compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
   4. Download the full book PDF.
-       - Default: the fast IIIF downloader in-process. It needs no
-         credential for public-domain items or Bokhylla from a Norwegian
-         IP, and takes --nbsso (and/or --bearer) for FEIDE-licensed ones.
-         --tiles and --workers only apply on this path.
+       - Default: the fast IIIF downloader in-process, pages at half size
+         (--size). It needs no credential for public-domain items or
+         Bokhylla from a Norwegian IP, and takes --nbsso (and/or --bearer)
+         for FEIDE-licensed ones. --size, --tiles and --workers only apply
+         on this path.
        - --cookie <file|auto> selects the nbno_run.sh wrapper instead (the
          cookie-file workflow from auth.md). --downloader overrides both.
   5. Add a text layer unless --no-ocr: nb.no's own OCR (ALTO, see
      alto_text.py) when the item serves it — public-domain books do —
      otherwise ocrmypdf (-l nor; the model is fetched from tessdata_fast
      when the sandbox lacks it). --ocr picks one explicitly. --no-ocr also
-     skips the shrink, so a later ocr_chunked.py run sees full-size pages.
-  6. Render the Zotero RDF and item JSON via zotero_rdf.write_zotero_files
+     skips the shrink, so a later ocr_chunked.py run sees unshrunk pages.
+  6. Shrink the page images (shrink_pdf.py, --shrink-mode): bitonal by
+     default. When OCR failed, the unshrunk PDF is kept as
+     <base>.original.pdf so the OCR can be retried without a new download.
+  7. Render the Zotero RDF and item JSON via zotero_rdf.write_zotero_files
      (shared/zotero-rdf/ in the repo).
 
 Designed to stream progress (each step prints a single line) so the user can
@@ -78,7 +83,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Make the sibling zotero_rdf module importable regardless of the
 # directory we're invoked from.
@@ -614,34 +619,26 @@ def _fetch_iiif_info(base_url: str, hdr_img: Dict[str, str],
     return json.loads(_read_url(f"{base_url}/info.json", hdr_img, timeout).decode("utf-8"))
 
 
-def _pick_iiif_width(info: dict, target_width: int) -> int:
-    """Pick the largest sizes[] entry ≤ target_width.
-
-    nb.no's IIIF resolver silently downsamples requests above its listed
-    sizes (e.g. asking for 1024 returns 502 wide, mangling OCR). The fix is
-    to only ever request a width that's explicitly listed in info.json.
-    """
-    listed = sorted(
-        {int(s["width"]) for s in (info.get("sizes") or []) if s.get("width")},
-        reverse=True,
-    )
-    if not listed:
-        return target_width
-    for w in listed:
-        if w <= target_width:
-            return w
-    return listed[-1]
+# Page sizes. nb.no's resolver serves each scan at full size and at 1/2,
+# 1/4, … of it (info.json `sizes`), and asking for any other width gets a
+# silently smaller image. Half size (~1100 px wide, ~145 dpi on a book page)
+# is the default: OCR on it matched full-size OCR 99.6 % on three law books,
+# it needs 4 tiles a page where full size needs 12, and the bitonal shrink
+# scales it up 2x to sharp black-and-white pages (measured 2026-10-23).
+SIZES = {"half": 2, "full": 1}
 
 
 def _fetch_page_singleshot(
-    base_url: str, width: int, hdr_img: Dict[str, str],
+    base_url: str, scale: int, hdr_img: Dict[str, str],
     timeout: float = 30.0,
 ) -> Tuple[Optional[bytes], Optional[Tuple[int, int]]]:
-    """Single /full/<w>,/0/default.jpg request. Returns (bytes, (w,h)).
+    """One request for the whole page at 1/`scale` of full size
+    (/full/pct:50/ for half, /full/full/ for full). Returns (bytes, (w,h)).
 
     The (w,h) tuple is the *actual* size of the returned image as measured by
-    PIL — callers compare it with the requested width to detect silent
-    downsampling. Returns (None, None) on 403/404.
+    PIL — callers compare it with the canvas size to detect silent
+    downsampling. Returns (None, None) on 403/404, which is what anything
+    but a public-domain item gets above 1/4 size (checked 2026-10-23).
     """
     try:
         from PIL import Image
@@ -651,7 +648,8 @@ def _fetch_page_singleshot(
             "pip install --break-system-packages Pillow"
         ) from exc
     import io
-    url = f"{base_url}/full/{width},/0/default.jpg"
+    size = "full" if scale == 1 else f"pct:{100 // scale}"
+    url = f"{base_url}/full/{size}/0/default.jpg"
     try:
         data = _read_url(url, hdr_img, timeout)
     except urllib.error.HTTPError as e:
@@ -664,15 +662,16 @@ def _fetch_page_singleshot(
 
 def _fetch_page_tiled(
     base_url: str, info: dict, hdr_img: Dict[str, str],
-    tile_size: int = 1024, timeout: float = 30.0,
+    scale: int = 1, tile_size: int = 1024, timeout: float = 30.0,
 ) -> Optional[bytes]:
-    """Fetch a canvas as 1024×1024 regionByPx tiles and stitch with PIL.
+    """Fetch a canvas at 1/`scale` of full size as regionByPx tiles and
+    stitch with PIL.
 
-    Used when the single-shot /full/<w>,/ request is denied (403) or
-    silently downsampled. The IIIF resolver typically allows native-resolution
-    regionByPx requests up to ~1024 on a side even when it refuses a full
-    single-shot request — which is the difference between unusable and clean
-    OCR for in-copyright material.
+    The resolver serves any region, scaled down, as long as the image it
+    returns is at most 1024 px a side — also for in-copyright items, which
+    get no single image above 1/4 size. So each tile is a region of
+    1024*scale px, returned at 1024: 4 tiles a page at half size, 12 at
+    full (2026-10-23).
     """
     try:
         from PIL import Image
@@ -687,22 +686,24 @@ def _fetch_page_tiled(
     if full_w <= 0 or full_h <= 0:
         return None
     tiles: List[Tuple[int, int, bytes]] = []
-    for y in range(0, full_h, tile_size):
-        for x in range(0, full_w, tile_size):
-            tw = min(tile_size, full_w - x)
-            th = min(tile_size, full_h - y)
-            url = f"{base_url}/{x},{y},{tw},{th}/full/0/default.jpg"
+    step = tile_size * scale
+    for y in range(0, full_h, step):
+        for x in range(0, full_w, step):
+            tw = min(step, full_w - x)
+            th = min(step, full_h - y)
+            size = "full" if scale == 1 else f"{-(-tw // scale)},"
+            url = f"{base_url}/{x},{y},{tw},{th}/{size}/0/default.jpg"
             try:
-                tiles.append((x, y, _read_url(url, hdr_img, timeout)))
+                tiles.append((x // scale, y // scale, _read_url(url, hdr_img, timeout)))
             except urllib.error.HTTPError as e:
                 if e.code in (403, 404):
                     return None
                 raise
     # Downloading is network-bound and runs on all --workers threads; the
-    # full-resolution canvas and JPEG encode are CPU- and memory-bound, so
-    # only one page per usable CPU is stitched at a time.
+    # stitched canvas and JPEG encode are CPU- and memory-bound, so only one
+    # page per usable CPU is stitched at a time.
     with _STITCH_SLOTS:
-        canvas = Image.new("RGB", (full_w, full_h), "white")
+        canvas = Image.new("RGB", (-(-full_w // scale), -(-full_h // scale)), "white")
         for x, y, data in tiles:
             canvas.paste(Image.open(io.BytesIO(data)).convert("RGB"), (x, y))
         buf = io.BytesIO()
@@ -833,18 +834,19 @@ def download_via_iiif(
     out_pdf: Path,
     bearer: Optional[str] = None,
     nbsso: Optional[str] = None,
-    resize_width: int = 1024,
+    size: str = "half",
     workers: int = 12,
     tiles: str = "auto",
     start: Optional[int] = None,
     stop: Optional[int] = None,
+    public_domain: Optional[bool] = None,
 ) -> dict:
     """Fast in-process downloader.
 
-    Pulls the IIIF manifest, downloads each canvas at the largest listed
-    width ≤ resize_width, verifies the returned image actually has that
-    width (the resolver silently downsamples otherwise), and falls back to
-    native-resolution tiles when single-shot is refused.
+    Pulls the IIIF manifest and downloads each canvas at `size` ("half" or
+    "full", see SIZES): in one request where nb.no allows it (public-domain
+    items), otherwise as tiles. A one-request page smaller than the canvas
+    says it should be (a silent downsample) is fetched again as tiles.
 
     start/stop select a 1-based, inclusive range of manifest canvases (same
     meaning as nbno_run.sh --start/--stop); stop is clamped to the number of
@@ -860,9 +862,11 @@ def download_via_iiif(
     plus a digital loan the user has taken in a browser.
 
     tiles ∈ {"auto", "always", "never"}:
-      - auto:   single-shot first, tile only on 403 or dimension mismatch
-      - always: skip single-shot entirely; tile every page
-      - never:  single-shot only
+      - auto:   one request first, tiles on 403 or a silent downsample; an
+                item known not to be public domain (`public_domain=False`)
+                goes straight to tiles, as one request would be refused
+      - always: skip the one request; tile every page
+      - never:  one request only
 
     Every request retries transient failures (timeouts, 429, 5xx), and pages
     that still fail get a second, slower pass. A page that cannot be had at
@@ -878,16 +882,20 @@ def download_via_iiif(
         raise ValueError(f"start must be >= 1 (got {start})")
     if stop is not None and stop < (start or 1):
         raise ValueError(f"stop must be >= start (got start={start}, stop={stop})")
+    if size not in SIZES:
+        raise ValueError(f"size must be one of {sorted(SIZES)} (got {size!r})")
+    if tiles == "auto" and public_domain is False:
+        tiles = "always"
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
     try:
         return _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
-                                  resize_width, workers, tiles, tmpdir,
+                                  SIZES[size], workers, tiles, tmpdir,
                                   start, stop)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
 
 
-def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
+def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
                        workers, tiles, tmpdir: Path,
                        start: Optional[int] = None,
                        stop: Optional[int] = None) -> dict:
@@ -915,97 +923,54 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, resize_width,
         canvases = canvases[lo - 1:hi]
         print(f"[iiif] page range: canvases {lo}-{hi} of {total}")
 
-    entries: List[Dict[str, str]] = []
+    entries: List[Dict[str, Any]] = []
     for c in canvases:
         canvas_name = c["@id"].split("/")[-1]
         base = c["images"][0]["resource"]["service"]["@id"]
-        entries.append({"canvas": canvas_name, "base_url": base})
+        entries.append({"canvas": canvas_name, "base_url": base,
+                        "width": int(c.get("width") or 0)})
 
-    # resize_width only governs the single-shot path. Tiled pages are fetched
-    # as native-resolution regionByPx tiles and come out at each canvas's own
-    # full size, so under tiles="always" the width is not a cap on anything.
-    chosen_width = resize_width
-    if tiles == "always":
-        print(f"[iiif] manifest has {len(entries)} canvases; tiles=always "
-              "— every page fetched as native-resolution tiles "
-              f"(--resize {resize_width} does not apply)")
-    else:
-        print(f"[iiif] manifest has {len(entries)} canvases; "
-              f"target width {resize_width}, tiles={tiles}")
+    label = "half size" if scale == 2 else "full size"
+    how = {"always": "as tiles", "never": "one request each",
+           "auto": "one request each, tiles where refused"}[tiles]
+    print(f"[iiif] manifest has {len(entries)} canvases; pages at {label}, {how}")
 
-        # info.json shape varies very little between canvases of the same
-        # item, so peek at the first usable canvas to learn the resolver's
-        # listed sizes and pick a width that won't be silently downsampled.
-        # Skipped entirely under tiles="always": chosen_width is unused there,
-        # so probing would cost a round-trip and print a width that caps
-        # nothing.
-        info_probe: Optional[dict] = None
-        for e in entries:
-            if e["canvas"].endswith("_C2"):
-                continue
-            try:
-                info_probe = _fetch_iiif_info(e["base_url"], hdr_img)
-                chosen_width = _pick_iiif_width(info_probe, resize_width)
-                break
-            except urllib.error.HTTPError:
-                continue
-        if info_probe is None:
-            print("[iiif] WARNING: could not fetch info.json for any canvas; "
-                  "using requested width unchecked.")
-        elif chosen_width != resize_width:
-            print(f"[iiif] requested {resize_width}px; resolver lists "
-                  f"{sorted({int(s['width']) for s in info_probe.get('sizes') or []})} "
-                  f"→ using {chosen_width}px to avoid silent downsample.")
+    def tiled(entry) -> Optional[bytes]:
+        try:
+            info = _fetch_iiif_info(entry["base_url"], hdr_img)
+        except urllib.error.HTTPError:
+            return None
+        return _fetch_page_tiled(entry["base_url"], info, hdr_img, scale=scale)
 
     # Every page reports how it was fetched and the caller tallies the modes;
     # counting inside the workers would race (12 threads, non-atomic +=).
-    def fetch_page(idx_entry: Tuple[int, Dict[str, str]]) -> Tuple[int, Optional[str], str]:
+    def fetch_page(idx_entry: Tuple[int, Dict[str, Any]]) -> Tuple[int, Optional[str], str]:
         idx, entry = idx_entry
         if entry["canvas"].endswith("_C2"):
             return idx, None, "skipped_c2"
 
-        info: Optional[dict] = None
         data: Optional[bytes] = None
         mode = "single"
 
         if tiles == "always":
-            try:
-                info = _fetch_iiif_info(entry["base_url"], hdr_img)
-            except urllib.error.HTTPError:
-                return idx, None, "no_info"
-            data = _fetch_page_tiled(entry["base_url"], info, hdr_img)
+            data = tiled(entry)
             mode = "tiled"
         else:
-            data, actual = _fetch_page_singleshot(
-                entry["base_url"], chosen_width, hdr_img,
-            )
+            data, actual = _fetch_page_singleshot(entry["base_url"], scale, hdr_img)
+            want = -(-entry["width"] // scale) if entry["width"] else 0
             if data is not None and actual is not None:
-                aw = actual[0]
-                if aw < chosen_width - 4:  # tolerate 1–2px rounding
+                if want and actual[0] < want - 4:  # tolerate 1–2px rounding
                     mode = "single_downsampled"
                     if tiles == "auto":
-                        # Silent downsample → fall back to tiles for clean res.
-                        try:
-                            info = _fetch_iiif_info(entry["base_url"], hdr_img)
-                        except urllib.error.HTTPError:
-                            info = None
-                        if info is not None:
-                            tiled = _fetch_page_tiled(
-                                entry["base_url"], info, hdr_img,
-                            )
-                            if tiled is not None:
-                                data = tiled
-                                mode = "tiled_after_downsample"
+                        retry = tiled(entry)
+                        if retry is not None:
+                            data = retry
+                            mode = "tiled_after_downsample"
             elif tiles == "auto":
-                # 403/404 on single-shot → try tiles.
-                try:
-                    info = _fetch_iiif_info(entry["base_url"], hdr_img)
-                except urllib.error.HTTPError:
-                    info = None
-                if info is not None:
-                    data = _fetch_page_tiled(entry["base_url"], info, hdr_img)
-                    if data is not None:
-                        mode = "tiled_after_403"
+                # 403/404 on the one request → try tiles.
+                data = tiled(entry)
+                if data is not None:
+                    mode = "tiled_after_403"
 
         if data is None:
             return idx, None, mode + "_failed"
@@ -1485,22 +1450,31 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor",
             )
     languages = tesseract_preflight(languages)
     jobs = max(1, jobs) if jobs else default_ocr_jobs()
+    # --output-type pdf: a plain PDF, not ocrmypdf's default PDF/A. The
+    # PDF/A step needs Ghostscript and pikepdf's pdfa extras (a missing
+    # jsonschema made ocrmypdf exit 15 in one user's run) and re-encodes the
+    # pages, for an archival stamp a Zotero copy has no use for.
     cmd = [
         binary,
         "--language", languages,
         "--skip-text",
         "--optimize", "1",
+        "--output-type", "pdf",
         "--jobs", str(jobs),
         "--quiet",
         str(pdf_path),
         str(pdf_path),
     ]
     print(f"[ocr] running: {' '.join(cmd)}")
-    rc = subprocess.call(cmd, env=ocr_env(jobs))
-    if rc != 0:
+    proc = subprocess.run(cmd, env=ocr_env(jobs), stderr=subprocess.PIPE,
+                          text=True, errors="replace")
+    if proc.returncode != 0:
+        # ocrmypdf's own last lines name the cause (a missing module, no
+        # tesseract, a bad language code); the exit status alone does not.
+        tail = "\n".join(proc.stderr.strip().splitlines()[-8:])
         raise SystemExit(
-            f"ERROR: ocrmypdf exited with status {rc}. "
-            "Make sure tesseract-ocr is installed."
+            f"ERROR: ocrmypdf exited with status {proc.returncode}"
+            + (f":\n{tail}" if tail else ".")
         )
 
 
@@ -1578,21 +1552,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--stop", type=int, default=None,
                     help="Last canvas to include (inclusive; clamped to the "
                          "book's length).")
+    ap.add_argument("--size", choices=sorted(SIZES), default="half",
+                    help="IIIF page size. half (default): ~1100 px wide, "
+                         "~145 dpi — enough for OCR and for the bitonal "
+                         "shrink, 4 tiles a page for in-copyright books. "
+                         "full: the scan's own size, 12 tiles a page; only "
+                         "when the user asks for full resolution.")
     ap.add_argument("--resize", type=int, default=None,
-                    help="Page width in pixels for IIIF (default 1024) or "
-                         "percentage for nbno_run.sh (suggested 75).")
+                    help="nbno_run.sh wrapper only: page size as a "
+                         "percentage (suggested 75). The IIIF downloader "
+                         "uses --size.")
     ap.add_argument("--workers", type=int, default=12,
                     help="Parallel downloaders for the IIIF path (default 12).")
     ap.add_argument("--tiles", choices=("auto", "always", "never"),
                     default="auto",
-                    help="IIIF tile-fallback strategy. auto (default): "
-                         "single-shot first, tile on 403 or silent downsample. "
-                         "always: native-res tiles for every page. never: "
-                         "single-shot only, drop failures.")
+                    help="IIIF tile strategy. auto (default): one request "
+                         "per page for public-domain items, tiles for the "
+                         "rest and wherever one request is refused or "
+                         "downsampled. always: tiles for every page. never: "
+                         "one request only, drop failures.")
     ap.add_argument("--no-ocr", action="store_true",
                     help="No text layer at all. Also skips the shrink (unless "
                          "--shrink is given), so ocr_chunked.py can OCR the "
-                         "full-resolution pages afterwards.")
+                         "unshrunk pages afterwards.")
     ap.add_argument("--ocr", choices=("auto", "nb", "tesseract"), default="auto",
                     help="Where the text layer comes from. auto (default): "
                          "nb.no's own OCR when the item serves it (public-"
@@ -1606,23 +1588,31 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Parallel jobs for ocrmypdf (default: half the "
                          "usable CPUs, at most 4).")
     ap.add_argument("--no-shrink", dest="shrink", action="store_false",
-                    help="Keep the full-resolution page images. By default "
-                         "the images are recompressed (JPEG) after OCR, "
-                         "which is lossy: ~60 MB for a 500-page book.")
+                    help="Keep the downloaded page images as they are "
+                         "(~250 KB/page at half size).")
     ap.add_argument("--shrink", dest="shrink", action="store_true",
                     help="Shrink even with --no-ocr (otherwise the default).")
     ap.set_defaults(shrink=None)   # resolved after parsing: on unless --no-ocr
+    ap.add_argument("--shrink-mode", choices=("bitonal", "grey", "jpeg"),
+                    default="bitonal",
+                    help="bitonal (default): text pages as sharp black-and-"
+                         "white (lossless CCITT G4, ~60 KB/page, ~25 MB for "
+                         "400 pages); covers and photo pages stay JPEG. "
+                         "grey: greyscale JPEG at the downloaded size "
+                         "(~200 KB/page), for books where grey tones matter "
+                         "(pencil notes, stamps, photos). jpeg: the pre-1.5 "
+                         "shrink, JPEG at --shrink-max-width.")
     ap.add_argument("--shrink-quality", type=int, default=60,
-                    help="JPEG quality for the shrink (default 60 — about "
-                         "120 KB/page on text-heavy nb.no scans).")
-    ap.add_argument("--shrink-max-width", type=int, default=800,
-                    help="Resize images wider than this (px) before "
-                         "re-encoding (default 800). 0 disables resizing.")
+                    help="JPEG quality for JPEG-encoded pages (default 60).")
+    ap.add_argument("--shrink-max-width", type=int, default=None,
+                    help="--shrink-mode jpeg only: resize images wider than "
+                         "this (px), default 800. 0 disables resizing.")
     ap.add_argument("--shrink-keep-master", action="store_true",
-                    help="Also keep the full-resolution OCRed PDF as "
+                    help="Also keep the unshrunk OCRed PDF as "
                          "<basename>.original.pdf, so you can re-shrink "
                          "with other settings without re-downloading. "
-                         "Off by default: it is often 300-800 MB.")
+                         "Off by default (it is ~100 MB for 400 pages); "
+                         "kept anyway when OCR fails.")
     ap.add_argument("--shrink-no-keep-master", action="store_true",
                     help=argparse.SUPPRESS)   # the default now; kept for old commands
     ap.add_argument("--shrink-threshold-mb", type=int, default=150,
@@ -1641,7 +1631,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.stop is not None and args.stop < (args.start or 1):
         ap.error("--stop must be at least --start")
     if args.shrink is None:
-        # Shrinking before OCR leaves 800 px pages that OCR badly, and
+        # Bitonal pages have lost the grey levels Tesseract reads best, and
         # --no-ocr exists for "download now, OCR later".
         args.shrink = not args.no_ocr
 
@@ -1743,20 +1733,25 @@ def main(argv: Optional[List[str]] = None) -> int:
         creds = "+".join(k for k, v in (("nbsso", args.nbsso),
                                         ("bearer", args.bearer)) if v)
         print(f"[dl] using fast IIIF in-process downloader "
-              f"({creds or 'no credentials'}, tiles={args.tiles})")
+              f"({creds or 'no credentials'}, size={args.size}, tiles={args.tiles})")
         if args.cookie:
             print("[dl] note: --cookie is only read by the nbno_run.sh wrapper; "
                   "pass --nbsso for the IIIF path, or --downloader wrapper")
+        if args.resize:
+            print("[dl] note: --resize applies to the nbno_run.sh wrapper only; "
+                  "the IIIF downloader uses --size")
+        public_domain = (blob.get("accessInfo") or {}).get("isPublicDomain")
         missing_pages = download_via_iiif(
             canonical_id=canonical,
             out_pdf=pdf_path,
             bearer=args.bearer,
             nbsso=args.nbsso,
-            resize_width=args.resize or 1024,
+            size=args.size,
             workers=args.workers,
             tiles=args.tiles,
             start=args.start,
             stop=args.stop,
+            public_domain=public_domain if isinstance(public_domain, bool) else None,
         )
     else:
         print("[dl] using nbno_run.sh wrapper"
@@ -1799,16 +1794,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 ocr_failed = str(exc)
                 print(f"[ocr] FAILED, continuing without a text layer: {exc}")
 
-    # ---- Shrink (lossy image recompression) ---------------------------------
+    # ---- Shrink (image recompression) ---------------------------------------
+    master_path = pdf_path.with_suffix(".original.pdf")
+    keep_master = args.shrink and (args.shrink_keep_master or bool(ocr_failed))
     if args.shrink:
         import shrink_pdf as shrinkmod   # noqa: E402  (after sys.path mutation)
         size_before = pdf_path.stat().st_size
 
-        print(f"[shrink] settings: quality={args.shrink_quality}, "
-              f"max_width={args.shrink_max_width or 'none'}")
+        print(f"[shrink] settings: mode={args.shrink_mode}, "
+              f"quality={args.shrink_quality}"
+              + (f", max_width={args.shrink_max_width or 800}"
+                 if args.shrink_mode == "jpeg" else ""))
         print("[shrink] probing one middle page to estimate output size...")
         est = shrinkmod.estimate_output(
             pdf_path, args.shrink_quality, args.shrink_max_width,
+            mode=args.shrink_mode,
         )
         if est["pages"]:
             print(f"[shrink] probe: page {est['probe_page']}/{est['pages']} "
@@ -1816,30 +1816,28 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"[shrink] estimated output: "
                   f"~{est['estimated_total_bytes']/1e6:.0f} MB")
 
-        # Preserve the OCRed master before in-place rewrite. Re-encoding an
-        # already-shrunk file compounds JPEG artefacts; keeping the master
-        # means experimenting with different settings is non-destructive.
-        # User can delete <basename>.original.pdf once happy with the shrink.
-        master_path = pdf_path.with_suffix(".original.pdf")
-        if args.shrink_keep_master:
+        # Keep the unshrunk PDF when asked, and always when OCR failed: the
+        # shrunk pages (bitonal ones above all) OCR worse, and without this
+        # copy a retry of the OCR would mean downloading the book again.
+        if keep_master:
             shutil.copy2(str(pdf_path), str(master_path))
-            print(f"[shrink] preserved master at {master_path.name}")
+            print(f"[shrink] kept the unshrunk PDF as {master_path.name}"
+                  + (" (OCR failed; retry the OCR on this copy)" if ocr_failed else ""))
 
         stats = shrinkmod.recompress(
             pdf_path, pdf_path,
             quality=args.shrink_quality,
             max_width=args.shrink_max_width,
+            mode=args.shrink_mode,
         )
+        print(shrinkmod.format_stats(stats))
         saved = size_before - stats["bytes_after"]
         pct = (saved / size_before * 100) if size_before else 0
         print(f"[shrink] {size_before/1e6:.1f} MB -> "
               f"{stats['bytes_after']/1e6:.1f} MB "
               f"(saved {saved/1e6:.1f} MB, {pct:.0f}%)")
-        if args.shrink_keep_master:
-            print(f"[shrink] master kept at {master_path.name} — delete it "
-                  "once you're happy with the shrunk version.")
     elif args.no_ocr:
-        print("[shrink] skipped: --no-ocr keeps full-resolution pages for OCR. "
+        print("[shrink] skipped: --no-ocr keeps the unshrunk pages for OCR. "
               "After ocr_chunked.py finishes, run "
               f"shrink_pdf.py --pdf {pdf_path} --in-place")
     elif args.shrink_threshold_mb > 0:
@@ -1847,7 +1845,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if size_mb > args.shrink_threshold_mb:
             print(f"[hint] PDF is {size_mb:.0f} MB. Run shrink_pdf.py on it "
                   "(or re-run without --no-shrink) to recompress the page "
-                  "images: expect ~60 MB for a 500-page book.")
+                  "images: expect ~25 MB for a 400-page book.")
 
     # ---- RDF ----------------------------------------------------------------
     # Also writes <base>.zotero.json, the same item for Zoteus's
@@ -1866,11 +1864,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  {rdf_name}   ← import this into Zotero")
     print(f"  {base}.zotero.json   ← the same item for Zoteus (zotero_create_items)")
     extras = []
-    master_path = pdf_path.with_suffix(".original.pdf")
-    if args.shrink and args.shrink_keep_master and master_path.exists():
+    if keep_master and master_path.exists():
         extras.append(
-            f"  {master_path.name}   ← OCRed master (delete to free "
-            f"{master_path.stat().st_size/1e6:.0f} MB once the shrink is OK)"
+            f"  {master_path.name}   ← unshrunk copy "
+            + ("for retrying the OCR" if ocr_failed else "(delete to free "
+               f"{master_path.stat().st_size/1e6:.0f} MB once the shrink is OK)")
         )
     pylib = out_dir / "_pylib"
     if pylib.exists():
@@ -1896,6 +1894,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         print()
         print("WARNING: OCR failed, so the PDF has no text layer (the PDF and RDF "
               f"are otherwise complete): {ocr_failed}")
+        if keep_master and master_path.exists():
+            print(f"         The unshrunk pages are kept in {master_path.name}. After "
+                  "fixing the cause, OCR that copy with ocr_chunked.py --pdf "
+                  f"{master_path}, then shrink_pdf.py --pdf {master_path} --out "
+                  f"{pdf_path} --mode {args.shrink_mode}, then delete it.")
         return 5
     return 0
 

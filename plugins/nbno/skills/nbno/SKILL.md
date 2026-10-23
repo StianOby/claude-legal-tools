@@ -112,8 +112,11 @@ not one. So:
      `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
    - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
      2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
-     Missing → `--no-ocr`. Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
-     deliver them and use message **C** from `local-route.md`. Do not re-run just to retry OCR.
+     Missing → `--no-ocr`. Current ocrmypdf needs Python ≥ 3.11 (macOS ships 3.9, where pip would quietly
+     install a years-old ocrmypdf): check `python3 -c 'import sys; print(sys.version_info[:2])'`, and if it
+     is older, run the scripts with a newer `python3.1x` if one is on the PATH (e.g. from Homebrew);
+     otherwise `--no-ocr` and say why. Never install Python or conda yourself. Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
+     handle it as in **OCR failed (exit 5)** under Step 4.
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/` and tell the user where it is. Keep
      `<dir>` for further nb.no downloads in this conversation (`local-route.md` §2.4); when you are done with
      nb.no, `rm -rf <dir>` (this also removes the cookie).
@@ -242,9 +245,11 @@ download canvases 1–7 first to find the offset.
 - **Short ranges, non-book material:** the `nbno_run.sh` wrapper (below).
 - **Whole books:** `zotero_book.py` (with `--no-ocr --no-shrink` if the user
   only wants the images), or its in-process downloader `download_via_iiif()`
-  — about 20× faster than the wrapper. Usage, the resolver's traps and the
-  inline recipe: [`iiif-download.md`](iiif-download.md). Anything not public
-  domain is tiles-only: pass `--tiles always`.
+  — about 20× faster than the wrapper. Pages come at half size (~145 dpi),
+  enough for OCR and sharp once shrunk; it picks one request or tiles per
+  page itself. `--size full` only when the user asks for full resolution
+  (3× the requests). Usage, the resolver's traps and the inline recipe:
+  [`iiif-download.md`](iiif-download.md).
 
 ```bash
 OUT=$(mktemp -d)
@@ -281,8 +286,21 @@ For reading pages visually, OCR and shrinking, read
 - **Shrink books:** `zotero_book.py` does it by default; any other PDF over
   ~50 MB (`nbno_run.sh` prints a `[hint]`) →
   `python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>`. Order is always
-  full resolution → OCR → shrink; never `--resize` to save space. Say what
-  size the PDF ended up.
+  download → OCR → shrink; never `--resize` to save space. The default
+  (`--shrink-mode bitonal`) makes text pages sharp black and white (~25 MB
+  for 400 pages) and keeps covers and photos as JPEG; faint pencil notes
+  turn black and stamps become outlines. If the user wants grey tones kept
+  (annotations, stamps, illustrations), use `--shrink-mode grey`
+  (~80 MB for 400 pages). Say what size the PDF ended up.
+- **OCR failed (exit 5):** the shrunk PDF and RDF are complete, and the
+  unshrunk pages are kept as `<base>.original.pdf`. Tell the user OCR
+  failed and why (the log quotes ocrmypdf's own error), then try to fix the
+  cause — usually a missing Python module (install it into the same
+  `_pylib`) or Tesseract. If fixed, follow the retry line the log prints:
+  `ocr_chunked.py` on the `.original.pdf`, `shrink_pdf.py` from it to the
+  main PDF, then delete the `.original.pdf`. Do not download the book
+  again. If it cannot be fixed (no Tesseract on the local route), deliver
+  without a text layer and use message **C** from `local-route.md`.
 - **Deliver:** copy it to the outputs directory (`/mnt/user-data/outputs` in
   cloud Cowork) and share it with `SendUserFile`, which refuses files
   over 30 MiB: then just say where the PDF is. Local-route results are
@@ -312,7 +330,7 @@ PDF is not attached").
 
 ```bash
 python {SKILL_DIR}/scripts/zotero_book.py --id URN:NBN:no-nb_digibok_2008051600041 \
-  --out "$OUT_DIR" --tiles always [--nbsso "nbsso=<v>"] [--start 1 --stop 20]
+  --out "$OUT_DIR" [--nbsso "nbsso=<v>"] [--start 1 --stop 20] [--shrink-mode grey]
 ```
 
 ---

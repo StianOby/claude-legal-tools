@@ -17,11 +17,11 @@ Verified 2026-09-06 from a Norwegian IP with a FEIDE session, by direct
 `curl` from `Bash`. **This table is the source of truth**; it replaces
 the older bearer-token and `_nblb` guidance, both of which were wrong.
 
-| Item class | Manifest / `accessInfo` | Single-shot `/full/<w>,/` | Tiles `regionByPx` ≤ 1024 | Credential needed |
+| Item class | Manifest / `accessInfo` | One request `/full/<size>/` | Tiles `regionByPx` ≤ 1024 | Credential needed |
 |---|---|---|---|---|
 | Public domain (`accessAllowedFrom: EVERYWHERE`) | 200, no auth | 200 | 200 | **none** |
-| Bokhylla (`license: bokhylla`, `accessAllowedFrom: NORWAY`) | 200, no auth | **403 always** | 200 | **none** — a Norwegian IP is the whole requirement |
-| Legal deposit (`accessAllowedFrom: NB`, `license: copyrighted`) | 200, no auth | **403 always** | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
+| Bokhylla (`license: bokhylla`, `accessAllowedFrom: NORWAY`) | 200, no auth | 200 up to 1/4 size, **403 above** | 200 | **none** — a Norwegian IP is the whole requirement |
+| Legal deposit (`accessAllowedFrom: NB`, `license: copyrighted`) | 200, no auth | **403 above 1/4 size** | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
 
 Four consequences, each of which contradicts something the skill used to say:
 
@@ -35,10 +35,12 @@ Four consequences, each of which contradicts something the skill used to say:
   FEIDE-licensed tiles return 403 with `_nblb` only, and Bokhylla needs no
   cookie at all. Capture it only because the cookie-file format has a slot
   for it.
-- **Licensed content is tiles-only.** Single-shot `/full/<w>,/` is 403 for
-  anything that is not public domain, at every width. `--tiles auto` recovers
-  from this per page; pass `--tiles always` whenever `license` is not
-  `publicdomain` to skip one wasted round-trip per page.
+- **Licensed content is tiles-only above 1/4 size.** A one-request
+  `/full/<size>/` is 403 for anything that is not public domain from half
+  size up (1/4 size, ~560 px, is served; checked 2026-10-23). Tiles are
+  served, scaled by the server to at most 1024 px a side. `zotero_book.py`
+  reads `accessInfo.isPublicDomain` and goes straight to tiles when it is
+  false.
 - **`referer` is not required.** Send it anyway (it costs nothing and matches
   what the viewer does), but it is not what gates the resolver.
 
@@ -206,8 +208,8 @@ through the tool channel is not viable for a book.
 
    | `accessAllowedFrom` | class | what to do |
    |---|---|---|
-   | `EVERYWHERE` | open (`license: publicdomain`) | no cookie; single-shot fine |
-   | `NORWAY` | Bokhylla (`license: bokhylla`) | **no cookie** from a Norwegian IP; tiles only (`--tiles always`) |
+   | `EVERYWHERE` | open (`license: publicdomain`) | no cookie; one request per page |
+   | `NORWAY` | Bokhylla (`license: bokhylla`) | **no cookie** from a Norwegian IP; tiles (automatic) |
    | `NB` | legal deposit (`license: copyrighted`) | needs `nbsso` **and** a digital loan; tiles only |
 
    > **Do not classify on `viewability` or `legalDepositLoginText`.** Both are

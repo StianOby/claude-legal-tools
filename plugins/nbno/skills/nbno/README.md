@@ -39,12 +39,12 @@ nbno/
 │   ├── alto_text.py           # nb.no's own OCR (ALTO) as the PDF text layer
 │   ├── zotero_rdf.py          # Zotero RDF + item JSON (copy of shared/zotero-rdf/)
 │   ├── ocr_chunked.py         # resumable, sandbox-friendly OCR
-│   ├── shrink_pdf.py          # JPEG-recompress an OCRed PDF in place
+│   ├── shrink_pdf.py          # recompress an OCRed PDF (bitonal G4 / grey / JPEG)
 │   └── browser/
 │       └── nbno_auth.js       # in-page helper for the built-in browser
 ```
 
-Offline tests live in the repository at `tests/nbno/`, not in the plugin (they do not ship to users): `python tests/nbno/test_*.py` (needs Pillow; pypdf for the page-size test).
+Offline tests live in the repository at `tests/nbno/`, not in the plugin (they do not ship to users): `python tests/nbno/test_*.py` (needs Pillow; pypdf for the page-size test; pikepdf and numpy for the shrink tests).
 
 SKILL.md is kept deliberately lean — it routes to `auth.md`,
 `reading-ocr.md`, `iiif-download.md`, `zotero-ready.md`, `troubleshooting.md`

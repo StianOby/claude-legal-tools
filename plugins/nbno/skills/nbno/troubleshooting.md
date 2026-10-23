@@ -30,12 +30,12 @@ at the end of `SKILL.md`.
   are driving the API by hand, read
   [`iiif-download.md`](iiif-download.md) first — these are slow to debug
   precisely because nothing fails loudly.
-- **Native-resolution tiles work when single-shot doesn't.** When the
-  resolver refuses `/full/<w>,/` for in-copyright/licensed content,
-  `regionByPx` requests up to 1024×1024 are routinely allowed at native
-  resolution. The orchestrator's `--tiles auto` falls back to tiling
-  whenever single-shot returns 403 or is silently downsampled. Use
-  `--tiles always` to force tiling from the start.
+- **Tiles work when one request doesn't.** In-copyright/licensed content
+  gets no single image above 1/4 size, but `regionByPx` requests scaled to
+  at most 1024 px a side are allowed. `zotero_book.py` goes straight to
+  tiles for items that are not public domain, and falls back to tiles
+  whenever one request returns 403 or is silently downsampled. `--tiles
+  always` forces tiling for every item.
 - **Copyright.** Most twentieth-century books are in copyright; access via
   Bokhylla is granted to individuals under a specific agreement and does
   not permit redistribution. The user is responsible for using downloaded
@@ -47,12 +47,11 @@ at the end of `SKILL.md`.
   with fewer `--workers`. For the `nbno_run.sh` wrapper, retry with a
   smaller page range (`--start`/`--stop`).
 - **Size.** A full novel at full resolution can be 200–500 MB. Shrink it
-  (`SKILL.md` Step 4): `zotero_book.py` does so by default, and `shrink_pdf.py` works
-  on any PDF, including `nbno_run.sh` output. `nbno_run.sh --resize N` does
-  work (nbno downloads native tiles and scales each page locally), but it
-  scales *before* OCR. `zotero_book.py --resize` sets only the single-shot
-  width, and tiled pages (`--tiles always`, the normal route for
-  in-copyright items) ignore it.
+  (`SKILL.md` Step 4): `zotero_book.py` does so by default (bitonal, ~25 MB
+  for 400 pages), and `shrink_pdf.py` works on any PDF, including
+  `nbno_run.sh` output. `nbno_run.sh --resize N` does work (nbno downloads
+  native tiles and scales each page locally), but it scales *before* OCR.
+  `zotero_book.py` ignores `--resize`; its page size is `--size half|full`.
 - **Content search API does not work for pliktmonografi items.** The nb.no
   content search API (`https://api.nb.no/catalog/v1/contentsearch/{item_id}/search?q=...`)
   returns empty results for `pliktmonografi` items even when the user is
@@ -155,7 +154,7 @@ at the end of `SKILL.md`.
 - *Output PDF is huge (>500 MB).* The bloat is image encoding, not OCR.
   It was probably made with `--no-shrink`, `--no-ocr` + `ocr_chunked.py`,
   or `nbno_run.sh`. Run
-  `scripts/shrink_pdf.py --pdf book.pdf` to JPEG-recompress the embedded images in place. The
+  `scripts/shrink_pdf.py --pdf book.pdf` to recompress the embedded images (bitonal by default). The
   text layer is untouched, so this is a pure size optimisation — no need
   to re-OCR. **Never re-OCR to shrink** — it wastes minutes per book and
   the OCR text layer doesn't determine file size.

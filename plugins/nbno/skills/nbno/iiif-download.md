@@ -20,12 +20,17 @@ listed in this file:
   (the first returns 404 for a substantial share of items — including plain
   `digibok_*`, e.g. `digibok_2014050705024` — so the fallback is routine, not
   an edge case; never hand-roll a single-endpoint manifest fetch);
-- fetches `info.json` to pick a width the resolver will actually serve at
-  the requested resolution (the resolver silently downsamples otherwise —
-  asking for `608,` on a book that only lists `[502, 251, …]` returns a
-  502px image which makes OCR unusable);
-- verifies the returned image dimensions with PIL and, on mismatch, falls
-  back to native-resolution `regionByPx` 1024×1024 tiles stitched together;
+- fetches every page at **half size** (`size="half"`, ~1100 px wide): the
+  resolver serves full size and 1/2, 1/4, … of it, and silently
+  downsamples any other width (asking for `1024,` on a page that lists
+  `[1136, 568, …]` returns 568 px). Half size OCRs within 0.4 % of full
+  size and needs a third of the requests (2026-10-23); `size="full"` gets
+  the scan's own size;
+- asks for the page in one request (`/full/pct:50/`) for public-domain
+  items, and as `regionByPx` tiles scaled down by the server (2048-px
+  regions returned at 1024, 4 a page) for everything else, which gets no
+  single image above 1/4 size; a one-request page that comes back smaller
+  than the canvas says is fetched again as tiles;
 - skips the `_C2` back cover automatically;
 - retries timeouts, dropped connections, 429 and 5xx on every request, and
   gives failed pages a second, slower pass;
@@ -54,9 +59,9 @@ OUT_DIR = tempfile.mkdtemp()   # scratch; copy the final PDF to outputs (`SKILL.
 result = download_via_iiif(
     canonical_id="digibok_2008051600041",
     out_pdf=Path(OUT_DIR) / "book.pdf",
-    resize_width=1024,    # listed sizes will be checked; actual cap may be lower
+    size="half",            # default; "full" only when asked for full resolution
     workers=12,
-    tiles="always",       # licensed content is tiles-only; see below
+    public_domain=False,    # accessInfo.isPublicDomain: False goes straight to tiles
 )
 
 # FEIDE-licensed item, after the user has taken the digital loan (`SKILL.md` Step 0).
@@ -64,22 +69,23 @@ download_via_iiif(
     canonical_id="digibok_2014050705024",
     out_pdf=Path(OUT_DIR) / "book.pdf",
     nbsso="nbsso=<value>",   # bearer is not needed and defaults to None
-    tiles="always",
+    public_domain=False,
 )
 ```
 
-> **Anything that is not public domain is tiles-only.** Single-shot
-> `/full/<w>,/` returns 403 at every width for Bokhylla and legal-deposit
-> items. `--tiles auto` recovers per page, but pass `--tiles always` whenever
-> `accessInfo.license != "publicdomain"` to skip one wasted round-trip per
-> page.
+> **Anything that is not public domain gets no single image above 1/4
+> size.** `/full/pct:25/` (~560 px) is served to Bokhylla and legal-deposit
+> items; `/full/pct:50/` and larger return 403. Larger pages come only as
+> tiles: any region, scaled by the server to at most 1024 px a side
+> (`/0,0,2048,2048/1024,/0/default.jpg` works, `/0,0,2048,2048/full/` is
+> 403). `zotero_book.py` reads `accessInfo.isPublicDomain` and goes straight
+> to tiles when it is false (checked 2026-10-23).
 >
-> **Tiling ignores the requested width.** Tiles are fetched at each canvas's
-> native resolution, so `--resize` / `resize_width` governs only the
-> single-shot path and caps nothing under `--tiles always`. Expect full-size
-> pages — and heterogeneous ones, since canvases within a book differ (1562,
-> 1571 and 2024 px wide in the same volume). Smaller output comes from the
-> shrink step after OCR (`SKILL.md` Step 4), not from asking for a narrower width.
+> **Canvases within a book differ in size** (1562, 1571 and 2024 px wide in
+> the same volume; left and right pages often differ), so sizes are asked
+> for as a fraction of each canvas (`pct:50`), never as one width for the
+> whole book. Smaller output comes from the shrink step after OCR
+> (`SKILL.md` Step 4), not from asking for a narrower width.
 
 **Driving the IIIF API by hand?** If `zotero_book.py` is not available (e.g.
 you don't have the skill directory on disk), the full inline recipe lives in
@@ -96,8 +102,8 @@ half-size image, black page bottoms, poster-sized PDF pages).
 `api.nb.no` authenticates by cookie — there is no bearer token. Public-domain
 and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP, so run this in the local shell — SKILL.md **Routing**);
 FEIDE-licensed items need `nbsso` plus an active digital loan. Anything that
-is not public domain is **tiles-only** — single-shot `/full/<w>,/` returns 403
-at every width. See [`auth.md`](auth.md) for the full table.
+is not public domain gets no single image above 1/4 size; larger pages come
+as tiles. See [`auth.md`](auth.md) for the full table.
 
 ---
 
@@ -142,55 +148,49 @@ def fetch_manifest():
             if e.code != 404: raise
     raise SystemExit("manifest not found on either endpoint")
 
-def pick_width(info, target):
-    sizes = sorted({int(s["width"]) for s in info.get("sizes") or [] if s.get("width")},
-                   reverse=True)
-    for w in sizes:
-        if w <= target: return w
-    return sizes[-1] if sizes else target
-
 A4_HEIGHT_IN = 297 / 25.4  # ≈ 11.69 — anchor each page's height to A4
+SCALE = 2                  # half size; 1 = full size
 
-def fetch_tiled(base, info, tile=1024):
+def fetch_tiled(base, info, scale=SCALE):
     # Read per-canvas dimensions from THIS page's info.json — not a cached
     # cover size. Content pages (~2336×3368) are larger than the cover
     # (~1877×2560); using one fixed canvas size would tile only the top-left
-    # corner and leave the rest of every page black.
+    # corner and leave the rest of every page black. Each tile is a region
+    # of 1024*scale px that the server returns scaled to 1024.
     full_w, full_h = int(info["width"]), int(info["height"])
-    canvas = Image.new("RGB", (full_w, full_h), "white")
-    for y in range(0, full_h, tile):
-        for x in range(0, full_w, tile):
-            tw, th = min(tile, full_w - x), min(tile, full_h - y)
-            url = f"{base}/{x},{y},{tw},{th}/full/0/default.jpg"
+    step = 1024 * scale
+    canvas = Image.new("RGB", (-(-full_w // scale), -(-full_h // scale)), "white")
+    for y in range(0, full_h, step):
+        for x in range(0, full_w, step):
+            tw, th = min(step, full_w - x), min(step, full_h - y)
+            size = "full" if scale == 1 else f"{-(-tw // scale)},"
+            url = f"{base}/{x},{y},{tw},{th}/{size}/0/default.jpg"
             req = urllib.request.Request(url, headers=HDR_IMG)
             with urllib.request.urlopen(req, timeout=30) as r:
-                canvas.paste(Image.open(io.BytesIO(r.read())).convert("RGB"), (x, y))
+                canvas.paste(Image.open(io.BytesIO(r.read())).convert("RGB"),
+                             (x // scale, y // scale))
     buf = io.BytesIO(); canvas.save(buf, "JPEG", quality=92); return buf.getvalue()
 
 canvases = fetch_manifest()["sequences"][0]["canvases"]
-entries = [(c["@id"].split("/")[-1], c["images"][0]["resource"]["service"]["@id"])
-           for c in canvases]
-
-# Probe info.json once; nb.no's resolver is consistent across canvases.
-probe_info = _get_json(f"{entries[0][1]}/info.json", HDR_IMG)
-width = pick_width(probe_info, target=1024)
-print(f"resolver lists widths; using {width}px (target was 1024)")
+entries = [(c["@id"].split("/")[-1], c["images"][0]["resource"]["service"]["@id"],
+            int(c.get("width") or 0)) for c in canvases]
 
 def fetch_page(idx_entry):
-    idx, (name, base) = idx_entry
+    idx, (name, base, canvas_w) = idx_entry
     if name.endswith("_C2"): return idx, None
-    url = f"{base}/full/{width},/0/default.jpg"
+    size = "full" if SCALE == 1 else f"pct:{100 // SCALE}"
+    url = f"{base}/full/{size}/0/default.jpg"
     try:
         req = urllib.request.Request(url, headers=HDR_IMG)
         with urllib.request.urlopen(req, timeout=30) as r:
             data = r.read()
     except urllib.error.HTTPError as e:
         if e.code != 403: raise
-        # Fall back to native-res tiles.
+        # Not public domain: tiles.
         info = _get_json(f"{base}/info.json", HDR_IMG)
         data = fetch_tiled(base, info)
-    # Verify single-shot wasn't silently downsampled.
-    if Image.open(io.BytesIO(data)).size[0] < width - 4:
+    # Verify the one request wasn't silently downsampled.
+    if canvas_w and Image.open(io.BytesIO(data)).size[0] < -(-canvas_w // SCALE) - 4:
         info = _get_json(f"{base}/info.json", HDR_IMG)
         data = fetch_tiled(base, info)
     path = OUT_DIR / f"page_{idx:04d}.jpg"
@@ -238,10 +238,14 @@ directory.
 Asking for `/full/1024,/0/default.jpg` on an item whose `info.json` lists only
 `[502, 251, …]` returns a **502-wide image with HTTP 200** and no warning.
 Treating that as 1024-wide (e.g. assuming 300 DPI for OCR) produces unusable
-output. Always GET `info.json` first and pick a width from `sizes[]`, **and**
-verify the returned image's dimensions with PIL afterwards — the listed sizes
-vary per canvas, so a width validated on the cover can still be downsampled on
-a content page.
+output. The listed sizes are the scan's full size halved again and again
+(`[1136, 568, 284, …]` for a 2272-px page), and they vary per canvas — left
+and right pages, and the cover, differ. So ask for a fraction of each
+canvas (`pct:50`), not one width for the whole book, **and** verify the
+returned image's dimensions with PIL afterwards. Picking "the largest
+listed width ≤ 1024" from one canvas, as the skill did before 1.5.0 unless
+`--tiles always` was passed, gave ~560 px pages (~50 dpi on A4), and on
+books whose canvases differ, every other page at full size.
 
 ### 2. Tiling must use *that canvas's* dimensions
 
