@@ -13,7 +13,7 @@ manuscript, or thesis (Norwegian or English text).
 
 ## What it does
 
-1. Extracts all references and direct quotations from the manuscript (PDF or DOCX).
+1. Extracts all references and direct quotations from the manuscript (PDF, DOCX, ODT, or a Markdown, Typst or LaTeX source).
 2. Creates an `.xlsx` worklist (`Kildesjekk_<documentname>.xlsx`) with one row
    per reference and columns for status, quoted text, discrepancy, severity, and
    description.
@@ -98,7 +98,7 @@ category of source.
 ## How to use
 
 Trigger the skill by describing the task in plain language (e.g. *"run a
-kildesjekk on this manuscript"*), then upload or point to the PDF or DOCX file.
+kildesjekk on this manuscript"*), then upload or point to the manuscript file.
 The skill will:
 
 1. Confirm which tools are available.
