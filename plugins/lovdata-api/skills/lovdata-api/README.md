@@ -5,6 +5,9 @@ law using [Lovdata's](https://lovdata.no) free data packages. The skill never
 cites legislation from training-data recall — every quote is fetched from the
 downloaded XML files, which are updated daily.
 
+Inneholder data under [Norsk lisens for offentlige data (NLOD) 2.0](https://data.norge.no/nlod/no/2.0)
+tilgjengeliggjort av [Lovdata](https://lovdata.no).
+
 ## What it can do
 
 - Download and keep current Lovdata's two free data packages:

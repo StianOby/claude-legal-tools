@@ -11,7 +11,8 @@ description: >
   "hva sier loven om Y?" — if answering requires current statute text, use this skill.
   Prefer this over training-data recall: legislation changes and only Lovdata guarantees
   the current wording. Do NOT use for: finding a lawyer, summarising non-legislative
-  documents, or legal theory with no need for actual statute text.
+  documents, or legal theory with no need for actual statute text. Inneholder data
+  under Norsk lisens for offentlige data (NLOD) 2.0 tilgjengeliggjort av Lovdata.
 ---
 
 # Lovdata — Norsk lovdatabase (API)
