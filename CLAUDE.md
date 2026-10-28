@@ -242,6 +242,13 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   PDFs and HUDOC (some of the time) challenge every UA, and lovdata.no
   blocks Anthropic's cloud by IP, so for those the browser route stays.
 
+## Lovdata Pro terms
+
+lovdata-pro works under Lovdata's brukervilkår § 2.2, quoted in its README.
+When working on lovdata-pro, compare that quote with the live terms and
+follow the routine in `docs/lovdata-pro-terms.md`, which also records the
+maintainer's decisions on how the skill relates to them.
+
 ## Zotero-ready output
 
 Several skills can make a Zotero item (an RDF file, or a direct import via

@@ -57,6 +57,43 @@ any browser.
   dependencies beyond the standard library.
 - **Lovdata Pro subscription**, with the user able to log in interactively
   in the browser pane (SSO/FEIDE supported, same as lovdata.no normally).
+- **Training turned off** in Claude (Settings → Privacy → *Help improve
+  our AI models*), unless you are on a Team or Enterprise plan, where content is
+  not used for training. See the next section.
+
+## Lovdata's terms of use
+
+Lovdata Pro is governed by Lovdata's terms of use. Section 2.2
+(*Lovdatas innloggingstjenester*) of the
+[brukervilkår](https://lovdata.no/artikkel/brukervilkar_for_lovdatas_tjenester/1324)
+reads (as of 28 October 2026):
+
+> Du kan med noen begrensninger bruke innholdet på de innloggingstjenestene
+> til nødvendig arbeid for organisasjonen brukerprofilen er registrert under.
+> Du kan dele innholdet med andre som har tilgang til den innloggingstjenesten
+> innholdet er hentet fra. Du kan også bruke innhold i en konkret sak i
+> rettssystemet, for eksempel ved å laste opp innholdet i aktørportalen.
+> Personer og aktører du deler innholdet med skal overholde Lovdatas
+> brukervilkår. Du har ikke rett til å distribuere, publisere eller
+> mangfoldiggjøre innholdet uten skriftlig tillatelse fra Lovdata.
+> Massenedlasting av innholdet er ikke tillatt. For bruk i kunstig
+> intelligens-programmer (KI) gjelder følgende presiseringer: Kun
+> enkeltdokumenter opprinnelig utarbeidet av offentlige organer og juridiske
+> utdrag som kun inneholder slike enkeltdokumenter kan brukes i KI, og kun
+> dersom du er sikker på at programmet ikke lagrer innholdet eller bruker det
+> til trening. Det er ikke tillatt å bruke innholdet til trening eller
+> utvikling av KI-algoritmer.
+
+The skill is built to stay within these terms: it fetches single court
+decisions and preparatory works (documents written by public bodies), one
+at a time, in your own logged-in session. Two things remain your
+responsibility:
+
+- **Turn off training** in Claude, as listed under Requirements. The skill
+  cannot see that setting; it reminds you once per conversation.
+- **Stay within the scope.** Lovdata Pro also carries literature and other
+  material not written by public bodies. The skill does not look for it,
+  but it does not block it either; don't ask it to fetch such material.
 
 ## Quickstart
 

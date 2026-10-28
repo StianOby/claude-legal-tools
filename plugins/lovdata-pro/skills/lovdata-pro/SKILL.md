@@ -126,6 +126,13 @@ Du kan slå sammen navigering + paste + `isLoggedIn()`-sjekk i ett
 `preview_start` kan ikke batches (en batch som starter med `navigate` åpner
 panelet selv).
 
+**Lovdatas KI-vilkår.** Første gang skill-en brukes i en samtale: si i én
+setning, på brukerens språk, at Lovdatas brukervilkår bare tillater
+Pro-innhold i KI-verktøy som ikke bruker det til trening, så brukeren bør
+ha slått av «Help improve our AI models» (Settings → Privacy; gjelder ikke Team-
+og Enterprise-planer). Du kan ikke se innstillingen selv: ikke be om
+bekreftelse og ikke stopp arbeidet.
+
 ---
 
 ## Steg 1 — oppslag av referanse
