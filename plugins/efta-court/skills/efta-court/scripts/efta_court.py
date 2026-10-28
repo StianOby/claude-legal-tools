@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-"""efta_court.py — fetch and search EFTA Court case law.
+"""efta_court.py — EFTA Court case law and procedural texts from eftacourt.int.
 
-Self-contained CLI with no required third-party dependencies for the basic
-flows. PDF text extraction uses the system `pdftotext` binary if present,
-otherwise `pypdf`, otherwise it falls back to writing only the PDF.
+The site (relaunched October 2026) is a Vue app over an open JSON API at
+api.eftacourt.int (the address comes from https://eftacourt.int/config.js).
+The API returns every case and document in one response each, and has a
+server-side full-text index over the documents' PDFs. Stdlib only; PDF text
+comes from `pdftotext` (poppler) or else `pypdf`.
 
 Cache layout (under the resolved cache dir):
 
-  index.json                                   # all cases from WP REST API
-  cases/<CASE>/raw.html                        # the source HTML of the detail page
-  cases/<CASE>/meta.json                       # parsed metadata
-  cases/<CASE>/summary.txt                     # human-readable summary
-  cases/<CASE>/<doctype>-<lang>.pdf            # downloaded PDFs
-  cases/<CASE>/<doctype>-<lang>.txt            # extracted text
+  data.json                                  # the API collections, refreshed hourly
+  cases/<KEY>/<type>-<LANG>.pdf|.txt|.json   # case documents (.json: source + method)
+  texts/<slug>-<LANG>.pdf|.txt|.json         # procedural texts
 
-All text files are written and read as UTF-8 regardless of the platform
-locale, and writes are atomic (temp file + rename) so an interrupted run
-never leaves a truncated file behind that later looks like a cache hit.
+All text files are UTF-8 regardless of the platform locale, and writes are
+atomic (temp file + rename).
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -32,24 +31,49 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-BASE = "https://eftacourt.int"
-REST = f"{BASE}/wp-json/wp/v2/cases"
-USER_AGENT = "efta-court-skill/1.1.10(+https://github.com/StianOby/claude-legal-tools)"
-PROCEDURE_CODES = ("AO", "INF", "DA")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from source_text import SPACES, finish, fold, mark_emphasis, mark_lists  # noqa: E402
+
+SITE = "https://eftacourt.int"
+DEFAULT_API = "https://api.eftacourt.int/api"
+USER_AGENT = "efta-court-skill/2.0.0 (+https://github.com/StianOby/claude-legal-tools)"
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
-# The case index is refreshed from the REST API when it is older than this,
-# so newly lodged cases turn up without an explicit `update`.
-INDEX_TTL = 24 * 3600
-# A cached case page that does not say "Decided" is re-fetched when older
-# than this: pending cases gain documents, and eventually a judgment.
-PENDING_TTL = 24 * 3600
+DATA_TTL = 3600
+# The API collections the skill reads. Others (press, members …) are not used.
+COLLECTIONS = ("cases", "downloads", "procedures", "events", "settings", "eeftacourt")
+SEARCH_CAP = 1000  # /search/documents never returns more IDs than this
+SNIPPET_BATCH = 60  # the site's own batch size for /search/snippets
+
+LANGS = {"English": "EN", "Norwegian": "NO", "German": "DE", "Icelandic": "IS",
+         "Finnish": "FI", "Swedish": "SV", "French": "FR"}
+COUNTRIES = {"Norway": "NO", "Iceland": "IS", "Liechtenstein": "LI", "Sweden": "SE", "Finland": "FI"}
+# docType -> --type key. Press releases are left out on purpose (maintainer).
+DOC_TYPES = {
+    "Judgment": "judgment",
+    "Report for the Hearing": "report",
+    "Request for an Advisory Opinion": "request",
+    "Notification": "notification",
+    "Order of the Court": "order-court",
+    "Order of the President": "order-president",
+    "Information Note": "information-note",
+    "Decision": "decision",
+}
+TYPE_ALIASES = {
+    "advisory-opinion": "judgment", "opinion": "judgment", "ao": "judgment",
+    "hearing-report": "report", "report-for-the-hearing": "report", "rh": "report",
+    "request-ao": "request", "written-observations": "observations", "obs": "observations",
+}
+# Types that are the Court's own decisions, for cited-by.
+DECISION_TYPES = {"judgment", "order-court", "order-president", "decision"}
 
 # ---------------------------------------------------------------------------
-# Cache directory resolution
+# Cache directory, files
+
 
 def cache_dir() -> Path:
     if env := os.environ.get("EFTA_COURT_CACHE_DIR"):
@@ -61,12 +85,13 @@ def cache_dir() -> Path:
     else:
         p = Path.home() / ".cache" / "efta-court"
     p.mkdir(parents=True, exist_ok=True)
-    (p / "cases").mkdir(exist_ok=True)
+    # 1.x (the WordPress site) kept index.json and per-case raw.html/meta.json;
+    # none of it matches the new site, so it is removed once.
+    if (p / "index.json").exists():
+        (p / "index.json").unlink()
+        shutil.rmtree(p / "cases", ignore_errors=True)
     return p
 
-
-# ---------------------------------------------------------------------------
-# UTF-8, atomic file helpers
 
 def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8", errors="replace")
@@ -87,1004 +112,1107 @@ def _write_bytes(p: Path, data: bytes) -> None:
 
 
 def _has_content(p: Path) -> bool:
-    """A cache file counts as present only if it is non-empty."""
     try:
         return p.stat().st_size > 0
     except OSError:
         return False
 
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
 # ---------------------------------------------------------------------------
 # HTTP
 
-def _request(url: str, *, accept: str = "*/*", timeout: int = 30) -> bytes:
+
+def _request(url: str, *, accept: str = "application/json", timeout: int = 60) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": accept})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
 
-def fetch_text(url: str) -> str:
-    return _request(url, accept="text/html,application/xhtml+xml").decode("utf-8", errors="replace")
-
-
 def fetch_json(url: str) -> Any:
-    return json.loads(_request(url, accept="application/json"))
+    return json.loads(_request(url))
 
 
-def download(url: str, dest: Path) -> Path:
-    data = _request(url, accept="application/pdf,*/*", timeout=120)
-    _write_bytes(dest, data)
-    return dest
+_CONFIG_RE = re.compile(r"EFTA_API_URL\s*=\s*[\"']([^\"']+)[\"']")
+
+
+def api_base_from_config(js: str) -> str | None:
+    m = _CONFIG_RE.search(js)
+    return m.group(1).rstrip("/") if m else None
+
+
+def discover_api() -> str:
+    """The API address the site itself uses (config.js is rewritten at each
+    deploy), else the known one."""
+    try:
+        js = _request(f"{SITE}/config.js", accept="*/*", timeout=20).decode("utf-8", "replace")
+        return api_base_from_config(js) or DEFAULT_API
+    except (urllib.error.URLError, OSError):
+        return DEFAULT_API
+
+
+def storage_url(file_url: str, api: str) -> str:
+    """Document files are always fetched from the API host's /storage path
+    (maintainer's rule), whatever host the record names (the records say
+    efta_back.on-forge.com)."""
+    origin = re.sub(r"/api/?$", "", api)
+    path = urllib.parse.urlsplit(file_url).path
+    if not path.startswith("/storage/"):
+        path = "/storage/imports/" + path.rsplit("/", 1)[-1]
+    return origin + path
 
 
 # ---------------------------------------------------------------------------
-# Case-number normalisation
-#
-# Accepts: E-14/15, e14-15, E-08/26, 8/25, e 14/15, E0825, E-14/2015,
-# and joined forms like "E-31/24+E-32/24" (first component wins; use
-# all_case_numbers() to get every component).
+# Data: all collections, cached for an hour
+
+
+def _slim(name: str, rows: Any) -> Any:
+    """Drop what the skill never reads (event page modules, page images)."""
+    if name == "events" and isinstance(rows, list):
+        return [{k: v for k, v in e.items() if k not in ("modules", "image")} for e in rows]
+    return rows
+
+
+def load_data(refresh: bool = False) -> dict:
+    p = cache_dir() / "data.json"
+    old = None
+    if _has_content(p):
+        try:
+            old = json.loads(_read(p))
+        except json.JSONDecodeError:
+            old = None
+    if old and not refresh and time.time() - old.get("fetched_at", 0) < DATA_TTL:
+        return old
+    api = discover_api()
+    try:
+        with ThreadPoolExecutor(len(COLLECTIONS)) as ex:
+            rows = list(ex.map(lambda n: fetch_json(f"{api}/{n}"), COLLECTIONS))
+    except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+        if old:
+            age = (time.time() - old.get("fetched_at", 0)) / 3600
+            print(f"[warn] could not refresh from {api} ({e}); using the cached data from {age:.1f} h ago.",
+                  file=sys.stderr)
+            return old
+        if isinstance(e, urllib.error.HTTPError) and e.code in (403, 405, 429, 503):
+            raise SystemExit(f"{api} answered HTTP {e.code}. This source may be blocked from here.")
+        raise SystemExit(f"Could not reach the EFTA Court API at {api}: {e}")
+    data = {"fetched_at": time.time(), "api": api}
+    data.update({n: _slim(n, r) for n, r in zip(COLLECTIONS, rows)})
+    _write(p, json.dumps(data, ensure_ascii=False))
+    return data
+
+
+# ---------------------------------------------------------------------------
+# Case numbers
 
 _CASE_RE = re.compile(r"e?\s*-?\s*0*(\d+)\s*[-/_\s]\s*0*(\d+)", re.IGNORECASE)
-# Compact form with no separator at all: E0825, E1415, E-0825 → number + 2-digit year
+# Compact form with no separator at all: E0825, E1415 -> number + 2-digit year
 _COMPACT_RE = re.compile(r"^\s*e?\s*-?\s*(\d{1,2})(\d{2})\s*$", re.IGNORECASE)
-
-
-def _two_digit_year(yr: int) -> int:
-    """Accept 15, 2015, 94 or 1994 and return the 2-digit year."""
-    return yr % 100
+_REF_NUM_RE = re.compile(r"E-0*(\d+)/(\d{2,4})", re.IGNORECASE)
 
 
 def full_year(yy: int) -> int:
-    """Map a 2-digit case year to a 4-digit year (94–99 → 1990s)."""
+    """Map a 2-digit case year to a 4-digit year (94–99 -> 1990s)."""
     if yy >= 100:
         return yy
     return 1900 + yy if yy >= FIRST_YEAR % 100 else 2000 + yy
 
 
 def normalise(case: str) -> str:
-    """Return canonical form 'E-N/YY' (no leading zeros, 2-digit year)."""
-    m = _CASE_RE.search(case)
-    if m:
-        n, yr = int(m.group(1)), int(m.group(2))
-    else:
-        m = _COMPACT_RE.match(case)
-        if not m:
-            raise ValueError(f"Cannot parse case number: {case!r}")
-        n, yr = int(m.group(1)), int(m.group(2))
-    return f"E-{n}/{_two_digit_year(yr):02d}"
+    """'E-08/26', 'e14-15', '14/15', 'E0825' -> canonical 'E-N/YY'."""
+    m = _CASE_RE.search(case) or _COMPACT_RE.match(case)
+    if not m:
+        raise ValueError(f"Cannot parse case number: {case!r}")
+    return f"E-{int(m.group(1))}/{int(m.group(2)) % 100:02d}"
 
 
-def all_case_numbers(text: str) -> list[str]:
-    """Every case number mentioned in a string, canonicalised, in order."""
+def ref_numbers(ref: str) -> list[str]:
+    """Every case number in a record's ref, canonical: 'Joined Cases E-31/24
+    and E-32/24' -> ['E-31/24', 'E-32/24']; 'E-9/04 COSTS' -> ['E-9/04']."""
     out: list[str] = []
-    for m in _CASE_RE.finditer(text):
-        c = f"E-{int(m.group(1))}/{_two_digit_year(int(m.group(2))):02d}"
+    for m in _REF_NUM_RE.finditer(ref or ""):
+        c = f"E-{int(m.group(1))}/{int(m.group(2)) % 100:02d}"
         if c not in out:
             out.append(c)
     return out
 
 
-def case_key(case_canonical: str) -> str:
-    """Filesystem-safe key (used as cache subdirectory): 'E-14-15'."""
-    return case_canonical.replace("/", "-")
+def _squash(s: str) -> str:
+    return re.sub(r"\s+", " ", s or "").strip().casefold()
 
 
-def _is_plain_title(title: str) -> bool:
-    """True for a WP title that is exactly one case number ('E-02/12'),
-    False for 'E-02/12 INT', 'Joined Cases E-1/24 and E-7/24', etc."""
-    return bool(re.fullmatch(r"\s*E-?\s*0*\d+\s*/\s*\d+\s*", title, re.IGNORECASE))
+def case_year(rec: dict) -> int:
+    nums = ref_numbers(rec.get("ref", ""))
+    if nums:
+        return full_year(int(nums[0].split("/")[1]))
+    return int((rec.get("dateSubmitted") or "0")[:4] or 0)
+
+
+def _sort_key(rec: dict):
+    nums = ref_numbers(rec.get("ref", ""))
+    n = int(nums[0][2:].split("/")[0]) if nums else 0
+    return (-case_year(rec), -n, len(rec.get("ref", "")))
 
 
 # ---------------------------------------------------------------------------
-# Index management
-
-def index_path() -> Path:
-    return cache_dir() / "index.json"
+# Derived case fields
 
 
-def load_index() -> dict | None:
-    p = index_path()
-    if not _has_content(p):
-        return None
-    try:
-        return json.loads(_read(p))
-    except json.JSONDecodeError:
-        return None
+def procedure_code(rec: dict) -> str:
+    """AO / INF / DA. The API's `type` says "Direct Action" for infringement
+    actions too, so infringement is read from the procedure and the parties."""
+    proc = (rec.get("procedure") or "").lower()
+    parties = (rec.get("parties") or "").lower().strip()
+    if rec.get("type") == "Advisory Opinion" or "advisory" in proc:
+        return "AO"
+    if "infringement" in proc or parties.startswith("efta surveillance authority v"):
+        return "INF"
+    if rec.get("type") == "Direct Action" or "annulment" in proc or "failure to act" in proc \
+            or parties.endswith("v efta surveillance authority"):
+        return "DA"
+    return ""
 
 
-def _index_age(idx: dict) -> float:
-    try:
-        fetched = datetime.fromisoformat(idx["fetched_at"].replace("Z", "+00:00"))
-    except (KeyError, ValueError):
-        return float("inf")
-    return (datetime.now(timezone.utc) - fetched).total_seconds()
+_COURT_KEYS = (
+    ("NO", ("norges", "norway", "norwegian", "borgarting", "agder", "frostating", "gulating", "hålogaland",
+            "eidsivating", "oslo")),
+    ("LI", ("liechtenstein", "fürstlich", "vaduz")),
+    ("IS", ("iceland", "héraðsdómur", "landsréttur", "hæstiréttur", "reykjav")),
+)
 
 
-def get_index(verbose: bool = True) -> dict:
-    """The case index, refreshed from the REST API when missing or older
-    than INDEX_TTL. A failed refresh falls back to the old index."""
-    idx = load_index()
-    if idx is not None and _index_age(idx) < INDEX_TTL:
-        return idx
-    try:
-        return update_index(verbose=verbose)
-    except (urllib.error.URLError, TimeoutError) as e:
-        if idx is None:
-            raise
-        print(f"[update] refresh failed ({e}); using the index from {idx.get('fetched_at')}",
-              file=sys.stderr)
-        return idx
+def country_code(rec: dict) -> str:
+    """The EFTA State concerned: the referring court's country for AOs, else
+    the State named in the parties (only when one is clearly named)."""
+    if rec.get("source") in COUNTRIES:
+        return COUNTRIES[rec["source"]]
+    if rec.get("type") == "Advisory Opinion":
+        # Some AOs have no source or referring court; the description names it.
+        text = f"{rec.get('referringCourt') or ''} {strip_html(rec.get('description') or '')}".lower()
+        for code, keys in _COURT_KEYS:
+            if any(k in text for k in keys):
+                return code
+    p = (rec.get("parties") or "").lower()
+    hits = [c for k, c in (("norway", "NO"), ("norwegian", "NO"), ("iceland", "IS"),
+                           ("icelandic", "IS"), ("liechtenstein", "LI")) if k in p]
+    return hits[0] if len(set(hits)) == 1 else ""
 
 
-def save_index(idx: dict) -> None:
-    idx["verified_count"] = sum(1 for e in idx["cases"] if e.get("status"))
-    _write(index_path(), json.dumps(idx, indent=2, ensure_ascii=False))
+def case_page(rec: dict) -> str:
+    """The public page for a case: the only link the skill gives to users."""
+    return f"{SITE}/cases/{rec['id']}"
 
 
-def update_index(verbose: bool = True) -> dict:
-    """Pull all cases from the WP REST API and write index.json."""
-    out: list[dict] = []
-    page = 1
-    while True:
-        url = f"{REST}?per_page=100&page={page}&orderby=date&order=desc"
-        if verbose:
-            print(f"[update] fetching page {page} …", file=sys.stderr)
-        try:
-            batch = fetch_json(url)
-        except urllib.error.HTTPError as e:
-            if e.code == 400:  # ran past the end
-                break
-            raise
-        if not batch:
-            break
-        for c in batch:
-            class_list = c.get("class_list", []) or []
-            sources = [t.split("sources-", 1)[1] for t in class_list if t.startswith("sources-")]
-            procs = [t.split("procedure_an_result-", 1)[1] for t in class_list if t.startswith("procedure_an_result-")]
-            slug = c["slug"]
-            title = html.unescape(c.get("title", {}).get("rendered", "") or "")
-            numbers = all_case_numbers(title)
-            if not numbers:
-                try:
-                    numbers = [_slug_to_case(slug)]
-                except ValueError:
-                    numbers = []
-            out.append({
-                "id": c["id"],
-                "slug": slug,
-                "url": c["link"],
-                "date": c.get("date", "")[:10],
-                "modified": c.get("modified", "")[:10],
-                "case_number": numbers[0] if numbers else "",
-                "case_numbers": numbers,
-                "plain": _is_plain_title(title),
-                "title_raw": title,
-                "sources": sources,
-                "procedure_codes": procs,
-                "country": _country_from_sources(sources),
-                "procedure": _procedure_from_codes(procs),
-                # Authoritative status/parties come from the detail page and are
-                # filled in lazily by fetch_case()/verify_recent_status().
-                "status": None,
-                "parties": "",
-            })
-        if len(batch) < 100:
-            break
-        page += 1
+def strip_html(s: str) -> str:
+    """Metadata HTML -> plain text, one paragraph per line."""
+    s = re.sub(r"<br\s*/?>|</p>|</li>|</h\d>", "\n", s or "", flags=re.I)
+    s = html.unescape(re.sub(r"<[^>]+>", "", s)).translate(SPACES)
+    return "\n".join(x for x in (re.sub(r"[ \t]+", " ", ln).strip() for ln in s.split("\n")) if x)
 
-    # Carry over previously verified data so we don't re-fetch unchanged cases.
-    if (existing := load_index()) is not None:
-        prev = {c["slug"]: c for c in existing.get("cases", [])}
-        for entry in out:
-            old = prev.get(entry["slug"])
-            if not old:
+
+# ---------------------------------------------------------------------------
+# Documents: three buckets, never mixed
+#
+# case  = listed in some case's `documents` (press releases dropped), plus the
+#         written observations linked from case diaries
+# text  = listed by a /procedures page or the e-EFTACourt page
+# other = everything else (press) — never shown
+
+
+def _lang_code(name: str | None) -> str:
+    return LANGS.get(name or "", (name or "")[:2].upper())
+
+
+def partition(data: dict) -> dict[str, str]:
+    """doc id -> 'case' | 'text' for every document the skill shows."""
+    by_id = {d["id"]: d for d in data.get("downloads", [])}
+    out: dict[str, str] = {}
+    for c in data.get("cases", []):
+        for i in c.get("documents") or []:
+            if i in by_id and by_id[i].get("docType") in DOC_TYPES:
+                out[i] = "case"
+    for p in data.get("procedures", []):
+        for i in p.get("documents") or []:
+            out.setdefault(i, "text")
+    for e in data.get("eeftacourt", []):
+        if e.get("document"):
+            out.setdefault(e["document"], "text")
+    return out
+
+
+def _obs_id(url: str) -> str:
+    return "obs-" + hashlib.md5(url.encode()).hexdigest()[:10]
+
+
+def case_documents(rec: dict, data: dict) -> list[dict]:
+    """The documents of one case record, in the API's order, then the
+    written observations from the diary."""
+    by_id = {d["id"]: d for d in data.get("downloads", [])}
+    docs = []
+    for i in rec.get("documents") or []:
+        d = by_id.get(i)
+        if not d or d.get("docType") not in DOC_TYPES:
+            continue
+        docs.append({"id": i, "type": DOC_TYPES[d["docType"]], "type_label": d["docType"],
+                     "lang": _lang_code(d.get("language")), "date": d.get("date") or "",
+                     "title": d.get("title") or "", "file": d.get("file") or "",
+                     "record": rec["ref"], "record_id": rec["id"]})
+    for e in rec.get("diary") or []:
+        for o in e.get("docs") or []:
+            if not isinstance(o, dict) or not o.get("url"):
                 continue
-            for k in ("status", "parties"):
-                if old.get(k):
-                    entry[k] = old[k]
-            for k in ("country", "procedure"):
-                if not entry.get(k) and old.get(k):
-                    entry[k] = old[k]
-
-    data = {"fetched_at": _now_iso(), "total": len(out), "cases": out}
-    save_index(data)
-    if verbose:
-        print(f"[update] wrote {len(out)} cases ({data['verified_count']} with verified status) → {index_path()}",
-              file=sys.stderr)
-    return data
-
-
-def _apply_meta_to_entry(entry: dict, meta: dict) -> None:
-    """Copy the authoritative fields from a parsed detail page into an index entry."""
-    if meta.get("status") in ("Pending", "Decided"):
-        entry["status"] = meta["status"]
-    if meta.get("title"):
-        entry["parties"] = meta["title"]
-    if not entry.get("procedure") and meta.get("procedure_code"):
-        entry["procedure"] = meta["procedure_code"]
-    if not entry.get("country"):
-        entry["country"] = _country_from_parties(meta.get("title", ""))
-
-
-def verify_recent_status(years: int = 3, *, verbose: bool = True) -> dict:
-    """For all cases from the last `years` years that don't have a verified
-    status yet, fetch the detail page and read the authoritative `Status:`
-    field. Persist into the index. Returns the updated index.
-
-    This is the trustworthy way to know whether a case is Pending or Decided,
-    because the /cases/pending/ listing page is JS-paginated and incomplete.
-    Cases older than the window are assumed decided.
-    """
-    idx = get_index(verbose=verbose)
-    cutoff = datetime.now(timezone.utc).year - years
-    # Pending cases are re-checked too: fetch_case() re-reads a pending
-    # page once it is older than PENDING_TTL, so a case decided since the
-    # last run stops showing up as pending.
-    candidates = [
-        e for e in idx["cases"]
-        if e.get("status") != "Decided" and e["case_number"] and _case_year(e) >= cutoff
-    ]
-    # Anything older than the window: mark Decided without fetching. Failed or
-    # unreadable pages stay unverified (status None) so a later run retries.
-    for e in idx["cases"]:
-        if not e.get("status") and e["case_number"] and _case_year(e) < cutoff:
-            e["status"] = "Decided"
-    if not candidates:
-        save_index(idx)
-        return idx
-    if verbose:
-        print(f"[verify] checking status of {len(candidates)} recent cases "
-              "(pending and unverified; cached pages under a day old are not re-fetched) …",
-              file=sys.stderr)
-    for i, entry in enumerate(candidates, 1):
-        try:
-            meta = fetch_case(entry["case_number"], idx=idx, persist=False)
-            _apply_meta_to_entry(entry, meta)
-            if not entry.get("status") and verbose:
-                print(f"[verify]   {entry['case_number']}: page has no Status field", file=sys.stderr)
-        except Exception as e:  # network / parse errors: leave unverified
-            if verbose:
-                print(f"[verify]   {entry['case_number']} failed: {e}", file=sys.stderr)
-        if verbose and i % 10 == 0:
-            print(f"[verify]   {i}/{len(candidates)} …", file=sys.stderr)
-    save_index(idx)
-    if verbose:
-        n_p = sum(1 for e in idx["cases"] if e.get("status") == "Pending")
-        print(f"[verify] done — {n_p} pending out of {idx['verified_count']} verified", file=sys.stderr)
-    return idx
-
-
-_SLUG_RE = re.compile(r"^(?:case-)?e-?0*(\d+)-0*(\d+)")
-
-
-def _slug_to_case(slug: str) -> str:
-    m = _SLUG_RE.match(slug)
-    if not m:
-        raise ValueError(f"slug {slug!r} not in normal form")
-    return f"E-{int(m.group(1))}/{int(m.group(2)):02d}"
-
-
-def _country_from_parties(parties: str) -> str:
-    """Infer the EFTA-State country from a party title.
-
-    For INF actions the title is typically 'EFTA Surveillance Authority v
-    The Kingdom of Norway' / 'v Iceland' / 'v Liechtenstein'. For DA actions
-    the applicant might be a Norwegian/Icelandic/Liechtenstein-incorporated
-    company, but that's harder to detect reliably from the title alone — we
-    only return a country when we're confident.
-    """
-    p = parties.lower()
-    if "norway" in p or "norge" in p:
-        return "NO"
-    if "iceland" in p or "ísland" in p or "island" in p:
-        return "IS"
-    if "liechtenstein" in p:
-        return "LI"
-    return ""
-
-
-def _country_from_sources(sources: list[str]) -> str:
-    s = " ".join(sources).lower()
-    if any(k in s for k in ("norges", "borgarting", "agder", "frostating", "gulating", "hålogaland", "halogaland", "norsk", "norwegian", "norway")):
-        return "NO"
-    if any(k in s for k in ("liechtenstein", "fürstentum", "furstentum", "vaduz")):
-        return "LI"
-    if any(k in s for k in ("island", "iceland", "héraðsdómur", "heradsdomur", "landsréttur", "landsrettur", "hæstirétt", "haestirett", "reykjavik", "reykjavík")):
-        return "IS"
-    return ""
-
-
-def _procedure_from_page(page_type: str, procedure_text: str, parties: str) -> str:
-    """Derive AO/INF/DA from a detail page. The page's own "Type" field is
-    not reliable (ESA v Norway infringement actions are tagged "DA"), so
-    prefer the Procedure text, then the shape of the party names, and use
-    Type only as a last resort.
-    """
-    proc = procedure_text.lower()
-    if "advisory" in proc:
-        return "AO"
-    if "infringement" in proc or "fulfil" in proc:
-        return "INF"
-    if "annulment" in proc or "failure to act" in proc:
-        return "DA"
-    p = parties.lower()
-    if p.startswith("efta surveillance authority v"):
-        return "INF"
-    if p.endswith("v efta surveillance authority"):
-        return "DA"
-    return page_type if page_type in PROCEDURE_CODES else ""
-
-
-def _procedure_from_codes(codes: list[str]) -> str:
-    s = " ".join(codes).lower()
-    if "advisory" in s or "preliminary" in s:
-        return "AO"
-    if "fulfil" in s or "infringement" in s:
-        return "INF"
-    if "annulment" in s or "failure-to-act" in s:
-        return "DA"
-    return ""
+            docs.append({"id": _obs_id(o["url"]), "type": "observations", "type_label": "Written observations",
+                         "lang": "", "date": e.get("date") or "", "title": f"Written observations: {o.get('label', '')}",
+                         "party": o.get("label", ""), "file": o["url"],
+                         "record": rec["ref"], "record_id": rec["id"]})
+    return docs
 
 
 # ---------------------------------------------------------------------------
-# Case page fetch + parse
+# Resolving a case
 
-def _resolve_entry(case_canonical: str, idx: dict) -> dict:
-    """Find the index entry for a canonical case number.
 
-    Several pages can share a case number (main case, '… INT', '… costs',
-    joined-cases pages). Preference order: a page whose WP title is exactly
-    the case number, then the shortest slug (so 'e-15-10' beats
-    'e-15-10-costs'). A joined-cases page is used only when no page for the
-    single case exists, e.g. for the second component of a joined case.
+def resolve(query: str, data: dict) -> dict:
+    """-> {'main': record, 'joined': [records], 'related': [records]}.
+
+    An exact ref ('E-9/04 COSTS', 'Joined Cases E-31/24 and E-32/24') picks
+    that record. A case number picks its own record; joined-case records
+    that include it come along (the judgment of joined cases is only on the
+    joined record), and COSTS / INT / revision records are named as related.
     """
-    exact = [e for e in idx["cases"] if e["case_number"] == case_canonical]
+    cases = data.get("cases", [])
+    q = _squash(query)
+    exact = [c for c in cases if _squash(c["ref"]) == q and not re.fullmatch(r"E-\d+/\d\d", c["ref"])]
     if exact:
-        exact.sort(key=lambda e: (not e.get("plain"), len(e["slug"])))
-        return exact[0]
-    member = [e for e in idx["cases"] if case_canonical in e.get("case_numbers", [])]
-    if member:
-        member.sort(key=lambda e: len(e["slug"]))
-        return member[0]
-    # Last resort: number+year somewhere in the slug, with or without hyphen
-    # ('e-2725', 'joined-cases-e-1-24-and-e-7-24').
-    n, yr = case_canonical.removeprefix("E-").split("/")
-    needle = re.compile(rf"(?<!\d)0*{int(n)}-?0*{int(yr):02d}(?!\d)")
-    matches = [e for e in idx["cases"] if needle.search(e["slug"])]
-    if matches:
-        matches.sort(key=lambda e: len(e["slug"]))
-        return matches[0]
-    raise SystemExit(f"Case {case_canonical} not in index. Try `update`.")
+        return {"main": exact[0], "joined": [], "related": []}
+    canon = normalise(query)
+    own = [c for c in cases if c["ref"] == canon]
+    joined = [c for c in cases if len(ref_numbers(c["ref"])) > 1 and canon in ref_numbers(c["ref"])]
+    related = [c for c in cases if c["ref"] != canon and ref_numbers(c["ref"]) == [canon]]
+    if own:
+        return {"main": own[0], "joined": joined, "related": related}
+    if joined:
+        return {"main": joined[0], "joined": joined[1:], "related": related}
+    if related:
+        return {"main": related[0], "joined": [], "related": related[1:]}
+    raise SystemExit(f"No EFTA Court case {canon}. Check the number; `list` shows what exists.")
 
 
-def fetch_case(case: str, force: bool = False, *, idx: dict | None = None, persist: bool = True) -> dict:
-    canonical = normalise(case)
-    if idx is None:
-        idx = get_index()
-    try:
-        entry = _resolve_entry(canonical, idx)
-    except SystemExit:
-        if _index_age(idx) < 60:
-            raise
-        idx = update_index()  # a case lodged since the index was fetched
-        entry = _resolve_entry(canonical, idx)
-    cdir = cache_dir() / "cases" / case_key(canonical)
-    raw_p = cdir / "raw.html"
-    if force or not _has_content(raw_p):
-        _write(raw_p, fetch_text(entry["url"]))
-    meta = parse_case_html(_read(raw_p), canonical=canonical, entry=entry)
-    if not force and meta["status"] != "Decided" and time.time() - raw_p.stat().st_mtime > PENDING_TTL:
-        _write(raw_p, fetch_text(entry["url"]))
-        meta = parse_case_html(_read(raw_p), canonical=canonical, entry=entry)
-    _write(cdir / "meta.json", json.dumps(meta, indent=2, ensure_ascii=False))
-    _write(cdir / "summary.txt", _summary(meta))
-    # Feed status / parties / country / procedure back into the index so
-    # list/search filters improve with every page fetched.
-    _apply_meta_to_entry(entry, meta)
-    if persist:
-        save_index(idx)
-    return meta
-
-
-_LABEL_RE = re.compile(
-    r'<span[^>]*c-case-meta-type[^>]*>\s*([^<]+?)\s*:\s*</span>\s*(?:<br\s*/?>)?\s*([^<]*)',
-    re.IGNORECASE,
-)
-# Single-case page: two consecutive <h2> tags — first is the case number, second is the parties.
-_TITLE_RE = re.compile(r'<h2[^>]*>\s*(E-\d+/\d+[^<]*?)\s*</h2>\s*<h2[^>]*>\s*(.*?)\s*</h2>', re.DOTALL)
-# Joined-case page: single <h2 class="p-cases-title-first"> with "Joined Cases E-X/YY and E-Z/YY – PARTIES"
-_JOINED_TITLE_RE = re.compile(
-    r'<h2[^>]*p-cases-title-first[^>]*>\s*(.*?)\s*</h2>',
-    re.DOTALL,
-)
-_DOCS_BLOCK_RE = re.compile(r'<h2[^>]*>\s*Documents:\s*</h2>(.*?)(?=<h2|<main|</main)', re.IGNORECASE | re.DOTALL)
-_DOC_LINK_RE = re.compile(
-    r'<a[^>]*href="([^"]+/download/[^"]+\?wpdmdl=\d+)"[^>]*>\s*(.*?)\s*</a>',
-    re.IGNORECASE | re.DOTALL,
-)
-# "About this case" = one or more <p> blocks, followed by the procedural
-# timeline (div.o-cont-cases-tl blocks), then the page footer. Stop at the
-# first timeline block, the next <h2>, or the end of <main>.
-_ABOUT_RE = re.compile(
-    r'<h2[^>]*>\s*About this case[^<]*</h2>(.*?)(?=<div[^>]*o-cont-cases-tl|<h2|</main|<footer|\Z)',
-    re.IGNORECASE | re.DOTALL,
-)
-_TIMELINE_RE = re.compile(
-    r'<div[^>]*o-cont-cases-tl[^>]*>(.*?)</div>\s*</div>',
-    re.IGNORECASE | re.DOTALL,
-)
-_TL_DATE_RE = re.compile(r'(\d{1,2}/\d{1,2}/\d{4})')
-_P_RE = re.compile(r'<p[^>]*>(.*?)</p>', re.IGNORECASE | re.DOTALL)
-
-
-def _strip_html(s: str) -> str:
-    s = re.sub(r'<[^>]+>', '', s)
-    return re.sub(r'\s+', ' ', html.unescape(s)).strip()
-
-
-def _paragraphs(fragment: str) -> list[str]:
-    paras = [_strip_html(p) for p in _P_RE.findall(fragment)]
-    paras = [p for p in paras if p]
-    return paras or ([_strip_html(fragment)] if _strip_html(fragment) else [])
-
-
-def parse_case_html(raw: str, canonical: str, entry: dict) -> dict:
-    # Title (parties). Joined cases use a single combined H2; single cases use two H2s.
-    parties = ""
-    if m := _TITLE_RE.search(raw):
-        parties = _strip_html(m.group(2))
-    elif m := _JOINED_TITLE_RE.search(raw):
-        # Strip leading "Joined Cases E-X/YY and E-Z/YY – " (en-dash or hyphen)
-        full = _strip_html(m.group(1))
-        parties = re.sub(r'^Joined Cases\s+E-[\d/]+(\s*(,|and)\s*E-[\d/]+)*\s*[–—\-]\s*', '', full)
-
-    # Meta labels
-    fields: dict[str, str] = {}
-    for label, value in _LABEL_RE.findall(raw):
-        key = label.strip().lower().replace(" ", "_")
-        fields[key] = _strip_html(value)
-
-    # About: keyword line + description paragraphs, without the timeline/footer
-    about = ""
-    if m := _ABOUT_RE.search(raw):
-        about = "\n".join(_paragraphs(m.group(1)))
-
-    # Procedural timeline (dated events on the case page)
-    timeline: list[dict] = []
-    for block in _TIMELINE_RE.findall(raw):
-        text = _strip_html(block)
-        dm = _TL_DATE_RE.search(text)
-        date = dm.group(1) if dm else ""
-        event = text.replace(date, "", 1).strip() if date else text
-        if event:
-            timeline.append({"date": date, "event": event})
-
-    # Documents
-    documents: list[dict] = []
-    if block_m := _DOCS_BLOCK_RE.search(raw):
-        for url, label in _DOC_LINK_RE.findall(block_m.group(1)):
-            text = _strip_html(label)
-            documents.append({
-                "label": text,
-                "url": html.unescape(url),
-                **_parse_doc_label(text),
-            })
-
-    page_type = fields.get("type", "")
-    procedure_code = _procedure_from_page(page_type, fields.get("procedure", ""), parties) or entry.get("procedure", "")
-    status = fields.get("status") or entry.get("status") or "Unknown"
-
-    return {
-        "case_number": canonical,
-        "title": parties,
-        "url": entry["url"],
-        "slug": entry["slug"],
-        "status": status,
-        "type": page_type,
-        "procedure_code": procedure_code,
-        "language_of_request": fields.get("language_of_the_request", ""),
-        "date_submitted": fields.get("date_submitted", ""),
-        "hearing_date": fields.get("hearing_date", ""),
-        "judgment_date": fields.get("judgment_date", ""),
-        "procedure": fields.get("procedure", ""),
-        "source_court": ", ".join(entry.get("sources", [])).replace("-", " ").title() if entry.get("sources") else "",
-        "country": entry.get("country") or _country_from_parties(parties),
-        "about": about,
-        "timeline": timeline,
-        "documents": documents,
-        "fetched_at": _now_iso(),
-    }
-
-
-# Document labels look like:
-#   "14/15 Judgment 19/04/2016 EN"
-#   "8/26 Request AO 06/05/2026 NO"
-#   "1/24 Report for the Hearing EN"      (no date — common since ~2020)
-#   "5/22 - Judgment DE"                  (stray dash)
-#   "2/11 RH Rev 08/04/2013 EN"           (older cases abbreviate the report)
-#   "6/25 Information Note 04/08/2025"    (no language)
-# The language is matched against known codes so that "Request AO" is not
-# read as a request in language "AO".
-_DOC_LABEL_RE = re.compile(
-    r'^(?P<num>\d+/\d+)\s*[-–]?\s*'
-    r'(?P<type>.+?)'
-    r'(?:\s+(?P<date>\d{1,2}/\d{1,2}/\d{2,4}))?'
-    r'(?:\s+(?P<lang>EN|NO|NN|IS|DE|FR|FI|SV|DA|NL|IT|ES|PT|PL))?$'
-)
-_DOC_TYPE_NORMAL = {
-    "judgment": "judgment",
-    "advisory opinion": "advisory-opinion",
-    "order": "order",
-    "order of the president": "order",
-    "costs order": "costs-order",
-    "request ao": "request",
-    "request": "request",
-    "notification": "notification",
-    "summary of the request": "summary",
-    "report for the hearing": "report",
-    "rh": "report",
-    "rh rev": "report",
-    "opinion of the advocate general": "opinion-aag",
-    "opinion": "opinion",
-    "press release": "press-release",
-    "information note": "information-note",
-}
-# Extra spellings accepted by `get --type` (after hyphens → spaces).
-_TYPE_ALIASES = {
-    "hearing report": "report",
-    "report for the hearing": "report",
-    "rh": "report",
-    "aag": "opinion-aag",
-    "advocate general": "opinion-aag",
-    "ao": "advisory-opinion",
-    "request ao": "request",
-    "press": "press-release",
-}
-
-
-def _parse_doc_label(label: str) -> dict:
-    m = _DOC_LABEL_RE.match(label)
-    if not m:
-        return {"type": "", "date": "", "lang": ""}
-    raw_type = re.sub(r"\s+", " ", m.group("type").strip().lower())
-    doc_type = _DOC_TYPE_NORMAL.get(raw_type) or re.sub(r"[^a-z0-9]+", "-", raw_type).strip("-")
-    return {
-        "type": doc_type,
-        "date": m.group("date") or "",
-        "lang": m.group("lang") or "",
-    }
-
-
-def _summary(meta: dict) -> str:
-    lines = [
-        f"{meta['case_number']} — {meta['title']}",
-        "=" * 70,
-        f"Status:       {meta['status']}",
-        f"Type:         {meta['type']}",
-        f"Procedure:    {meta['procedure'] or meta.get('procedure_code', '')}",
-        f"Source court: {meta['source_court']} ({meta['country']})",
-        f"Submitted:    {meta['date_submitted']}",
-        f"Hearing:      {meta['hearing_date'] or '-'}",
-        f"Judgment:     {meta['judgment_date'] or '-'}",
-        f"URL:          {meta['url']}",
-        "",
-        "About:",
-        meta["about"] or "(no description)",
-        "",
-    ]
-    if meta.get("timeline"):
-        lines.append("Timeline:")
-        for t in meta["timeline"]:
-            lines.append(f"  {t['date'] or '          ':10}  {t['event']}")
-        lines.append("")
-    lines.append("Documents:")
-    for d in meta["documents"]:
-        lines.append(f"  - [{d.get('lang','??'):2}] {d.get('type',''):12} {d.get('date',''):10}  {d['url']}")
-    return "\n".join(lines) + "\n"
+def documents_for(res: dict, data: dict) -> list[dict]:
+    docs = case_documents(res["main"], data)
+    for j in res["joined"]:
+        docs += case_documents(j, data)
+    for n, d in enumerate(docs, 1):
+        d["n"] = n
+    return docs
 
 
 # ---------------------------------------------------------------------------
-# Get a specific document
+# Output
+
+
+def case_summary(rec: dict) -> dict:
+    return {
+        "ref": rec["ref"], "parties": rec.get("parties") or "", "status": rec.get("status") or "",
+        "procedure_code": procedure_code(rec), "type": rec.get("type") or "",
+        "procedure": rec.get("procedure") or "", "country": country_code(rec),
+        "referring_court": rec.get("referringCourt") or "", "language_of_case": rec.get("language") or "",
+        "subject_matter": rec.get("subjectMatter") or [], "keywords": strip_html(rec.get("keywords") or ""),
+        "description": strip_html(rec.get("description") or ""),
+        "date_submitted": rec.get("dateSubmitted") or "", "hearing_date": rec.get("hearingDate") or "",
+        "judgment_date": rec.get("judgmentDate") or "", "published_in": rec.get("publishedIn") or "",
+        "case_page": case_page(rec),
+        "diary": [{"date": e.get("date") or "", "event": strip_html(e.get("description") or "")}
+                  for e in rec.get("diary") or []],
+    }
+
 
 def format_documents(docs: list[dict]) -> str:
-    """Numbered document list, as `get` prints it; the number is what --doc takes."""
     lines = []
-    for i, d in enumerate(docs, 1):
-        lines.append(f"  {i:2}. {d.get('type') or '?':17} {d.get('lang') or '??':3} "
-                     f"{d.get('date') or '':10}  {d.get('label', '')}")
-    return "\n".join(lines)
+    for d in docs:
+        extra = f"  [{d['record']}]" if d.get("joined_from") else ""
+        lines.append(f"  {d['n']:>2}. {d['type']:<16} {d['lang'] or '--':<3} {d['date'] or '':<10}  {d['title']}{extra}")
+    return "\n".join(lines) or "  (no documents)"
 
 
-def get_document(case: str, doc_type: str | None, lang: str,
-                 doc_no: int | None = None) -> tuple[Path, Path | None] | None:
-    """Download one document and extract its text.
-
-    Returns None (after printing the document list) when neither --type nor
-    --doc says which document to get.
-    """
-    canonical = normalise(case)
-    meta = fetch_case(canonical)
-    docs = meta["documents"]
-    if not docs:
-        raise SystemExit(f"No documents listed on the case page for {canonical}.")
-    if doc_no is not None:
-        if not 1 <= doc_no <= len(docs):
-            raise SystemExit(f"--doc {doc_no} is out of range; {canonical} has {len(docs)} documents:\n"
-                             + format_documents(docs))
-        chosen = docs[doc_no - 1]
-    elif not doc_type:
-        print(f"Documents for {canonical} — pick one with --type T [--lang L] or --doc N:")
-        print(format_documents(docs))
-        return None
-    else:
-        chosen = _choose_doc(docs, doc_type, lang)
-        if not chosen:
-            raise SystemExit(f"No {doc_type!r} document for {canonical}. Available:\n"
-                             + format_documents(docs))
-    cdir = cache_dir() / "cases" / case_key(canonical)
-    pdf_p = cdir / f"{_doc_stem(docs, chosen)}.pdf"
-    if not _has_content(pdf_p):
-        download(chosen["url"], pdf_p)
-    txt_p = pdf_p.with_suffix(".txt")
-    method_p = pdf_p.with_suffix(".extract")
-    current = _has_content(method_p) and _read(method_p).strip() == EXTRACT_METHOD
-    if not _has_content(txt_p) or not current:
-        text = extract_pdf_text(pdf_p)
-        if text:
-            _write(txt_p, text)
-            if shutil.which("pdftotext"):
-                _write(method_p, EXTRACT_METHOD)
-        else:
-            txt_p = None
-    return pdf_p, txt_p
+def print_case(res: dict, data: dict) -> None:
+    s = case_summary(res["main"])
+    docs = documents_for(res, data)
+    for d in docs:
+        d["joined_from"] = d["record_id"] != res["main"]["id"]
+    print(f"{s['ref']}  {s['parties']}")
+    print(f"  Status: {s['status']}   Procedure: {s['procedure_code'] or '?'} ({s['procedure'] or s['type']})"
+          + (f"   Country: {s['country']}" if s["country"] else ""))
+    if s["referring_court"]:
+        print(f"  Referring court: {s['referring_court']}   Language of the case: {s['language_of_case']}")
+    for k, label in (("date_submitted", "Lodged"), ("hearing_date", "Hearing"), ("judgment_date", "Judgment")):
+        if s[k]:
+            print(f"  {label}: {s[k]}")
+    if s["subject_matter"]:
+        print(f"  Subject matter: {', '.join(s['subject_matter'])}")
+    if s["keywords"]:
+        print(f"  Keywords: {s['keywords']}")
+    if s["published_in"]:
+        print(f"  Published in: {s['published_in']} (no volume/page in the data)")
+    print(f"  Case page: {s['case_page']}")
+    for j in res["joined"]:
+        print(f"  Joined: {j['ref']} — page {case_page(j)}")
+    for r in res["related"]:
+        print(f"  Related record: {r['ref']} (pass this ref to see it)")
+    if s["description"]:
+        print("\nAbout:\n  " + s["description"].replace("\n", "\n  "))
+    if s["diary"]:
+        print("\nDiary:")
+        for e in s["diary"]:
+            print(f"  {e['date']}  {e['event']}")
+    print("\nDocuments (get with --doc N or --type T [--lang L]):")
+    print(format_documents(docs))
 
 
-def _doc_stem(docs: list[dict], doc: dict) -> str:
-    """Cache file stem: '<type>-<lang>' ('judgment-EN'), unless another
-    document on the page has the same type and language (two orders, say).
-    Then the date is added, and the document's list number if even that
-    is shared, so each document gets its own file."""
-    dtype = doc.get("type") or re.sub(r"[^a-z0-9]+", "-", doc.get("label", "doc").lower()).strip("-") or "doc"
-    lang = doc.get("lang") or "XX"
-    same = [d for d in docs if (d.get("type"), d.get("lang")) == (doc.get("type"), doc.get("lang"))]
-    if len(same) <= 1:
-        return f"{dtype}-{lang}"
-    date = "-".join(reversed(doc.get("date", "").split("/"))) if doc.get("date") else ""
-    if date and sum(1 for d in same if d.get("date") == doc.get("date")) == 1:
-        return f"{dtype}-{date}-{lang}"
-    return f"{dtype}-{lang}-{docs.index(doc) + 1}"
+# ---------------------------------------------------------------------------
+# Download + text extraction
 
-
-def _norm_type(s: str) -> str:
-    """Normalize a document type string: lowercase, collapse hyphens/underscores to spaces."""
-    return re.sub(r'[-_\s]+', ' ', s.lower().strip())
-
-
-def _choose_doc(docs: list[dict], doc_type: str, lang: str) -> dict | None:
-    """The document of exactly this type, in `lang` if there is one.
-
-    Types match exactly after normalising ('advisory opinion' ==
-    'advisory-opinion'), so 'order' does not pick up a costs order, and a
-    document whose label could not be parsed (empty type) never matches.
-    When the type exists only in other languages, EN is preferred and a
-    note on stderr says which language was used instead.
-    """
-    want = _norm_type(doc_type)
-    want = _norm_type(_TYPE_ALIASES.get(want, want))
-    candidates = [d for d in docs if d.get("type") and _norm_type(d["type"]) == want]
-    if not candidates:
-        return None
-    lang = lang.upper()
-    for L in (lang, "EN"):
-        same_lang = [d for d in candidates if d.get("lang", "").upper() == L]
-        if same_lang:
-            if len(same_lang) > 1:
-                print(f"[note] {len(same_lang)} {doc_type!r} documents in {L}; using the first "
-                      "(see the list without --type, and pick another with --doc N).", file=sys.stderr)
-            if L != lang:
-                langs = sorted({d.get('lang') for d in candidates if d.get('lang')})
-                print(f"[note] no {lang} version of {doc_type!r}; using {L} "
-                      f"(available: {', '.join(langs)}).", file=sys.stderr)
-            return same_lang[0]
-    langs = sorted({d.get('lang') for d in candidates if d.get('lang')})
-    print(f"[note] no {lang} or EN version of {doc_type!r}; using {candidates[0].get('lang') or '?'} "
-          f"(available: {', '.join(langs)}).", file=sys.stderr)
-    return candidates[0]
-
-
-# How the cached .txt was made, written to <stem>.extract beside it. Text
-# from an older method is extracted again: up to 1.1.8 pdftotext ran in its
-# default mode, which joins each paragraph into one line and drops the hyphen
-# at a line break even where it belongs ("C-\n67" -> "C67", "non-\nprofit"
-# -> "nonprofit").
+# How a cached .txt was made; a .txt made another way is extracted again.
+# pdftotext (poppler) first: on the 1990s judgments pypdf splits words at
+# irregular letter spacing ("statut ory", "intr a-EEA"). -raw keeps the PDF's
+# lines and hyphens as printed.
 EXTRACT_METHOD = "pdftotext -raw"
 
 
-def extract_pdf_text(pdf: Path) -> str | None:
-    # pdftotext (poppler) first: on the 1990s judgments pypdf splits words at
-    # irregular letter spacing ("statut ory", "intr a-EEA"; Cowork run 11),
-    # and on modern ones too. -raw keeps the PDF's lines and hyphens as
-    # printed; reading order matched the default mode on E-1/94, E-14/15 and
-    # E-8/22 apart from page numbers (2026-10-23).
-    # Its "Syntax Error … default config" chatter goes to stderr; drop it.
+def extract_pdf_text(pdf: Path) -> tuple[str | None, str]:
     if shutil.which("pdftotext"):
-        out = pdf.with_suffix(".txt")
+        out = pdf.with_suffix(".txt.tmp")
         subprocess.run(["pdftotext", "-raw", "-enc", "UTF-8", str(pdf), str(out)], check=False,
                        stderr=subprocess.DEVNULL)
         if _has_content(out):
-            return _read(out)
-    # Then pypdf
+            text = _read(out)
+            out.unlink()
+            return text, EXTRACT_METHOD
     try:
         from pypdf import PdfReader  # type: ignore
     except ModuleNotFoundError:
-        PdfReader = None  # type: ignore
-    if PdfReader is not None:
+        return None, ""
+    try:
+        reader = PdfReader(str(pdf))
+        text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
+        return (text, "pypdf") if text.strip() else (None, "")
+    except Exception as e:  # corrupt / encrypted PDF
+        print(f"[pdf] pypdf failed on {pdf.name}: {e}", file=sys.stderr)
+        return None, ""
+
+
+def fetch_document(file_url: str, stem: Path, api: str) -> tuple[Path, Path | None]:
+    """Download (if the cached copy is from another file) and extract.
+    The sidecar <stem>.json records the source file and extraction method."""
+    pdf, txt, side = stem.with_suffix(".pdf"), stem.with_suffix(".txt"), stem.with_suffix(".json")
+    url = storage_url(file_url, api)
+    meta = {}
+    if _has_content(side):
         try:
-            reader = PdfReader(str(pdf))
-            text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
-            if text.strip():
-                return text
-        except Exception as e:  # corrupt / encrypted PDF
-            print(f"[pdf] pypdf failed on {pdf.name}: {e}", file=sys.stderr)
-    return None
+            meta = json.loads(_read(side))
+        except json.JSONDecodeError:
+            meta = {}
+    if meta.get("file") != urllib.parse.urlsplit(url).path or not _has_content(pdf):
+        try:
+            data = _request(url, accept="application/pdf,*/*", timeout=180)
+        except urllib.error.HTTPError as e:
+            raise SystemExit(f"Download failed: HTTP {e.code} for {url}")
+        if not data.startswith(b"%PDF"):
+            raise SystemExit(f"{url} did not return a PDF (blocked or moved?).")
+        _write_bytes(pdf, data)
+        meta = {"file": urllib.parse.urlsplit(url).path}
+    if not _has_content(txt) or meta.get("method") != EXTRACT_METHOD:
+        text, method = extract_pdf_text(pdf)
+        if text:
+            _write(txt, text)
+            meta["method"] = method
+        elif not _has_content(txt):
+            txt = None
+    _write(side, json.dumps(meta))
+    return pdf, txt
+
+
+def _key(ref: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "-", ref).strip("-")
+
+
+def doc_stem(docs: list[dict], d: dict) -> str:
+    """'judgment-EN'; a second document of the same type and language gets
+    its date, else its list number; observations are named by party."""
+    if d["type"] == "observations":
+        return "observations-" + (re.sub(r"[^A-Za-z0-9]+", "-", d.get("party", "")).strip("-")[:40] or str(d["n"]))
+    base = f"{d['type']}-{d['lang'] or 'XX'}"
+    same = [x for x in docs if x["type"] == d["type"] and x["lang"] == d["lang"]]
+    if len(same) == 1:
+        return base
+    if d["date"] and sum(x["date"] == d["date"] for x in same) == 1:
+        return f"{d['type']}-{d['date']}-{d['lang'] or 'XX'}"
+    return f"{base}-{d['n']}"
+
+
+def norm_type(t: str) -> str:
+    t = re.sub(r"[\s_]+", "-", t.strip().lower())
+    return TYPE_ALIASES.get(t, t)
+
+
+def choose_doc(docs: list[dict], doc_type: str, lang: str, party: str | None = None) -> dict | None:
+    """The document of this type in `lang` (else EN, else any, with a note).
+    'order' matches both kinds of order; --party narrows observations."""
+    want = norm_type(doc_type)
+    cands = [d for d in docs if d["type"] == want or (want == "order" and d["type"].startswith("order-"))]
+    if party:
+        cands = [d for d in cands if party.casefold() in d.get("party", d["title"]).casefold()]
+    if not cands:
+        return None
+    if want == "observations":
+        if len(cands) > 1:
+            print(f"[note] {len(cands)} sets of observations match; using the first. "
+                  "Narrow with --party NAME or pick with --doc N.", file=sys.stderr)
+        return cands[0]
+    lang = lang.upper()
+    for L in (lang, "EN"):
+        same = [d for d in cands if d["lang"] == L]
+        if same:
+            if len(same) > 1:
+                print(f"[note] {len(same)} {want!r} documents in {L}; using the last "
+                      "(see the list without --type, and pick another with --doc N).", file=sys.stderr)
+            if L != lang:
+                print(f"[note] no {lang} version of {want!r}; using {L} "
+                      f"(available: {', '.join(sorted({d['lang'] for d in cands if d['lang']}))}).", file=sys.stderr)
+            return same[-1]
+    print(f"[note] no {lang} or EN version of {want!r}; using {cands[0]['lang'] or '?'}.", file=sys.stderr)
+    return cands[0]
 
 
 # ---------------------------------------------------------------------------
-# List / search
-
-def _year_arg(y: int | None) -> int | None:
-    """Accept 2024 or 24 and return a 4-digit year."""
-    return None if y is None else full_year(y)
+# Server search
 
 
-def _case_year(r: dict) -> int:
-    """4-digit year of a case (from the case number, else the page date)."""
-    if r["case_number"]:
-        return full_year(int(r["case_number"].split("/")[-1]))
-    return int(r["date"][:4])
+def server_search(q: str, api: str, lang: str | None = None) -> list[str]:
+    url = f"{api}/search/documents?q={urllib.parse.quote(q)}"
+    if lang:
+        url += f"&lang={urllib.parse.quote(lang.upper())}"
+    ids = fetch_json(url)
+    return ids if isinstance(ids, list) else []
 
 
-def _case_num(r: dict) -> int:
-    if r["case_number"]:
-        return int(r["case_number"].removeprefix("E-").split("/")[0])
-    return 0
+def snippets(q: str, ids: list[str], api: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for i in range(0, len(ids), SNIPPET_BATCH):
+        batch = ids[i:i + SNIPPET_BATCH]
+        url = f"{api}/search/snippets?q={urllib.parse.quote(q)}&ids={','.join(batch)}"
+        try:
+            for s in fetch_json(url) or []:
+                out[s["id"]] = re.sub(r"\s+", " ", s.get("snippet") or "").strip()
+        except (urllib.error.URLError, OSError, json.JSONDecodeError):
+            pass
+    return out
 
 
-def _sort_key(r: dict):
-    return (-_case_year(r), -_case_num(r), len(r["slug"]))
+def cap_warning(ids: list[str]) -> None:
+    if len(ids) >= SEARCH_CAP:
+        print(f"[warn] the server stops at {SEARCH_CAP} matching documents; results are incomplete. "
+              "Narrow the query (a \"phrase\", more words, --lang).", file=sys.stderr)
 
 
-def _filter_rows(rows: list[dict], year: int | None, country: str | None, procedure: str | None) -> list[dict]:
-    if year:
-        rows = [r for r in rows if _case_year(r) == year]
-    dropped = 0
-    if country:
-        c = country.upper()
-        dropped += sum(1 for r in rows if not r.get("country"))
-        rows = [r for r in rows if r.get("country") == c]
-    if procedure:
-        p = procedure.upper()
-        dropped += sum(1 for r in rows if not r.get("procedure"))
-        rows = [r for r in rows if r.get("procedure") == p]
-    if dropped:
-        print(f"[note] {dropped} case(s) skipped because their country/procedure is not yet known — "
-              "the REST index only tags advisory opinions; run `list --decided` (verifies recent pages) "
-              "or `fetch` individual cases to fill the gaps.", file=sys.stderr)
-    return rows
+_TERM_RE = re.compile(r'"([^"]+)"|(\S+)')
 
 
-def cmd_list(args: argparse.Namespace) -> None:
-    idx = get_index()
-    # When the user filters by status, verify all recent cases first — the index
-    # alone can't be trusted for pending/decided (see verify_recent_status docstring).
-    if args.pending or args.decided:
-        idx = verify_recent_status(years=args.verify_years, verbose=True)
-    rows = _filter_rows(idx["cases"], _year_arg(args.year), args.country, args.procedure)
-    if args.pending:
-        rows = [r for r in rows if r.get("status") == "Pending"]
-    if args.decided:
-        rows = [r for r in rows if r.get("status") == "Decided"]
-    rows.sort(key=_sort_key)
-    if args.limit:
-        rows = rows[: args.limit]
-    if args.json:
-        print(json.dumps(rows, indent=2, ensure_ascii=False))
-        return
-    for r in rows:
-        flag = {"Pending": "P", "Decided": "D"}.get(r.get("status") or "", "?")
-        print(f"{flag} {r['case_number'] or r['slug']:10}  "
-              f"{r.get('country') or '--':2}  "
-              f"{r.get('procedure') or '--':3}  "
-              f"{r['date']}  {r['url']}"
-              + (f"  {r['parties']}" if r.get("parties") else ""))
-
-
-def phrase_re(q: str) -> re.Pattern:
-    """Match q in text that keeps the PDF's line breaks: a space matches any
-    whitespace, and a word may break at a hyphen and a line end
-    ("state\\naid", "recog-\\nnition", "intra-\\nCommunity")."""
-    brk = r"(?:-[ \t]*\n\s*)?"
-    parts = []
-    for word in q.split():
-        chars = [r"-\s*" if c == "-" else re.escape(c) for c in word]
-        parts.append(brk.join(chars))
-    return re.compile(r"\s+".join(parts))
-
-
-def cmd_search(args: argparse.Namespace) -> None:
-    idx = get_index()
-    rows = _filter_rows(idx["cases"], _year_arg(args.year), args.country, None)
-    q = args.query.lower()
-    hits: list[tuple[dict, str]] = []
-    for r in rows:
-        cdir = cache_dir() / "cases" / case_key(r["case_number"]) if r["case_number"] else None
-        meta = None
-        if cdir and _has_content(cdir / "meta.json"):
-            try:
-                meta = json.loads(_read(cdir / "meta.json"))
-            except Exception:
-                meta = None
-        title = (meta or {}).get("title") or r.get("parties") or ""
-        about = (meta or {}).get("about", "")
-        if args.party_only:
-            haystack = title.lower()
+def meta_match(text: str, q: str) -> bool:
+    """Local match with the server's rules: whole words, all terms,
+    "phrases", prefix*."""
+    t = fold(text).casefold()
+    for phrase, word in _TERM_RE.findall(q):
+        term = (phrase or word).casefold()
+        if term.endswith("*"):
+            pat = r"(?<!\w)" + re.escape(term[:-1])
         else:
-            haystack = " | ".join([r["case_number"], r["slug"], r.get("title_raw", ""), title, about,
-                                   " ".join(r.get("sources", []))]).lower()
-        snippet = ""
-        if q in haystack:
-            snippet = title or about[:120]
-        elif args.full_text and cdir and not args.party_only:
-            for txt in cdir.glob("*.txt"):
-                try:
-                    body = _read(txt).lower()
-                except Exception:
-                    continue
-                m = phrase_re(q).search(body)
-                if m:
-                    i = m.start()
-                    snippet = "…" + re.sub(r"\s+", " ", body[max(0, i - 60): i + 120]) + "…"
-                    break
-        if snippet:
-            hits.append((r, snippet))
-    hits.sort(key=lambda x: _sort_key(x[0]))
-    if args.json:
-        print(json.dumps([{"case": r, "snippet": s} for r, s in hits], indent=2, ensure_ascii=False))
-        return
-    if not hits:
-        print(
-            f"No hits for {args.query!r} in local cache.\n"
-            "Party names, subject keywords and full text only match cases whose detail page has been "
-            "fetched (by `fetch`, `get`, or the verification pass of `list --pending/--decided`).\n"
-            "Workflow: `list --decided --limit 100` → identify candidates → `fetch E-X/YY` each → "
-            "re-run search with --full-text.",
-            file=sys.stderr,
-        )
-        return
-    for r, snippet in hits:
-        flag = {"Pending": "P", "Decided": "D"}.get(r.get("status") or "", "?")
-        print(f"{flag} {r['case_number'] or r['slug']:10}  {r['date']}  {snippet}")
-
-
-def cmd_fetch(args: argparse.Namespace) -> None:
-    meta = fetch_case(args.case, force=args.refresh)
-    if args.json:
-        print(json.dumps(meta, indent=2, ensure_ascii=False))
-    else:
-        print(_summary(meta))
-        cdir = cache_dir() / "cases" / case_key(meta["case_number"])
-        print(f"\n(cached at {cdir})")
-
-
-def cmd_get(args: argparse.Namespace) -> None:
-    got = get_document(args.case, args.type, args.lang, args.doc)
-    if got is None:
-        return
-    pdf, txt = got
-    print(f"PDF:  {pdf}")
-    if txt:
-        print(f"TEXT: {txt}")
-    else:
-        print("TEXT: (extraction failed — install pypdf or poppler-utils)")
-
-
-def cmd_update(args: argparse.Namespace) -> None:
-    update_index(verbose=True)
-
-
-def cmd_status(args: argparse.Namespace) -> None:
-    cdir = cache_dir()
-    print(f"cache dir:   {cdir}")
-    idx = load_index()
-    if idx is None:
-        print("index:       (none — run `update`)")
-        return
-    print(f"index:       {idx['total']} cases (fetched {idx['fetched_at']})")
-    n_pending = sum(1 for c in idx["cases"] if c.get("status") == "Pending")
-    n_verified = idx.get("verified_count", sum(1 for c in idx["cases"] if c.get("status")))
-    print(f"verified:    {n_verified} of {idx['total']} ({n_pending} pending)")
-    n_cached = sum(1 for p in (cdir / "cases").glob("*/meta.json") if _has_content(p))
-    n_pdfs = sum(1 for p in (cdir / "cases").glob("*/*.pdf") if _has_content(p))
-    print(f"detail pages cached: {n_cached}")
-    print(f"PDFs cached:         {n_pdfs}")
+            pat = r"(?<!\w)" + r"\s+".join(map(re.escape, term.split())) + r"(?!\w)"
+        if not re.search(pat, t):
+            return False
+    return True
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# Filters
+
+
+def _filter(cases: list[dict], a: argparse.Namespace) -> list[dict]:
+    out = []
+    for c in cases:
+        if getattr(a, "year", None) and case_year(c) != full_year(a.year):
+            continue
+        if getattr(a, "country", None) and country_code(c) != a.country.upper():
+            continue
+        if getattr(a, "procedure", None) and procedure_code(c) != a.procedure.upper():
+            continue
+        if getattr(a, "status", None) and (c.get("status") or "").lower() != a.status.lower():
+            continue
+        if getattr(a, "subject", None) and not any(a.subject.casefold() in s.casefold() for s in c.get("subjectMatter") or []):
+            continue
+        if getattr(a, "court", None) and a.court.casefold() not in (c.get("referringCourt") or "").casefold():
+            continue
+        if getattr(a, "party", None) and a.party.casefold() not in (c.get("parties") or "").casefold():
+            continue
+        if getattr(a, "language", None) and a.language.casefold() not in (c.get("language") or "").casefold():
+            continue
+        if getattr(a, "observer", None):
+            obs = [e.get("description") or "" for e in c.get("diary") or []
+                   if re.match(r"\s*written observations", e.get("description") or "", re.I)]
+            if not any(a.observer.casefold() in o.casefold() for o in obs):
+                continue
+        out.append(c)
+    return sorted(out, key=_sort_key)
+
+
+def _row(c: dict) -> str:
+    d = c.get("judgmentDate") or c.get("dateSubmitted") or ""
+    subj = ", ".join(c.get("subjectMatter") or [])
+    parties = (c.get("parties") or "").replace("\n", " ")
+    return (f"{c['ref']:<14} {d:<10} {(c.get('status') or ''):<8} {procedure_code(c) or '-':<3} "
+            f"{country_code(c) or '-':<2}  {parties[:90]}" + (f"  [{subj}]" if subj else ""))
+
+
+def _add_filters(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--year", type=int, help="year of the case number (2024 or 24)")
+    p.add_argument("--country", help="NO, IS or LI (referring court's State; for ESA actions the State sued)")
+    p.add_argument("--procedure", help="AO, INF or DA")
+    p.add_argument("--status", choices=["pending", "decided"], type=str.lower)
+    p.add_argument("--pending", dest="status", action="store_const", const="pending")
+    p.add_argument("--decided", dest="status", action="store_const", const="decided")
+    p.add_argument("--subject", help="subject-matter tag, substring (see `subjects`)")
+    p.add_argument("--court", help="referring court, substring (Høyesterett, Borgarting, Landsréttur …)")
+    p.add_argument("--party", help="substring of the parties")
+    p.add_argument("--language", help="language of the case (Norwegian, German, Icelandic …)")
+    p.add_argument("--observer", help="cases where written observations came from this (Liechtenstein, European Commission …)")
+
+
+# ---------------------------------------------------------------------------
+# Commands: cases
+
+
+def cmd_case(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    res = resolve(a.case, data)
+    if a.json:
+        out = case_summary(res["main"])
+        out["joined"] = [{"ref": j["ref"], "case_page": case_page(j)} for j in res["joined"]]
+        out["related"] = [r["ref"] for r in res["related"]]
+        out["documents"] = [{k: d[k] for k in ("n", "type", "lang", "date", "title", "record")}
+                            for d in documents_for(res, data)]
+        print(json.dumps(out, ensure_ascii=False, indent=1))
+    else:
+        print_case(res, data)
+
+
+def cmd_list(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    rows = _filter(data["cases"], a)
+    if a.json:
+        print(json.dumps([case_summary(c) | {"diary": None} for c in rows[:a.limit]], ensure_ascii=False, indent=1))
+        return
+    print(f"{len(rows)} case record(s){f'; showing {a.limit}' if len(rows) > a.limit else ''}.")
+    for c in rows[:a.limit]:
+        print(_row(c))
+
+
+def cmd_subjects(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    counts: dict[str, int] = {}
+    for c in _filter(data["cases"], a):
+        for s in c.get("subjectMatter") or []:
+            counts[s] = counts.get(s, 0) + 1
+    for s, n in sorted(counts.items(), key=lambda x: (-x[1], x[0])):
+        print(f"{n:>4}  {s}")
+
+
+def _cases_by_doc(data: dict) -> dict[str, dict]:
+    return {i: c for c in data["cases"] for i in c.get("documents") or []}
+
+
+def dedupe_hits(hits: list[dict]) -> list[dict]:
+    """Joined cases from the 1990s carry the same PDF on the joined record
+    and on each component (E-8/94, E-9/94, 'E-8/94 and E-9/94'). Keep each
+    file once, on the record with the most case numbers; a record left
+    with no documents (and no match in its own details) drops out."""
+    owner: dict[str, dict] = {}
+    for h in hits:
+        for d in h["docs"]:
+            key = urllib.parse.urlsplit(d["file"]).path
+            cur = owner.get(key)
+            if cur is None or len(ref_numbers(h["case"]["ref"])) > len(ref_numbers(cur["case"]["ref"])):
+                owner[key] = h
+    out = []
+    for h in hits:
+        h["docs"] = [d for d in h["docs"] if owner[urllib.parse.urlsplit(d["file"]).path] is h]
+        if h["docs"] or h.get("meta"):
+            out.append(h)
+    return out
+
+
+def _other_bucket_note(ids: list[str], buckets: dict[str, str], want: str, q: str) -> None:
+    other = "text" if want == "case" else "case"
+    n = sum(buckets.get(i) == other for i in ids)
+    if n:
+        cmd = f'texts search "{q}"' if other == "text" else f'search "{q}"'
+        what = "procedural texts" if other == "text" else "case documents"
+        print(f"\n(also {n} hit(s) in {what}: {cmd})")
+
+
+def cmd_search(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    api = data["api"]
+    pool = _filter(data["cases"], a)
+    by_doc = _cases_by_doc(data)
+    buckets = partition(data)
+    type_want = norm_type(a.type) if a.type else None
+    hits: dict[str, dict] = {}  # case id -> {"case", "meta", "docs"}
+    for c in pool:
+        text = " ".join([c["ref"], c.get("parties") or "", c.get("keywords") or "",
+                         " ".join(c.get("subjectMatter") or []), c.get("referringCourt") or "",
+                         strip_html(c.get("description") or "")])
+        if meta_match(text, a.query):
+            hits[c["id"]] = {"case": c, "meta": True, "docs": []}
+    ids: list[str] = []
+    if not a.meta_only:
+        ids = server_search(a.query, api, a.lang)
+        cap_warning(ids)
+        pool_ids = {c["id"] for c in pool}
+        docs_by_id = {d["id"]: d for c in pool for d in case_documents(c, data)}
+        for i in ids:
+            if buckets.get(i) != "case" or i not in docs_by_id:
+                continue
+            c = by_doc.get(i)
+            if not c or c["id"] not in pool_ids:
+                continue
+            d = docs_by_id[i]
+            if type_want and not (d["type"] == type_want or (type_want == "order" and d["type"].startswith("order-"))):
+                continue
+            hits.setdefault(c["id"], {"case": c, "meta": False, "docs": []})["docs"].append(d)
+    found = dedupe_hits(list(hits.values()))
+    if type_want:
+        found = [h for h in found if h["docs"]]
+    ordered = sorted(found, key=lambda h: _sort_key(h["case"]), reverse=a.oldest)
+    shown = ordered[:a.limit]
+    want_snip = []
+    for h in shown:
+        if h["docs"]:
+            best = sorted(h["docs"], key=lambda d: (d["type"] != "judgment", d["lang"] != "EN"))[0]
+            h["best"] = best
+            want_snip.append(best["id"])
+    snip = snippets(a.query, want_snip, api) if want_snip else {}
+    if a.json:
+        print(json.dumps([{"ref": h["case"]["ref"], "parties": h["case"].get("parties"),
+                           "case_page": case_page(h["case"]), "metadata_match": h["meta"],
+                           "documents": [f"{d['type']} {d['lang']}".strip() for d in h["docs"]],
+                           "snippet": snip.get(h.get("best", {}).get("id", ""), "")} for h in shown],
+                         ensure_ascii=False, indent=1))
+        return
+    print(f"{len(ordered)} case(s) match{f'; showing {a.limit}' if len(ordered) > a.limit else ''}"
+          f"{'' if a.meta_only else f' ({len(ids)} document hit(s) on the server before filtering)'}.")
+    for h in shown:
+        print("\n" + _row(h["case"]))
+        where = (["case details"] if h["meta"] else []) + sorted({f"{d['type']} {d['lang']}".strip() for d in h["docs"]})
+        print(f"    matches in: {', '.join(where)}")
+        s = snip.get(h.get("best", {}).get("id", ""))
+        if s:
+            print(f"    {h['best']['type']} {h['best']['lang']}: {s}")
+    if not a.meta_only:
+        _other_bucket_note(ids, buckets, "case", a.query)
+
+
+_REP_RE = re.compile(r"\[(\d{4}(?:\s*[-–]\s*\d{2,4})?)\]\s*EFTA\s*(?:Ct\.?\s*Rep(?:orts?)?\.?|Court\s+Reports?|rep\.?)\s*(\d+)",
+                     re.IGNORECASE)
+
+
+def report_refs(snips: list[str], ref: str) -> dict[str, int]:
+    """'[1994-1995] EFTA Ct. Rep. 17' references that follow `ref` in the
+    snippets, tallied (later documents do not always agree)."""
+    tally: dict[str, int] = {}
+    pat = re.compile(re.escape(ref).replace("/", r"\s*/\s*") + r"(?!\d)", re.I)
+    for s in snips:
+        for m in pat.finditer(s):
+            r = _REP_RE.search(s, m.end(), m.end() + 160)
+            if r:
+                vol = re.sub(r"\s+", "", r.group(1)).replace("–", "-")
+                key = f"[{vol}] EFTA Ct. Rep. {r.group(2)}"
+                tally[key] = tally.get(key, 0) + 1
+    return dict(sorted(tally.items(), key=lambda x: -x[1]))
+
+
+def cmd_cited_by(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    api = data["api"]
+    res = resolve(a.case, data)
+    nums = ref_numbers(a.case)
+    canon = nums[0] if nums else normalise(a.case)
+    own_ids = {res["main"]["id"]} | {c["id"] for c in res["joined"] + res["related"]}
+    forms = [canon]
+    num, yy = canon[2:].split("/")
+    if len(num) == 1:
+        forms.append(f"E-0{num}/{yy}")  # 2026 citations write E-08/26
+    ids: list[str] = []
+    for f in forms:
+        for i in server_search(f'"{f}"', api):
+            if i not in ids:
+                ids.append(i)
+    cap_warning(ids)
+    by_doc = _cases_by_doc(data)
+    buckets = partition(data)
+    citing: dict[str, dict] = {}
+    for i in ids:
+        c = by_doc.get(i)
+        if buckets.get(i) != "case" or not c or c["id"] in own_ids:
+            continue
+        d = next((x for x in case_documents(c, data) if x["id"] == i), None)
+        if not d or (not a.all and d["type"] not in DECISION_TYPES):
+            continue
+        citing.setdefault(c["id"], {"case": c, "docs": []})["docs"].append(d)
+    ordered = sorted(dedupe_hits(list(citing.values())), key=lambda h: _sort_key(h["case"]), reverse=True)
+    pick = []
+    for h in ordered:
+        h["best"] = sorted(h["docs"], key=lambda d: (d["type"] != "judgment", d["lang"] != "EN"))[0]
+        pick.append(h["best"]["id"])
+    snip = snippets(f'"{canon}"', pick[:a.snippets], api)
+    print(f"{res['main']['ref']} {res['main'].get('parties', '')}")
+    print(f"Cited in {len(ordered)} other case(s)"
+          f" ({'any document' if a.all else 'judgments, orders and decisions only; --all adds hearing reports, requests …'}):")
+    for h in ordered[:a.limit]:
+        print("\n" + _row(h["case"]))
+        kinds = sorted({f"{d['type']} {d['lang']}".strip() for d in h["docs"]})
+        print(f"    in: {', '.join(kinds)}")
+        if h["best"]["id"] in snip:
+            print(f"    {snip[h['best']['id']]}")
+    reps = report_refs(list(snip.values()), canon)
+    if reps:
+        print("\nEFTA Court Report references for it in those snippets (as the citing documents give them; "
+              "not verified, and they may disagree):")
+        for k, n in reps.items():
+            print(f"  {k}  ×{n}")
+
+
+def cmd_get(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    res = resolve(a.case, data)
+    docs = documents_for(res, data)
+    if a.doc is None and not a.type:
+        print(f"Documents for {res['main']['ref']} — pick one with --type T [--lang L] or --doc N:")
+        print(format_documents(docs))
+        return
+    if a.doc is not None:
+        if not 1 <= a.doc <= len(docs):
+            raise SystemExit(f"--doc {a.doc}: {res['main']['ref']} has {len(docs)} document(s).")
+        chosen = docs[a.doc - 1]
+    else:
+        chosen = choose_doc(docs, a.type, a.lang, a.party)
+        if not chosen:
+            raise SystemExit(f"No {a.type!r} document for {res['main']['ref']}. Available:\n" + format_documents(docs))
+    stem = cache_dir() / "cases" / _key(chosen["record"]) / doc_stem(docs, chosen)
+    pdf, txt = fetch_document(chosen["file"], stem, data["api"])
+    rec = next(c for c in data["cases"] if c["id"] == chosen["record_id"])
+    kind = f"{chosen['type']} {chosen['lang']}".strip()
+    print(f"{chosen['title']}  ({kind}, {chosen['date'] or 'no date'})")
+    print(f"PDF:  {pdf}")
+    print(f"Text: {txt}" if txt else "Text: not extracted (no pdftotext or pypdf, or a scanned PDF)")
+    print(f"Case page: {case_page(rec)}")
+
+
+def cmd_calendar(a: argparse.Namespace) -> None:
+    """Hearings, judgment dates, deadlines and court events, as the site's
+    judicial calendar builds them."""
+    data = load_data(a.refresh)
+    start = date.today() - timedelta(days=a.past)
+    end = date.today() + timedelta(days=a.days)
+    items = []
+    for c in data["cases"]:
+        seen = set()
+        for k, kind in (("hearingDate", "hearing"), ("judgmentDate", "judgment")):
+            if c.get(k):
+                items.append((c[k], kind, f"{c['ref']} — {kind}: {c.get('parties', '')[:80]}", case_page(c)))
+                seen.add(c[k])
+        for e in c.get("diary") or []:
+            desc = strip_html(e.get("description") or "")
+            if not e.get("date") or e["date"] in seen:
+                continue
+            if e.get("calendar") or e.get("category") == 1 or re.match(r"\s*deadline\b", desc, re.I):
+                kind = "hearing" if re.search(r"\boral hearing\b", desc, re.I) or e.get("category") == 1 else "deadline"
+                items.append((e["date"], kind, f"{c['ref']} — {desc[:110]}", case_page(c)))
+    for e in data.get("events", []):
+        if e.get("hidden") or not e.get("eventDate"):
+            continue
+        t = e.get("type") or ""
+        kind = "hearing" if re.search(r"oral hearing|public sitting", t, re.I) else \
+            "judgment" if re.search(r"delivery of judgment", t, re.I) else "event"
+        if kind == "event" and not a.all:
+            continue
+        m = re.search(r"E-\d+/\d+", e.get("title") or "")
+        if m and any(i[0] == e["eventDate"] and i[2].startswith(m.group(0) + " ") for i in items):
+            continue
+        items.append((e["eventDate"], kind, e.get("title") or "", f"{SITE}/events/{e['id']}"))
+    for v in (data.get("settings") or {}).get("calendar_entries") or []:
+        if v.get("date") and v.get("label"):
+            items.append((v["date"], v.get("type") or "vacation", v["label"], f"{SITE}/calendar"))
+    items = sorted(i for i in items if start.isoformat() <= i[0] <= end.isoformat())
+    print(f"Calendar {start} – {end} ({len(items)} item(s)):")
+    for d, kind, label, link in items:
+        print(f"  {d}  {kind:<9} {label}\n              {link}")
+
+
+# ---------------------------------------------------------------------------
+# Procedural texts
+
+
+def html_to_text(fragment: str) -> str:
+    """A procedural page's HTML -> text under the repo's source-text rules:
+    #/##/### headings, *italic*/**bold**, list markers, browser whitespace."""
+    s = re.sub(r"<(script|style)\b.*?</\1>", "", fragment, flags=re.S | re.I)
+    # HTML whitespace collapses as in a browser (a line break in the markup
+    # is a space); U+00A0 is not HTML whitespace, SPACES handles it below.
+    s = re.sub(r"[ \t\n\r\f]+", " ", s)
+
+    def heading(m: re.Match) -> str:
+        inner = html.unescape(re.sub(r"<[^>]+>", "", m.group(2))).translate(SPACES)
+        inner = re.sub(r" +", " ", inner).strip()
+        return f"\n\n{'#' * (max(2, int(m.group(1))) - 1)} {inner}\n\n" if inner else "\n\n"
+
+    s = re.sub(r"<h([1-6])[^>]*>(.*?)</h\1>", heading, s, flags=re.S | re.I)
+    s = mark_lists(mark_emphasis(s))
+    s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
+    s = re.sub(r"</?(p|div|ul|ol|table|tr|blockquote|li)\b[^>]*>", "\n\n", s, flags=re.I)
+    s = re.sub(r"</t[dh]>", " | ", s, flags=re.I)
+    s = finish(html.unescape(re.sub(r"<[^>]+>", "", s)).translate(SPACES))
+    out, blank = [], True
+    for line in (re.sub(r"[ \t]+", " ", x).strip() for x in s.split("\n")):
+        if not line:
+            if not blank:
+                out.append("")
+            blank = True
+            continue
+        out.append(line)
+        blank = False
+    return "\n".join(out).strip() + "\n"
+
+
+def _base_title(t: str) -> str:
+    return re.sub(r"\s*\((EN|NO|IS|DE|FI|SV|FR)\)\s*$", "", t or "").strip()
+
+
+def texts_catalogue(data: dict) -> list[dict]:
+    """The procedural texts, one entry per text with its language versions.
+    A page whose own body is the text (the Surveillance and Court Agreement)
+    is an HTML entry."""
+    by_id = {d["id"]: d for d in data.get("downloads", [])}
+    out: list[dict] = []
+
+    def add(title: str, page: str, version: dict) -> None:
+        for t in out:
+            if t["title"] == title and t["page"] == page:
+                t["versions"].append(version)
+                return
+        out.append({"title": title, "page": page, "versions": [version]})
+
+    for p in sorted(data.get("procedures", []), key=lambda p: p.get("order") or 0):
+        page = f"{SITE}/procedure/{p['id']}"
+        docs = [by_id[i] for i in p.get("documents") or [] if i in by_id]
+        for d in docs:
+            add(_base_title(d["title"]), page, {"id": d["id"], "lang": _lang_code(d.get("language")), "file": d["file"]})
+        body = p.get("body") or ""
+        if not docs and len(re.sub(r"<[^>]+>", "", body)) > 2000:
+            add(p["title"], page, {"id": p["id"], "lang": "EN", "html": body})
+    for e in data.get("eeftacourt", []):
+        d = by_id.get(e.get("document") or "")
+        if d:
+            add(_base_title(d["title"]), f"{SITE}/e-eftacourt",
+                {"id": d["id"], "lang": _lang_code(d.get("language")), "file": d["file"]})
+    for n, t in enumerate(out, 1):
+        t["n"] = n
+    return out
+
+
+def choose_text(cat: list[dict], sel: str) -> dict:
+    if sel.isdigit():
+        n = int(sel)
+        if not 1 <= n <= len(cat):
+            raise SystemExit(f"There are {len(cat)} texts; see `texts list`.")
+        return cat[n - 1]
+    exact = [t for t in cat if _squash(t["title"]) == _squash(sel)]
+    if exact:
+        return exact[0]
+    words = _squash(sel).split()
+    hits = [t for t in cat if all(w in _squash(t["title"]) for w in words)]
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        raise SystemExit(f"No procedural text matches {sel!r}; see `texts list`.")
+    hits.sort(key=lambda t: ("previous" in t["title"].lower(), len(t["title"])))
+    raise SystemExit("Several texts match; pick one by number:\n"
+                     + "\n".join(f"  {t['n']:>2}. {t['title']}" for t in hits))
+
+
+def _text_stem(t: dict, lang: str) -> Path:
+    slug = re.sub(r"[^a-z0-9]+", "-", t["title"].lower()).strip("-")[:60]
+    return cache_dir() / "texts" / f"{slug}-{lang}"
+
+
+def _text_file(t: dict, v: dict, api: str) -> tuple[Path | None, Path]:
+    stem = _text_stem(t, v["lang"])
+    if "html" in v:
+        txt = stem.with_suffix(".txt")
+        _write(txt, html_to_text(v["html"]))
+        return None, txt
+    pdf, txt = fetch_document(v["file"], stem, api)
+    return pdf, txt
+
+
+def cmd_texts(a: argparse.Namespace) -> None:
+    data = load_data(a.refresh)
+    cat = texts_catalogue(data)
+    if a.action == "list":
+        for t in cat:
+            langs = ", ".join(v["lang"] for v in t["versions"])
+            print(f"  {t['n']:>2}. {t['title']}  [{langs}]{'  (web page text)' if 'html' in t['versions'][0] else ''}")
+        return
+    if a.action == "get":
+        if not a.arg:
+            raise SystemExit("texts get needs a number or title words (see `texts list`).")
+        t = choose_text(cat, a.arg)
+        lang = a.lang.upper()
+        v = next((v for v in t["versions"] if v["lang"] == lang), None) or \
+            next((v for v in t["versions"] if v["lang"] == "EN"), t["versions"][0])
+        if v["lang"] != lang:
+            print(f"[note] no {lang} version of {t['title']!r}; using {v['lang']} "
+                  f"(available: {', '.join(x['lang'] for x in t['versions'])}).", file=sys.stderr)
+        pdf, txt = _text_file(t, v, data["api"])
+        print(f"{t['title']} ({v['lang']})")
+        if pdf:
+            print(f"PDF:  {pdf}")
+        print(f"Text: {txt}" if txt else "Text: not extracted (no pdftotext or pypdf)")
+        print(f"Page: {t['page']}")
+        return
+    # search
+    if not a.arg:
+        raise SystemExit('texts search needs a query, e.g. texts search "oral hearing"')
+    buckets = partition(data)
+    ids = server_search(a.arg, data["api"], a.lang if a.lang_given else None)
+    cap_warning(ids)
+    vid = {v["id"]: (t, v) for t in cat for v in t["versions"]}
+    found = [vid[i] for i in ids if buckets.get(i) == "text" and i in vid]
+    # The HTML texts are not in the server's index: search them here.
+    for t in cat:
+        for v in t["versions"]:
+            if "html" in v and meta_match(html_to_text(v["html"]), a.arg):
+                found.append((t, v))
+    snip = snippets(a.arg, [v["id"] for _, v in found if "html" not in v], data["api"])
+    print(f"{len(found)} procedural text version(s) match:")
+    for t, v in found:
+        print(f"\n  {t['n']:>2}. {t['title']} ({v['lang']})  {t['page']}")
+        if v["id"] in snip:
+            print(f"      {snip[v['id']]}")
+    _other_bucket_note(ids, buckets, "text", a.arg)
+
+
+# ---------------------------------------------------------------------------
+# Misc
+
+
+def cmd_update(a: argparse.Namespace) -> None:
+    data = load_data(refresh=True)
+    print(f"{len(data['cases'])} cases, {len(data['downloads'])} document records from {data['api']}.")
+
+
+def cmd_status(a: argparse.Namespace) -> None:
+    p = cache_dir()
+    print(f"Cache: {p}")
+    d = p / "data.json"
+    if _has_content(d):
+        data = json.loads(_read(d))
+        age = (time.time() - data.get("fetched_at", 0)) / 60
+        print(f"Data:  {len(data.get('cases', []))} cases from {data.get('api')}, fetched {age:.0f} min ago "
+              f"(refreshed after {DATA_TTL // 60} min)")
+    else:
+        print("Data:  not fetched yet")
+    print(f"PDF text: {'pdftotext' if shutil.which('pdftotext') else 'pypdf (if installed)'}")
+
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
-        prog="efta-court",
-        description="Lookup and fetch EFTA Court case law from eftacourt.int.",
-    )
-    sub = p.add_subparsers(dest="cmd", required=True)
+    ap = argparse.ArgumentParser(prog="efta_court.py", description="EFTA Court case law and procedural texts (eftacourt.int).")
+    ap.add_argument("--refresh", action="store_true", help="re-fetch the API data even if the cache is fresh")
+    sub = ap.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("update", help="Refresh the local case index from the EFTA Court REST API.")
-    sub.add_parser("status", help="Show cache location and freshness.")
+    p = sub.add_parser("case", aliases=["fetch"], help="one case: parties, status, dates, diary, documents")
+    p.add_argument("case")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_case)
 
-    pl = sub.add_parser("list", help="List cases, with filters.")
-    pl.add_argument("--year", type=int, help="Filter by year (2-digit or 4-digit, e.g. 2024 or 24).")
-    pl.add_argument("--country", help="Filter by EFTA State (NO/IS/LI): referring court for AOs, defendant for ESA actions.")
-    pl.add_argument("--procedure", help="Filter by procedure type (AO/INF/DA).")
-    pl.add_argument("--pending", action="store_true",
-                    help="Only pending cases. Triggers status verification of recent cases (cached).")
-    pl.add_argument("--decided", action="store_true",
-                    help="Only decided cases. Triggers status verification of recent cases (cached).")
-    pl.add_argument("--verify-years", type=int, default=3,
-                    help="When verifying status, look back this many years (default: 3).")
-    pl.add_argument("--limit", type=int, default=50)
-    pl.add_argument("--json", action="store_true")
+    p = sub.add_parser("list", help="filter all cases")
+    _add_filters(p)
+    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_list)
 
-    ps = sub.add_parser("search", help="Search local index and cached case pages (run `fetch` to enrich).")
-    ps.add_argument("query")
-    ps.add_argument("--year", type=int)
-    ps.add_argument("--country")
-    ps.add_argument("--full-text", action="store_true",
-                    help="Also search inside extracted PDF text (only works on cases already fetched).")
-    ps.add_argument("--party-only", action="store_true",
-                    help="Match only against the parties (case title), not the About text, slug or sources.")
-    ps.add_argument("--json", action="store_true")
+    p = sub.add_parser("subjects", help="subject-matter tags with case counts (takes the list filters)")
+    _add_filters(p)
+    p.set_defaults(func=cmd_subjects)
 
-    pf = sub.add_parser("fetch", help="Fetch a case page; parse and cache its metadata + document list.")
-    pf.add_argument("case", help="Case number in any form (e.g. E-14/15, e14-15, 8/25, E0825).")
-    pf.add_argument("--refresh", action="store_true", help="Re-download even if cached.")
-    pf.add_argument("--json", action="store_true")
+    p = sub.add_parser("search", help="full-text search of case documents (server) + case details")
+    p.add_argument("query", help='words (all must match), "a phrase", prefix*')
+    _add_filters(p)
+    p.add_argument("--type", help="only hits in this document type (judgment, report, request, order …)")
+    p.add_argument("--lang", help="only documents in EN, NO, IS or DE")
+    p.add_argument("--meta-only", action="store_true", help="case details only, no full text")
+    p.add_argument("--oldest", action="store_true", help="oldest cases first")
+    p.add_argument("--limit", type=int, default=25)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_search)
 
-    pg = sub.add_parser("get", help="Download a specific document PDF and extract text.")
-    pg.add_argument("case")
-    pg.add_argument("--type", help="judgment, advisory-opinion, order, costs-order, request, notification, "
-                                   "summary, report, opinion-aag, opinion, press-release. "
-                                   "Without --type or --doc, list the documents.")
-    pg.add_argument("--lang", default="EN")
-    pg.add_argument("--doc", type=int, metavar="N",
-                    help="Get document number N from the list (overrides --type/--lang).")
+    p = sub.add_parser("cited-by", help="later cases whose judgments (or, with --all, any document) cite a case")
+    p.add_argument("case")
+    p.add_argument("--all", action="store_true")
+    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--snippets", type=int, default=60, help="how many citing cases get a snippet (default 60)")
+    p.set_defaults(func=cmd_cited_by)
 
-    return p
+    p = sub.add_parser("get", help="download a case document and extract its text")
+    p.add_argument("case")
+    p.add_argument("--type", help="judgment, report, request, notification, order, order-court, order-president, "
+                                  "information-note, decision, observations")
+    p.add_argument("--lang", default="EN", help="EN (default), NO, IS, DE")
+    p.add_argument("--party", help="with --type observations: whose (Norway, Commission, ESA …)")
+    p.add_argument("--doc", type=int, help="document number from the list")
+    p.set_defaults(func=cmd_get)
+
+    p = sub.add_parser("calendar", help="hearings, judgments and deadlines ahead (and --past days back)")
+    p.add_argument("--days", type=int, default=90)
+    p.add_argument("--past", type=int, default=0)
+    p.add_argument("--all", action="store_true", help="include conferences and talks")
+    p.set_defaults(func=cmd_calendar)
+
+    p = sub.add_parser("texts", help="the Court's procedural texts: texts list | get N|WORDS [--lang] | search QUERY")
+    p.add_argument("action", choices=["list", "get", "search"])
+    p.add_argument("arg", nargs="?")
+    p.add_argument("--lang", default=None)
+    p.set_defaults(func=cmd_texts)
+
+    sub.add_parser("update", help="re-fetch the API data now").set_defaults(func=cmd_update)
+    sub.add_parser("status", help="cache location and age").set_defaults(func=cmd_status)
+    return ap
 
 
 def main(argv: list[str] | None = None) -> int:
-    # Case titles and About text contain characters outside cp1252; never let
-    # the console encoding turn a successful fetch into a crash.
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
     args = build_parser().parse_args(argv)
-    handlers = {
-        "update": cmd_update,
-        "status": cmd_status,
-        "list":   cmd_list,
-        "search": cmd_search,
-        "fetch":  cmd_fetch,
-        "get":    cmd_get,
-    }
+    if args.cmd == "texts":
+        args.lang_given = args.lang is not None
+        args.lang = args.lang or "EN"
     try:
-        handlers[args.cmd](args)
-    except (urllib.error.URLError, TimeoutError) as e:
-        raise SystemExit(f"Network error talking to eftacourt.int: {e}")
+        args.func(args)
+    except ValueError as e:
+        raise SystemExit(str(e))
+    except urllib.error.HTTPError as e:
+        raise SystemExit(f"HTTP {e.code} from {e.url}")
     return 0
 
 

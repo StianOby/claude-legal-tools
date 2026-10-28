@@ -12,7 +12,7 @@
       "id": 2,
       "name": "list-pending-by-topic",
       "prompt": "Are there any pending EFTA Court cases this year (2025 or 2026) where the EFTA Surveillance Authority is suing Norway? Just give me the list with case numbers, the alleged subject-matter, and a link to each case page.",
-      "expected_output": "A list of currently pending infringement actions (procedure type INF) brought by ESA against Norway in 2025-2026, with case numbers in correct E-X/YY form, the topic from the case page (or About field), and the eftacourt.int/cases/<slug>/ URL.",
+      "expected_output": "A list of currently pending infringement actions (procedure type INF) brought by ESA against Norway in 2025-2026, with case numbers in correct E-X/YY form, the topic from the case page (or About field), and the case page URL (https://eftacourt.int/cases/<id>).",
       "files": []
     },
     {
@@ -20,6 +20,27 @@
       "name": "norwegian-finanger-citation",
       "prompt": "Hva sa EFTA-domstolen i sak E-1/99 (Finanger) om hvorvidt motorvognforsikringsdirektivene er til hinder for en nasjonal regel som avskjærer erstatning til en passasjer som visste at føreren var beruset? Gi meg et direkte sitat fra dommen med avsnittsnummer, og en korrekt henvisning på norsk juridisk form.",
       "expected_output": "Reply in Norwegian. Correctly identifies E-1/99 Storebrand Skadeforsikring AS v Veronika Finanger (advisory opinion of 17 November 1999, referred by Norges Høyesterett), fetches the judgment, and quotes the dispositif or the relevant paragraphs on whether the motor vehicle insurance directives preclude a national rule excluding compensation for a passenger who knew the driver was intoxicated. Citation in Norwegian form (Sak E-1/99 Finanger, avsnitt X). Must NOT frame E-1/99 as a state-liability case: EEA state liability comes from E-9/97 Sveinbjörnsdóttir and E-4/01 Karlsson, and Finanger II (Rt. 2005 s. 1365) is a Norwegian Supreme Court judgment, not an EFTA Court case, so the skill should not try to fetch it from eftacourt.int.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "full-text-search-collective-action",
+      "prompt": "Which EFTA Court cases have dealt with the right to take collective action by trade unions? List them with case number, parties and a sentence on how each case touches the issue.",
+      "expected_output": "Uses `search '\"collective action\"'` (server full-text search, not training-data recall), lists the matching cases (at least E-14/15 Holship; E-12/10 ESA v Iceland appears via its hearing report), says which document the hit is in, and does not quote from snippets; any quote comes from a downloaded .txt with paragraph numbers.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "cited-by-and-observations",
+      "prompt": "Which later EFTA Court judgments cite Restamark (E-1/94)? And separately: what did the Norwegian Government argue in its written observations in E-25/24 Dartride?",
+      "expected_output": "Runs `cited-by E-1/94` and lists the citing cases (Scottish Salmon E-2/94, Mattel/Lego E-8/94 and E-9/94 among them), without listing E-8/94 and the joined record twice. If it gives an EFTA Court Report reference for Restamark, it says it comes from later citing documents and mentions that they disagree (page 15 vs 17). Then runs `get E-25/24 --type observations --party Norway` and summarises the observations from the .txt. Links, if any, are to the case page https://eftacourt.int/cases/<id>, never a storage PDF URL.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "procedural-text-rules",
+      "prompt": "Under the EFTA Court's Rules of Procedure, when can the Court decide to dispense with an oral hearing in an advisory opinion case? Quote the provision.",
+      "expected_output": "Uses `texts get \"rules of procedure\"` (the current Rules, not the previous ones; if both match it picks the current), finds the provision in the .txt and quotes it with its article number, with the procedure page link if a link is given. Does not mix case-law hits into the answer.",
       "files": []
     }
   ]

@@ -19,7 +19,7 @@ SHARED = {
     "shared/local-route/pack_for_local.sh": (["nbno", "lovdata-api", "nem-vedtak"], "scripts/pack_for_local.sh"),
     "shared/zotero-rdf/zotero_rdf.py": (["nbno", "ets", "untc", "eu-agreements-treaties"], "scripts/zotero_rdf.py"),
     "shared/source-text/source_text.py": (
-        ["ets", "hudoc", "icj", "lovdata-api", "nem-vedtak"],
+        ["efta-court", "ets", "hudoc", "icj", "lovdata-api", "nem-vedtak"],
         "scripts/source_text.py",
     ),
     "shared/browser-paste/paste.py": (
