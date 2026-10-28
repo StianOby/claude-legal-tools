@@ -24,6 +24,7 @@ import html
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -41,7 +42,7 @@ from source_text import SPACES, finish, fold, mark_emphasis, mark_lists  # noqa:
 
 SITE = "https://eftacourt.int"
 DEFAULT_API = "https://api.eftacourt.int/api"
-USER_AGENT = "efta-court-skill/2.0.0 (+https://github.com/StianOby/claude-legal-tools)"
+USER_AGENT = "efta-court-skill/2.0.1 (+https://github.com/StianOby/claude-legal-tools)"
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
 DATA_TTL = 3600
 # The API collections the skill reads. Others (press, members …) are not used.
@@ -272,12 +273,55 @@ def procedure_code(rec: dict) -> str:
     return ""
 
 
+# Fallback for an AO's country when the site leaves `source` empty: words in
+# the referring court's name (or the keywords/description) that only one
+# State uses. Generic court terms, not a list of courts: every Norwegian
+# district court is a "tingrett", every court of appeal a "lagmannsrett".
 _COURT_KEYS = (
-    ("NO", ("norges", "norway", "norwegian", "borgarting", "agder", "frostating", "gulating", "hålogaland",
-            "eidsivating", "oslo")),
+    ("NO", ("norway", "norwegian", "norges", "høyesterett", "lagmannsrett", "tingrett", "trygderett",
+            "arbeidsrett", "jordskifterett", "oslo")),
+    ("IS", ("iceland", "icelandic", "hæstiréttur", "landsréttur", "héraðsdóm", "félagsdóm", "reykjav")),
     ("LI", ("liechtenstein", "fürstlich", "vaduz")),
-    ("IS", ("iceland", "héraðsdómur", "landsréttur", "hæstiréttur", "reykjav")),
 )
+# "Request for an Advisory Opinion from the EFTA Court by the Haugaland and
+# Sunnhordland District Court (Haugaland og Sunnhordland Tingrett) in the case …"
+_REFERRING_RE = re.compile(r"Advisory Opinion from the EFTA Court by (?:the )?(.+?)(?:,? received| in the case|$)",
+                           re.IGNORECASE | re.MULTILINE)
+
+
+def _about_text(rec: dict) -> str:
+    return f"{rec.get('keywords') or ''}\n{strip_html(rec.get('description') or '')}"
+
+
+def referring_court(rec: dict) -> str:
+    """The referring court; new cases have it only in the keywords or the
+    description."""
+    if rec.get("referringCourt") or rec.get("type") != "Advisory Opinion":
+        return rec.get("referringCourt") or ""
+    m = _REFERRING_RE.search(_about_text(rec))
+    return m.group(1).strip(" ,.") if m else ""
+
+
+def case_language(rec: dict, data: dict) -> tuple[str, str]:
+    """(language of the case, note). The site's field defaults to English for
+    many older advisory opinions (E-1/99, E-3/06 and E-4/09 say English; their
+    judgments say Norwegian, Norwegian, German). A non-English version of the
+    request, judgment or hearing report shows the real language; with only
+    English documents and no request, the field is passed on as unverified."""
+    lang = rec.get("language") or ""
+    if rec.get("type") != "Advisory Opinion":
+        return lang, ""
+    by_id = {d["id"]: d for d in data.get("downloads", [])}
+    docs = [by_id[i] for i in rec.get("documents") or [] if i in by_id]
+    others = {d.get("language") for d in docs
+              if d.get("docType") in ("Request for an Advisory Opinion", "Judgment", "Report for the Hearing")
+              and d.get("language") not in (None, "", "English")}
+    if len(others) == 1:
+        found = others.pop()
+        return found, "" if found == lang else f"from the document versions; the site says {lang or 'nothing'}"
+    if lang == "English" and not any(d.get("docType") == "Request for an Advisory Opinion" for d in docs):
+        return lang, "as the site says, unverified: check 'Language of the request' at the top of the judgment"
+    return lang, ""
 
 
 def country_code(rec: dict) -> str:
@@ -286,8 +330,9 @@ def country_code(rec: dict) -> str:
     if rec.get("source") in COUNTRIES:
         return COUNTRIES[rec["source"]]
     if rec.get("type") == "Advisory Opinion":
-        # Some AOs have no source or referring court; the description names it.
-        text = f"{rec.get('referringCourt') or ''} {strip_html(rec.get('description') or '')}".lower()
+        # Some AOs have no source or referring court; the keywords or the
+        # description name it.
+        text = f"{rec.get('referringCourt') or ''} {_about_text(rec)}".lower()
         for code, keys in _COURT_KEYS:
             if any(k in text for k in keys):
                 return code
@@ -300,6 +345,28 @@ def country_code(rec: dict) -> str:
 def case_page(rec: dict) -> str:
     """The public page for a case: the only link the skill gives to users."""
     return f"{SITE}/cases/{rec['id']}"
+
+
+ENDED_WITHOUT_JUDGMENT = ("withdrawal", "discontinuance of proceedings")
+
+
+def status_label(rec: dict) -> str:
+    """The site says Decided for withdrawn cases too."""
+    if (rec.get("procedure") or "").lower() in ENDED_WITHOUT_JUDGMENT:
+        return "Withdrawn"
+    return rec.get("status") or ""
+
+
+def joined_judgments(cases: list[dict]) -> dict[str, tuple[str, str]]:
+    """case number -> (judgment date, joined ref) for the components of joined
+    cases, whose own records carry no judgment date."""
+    out: dict[str, tuple[str, str]] = {}
+    for c in cases:
+        nums = ref_numbers(c["ref"])
+        if len(nums) > 1 and c.get("judgmentDate"):
+            for n in nums:
+                out.setdefault(n, (c["judgmentDate"], c["ref"]))
+    return out
 
 
 def strip_html(s: str) -> str:
@@ -398,9 +465,15 @@ def resolve(query: str, data: dict) -> dict:
 
 
 def documents_for(res: dict, data: dict) -> list[dict]:
-    docs = case_documents(res["main"], data)
-    for j in res["joined"]:
-        docs += case_documents(j, data)
+    """The case's documents, then the joined records' ones; a file the joined
+    record carries too (a component's notification) is listed once."""
+    docs, seen = [], set()
+    for rec in [res["main"]] + res["joined"]:
+        for d in case_documents(rec, data):
+            path = urllib.parse.urlsplit(d["file"]).path
+            if path not in seen:
+                seen.add(path)
+                docs.append(d)
     for n, d in enumerate(docs, 1):
         d["n"] = n
     return docs
@@ -410,16 +483,25 @@ def documents_for(res: dict, data: dict) -> list[dict]:
 # Output
 
 
-def case_summary(rec: dict) -> dict:
+def case_summary(rec: dict, data: dict) -> dict:
+    lang, lang_note = case_language(rec, data)
+    jdate, jref = rec.get("judgmentDate") or "", ""
+    if not jdate:
+        jdate, jref = next((joined_judgments(data["cases"]).get(n, ("", "")) for n in ref_numbers(rec["ref"])[:1]),
+                           ("", ""))
+    keywords = strip_html(rec.get("keywords") or "")
+    description = strip_html(rec.get("description") or "")
     return {
-        "ref": rec["ref"], "parties": rec.get("parties") or "", "status": rec.get("status") or "",
+        "ref": rec["ref"], "parties": rec.get("parties") or "", "status": status_label(rec),
         "procedure_code": procedure_code(rec), "type": rec.get("type") or "",
         "procedure": rec.get("procedure") or "", "country": country_code(rec),
-        "referring_court": rec.get("referringCourt") or "", "language_of_case": rec.get("language") or "",
-        "subject_matter": rec.get("subjectMatter") or [], "keywords": strip_html(rec.get("keywords") or ""),
-        "description": strip_html(rec.get("description") or ""),
+        "referring_court": referring_court(rec), "language_of_case": lang, "language_note": lang_note,
+        "subject_matter": rec.get("subjectMatter") or [],
+        # ESA actions repeat the description as their keywords.
+        "keywords": "" if keywords and _squash(keywords) in _squash(description) else keywords,
+        "description": description,
         "date_submitted": rec.get("dateSubmitted") or "", "hearing_date": rec.get("hearingDate") or "",
-        "judgment_date": rec.get("judgmentDate") or "", "published_in": rec.get("publishedIn") or "",
+        "judgment_date": jdate, "judgment_on": jref, "published_in": rec.get("publishedIn") or "",
         "case_page": case_page(rec),
         "diary": [{"date": e.get("date") or "", "event": strip_html(e.get("description") or "")}
                   for e in rec.get("diary") or []],
@@ -435,7 +517,7 @@ def format_documents(docs: list[dict]) -> str:
 
 
 def print_case(res: dict, data: dict) -> None:
-    s = case_summary(res["main"])
+    s = case_summary(res["main"], data)
     docs = documents_for(res, data)
     for d in docs:
         d["joined_from"] = d["record_id"] != res["main"]["id"]
@@ -443,10 +525,15 @@ def print_case(res: dict, data: dict) -> None:
     print(f"  Status: {s['status']}   Procedure: {s['procedure_code'] or '?'} ({s['procedure'] or s['type']})"
           + (f"   Country: {s['country']}" if s["country"] else ""))
     if s["referring_court"]:
-        print(f"  Referring court: {s['referring_court']}   Language of the case: {s['language_of_case']}")
+        print(f"  Referring court: {s['referring_court']}")
+    if s["language_of_case"]:
+        print(f"  Language of the case: {s['language_of_case']}"
+              + (f" ({s['language_note']})" if s["language_note"] else ""))
     for k, label in (("date_submitted", "Lodged"), ("hearing_date", "Hearing"), ("judgment_date", "Judgment")):
         if s[k]:
-            print(f"  {label}: {s[k]}")
+            print(f"  {label}: {s[k]}" + (f" (on {s['judgment_on']})" if k == "judgment_date" and s["judgment_on"] else ""))
+    if s["status"] == "Withdrawn":
+        print("  Ended without a judgment (withdrawn or discontinued); see the order in the documents.")
     if s["subject_matter"]:
         print(f"  Subject matter: {', '.join(s['subject_matter'])}")
     if s["keywords"]:
@@ -636,47 +723,82 @@ def meta_match(text: str, q: str) -> bool:
 # Filters
 
 
-def _filter(cases: list[dict], a: argparse.Namespace) -> list[dict]:
+_OBS_RE = re.compile(r"\s*written observations (?:\w+ )*?(?:received |lodged )?from (.+)", re.I)
+_STATE_PREFIX = re.compile(r"^(?:the )?(?:government of |kingdom of |principality of |republic of )*(?:the )?", re.I)
+
+
+def observers(rec: dict) -> list[str]:
+    """Who submitted written observations, from the diary ("Written
+    observations received from the Government of Norway")."""
     out = []
-    for c in cases:
-        if getattr(a, "year", None) and case_year(c) != full_year(a.year):
+    for e in rec.get("diary") or []:
+        m = _OBS_RE.match(strip_html(e.get("description") or ""))
+        if m:
+            out.append(m.group(1).strip(" ."))
+    return out
+
+
+def observer_match(name: str, want: str) -> bool:
+    """'Liechtenstein' matches 'the Government of Liechtenstein' but not
+    'the University of Liechtenstein'."""
+    core = _STATE_PREFIX.sub("", name).casefold()
+    w = _STATE_PREFIX.sub("", want).casefold()
+    return core == w or core.startswith(w + " ") or core.startswith(w + ",") or name.casefold() == want.casefold()
+
+
+def _filter(data: dict, a: argparse.Namespace) -> list[dict]:
+    out = []
+    for c in data["cases"]:
+        y = case_year(c)
+        if getattr(a, "year", None) and y != full_year(a.year):
+            continue
+        if getattr(a, "since", None) and y < full_year(a.since):
+            continue
+        if getattr(a, "until", None) and y > full_year(a.until):
             continue
         if getattr(a, "country", None) and country_code(c) != a.country.upper():
             continue
         if getattr(a, "procedure", None) and procedure_code(c) != a.procedure.upper():
             continue
-        if getattr(a, "status", None) and (c.get("status") or "").lower() != a.status.lower():
+        if getattr(a, "status", None) and status_label(c).lower() != a.status.lower():
             continue
         if getattr(a, "subject", None) and not any(a.subject.casefold() in s.casefold() for s in c.get("subjectMatter") or []):
             continue
-        if getattr(a, "court", None) and a.court.casefold() not in (c.get("referringCourt") or "").casefold():
+        if getattr(a, "court", None) and a.court.casefold() not in referring_court(c).casefold():
             continue
         if getattr(a, "party", None) and a.party.casefold() not in (c.get("parties") or "").casefold():
             continue
-        if getattr(a, "language", None) and a.language.casefold() not in (c.get("language") or "").casefold():
+        if getattr(a, "language", None) and a.language.casefold() not in case_language(c, data)[0].casefold():
             continue
-        if getattr(a, "observer", None):
-            obs = [e.get("description") or "" for e in c.get("diary") or []
-                   if re.match(r"\s*written observations", e.get("description") or "", re.I)]
-            if not any(a.observer.casefold() in o.casefold() for o in obs):
-                continue
+        if getattr(a, "observer", None) and not any(observer_match(o, a.observer) for o in observers(c)):
+            continue
         out.append(c)
     return sorted(out, key=_sort_key)
 
 
-def _row(c: dict) -> str:
-    d = c.get("judgmentDate") or c.get("dateSubmitted") or ""
+ROW_HEADER = f"{'case':<14} {'lodged':<10} {'judgment':<10} {'status':<9} {'pr':<3} {'st':<2}  parties  [subject matter]"
+
+
+def _row(c: dict, jj: dict | None = None) -> str:
+    """One line per case. The judgment date of a joined case's component
+    comes from the joined record."""
+    j = c.get("judgmentDate") or ""
+    if not j and jj:
+        j = next((jj[n][0] for n in ref_numbers(c["ref"])[:1] if n in jj), "")
     subj = ", ".join(c.get("subjectMatter") or [])
-    parties = (c.get("parties") or "").replace("\n", " ")
-    return (f"{c['ref']:<14} {d:<10} {(c.get('status') or ''):<8} {procedure_code(c) or '-':<3} "
-            f"{country_code(c) or '-':<2}  {parties[:90]}" + (f"  [{subj}]" if subj else ""))
+    parties = " ".join((c.get("parties") or "").split())
+    return (f"{c['ref']:<14} {c.get('dateSubmitted') or '':<10} {j:<10} {status_label(c):<9} "
+            f"{procedure_code(c) or '-':<3} {country_code(c) or '-':<2}  {parties[:90]}"
+            + (f"  [{subj}]" if subj else ""))
 
 
 def _add_filters(p: argparse.ArgumentParser) -> None:
     p.add_argument("--year", type=int, help="year of the case number (2024 or 24)")
+    p.add_argument("--since", type=int, help="case-number year from (2022 or 22)")
+    p.add_argument("--until", type=int, help="case-number year up to")
     p.add_argument("--country", help="NO, IS or LI (referring court's State; for ESA actions the State sued)")
     p.add_argument("--procedure", help="AO, INF or DA")
-    p.add_argument("--status", choices=["pending", "decided"], type=str.lower)
+    p.add_argument("--status", choices=["pending", "decided", "withdrawn"], type=str.lower)
     p.add_argument("--pending", dest="status", action="store_const", const="pending")
     p.add_argument("--decided", dest="status", action="store_const", const="decided")
     p.add_argument("--subject", help="subject-matter tag, substring (see `subjects`)")
@@ -694,7 +816,7 @@ def cmd_case(a: argparse.Namespace) -> None:
     data = load_data(a.refresh)
     res = resolve(a.case, data)
     if a.json:
-        out = case_summary(res["main"])
+        out = case_summary(res["main"], data)
         out["joined"] = [{"ref": j["ref"], "case_page": case_page(j)} for j in res["joined"]]
         out["related"] = [r["ref"] for r in res["related"]]
         out["documents"] = [{k: d[k] for k in ("n", "type", "lang", "date", "title", "record")}
@@ -706,19 +828,21 @@ def cmd_case(a: argparse.Namespace) -> None:
 
 def cmd_list(a: argparse.Namespace) -> None:
     data = load_data(a.refresh)
-    rows = _filter(data["cases"], a)
+    rows = _filter(data, a)
     if a.json:
-        print(json.dumps([case_summary(c) | {"diary": None} for c in rows[:a.limit]], ensure_ascii=False, indent=1))
+        print(json.dumps([case_summary(c, data) | {"diary": None} for c in rows[:a.limit]], ensure_ascii=False, indent=1))
         return
+    jj = joined_judgments(data["cases"])
     print(f"{len(rows)} case record(s){f'; showing {a.limit}' if len(rows) > a.limit else ''}.")
+    print(ROW_HEADER)
     for c in rows[:a.limit]:
-        print(_row(c))
+        print(_row(c, jj))
 
 
 def cmd_subjects(a: argparse.Namespace) -> None:
     data = load_data(a.refresh)
     counts: dict[str, int] = {}
-    for c in _filter(data["cases"], a):
+    for c in _filter(data, a):
         for s in c.get("subjectMatter") or []:
             counts[s] = counts.get(s, 0) + 1
     for s, n in sorted(counts.items(), key=lambda x: (-x[1], x[0])):
@@ -753,7 +877,7 @@ def _other_bucket_note(ids: list[str], buckets: dict[str, str], want: str, q: st
     other = "text" if want == "case" else "case"
     n = sum(buckets.get(i) == other for i in ids)
     if n:
-        cmd = f'texts search "{q}"' if other == "text" else f'search "{q}"'
+        cmd = f"texts search {shlex.quote(q)}" if other == "text" else f"search {shlex.quote(q)}"
         what = "procedural texts" if other == "text" else "case documents"
         print(f"\n(also {n} hit(s) in {what}: {cmd})")
 
@@ -761,15 +885,14 @@ def _other_bucket_note(ids: list[str], buckets: dict[str, str], want: str, q: st
 def cmd_search(a: argparse.Namespace) -> None:
     data = load_data(a.refresh)
     api = data["api"]
-    pool = _filter(data["cases"], a)
+    pool = _filter(data, a)
     by_doc = _cases_by_doc(data)
     buckets = partition(data)
     type_want = norm_type(a.type) if a.type else None
     hits: dict[str, dict] = {}  # case id -> {"case", "meta", "docs"}
     for c in pool:
-        text = " ".join([c["ref"], c.get("parties") or "", c.get("keywords") or "",
-                         " ".join(c.get("subjectMatter") or []), c.get("referringCourt") or "",
-                         strip_html(c.get("description") or "")])
+        text = " ".join([c["ref"], c.get("parties") or "", " ".join(c.get("subjectMatter") or []),
+                         referring_court(c), _about_text(c)])
         if meta_match(text, a.query):
             hits[c["id"]] = {"case": c, "meta": True, "docs": []}
     ids: list[str] = []
@@ -807,10 +930,13 @@ def cmd_search(a: argparse.Namespace) -> None:
                            "snippet": snip.get(h.get("best", {}).get("id", ""), "")} for h in shown],
                          ensure_ascii=False, indent=1))
         return
+    n_docs = sum(len(h["docs"]) for h in found)
     print(f"{len(ordered)} case(s) match{f'; showing {a.limit}' if len(ordered) > a.limit else ''}"
-          f"{'' if a.meta_only else f' ({len(ids)} document hit(s) on the server before filtering)'}.")
+          f"{'' if a.meta_only else f' ({n_docs} matching case document(s))'}.")
+    jj = joined_judgments(data["cases"])
+    print(ROW_HEADER)
     for h in shown:
-        print("\n" + _row(h["case"]))
+        print("\n" + _row(h["case"], jj))
         where = (["case details"] if h["meta"] else []) + sorted({f"{d['type']} {d['lang']}".strip() for d in h["docs"]})
         print(f"    matches in: {', '.join(where)}")
         s = snip.get(h.get("best", {}).get("id", ""))
@@ -820,21 +946,38 @@ def cmd_search(a: argparse.Namespace) -> None:
         _other_bucket_note(ids, buckets, "case", a.query)
 
 
-_REP_RE = re.compile(r"\[(\d{4}(?:\s*[-–]\s*\d{2,4})?)\]\s*EFTA\s*(?:Ct\.?\s*Rep(?:orts?)?\.?|Court\s+Reports?|rep\.?)\s*(\d+)",
-                     re.IGNORECASE)
+# "[1994-1995] EFTA Ct. Rep. 15", "[1994−95] EFTA Court Report 17",
+# "[1994] EFTArep 15", and the Norwegian "Sml. 1994–1995 s. 15".
+_DASH = "[-–−]"
+_REP_RES = (
+    re.compile(r"\[(\d{4}(?:\s*" + _DASH + r"\s*\d{2,4})?)\]\s*EFTA\s*(?:Ct\.?\s*Rep(?:orts?)?\.?|Court\s+Reports?|rep\.?)\s*(\d+)",
+               re.IGNORECASE),
+    re.compile(r"\bSml\.?\s*(\d{4}(?:\s*" + _DASH + r"\s*\d{2,4})?)\s*s\.?\s*(\d+)", re.IGNORECASE),
+)
+
+
+def _volume(v: str) -> str:
+    """'1994−95' / '1994 – 1995' -> '1994-1995'."""
+    v = re.sub(r"\s+", "", v)
+    m = re.fullmatch(r"(\d{4})" + _DASH + r"(\d{2,4})", v)
+    if not m:
+        return v
+    end = m.group(2)
+    return f"{m.group(1)}-{m.group(1)[:4 - len(end)] + end}"
 
 
 def report_refs(snips: list[str], ref: str) -> dict[str, int]:
-    """'[1994-1995] EFTA Ct. Rep. 17' references that follow `ref` in the
-    snippets, tallied (later documents do not always agree)."""
+    """EFTA Court Report references that follow `ref` in the snippets, in one
+    form ('[1994-1995] EFTA Ct. Rep. 15'), tallied (citing documents do not
+    always agree)."""
     tally: dict[str, int] = {}
     pat = re.compile(re.escape(ref).replace("/", r"\s*/\s*") + r"(?!\d)", re.I)
     for s in snips:
         for m in pat.finditer(s):
-            r = _REP_RE.search(s, m.end(), m.end() + 160)
-            if r:
-                vol = re.sub(r"\s+", "", r.group(1)).replace("–", "-")
-                key = f"[{vol}] EFTA Ct. Rep. {r.group(2)}"
+            hits = [r for r in (rx.search(s, m.end(), m.end() + 160) for rx in _REP_RES) if r]
+            if hits:
+                r = min(hits, key=lambda x: x.start())
+                key = f"[{_volume(r.group(1))}] EFTA Ct. Rep. {r.group(2)}"
                 tally[key] = tally.get(key, 0) + 1
     return dict(sorted(tally.items(), key=lambda x: -x[1]))
 
@@ -864,7 +1007,7 @@ def cmd_cited_by(a: argparse.Namespace) -> None:
         if buckets.get(i) != "case" or not c or c["id"] in own_ids:
             continue
         d = next((x for x in case_documents(c, data) if x["id"] == i), None)
-        if not d or (not a.all and d["type"] not in DECISION_TYPES):
+        if not d or (not a.all and d["type"] not in DECISION_TYPES) or (a.judgments and d["type"] != "judgment"):
             continue
         citing.setdefault(c["id"], {"case": c, "docs": []})["docs"].append(d)
     ordered = sorted(dedupe_hits(list(citing.values())), key=lambda h: _sort_key(h["case"]), reverse=True)
@@ -874,10 +1017,13 @@ def cmd_cited_by(a: argparse.Namespace) -> None:
         pick.append(h["best"]["id"])
     snip = snippets(f'"{canon}"', pick[:a.snippets], api)
     print(f"{res['main']['ref']} {res['main'].get('parties', '')}")
-    print(f"Cited in {len(ordered)} other case(s)"
-          f" ({'any document' if a.all else 'judgments, orders and decisions only; --all adds hearing reports, requests …'}):")
+    scope = ("judgments only" if a.judgments else "any document" if a.all
+             else "judgments, orders and decisions; --judgments for judgments only, --all adds hearing reports, requests …")
+    print(f"Cited in {len(ordered)} other case(s) ({scope}):")
+    jj = joined_judgments(data["cases"])
+    print(ROW_HEADER)
     for h in ordered[:a.limit]:
-        print("\n" + _row(h["case"]))
+        print("\n" + _row(h["case"], jj))
         kinds = sorted({f"{d['type']} {d['lang']}".strip() for d in h["docs"]})
         print(f"    in: {', '.join(kinds)}")
         if h["best"]["id"] in snip:
@@ -916,6 +1062,23 @@ def cmd_get(a: argparse.Namespace) -> None:
     print(f"Case page: {case_page(rec)}")
 
 
+_MONTHS = ("january", "february", "march", "april", "may", "june", "july", "august", "september",
+           "october", "november", "december")
+_TEXT_DATE_RE = re.compile(r"\b(\d{1,2})\s+(" + "|".join(_MONTHS) + r")\s+(\d{4})\b", re.IGNORECASE)
+
+
+def text_date(text: str) -> str:
+    """The last '4 August 2026' in a diary text, as an ISO date ('' if none)."""
+    found = _TEXT_DATE_RE.findall(text)
+    if not found:
+        return ""
+    d, m, y = found[-1]
+    try:
+        return date(int(y), _MONTHS.index(m.lower()) + 1, int(d)).isoformat()
+    except ValueError:
+        return ""
+
+
 def cmd_calendar(a: argparse.Namespace) -> None:
     """Hearings, judgment dates, deadlines and court events, as the site's
     judicial calendar builds them."""
@@ -931,11 +1094,16 @@ def cmd_calendar(a: argparse.Namespace) -> None:
                 seen.add(c[k])
         for e in c.get("diary") or []:
             desc = strip_html(e.get("description") or "")
-            if not e.get("date") or e["date"] in seen:
+            if not e.get("date"):
                 continue
             if e.get("calendar") or e.get("category") == 1 or re.match(r"\s*deadline\b", desc, re.I):
+                # Entries are dated when posted; the text gives the real date
+                # ("Deadline …: Tuesday, 4 August 2026").
+                when = text_date(desc) or e["date"]
+                if when in seen:
+                    continue
                 kind = "hearing" if re.search(r"\boral hearing\b", desc, re.I) or e.get("category") == 1 else "deadline"
-                items.append((e["date"], kind, f"{c['ref']} — {desc[:110]}", case_page(c)))
+                items.append((when, kind, f"{c['ref']} — {desc}", case_page(c)))
     for e in data.get("events", []):
         if e.get("hidden") or not e.get("eventDate"):
             continue
@@ -1008,7 +1176,8 @@ def texts_catalogue(data: dict) -> list[dict]:
             if t["title"] == title and t["page"] == page:
                 t["versions"].append(version)
                 return
-        out.append({"title": title, "page": page, "versions": [version]})
+        # The site's "Previous Rules of Procedure" page holds the superseded Rules.
+        out.append({"title": title, "page": page, "versions": [version], "previous": "/pr-previous-" in page})
 
     for p in sorted(data.get("procedures", []), key=lambda p: p.get("order") or 0):
         page = f"{SITE}/procedure/{p['id']}"
@@ -1069,7 +1238,8 @@ def cmd_texts(a: argparse.Namespace) -> None:
     if a.action == "list":
         for t in cat:
             langs = ", ".join(v["lang"] for v in t["versions"])
-            print(f"  {t['n']:>2}. {t['title']}  [{langs}]{'  (web page text)' if 'html' in t['versions'][0] else ''}")
+            notes = (["superseded"] if t["previous"] else []) + (["web page text"] if "html" in t["versions"][0] else [])
+            print(f"  {t['n']:>2}. {t['title']}  [{langs}]" + (f"  ({', '.join(notes)})" if notes else ""))
         return
     if a.action == "get":
         if not a.arg:
@@ -1166,7 +1336,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("cited-by", help="later cases whose judgments (or, with --all, any document) cite a case")
     p.add_argument("case")
-    p.add_argument("--all", action="store_true")
+    p.add_argument("--all", action="store_true", help="any document, hearing reports and requests too")
+    p.add_argument("--judgments", action="store_true", help="judgments (and advisory opinions) only")
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--snippets", type=int, default=60, help="how many citing cases get a snippet (default 60)")
     p.set_defaults(func=cmd_cited_by)
@@ -1209,6 +1380,11 @@ def main(argv: list[str] | None = None) -> int:
         args.lang = args.lang or "EN"
     try:
         args.func(args)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        # Output piped into `head`: stop quietly.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        return 0
     except ValueError as e:
         raise SystemExit(str(e))
     except urllib.error.HTTPError as e:

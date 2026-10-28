@@ -242,9 +242,12 @@ print("EFTA Court Report references in snippets")
 snips = ["… see Case E-1/94 Restamark [1994-1995] EFTA Ct. Rep. 15, paragraph 24 …",
          "… Sak E-1/94 Restamark [1994-1995] EFTA Court Report 17. 24 Sak C-8/74 …",
          "… Case E-1/94 Restamark [1994–1995] EFTA Ct. Rep. 15 …",
-         "… Case E-11/94 Other [1995] EFTA Ct. Rep. 99 …"]
-check("tallied, other case ignored", ec.report_refs(snips, "E-1/94"),
-      {"[1994-1995] EFTA Ct. Rep. 15": 2, "[1994-1995] EFTA Ct. Rep. 17": 1})
+         "… Case E-11/94 Other [1995] EFTA Ct. Rep. 99 …",
+         "… Case E-1/94 Restamark [1994−95] EFTA Ct. Rep. 15 …",
+         "… sak E-1/94 Restamark, Sml. 1994–1995 s. 15 …"]
+check("tallied in one form, other case ignored", ec.report_refs(snips, "E-1/94"),
+      {"[1994-1995] EFTA Ct. Rep. 15": 4, "[1994-1995] EFTA Ct. Rep. 17": 1})
+check("volume forms", [ec._volume(v) for v in ("1994−95", "1994 – 1995", "1996")], ["1994-1995", "1994-1995", "1996"])
 
 print("HTML text (source-text rules)")
 out = ec.html_to_text('<h2>ESA / <i>Court</i> Agreement</h2>\n<p>THE REPUBLIC OF\nICELAND,<br />\nAND <i>NORWAY</i>'
@@ -265,6 +268,8 @@ check("language versions grouped", [v["lang"] for v in cat[1]["versions"]], ["EN
 check("page link", cat[1]["page"], "https://eftacourt.int/procedure/pr-rules-of-procedure")
 check("SCA is an HTML entry", "html" in cat[0]["versions"][0], True)
 check("e-EFTACourt page", cat[-1]["page"], "https://eftacourt.int/e-eftacourt")
+check("previous Rules marked superseded", [t["title"] for t in cat if t["previous"]],
+      ["Rules of Procedure of the EFTA Court"])
 check("by number", ec.choose_text(cat, "3")["title"], "Rules of Procedure of the EFTA Court")
 check("exact title wins", ec.choose_text(cat, "rules of procedure")["title"], "Rules of Procedure")
 check("words", ec.choose_text(cat, "remote hearings")["title"], "Decision of the Court on remote oral hearings")
@@ -272,13 +277,62 @@ check("ambiguous words -> list", raises(lambda: ec.choose_text(cat, "procedure")
 check("no match", raises(lambda: ec.choose_text(cat, "lotus")), True)
 
 print("list filters")
-ns = argparse.Namespace(year=None, country=None, procedure=None, status=None, subject=None, court=None,
-                        party=None, language=None, observer="commission")
-check("--observer", [c["ref"] for c in ec._filter(CASES, ns)], ["E-1/24"])
+ns = argparse.Namespace(year=None, since=None, until=None, country=None, procedure=None, status=None, subject=None,
+                        court=None, party=None, language=None, observer="European Commission")
+check("--observer", [c["ref"] for c in ec._filter(DATA, ns)], ["E-1/24"])
 ns.observer, ns.status = None, "pending"
-check("--pending", [c["ref"] for c in ec._filter(CASES, ns)], ["E-2/26"])
+check("--pending", [c["ref"] for c in ec._filter(DATA, ns)], ["E-2/26"])
 ns.status, ns.year = None, 94
-check("--year 94", [c["ref"] for c in ec._filter(CASES, ns)], ["E-8/94", "E-8/94 and E-9/94"])
+check("--year 94", [c["ref"] for c in ec._filter(DATA, ns)], ["E-8/94", "E-8/94 and E-9/94"])
+ns.year, ns.since, ns.until = None, 2004, 24
+check("--since/--until", [c["ref"] for c in ec._filter(DATA, ns)],
+      ["E-7/24", "E-1/24", "Joined Cases E-1/24 and E-7/24", "E-9/04 COSTS"])
+
+print("observers")
+for name, want, hit in [("the Government of Liechtenstein", "Liechtenstein", True),
+                        ("the University of Liechtenstein", "Liechtenstein", False),
+                        ("the Government of Norway", "Norway", True), ("the Kingdom of Norway", "Norway", True),
+                        ("the European Commission", "European Commission", True),
+                        ("the European Commission", "Commission", False),
+                        ("the EFTA Surveillance Authority", "EFTA Surveillance Authority", True)]:
+    check(f"{name!r} ~ {want!r}", ec.observer_match(name, want), hit)
+check("from the diary", ec.observers(CASES[0]), ["the Government of Norway", "the European Commission"])
+
+print("language of the case")
+lang_data = {"downloads": [dl("x-1", "Judgment"), dl("x-2", "Judgment", "Norwegian"),
+                           dl("x-3", "Request for an Advisory Opinion")]}
+check("site says English, Norwegian judgment exists",
+      ec.case_language({"type": "Advisory Opinion", "language": "English", "documents": ["x-1", "x-2"]}, lang_data)[0],
+      "Norwegian")
+check("only English docs, no request: unverified",
+      "unverified" in ec.case_language({"type": "Advisory Opinion", "language": "English", "documents": ["x-1"]},
+                                       lang_data)[1], True)
+check("English request: trusted (courts may refer in English)",
+      ec.case_language({"type": "Advisory Opinion", "language": "English", "documents": ["x-1", "x-3"]}, lang_data),
+      ("English", ""))
+
+print("other derived fields")
+kw = {"type": "Advisory Opinion", "referringCourt": "", "description": "",
+      "keywords": "Request for an Advisory Opinion from the EFTA Court by the Haugaland and Sunnhordland "
+                  "District Court (Haugaland og Sunnhordland Tingrett) in the case of Person A v Company B"}
+check("referring court from the keywords", ec.referring_court(kw),
+      "Haugaland and Sunnhordland District Court (Haugaland og Sunnhordland Tingrett)")
+check("country from a 'tingrett'", ec.country_code(dict(kw, source="")), "NO")
+check("withdrawn", ec.status_label({"status": "Decided", "procedure": "Withdrawal"}), "Withdrawn")
+check("joined judgment date for components",
+      ec.joined_judgments([{"ref": "Joined Cases E-31/24 and E-32/24", "judgmentDate": "2026-03-05"}]).get("E-32/24"),
+      ("2026-03-05", "Joined Cases E-31/24 and E-32/24"))
+dup = {"cases": [case("a", "E-32/24", "X", ["n1"]), case("b", "Joined Cases E-31/24 and E-32/24", "X", ["n2", "j"])],
+       "downloads": [dl("n1", "Notification", file=FILE.format("n")), dl("n2", "Notification", file=FILE.format("n")),
+                     dl("j", "Judgment")]}
+check("a file on both records is listed once",
+      [d["id"] for d in ec.documents_for(ec.resolve("E-32/24", dup), dup)], ["n1", "j"])
+
+print("dates in diary texts")
+check("deadline date", ec.text_date("Deadline for written observations (cf. Article 20 of the Statute): "
+                                    "Tuesday, 4 August 2026"), "2026-08-04")
+check("last date wins", ec.text_date("received on 5 June 2026; hearing on 12 November 2026"), "2026-11-12")
+check("none", ec.text_date("Service of the written observations"), "")
 
 print("1.x cache is removed")
 root = Path(os.environ["EFTA_COURT_CACHE_DIR"])

@@ -320,3 +320,41 @@ Not in scope: Zotero-ready items. 1.x had none, and `docs/zotero-ready.md`
 has international cases blocked on how they are entered in Zotero. The API's
 structured fields (parties, ISO dates, case page, court, language, the
 judgment PDF) would make a mapping straightforward once that is decided.
+
+## Cowork test, run 14 (2026-10-28) → 2.0.1
+
+Cloud access works: the API and `api.eftacourt.int/storage` both answer 200
+from the cloud sandbox with the honest UA, and the slowest command
+(`cited-by E-1/94`) took 4.4 s. All self-checks passed. Fixed in 2.0.1 from
+the issue list:
+
+- **Language of the case:** the site defaults to English for many older AOs
+  (E-1/99, E-3/06, E-4/09 say English; the judgments say Norwegian,
+  Norwegian, German). `case_language()` takes the non-English version of
+  the request, judgment or hearing report (81 of the 94 English AOs), and
+  marks the remaining 11 (old, English documents only, no request) as
+  unverified. Recent English referrals (Borgarting: E-5/26, E-11/26 have only
+  an English request) are correct, as the maintainer expected.
+- Referring court and country of new AOs from the keywords/description
+  (E-13/26: Haugaland og Sunnhordland tingrett). `_COURT_KEYS` is only that
+  country fallback, and uses generic court terms (tingrett, lagmannsrett,
+  høyesterett, héraðsdómur, landsréttur …), not court names.
+- `list` has a header and separate lodged/judgment columns; components of
+  joined cases show the joined judgment date. `--since/--until`.
+- Withdrawn/discontinued cases show `Withdrawn` (the site says Decided).
+- A file carried by both a component and its joined record is listed once.
+- Calendar: no truncation; deadline dates come from the entry text (diary
+  entries are dated when posted).
+- ESA actions' keywords (a copy of the description) are not repeated.
+- `texts list` marks the previous Rules "superseded".
+- The cross-kind hint is shell-quoted; `search` counts matching case
+  documents, not raw server hits.
+- `cited-by --judgments`; the Reports tally also reads `[1994−95]` and the
+  Norwegian `Sml. 1994–1995 s. 15`, normalised to one form.
+- `--observer` matches a State's Government, not "University of
+  Liechtenstein".
+- BrokenPipe when piped into `head`.
+
+Left as is: document titles without "E-" (the site's own titles);
+E-27/25's hearing date missing from its diary (data); observations show
+language `--` (not recorded by the site).

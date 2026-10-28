@@ -43,8 +43,8 @@ user "This source is blocked from Anthropic's cloud" rather than retrying.
 | Code | Type | Started by | Example |
 |---|---|---|---|
 | AO | Advisory opinion | a national court of NO/IS/LI | E-14/15 *Holship* |
-| INF | Infringement action | ESA v an EFTA State | E-2/26 ESA v Iceland |
-| DA | Direct action | a party v ESA (annulment, failure to act) | E-3/26 |
+| INF | Infringement action | ESA v an EFTA State | E-3/26 ESA v Norway |
+| DA | Direct action | a party v ESA (annulment, failure to act) | E-4/26 Fitness Group Nordic v ESA |
 
 Judgments and orders are in English, often with a version in the language of
 the case. Requests for an advisory opinion come in the referring court's
@@ -59,7 +59,8 @@ language. The original is authoritative; the English version is a translation.
 | "What did Norway argue in E-25/24?" | `get E-25/24 --type observations --party Norway` |
 | "Cases on collective action" | `search '"collective action"'` |
 | "State aid judgments since 2020 from Iceland" | `search "state aid" --type judgment --country IS` and filter by year |
-| "Which judgments cite Restamark / E-1/94?" | `cited-by E-1/94` |
+| "Which judgments cite Restamark / E-1/94?" | `cited-by E-1/94 --judgments` |
+| "Advisory opinions since 2022" | `list --procedure AO --since 2022` |
 | "Pending cases" / "ESA v Norway cases" | `list --pending`, `list --procedure INF --country NO` |
 | "Cases where Liechtenstein submitted observations" | `list --observer Liechtenstein` |
 | "Referrals from Høyesterett" | `list --court Høyesterett` |
@@ -73,8 +74,16 @@ language. The original is authoritative; the English version is a translation.
 - **`case <case>`** (alias `fetch`): parties, status, AO/INF/DA, country,
   referring court, language of the case, subject matter, keywords, dates,
   the full diary (lodging, observations received, deadlines, hearing), the
-  case page, and a numbered document list. `--json` for machine use. It
-  accepts any form of a case number (`E-14/15`, `e14-15`, `14/15`,
+  case page, and a numbered document list. `--json` for machine use.
+  **Language of the case:** the site's field says English for many older
+  advisory opinions referred in Norwegian, Icelandic or German. The CLI
+  takes the language from the case's non-English document versions when
+  there are any, and says so. If it prints "unverified", read the
+  "Language of the request" line at the top of the judgment before stating
+  it. Recent cases referred in English (e.g. by Borgarting lagmannsrett)
+  really are English. A component of joined cases shows the judgment date
+  "on Joined Cases …". **Status `Withdrawn`** means the case ended
+  without a judgment (the site says Decided). `case` accepts any form of a case number (`E-14/15`, `e14-15`, `14/15`,
   `E-08/26`), or an exact ref for a side record (`"E-9/04 COSTS"`,
   `"E-2/12 INT"`).
 - **`get <case> [--type T] [--lang L] [--doc N] [--party P]`**: downloads
@@ -91,6 +100,8 @@ language. The original is authoritative; the English version is a translation.
   from about 2021 on. Pick one with `--party Norway` /
   `--party Commission` / `--doc N`. The diary in `case` shows who submitted
   observations, for older cases too, even where the text is not published.
+  Observations are in the submitter's language; the list shows `--` for
+  their language because the site does not record it.
 - **`search "<query>"`**: matches the case details (ref, parties,
   keywords, subject matter, referring court) and the full text of every
   case document (server). It prints matching cases, newest first, with the
@@ -98,13 +109,19 @@ language. The original is authoritative; the English version is a translation.
   `--type` (hits in that document type only) and `--lang EN|NO|IS|DE`;
   `--meta-only` skips the full text; `--oldest`, `--limit`, `--json`.
 - **`cited-by <case>`**: later cases whose judgments, orders or decisions
-  mention the case number (`--all`: any document, e.g. hearing reports). Each
-  comes with a snippet. It also tallies the *EFTA Court Report* references
+  mention the case number. `--judgments` restricts it to judgments (use it
+  for "which judgments cite …"); `--all` includes any document, e.g.
+  hearing reports. Each comes with a snippet. It also tallies the *EFTA Court Report* references
   that the citing documents give for the cited case (see Citing).
-- **`list`**: every case, filtered. Takes `--year`, `--country NO|IS|LI`
-  (for ESA actions, the State sued), `--procedure AO|INF|DA`,
-  `--pending`/`--decided`, `--subject`, `--court`, `--party`,
-  `--language`, `--observer`, `--limit`, `--json`.
+- **`list`**: every case, filtered, one line each under a header (case,
+  lodged, judgment, status, procedure, State, parties, subject matter).
+  Takes `--year`, `--since`/`--until` (year of the case number),
+  `--country NO|IS|LI` (for ESA actions, the State sued),
+  `--procedure AO|INF|DA`, `--pending`/`--decided`/`--status withdrawn`,
+  `--subject`, `--court`, `--party`, `--language`, `--limit`, `--json`.
+  `--observer Liechtenstein` matches the Government of Liechtenstein, not
+  the University of Liechtenstein. Give a body by its name
+  (`--observer "European Commission"`).
 - **`calendar`**: hearings, judgment deliveries and deadlines for written
   observations, in the next 90 days (`--days`, `--past`; `--all` adds
   conferences and talks).
@@ -129,7 +146,8 @@ user's question.
 The server's rules, which the local case-details match also follows:
 
 - Whole words, and every word must match: `collect` does not find
-  "collective"; use `collect*` for a prefix.
+  "collective", and `"trade union"` misses "trade unions". For topic
+  searches use a prefix: `"trade union*"` or `union*`.
 - `"a phrase"` matches the words in sequence, also across a line break in
   the PDF. `+`, `-` and `OR` are not operators. Run two searches instead.
 - Diacritics count: `Høyesterett`, not `Hoyesterett`.
