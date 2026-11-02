@@ -99,7 +99,7 @@ and later were not yet published as PDFs.
   marker: 1 of 3 sampled in vol. 2400, then every sample from vol. 2600 to
   3200 (29 of 29). The CRPD (vol. 2515) is one. `text` names those pages in
   a `warning`, and Claude has to read them as images. OCR would be the next
-  step if this is to change.
+  step if this is to change. See **Why the newer texts are scans** below.
 - **Per-treaty files** (`volume-N-I-…-English.pdf` etc.). Present for
   nearly every sample up to vol. 1500, and for none from vol. 1600. Recent
   volumes have the registration's own file under `Volume N/Part/` instead
@@ -114,3 +114,35 @@ and later were not yet published as PDFs.
   I-44910" with the folio on the next line. `printed_page_of` did not read
   it before 1.6.0, so `printed_pages` came back empty for every newer
   volume.
+
+## Why the newer texts are scans
+
+The UN's own wording, in the "Note by the Secretariat" at the front of
+every volume from about vol. 2400:
+
+> Disclaimer: All authentic texts in the present Series are published as
+> submitted for registration by a party to the instrument. Unless
+> otherwise indicated, the translations of these texts have been made by
+> the Secretariat of the United Nations, for information.
+
+So the scan is the copy the party sent; only the registration note, the
+running heads and the language markers are typeset, and that is all the
+text layer holds. Front matter checked (2026-11-02): vols. 2300 (printed
+2007), 2340 (2006), 2370 (2007) and 2390 (2010) have no disclaimer; vols.
+2400 (2010), 2450 (2010) and 2515 (2011) have it. The date that matters is
+the printing, not the registration: the CRPD was registered in 2008 and
+printed in 2011.
+
+Before that, the Secretariat retyped the texts: the Legal Counsel's notes
+on registration (2003, 2008, 2010) ask for a paper copy "machine readable
+and legible for use by the optical character recognition mechanism
+employed in the desktop publishing process". The Repertory of Practice,
+Art. 102, Suppl. 9 (1995–1999), § 7, describes the workflow system begun
+in 1997.
+
+No source found states why the practice changed. The likely reason is the
+publication backlog (eleven years in 1996; GA resolution 73/210 of 2018
+still notes "a significant backlog in the publication of the United
+Nations Treaty Series"): reproducing the submitted copy skips typesetting
+and proofreading. One consequence: OCR by the skill would be the first
+transcription of these texts anyone has made, and must be marked as such.

@@ -260,8 +260,10 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    at registration: the signatures, or the parties and reservations as
    they stood then. Current parties and reservations come from the
    status doc (step 4), not from the volume.
-   - **`warning` naming scanned pages:** from about vol. 2500 (2008) on,
-     treaty texts are printed as scans, the CRPD's among them. Their text
+   - **`warning` naming scanned pages:** in volumes printed from about
+     2010 (vol. ~2400 on), the UN reproduces the authentic texts "as
+     submitted for registration by a party", i.e. as scans of the copy
+     the party sent; the CRPD's are among them. Their text
      layer holds only the running head, so `text_txt` lacks their text.
      Read those pages of `text_pdf` as images (Read with `pages`), tell
      the user the text came from a scan, and never fill a gap from

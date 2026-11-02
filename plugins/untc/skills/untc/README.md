@@ -168,9 +168,9 @@ checks for a real PDF and reports "no MTDSG status document at …".
 - The volume table of contents is parsed from the volume PDF's own
   contents pages (OCR for older volumes); a page number may occasionally
   be missing, in which case `text --vol N --reg M` still works.
-- From about vol. 2500 (2008) the volumes print treaty texts as scans
-  with no text layer; the CLI says which pages, and their text must be
-  read from the PDF.
+- Volumes printed from about 2010 (vol. ~2400 on) reproduce the treaty
+  texts as the parties submitted them, as scans with no text layer; the
+  CLI says which pages, and their text must be read from the PDF.
 - Only the English chapter index is harvested for name lookup; the
   `lookup` fuzzy match is title-based, so use `index --refresh` if a
   treaty adopted after the snapshot date is missing.
