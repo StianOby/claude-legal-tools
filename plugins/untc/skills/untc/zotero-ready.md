@@ -58,9 +58,13 @@ What to say when you deliver it:
   citation lacks the page until the volume is printed.
 - **League of Nations treaties**: the LNTS page must be added by hand if the
   user cites it.
-- **A text cut from a volume PDF** (the output says `[pdf] pages … of the
-  UNTS volume PDF`) holds every authentic language in sequence, not only
-  English.
+- **The PDF holds the registration note and the English text** (with any
+  protocol registered under the same number), not the other languages,
+  signatures or reservations printed at registration. `[pdf] left out:`
+  lines name what was dropped. Where English is not authentic, the PDF
+  holds the authentic texts and the UN's English translation; say so.
+- **`[pdf] scanned pages`**: the text in the PDF is a scan without a text
+  layer, so Zotero cannot search it. Say so.
 
 ## RDF route
 
@@ -100,9 +104,9 @@ cloud sandbox, so:
    (`pdf.url`), and say the PDF must be downloaded into the same folder as
    the `.rdf` before the import, or added to the item afterwards.
 
-**A text cut from a volume PDF** (the output says `[pdf] pages … of the UNTS
-volume PDF`) has no link of its own, and Zoteus cannot help. Deliver the
-`.rdf` alone and give the user the volume PDF's link and the page range the
+**A cut PDF** (the output says `[pdf] … pages … of the UNTS volume PDF`,
+`… of the per-treaty PDF` or `… of the registration's own PDF`) has no link of its own, and Zoteus cannot help. Deliver the
+`.rdf` alone and give the user the source PDF's link and the page ranges the
 output printed, so they can save those pages as a PDF next to the `.rdf`
 (any PDF viewer's "print to PDF" with a page range does it) or attach them
 to the item afterwards. Say that the cut is too large to hand over.
@@ -132,8 +136,9 @@ to the item afterwards. Say that the cut is too large to hand over.
    `collections` if chosen). Note the new item's key.
 6. **PDF:** if the JSON's `pdf` has a `url` (a per-treaty file on
    treaties.un.org), `zotero_attach_file` with `parent` = the key and that
-   `url`, `title` "Full Text PDF". A text cut from a volume PDF has no `url`
-   of its own: it exists only as the `.pdf` file, so attach it through
+   `url`, `title` "Full Text PDF". A cut PDF (from a volume, or a
+   per-treaty file trimmed to the English text) has no `url` of its own:
+   it exists only as the `.pdf` file, so attach it through
    **Attaching a PDF that is only in the cloud** below. Do the same if
    Zoteus cannot download the `url`.
 7. Report what was made: library, collection, PDF yes/no.

@@ -20,7 +20,17 @@ ASP.NET search frontend.
   doc), by `--vol`/`--reg`, or by `--vol`/`--page` from an ordinary
   citation such as *729 UNTS 161*. When UNTC has no per-treaty file
   (common for recent volumes) the text is sliced out of the full volume
-  PDF instead.
+  PDF instead. Either way the text and PDF are cut to the registration
+  note and the English text (`--lang fr`, `ar`, `zh`, `ru`, `es` or a
+  language name such as `norwegian` for another language version, `--full`
+  for the whole registration with signatures and the reservations printed
+  at registration). The treaty's UNTS record supplies the authentic
+  languages, the publication format and the list of files, so a recent
+  treaty comes from its own small file rather than the whole volume, and
+  one in a volume not yet published from the UN's own file.
+- For treaties with no status document, list the **actions registered
+  with the UN** (`unts-details --reg N --participants`) — with a caveat:
+  only what was registered, so possibly incomplete or out of date.
 - List the **table of contents of any UNTS volume** — the route to the
   thousands of bilateral and multilateral treaties that are registered
   with the UN but not deposited with the Secretary-General (and so have
@@ -99,8 +109,9 @@ After `fetch ICCPR` you'll have:
 ~/.cache/untc/treaties/IV/IV-4/meta.json          # title, place/date, vol, regnum, parties...
 ~/.cache/untc/treaties/IV/IV-4/status.en.pdf      # 140-page MTDSG status doc
 ~/.cache/untc/treaties/IV/IV-4/status.en.txt      # extracted text (grep-able)
-~/.cache/untc/treaties/IV/IV-4/text.en.pdf        # UNTS treaty text PDF
-~/.cache/untc/treaties/IV/IV-4/text.en.txt        # extracted text
+~/.cache/untc/treaties/IV/IV-4/text.en.pdf        # UNTS per-treaty PDF as downloaded
+~/.cache/untc/treaties/IV/IV-4/text.en.txt        # registration note + English text
+~/.cache/untc/treaties/IV/IV-4/text.en.cut.pdf    # the same pages as a PDF
 ```
 
 ## Installing as a Claude skill
@@ -157,6 +168,9 @@ checks for a real PDF and reports "no MTDSG status document at …".
 - The volume table of contents is parsed from the volume PDF's own
   contents pages (OCR for older volumes); a page number may occasionally
   be missing, in which case `text --vol N --reg M` still works.
+- From about vol. 2500 (2008) the volumes print treaty texts as scans
+  with no text layer; the CLI says which pages, and their text must be
+  read from the PDF.
 - Only the English chapter index is harvested for name lookup; the
   `lookup` fuzzy match is title-based, so use `index --refresh` if a
   treaty adopted after the snapshot date is missing.

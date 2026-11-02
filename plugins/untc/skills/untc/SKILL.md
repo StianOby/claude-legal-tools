@@ -92,7 +92,8 @@ Concrete invocations Claude should use:
 | "show me reservations to the ICCPR by France" | `python3 scripts/untc.py status IV-4`, then grep `France` in the `status_txt` file the command prints |
 | "I have ref XXIII-1, give me everything" | `python3 scripts/untc.py fetch XXIII-1` |
 | "the Optional Protocol to CAT" / "OPCAT" | `python3 scripts/untc.py fetch OPCAT` (or `status IV-9-b`) |
-| "I need the French version" | add `--lang fr` (`status`/`fetch`) or `--lang fr` / `--lang other` (`text`) |
+| "I need the French version" | add `--lang fr` (`status`/`fetch`, `text`) |
+| "the Spanish / Arabic / Norwegian text" | `text … --lang es` / `ar` / `norwegian` |
 | "the NPT" / a treaty not deposited with the SG | `python3 scripts/untc.py fetch NPT` → text only, with a note that there is no status doc |
 | "729 UNTS 161" / "vol. 999 p. 171" | `python3 scripts/untc.py text --vol 729 --page 161` |
 | "registration No. 14668 in vol. 999" | `python3 scripts/untc.py text --vol 999 --reg 14668` |
@@ -140,12 +141,17 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
   regulations and many amendments are registered under their parent
   agreement (an `A-` number), so the hit may be "Amendments to …" the
   instrument asked for.
-- `unts-details <objid>` — the UNTS record of a search hit: registration
+- `unts-details <objid> | --reg N [--series II] [--participants]` — the
+  UNTS record of a search hit, or of a registration number: registration
   number, title, place and date of conclusion, entry into force,
-  depositary, UNTS volume and page, the text PDFs, and a ready
+  depositary, authentic texts, publication format, UNTS volume and page,
+  the text PDFs, the certificate of registration, and a ready
   `text --vol N --page P` command. `"mtdsg": true` means the depositary
   is the UN Secretary-General: the treaty has an MTDSG status document
   after all, so run `lookup "<title>"` for its ref and then `status`.
+  `--participants` adds the actions registered with the UN (signature,
+  ratification, accession, withdrawal …, with dates), for treaties with
+  no status document; see step 6 for the caveat that goes with it.
 - `status <ref> [--lang en|fr]` — download + parse the MTDSG status doc.
   Writes `meta.json` with title, place/date, entry into force,
   registration date + number, UNTS volume + page, signatories, parties,
@@ -154,7 +160,7 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
   document (the date its participant list reflects), `fetched_utc` when
   this copy was downloaded. A cached status document older than 7 days
   is downloaded again; `--force` does it now.
-- `text [<ref>] [--vol N --reg M | --vol N --page P] [--lang en|fr|other]`
+- `text [<ref>] [--vol N --reg M | --vol N --page P] [--lang L] [--full]`
   — download the UNTS treaty text. With a ref, the volume/registration
   are read from the cached status doc (fetched first if needed). With
   `--page`, the cited page is mapped to a registration number from the
@@ -164,6 +170,17 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
   gives both the PDF page range and the `printed_pages` those pages
   carry). `--from-volume` slices the volume PDF even when a per-treaty
   file exists (see step 7).
+  By default the text (`text_txt`) and the PDF (`text_pdf`) hold only the
+  registration note and the text in `--lang`, including every instrument
+  registered under the same number (the ICCPR's Optional Protocol). The
+  other parts are left out: the other languages, the signatures, and the
+  parties and reservations as they stood at registration. `parts` in the
+  output lists every part with its PDF and printed pages and whether it
+  was kept. `--lang` takes the UN languages as `en` (default), `fr`, `ar`,
+  `zh`, `ru`, `es`, or any other language by its English name as `parts`
+  shows it (`--lang norwegian`, `--lang dutch`). If the registration has
+  no text in that language, the error lists the languages it has. `--full`
+  gives the whole registration.
 - `volume <N> [--search STR] [--json]` — list a UNTS volume's table of
   contents: registration number, first page, title (Annex A entries,
   i.e. later actions on earlier treaties, are flagged).
@@ -184,9 +201,11 @@ Available subcommands (`python3 scripts/untc.py --help` shows all):
 ~/.cache/untc/treaties/<chapter>/<ref>/meta.json     # parsed metadata (English; meta.fr.json for French)
 ~/.cache/untc/treaties/<chapter>/<ref>/status.en.pdf
 ~/.cache/untc/treaties/<chapter>/<ref>/status.en.txt
-~/.cache/untc/treaties/<chapter>/<ref>/text.en.pdf
-~/.cache/untc/treaties/<chapter>/<ref>/text.en.txt
-~/.cache/untc/unts/v<vol>-I-<reg>/text.en.{pdf,txt} # texts fetched by --vol/--reg or --page
+~/.cache/untc/treaties/<chapter>/<ref>/text.en.pdf     # per-treaty file as downloaded
+~/.cache/untc/treaties/<chapter>/<ref>/text.en.txt     # registration note + English text
+~/.cache/untc/treaties/<chapter>/<ref>/text.en.cut.pdf # the same pages as a PDF
+~/.cache/untc/treaties/<chapter>/<ref>/text.full.txt   # --full (text.en.full.txt from a per-treaty file)
+~/.cache/untc/unts/v<vol>-I-<reg>/text.en.*          # texts fetched by --vol/--reg or --page
 ~/.cache/untc/unts/volumes/v<vol>.pdf                # full volume PDFs (+ v<vol>.pages.json)
 ```
 
@@ -230,14 +249,54 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    `status.<lang>.txt` and search for the state name. The participant
    table comes first (one row per state); reservations and declarations
    follow, organised by state in alphabetical order.
-5. **For the actual treaty text** open `text.<lang>.txt`. The `en`
-   file is the English text; `fr` the French; `other` the remaining
-   authentic languages in one file. A text sliced from a volume PDF
-   contains every authentic language in sequence.
+5. **For the actual treaty text** open `text_txt` from the output
+   (`text.<lang>.txt`): the registration note and the text in that
+   language, with a header naming the parts left out. Where English is
+   not an authentic language (most bilaterals), the `en` file holds the
+   authentic texts and the UN Secretariat's English translation; say that
+   the English is a translation. Run `text` again with another `--lang`
+   (`fr`, `es`, `norwegian`, …) or `--full` when the question needs another language
+   version (comparing authentic texts, VCLT art. 33) or what was printed
+   at registration: the signatures, or the parties and reservations as
+   they stood then. Current parties and reservations come from the
+   status doc (step 4), not from the volume.
+   - **`warning` naming scanned pages:** from about vol. 2500 (2008) on,
+     treaty texts are printed as scans, the CRPD's among them. Their text
+     layer holds only the running head, so `text_txt` lacks their text.
+     Read those pages of `text_pdf` as images (Read with `pages`), tell
+     the user the text came from a scan, and never fill a gap from
+     memory.
+   - **`not_published`:** the UN registered the treaty but did not print
+     its text (article 12(2) of the GA regulations; "Limited Publication"
+     in the record), so the volume holds only the registration note. Tell
+     the user, and look for the text elsewhere, e.g. a party's own treaty
+     series. **`partial_publication`:** parts (often long annexes) were
+     left out of the printed text; say so when the question may turn on
+     them.
+   - **`record`:** `text` looks up the treaty's UNTS record first (cached
+     7 days). Its authentic languages decide what is an authentic text
+     and what a translation; its file list says which file to take: the
+     per-treaty file, the registration's own file in the volume
+     (`"via": "part-pdf"`, much smaller than the volume), or, for a
+     volume not yet published, the UN's own file of the registration
+     (`"via": "no-volume-pdf"`). That file numbers its own pages, so its
+     `printed_pages` are not UNTS pages: cite the volume as not yet
+     published. `record.related` lists later actions recorded against the
+     treaty (protocols, amendments, corrections: `A-` numbers). If the
+     record could not be reached, `record_error` says so and the text
+     comes from the PDF alone.
 6. **For a treaty with no MTDSG entry** (bilateral treaties, treaties
    with another depositary such as the NPT, NATO or the Geneva
    Conventions): there is no status doc, so parties and reservations must
-   come from the depositary. The text is still in the UNTS, and is often
+   come from the depositary. `unts-details --reg N --participants` lists
+   the actions registered with the UN, which is often the only list at
+   hand. **It is not a status list, and you must say so whenever you use
+   it:** an action is there only if the depositary or a party registered
+   it with the UN, often years late and sometimes never, so it can be
+   incomplete or out of date, and it holds no reservations or
+   declarations. Pass on `participants_caveat` from the output, name the
+   depositary, and point to its own record for anything that matters
+   (e.g. whether a state is bound today). The text is still in the UNTS, and is often
    the best source for it: use `fetch NPT` / `fetch NATO` for the
    built-in ones; otherwise `lookup "<title>"` (or `unts-search`) finds
    it by title, `unts-details <objid>` gives volume and page, and
@@ -260,9 +319,11 @@ is known. The index is only used for name-based `lookup` / `fetch`.
    `--from-volume` and quote the named printed page from that slice.
 8. **If a download fails**, the CLI says whether the status doc, the
    per-treaty file or the whole volume is missing. The newest volumes
-   (e.g. vol. 3370, the TPNW) are not yet published as PDFs; the error
-   then gives the treaty's details page, where the certified true copy
-   is linked. Never reconstruct treaty text from memory.
+   (e.g. vol. 3370, the TPNW) are not yet published as PDFs; `text` then
+   takes the UN's own file of the registration from the record, and only
+   if there is none does the error give the treaty's details page, where
+   the certified true copy is linked. Never reconstruct treaty text from
+   memory.
 
 ## Zotero-ready treaties
 
@@ -289,7 +350,7 @@ and check the treaty's `details_url` page as well.
 >
 > *UNTS [volume] p. [page], registration No. [reg], [source_url]*
 
-For a text sliced from a volume PDF, cite the volume PDF URL and the
+For a text cut from a volume PDF, cite the volume PDF URL and the
 printed page — `printed_pages` in the output, or the running header on
 the page you quote — not the PDF page index. Do not take the page from
 the parsed contents alone; in the OCR'd early volumes that column is

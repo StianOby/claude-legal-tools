@@ -98,7 +98,12 @@ DEFAULT_CHAPTER_RANGE = range(1, 30)
 STATUS_LANGS = ("en", "fr")
 # UNTS per-treaty files: English, French, and "Other" (the remaining
 # authentic texts - Arabic, Chinese, Russian, Spanish ... - in one file).
-TEXT_LANGS = {"en": "English", "fr": "French", "other": "Other"}
+# `text --lang`: the six UN languages by code, or any language a volume prints
+# a text in, by its English name as the marker gives it ("norwegian"). The
+# UN's per-treaty files come in three: English, French, and "Other" for the
+# rest, which is cut to the language asked for.
+TEXT_LANG_CODES = {"ar": "arabic", "zh": "chinese", "ru": "russian", "es": "spanish"}
+TEXT_FILES = {"en": "English", "fr": "French"}
 
 # Common acronyms and short names. UNTC titles spell things out, but in
 # practice users say "ICCPR" or "VCLT". An alias hit is resolved directly.
@@ -352,8 +357,26 @@ def url_mtdsg_status(ref, lang="en"):
 def url_unts_text(volume, reg_num, lang="en", series="I"):
     return (
         "%s/doc/Publication/UNTS/Volume%%20%d/volume-%d-%s-%s-%s.pdf"
-        % (BASE, volume, volume, series, reg_num, TEXT_LANGS[lang])
+        % (BASE, volume, volume, series, reg_num, TEXT_FILES.get(lang, "Other"))
     )
+
+
+def text_lang(raw: str) -> str:
+    """en, fr, or a language name ("arabic") from a --lang value."""
+    lang = " ".join(str(raw).split()).lower()
+    lang = {"english": "en", "french": "fr"}.get(lang, TEXT_LANG_CODES.get(lang, lang))
+    if lang == "other":
+        raise SystemExit("--lang other is gone: give the language (ar, zh, ru, es, or a "
+                         "name such as norwegian), or --full for every language")
+    if not re.fullmatch(r"[a-z][a-z\- ]{1,30}", lang):
+        raise SystemExit("--lang takes en, fr, ar, zh, ru, es or a language name "
+                         "(e.g. norwegian), not %r" % raw)
+    return lang
+
+
+def lang_slug(lang: str) -> str:
+    """The language as file names give it: en, fr, ar, zh, ru, es, norwegian."""
+    return {v: k for k, v in TEXT_LANG_CODES.items()}.get(lang, lang.replace(" ", "-"))
 
 
 def url_unts_volume(volume):
@@ -707,11 +730,53 @@ def _details_field(text, label, nxt):
     return m.group(1).strip(" |") if m else None
 
 
-def unts_details(objid):
+PARTICIPANTS_CAVEAT = (
+    "These are the actions registered with the UN Secretariat (UNTS Annex A), not a "
+    "depositary's status list. For a treaty whose depositary is not the UN Secretary-General, "
+    "an action reaches this list only if the depositary or a party registers it - often years "
+    "late, sometimes never - so the list can be incomplete or out of date, and it holds no "
+    "reservations or declarations. Tell the user so, and point to the depositary's own record "
+    "for anything that matters. For a treaty deposited with the Secretary-General, use the "
+    "MTDSG status document (`status <ref>`) instead.")
+
+
+def _record_cells(page):
+    """{label: (texts, hrefs)} from the record's <th>label</th><td>value</td>
+    rows: the pieces of text in the cell, and its links."""
+    out = {}
+    for th, td in re.findall(r"<th[^>]*>(.*?)</th>\s*<td[^>]*>(.*?)</td>", page, re.S):
+        label = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", th)).split())
+        if not label or label in out:
+            continue
+        texts = [" ".join(html.unescape(x).split()) for x in re.split(r"<[^>]+>", td)]
+        hrefs = [html.unescape(h) for h in re.findall(r'href="([^"#][^"]*)"', td)
+                 if not h.startswith(("javascript", "mailto"))]
+        out[label] = ([t for t in texts if t], [h if h.startswith("http") else BASE + h for h in hrefs])
+    return out
+
+
+def _participants(page):
+    """Rows of the record's actions table: participant, action, date of
+    notification/deposit, date of effect."""
+    i = page.find('id="dgActions"')
+    if i < 0:
+        return []
+    table = page[i:page.find("</table>", i)]
+    rows = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", table, re.S):
+        cells = [" ".join(html.unescape(re.sub(r"<[^>]+>", " ", c)).split())
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        if len(cells) >= 4:
+            rows.append({"participant": cells[0], "action": cells[1],
+                         "date": cells[2] or None, "effect": cells[3] or None})
+    return rows
+
+
+def unts_details(objid, *, participants=False):
     """The UNTS record behind a search hit: registration number, title,
-    conclusion, entry into force, depositary, UNTS volume and page, and the
-    text PDFs. The participants table is left out (for a big multilateral it
-    is megabytes; MTDSG treaties have their status document instead)."""
+    conclusion, entry into force, depositary, authentic texts, publication
+    format, UNTS volume and page, and the text PDFs. The participants table
+    (megabytes for a big multilateral) only with participants=True."""
     if not re.fullmatch(r"[0-9a-f]{16}", objid or ""):
         raise SystemExit("unts-details needs the 16-character object id a search hit shows (objid)")
     url = UNTS_DETAILS_URL % objid
@@ -742,12 +807,116 @@ def unts_details(objid):
     }
     if out["unts_volume"] and out["unts_page"]:
         out["text_command"] = "untc.py text --vol %d --page %d" % (out["unts_volume"], out["unts_page"])
+    cells = _record_cells(page)
+    # a nested table, one language per cell: read from the flattened text
+    out["authentic_texts"] = [x.strip() for x in (_details_field(text, "Authentic texts", "Attachments")
+                                                  or "").split("|") if x.strip()] or None
+    out["publication_format"] = " ".join(cells.get("Publication format", ([], []))[0]) or None
+    for key, label in (("certificate_of_registration", "Certificate Of Registration"),
+                       ("text_documents", "Text document(s)"), ("maps", "Map(s)"),
+                       ("corrigenda", "Corrigendum/Addendum/Note"), ("attachments", "Attachments")):
+        hrefs = cells.get(label, ([], []))[1]
+        if key == "attachments":
+            out[key] = "; ".join(cells.get(label, ([], []))[0]) or None
+            if hrefs:
+                out["attachment_pdfs"] = hrefs
+        else:
+            out[key] = hrefs
+    table = _participants(page)
+    out["participants_count"] = len(table)
+    if participants:
+        out["participants"] = table
+        out["participants_caveat"] = PARTICIPANTS_CAVEAT
     out["mtdsg"] = "secretary-general of the united nations" in (out["depositary"] or "").lower()
     if out["mtdsg"]:
         out["note"] = ("Deposited with the UN Secretary-General, so it has an MTDSG status document "
                        "(parties, reservations): find its MTDSG ref with `untc.py lookup \"<title>\"` "
                        "(which rebuilds an old index if needed) and run `status <ref>`.")
     return out
+
+
+UNTS_ADVANCED_URL = BASE + "/Pages/AdvanceSearch.aspx?tab=UNTS&clang=_en"
+
+
+def _unts_find_reg_once(reg, timeout):
+    # The advanced search is an ASP.NET form: pick "Treaty", then the
+    # "Registration Number" attribute (a from/to range), add it to the
+    # criteria, search. Four postbacks on one session; a session reused for
+    # a second lookup was reset by the server (2026-11-02), so each lookup
+    # gets its own.
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    op.addheaders = [("User-Agent", USER_AGENT)]
+
+    def post(page, fields):
+        data = _hidden_fields(page)
+        data.update(fields)
+        req = urllib.request.Request(UNTS_ADVANCED_URL, data=urllib.parse.urlencode(data).encode())
+        return op.open(req, timeout=timeout).read().decode("utf-8", "replace")
+
+    obj, attr = _UNTS_P + "drpSearchObj", _UNTS_P + "drpAttribute"
+    page = op.open(UNTS_ADVANCED_URL, timeout=timeout).read().decode("utf-8", "replace")
+    page = post(page, {"__EVENTTARGET": obj, obj: "ts_treaty"})
+    page = post(page, {"__EVENTTARGET": attr, obj: "ts_treaty", attr: "registration_number"})
+    page = post(page, {obj: "ts_treaty", attr: "registration_number", _UNTS_P + "txtFromNum": reg,
+                       _UNTS_P + "txtToNum": reg, _UNTS_P + "btnAdd": "Add to Search Criteria"})
+    page = post(page, {obj: "ts_treaty", _UNTS_P + "btnSubmit": "Search"})
+    rows = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", page, re.S):
+        m = re.search(r"showDetails\.aspx\?objid=([0-9a-f]{16})", tr)
+        if not m:
+            continue
+        cells = re.findall(r"<td([^>]*)>(.*?)</td>", tr, re.S)
+        if len(cells) < 6:
+            continue
+        text = lambda i: " ".join(html.unescape(re.sub(r"<[^>]+>", " ", cells[i][1])).split())
+        full = re.search(r'title="([^"]*)"', cells[0][0] + cells[0][1])
+        rows.append({"reg": text(1), "title": html.unescape(full.group(1)).strip() if full else text(0),
+                     "objid": m.group(1), "registered": text(2), "type": text(3),
+                     "concluded": text(4), "volume": text(5)})
+    return rows
+
+
+def unts_find_reg(reg, *, timeout=120):
+    """UNTS records under registration number `reg`: the treaty itself
+    (I-44910) and the later actions recorded against it (A-44910: protocols,
+    amendments, rectifications). Rows {reg, title, objid, registered, type,
+    concluded, volume}."""
+    last = None
+    for attempt in range(3):
+        try:
+            return _unts_find_reg_once(str(reg), timeout)
+        except (urllib.error.URLError, OSError) as e:
+            last = e
+            time.sleep(3 * (attempt + 1))
+    raise last  # type: ignore[misc]
+
+
+def unts_record(volume, reg, series="I", out_dir: Optional[Path] = None, *, force=False) -> dict:
+    """The treaty's UNTS record (unts_details), found by registration number
+    and cached as record.json for 7 days. Never raises: {"error": ...} when
+    the site cannot be reached or has no record, so the text still comes."""
+    cache = out_dir / "record.json" if out_dir else None
+    if cache and _has_content(cache) and not force:
+        rec = _read_json(cache)
+        if time.time() - rec.get("_fetched", 0) < 7 * 86400:
+            return rec
+    try:
+        rows = unts_find_reg(reg)
+        want = "%s-%s" % (series, reg)
+        own = [r for r in rows if r["reg"] == want]
+        if volume and len(own) > 1:
+            own = [r for r in own if r["volume"] == str(volume)] or own
+        if not own:
+            return {"error": "no UNTS record registered as %s" % want}
+        rec = unts_details(own[0]["objid"])
+        rec["related"] = [{k: r[k] for k in ("reg", "title", "objid", "registered")}
+                          for r in rows if r["objid"] != own[0]["objid"]]
+    except Exception as e:  # network, markup change: the text route goes on without it
+        return {"error": "UNTS record not reachable (%s: %s)" % (type(e).__name__, e)}
+    rec["_fetched"] = time.time()
+    if cache:
+        _write_json(cache, rec)
+    return rec
 
 
 def print_unts_rows(rows):
@@ -1232,8 +1401,16 @@ def printed_page_of(page_text: str) -> Optional[int]:
     read "296 United Nations - Treaty Series 1948", recto headers
     "1948 Nations Unies - Recueil des Traites 297", so the folio is whichever
     of the two numbers is not the year. Volumes never run to 1900 pages, so
-    a number in the year range is always the year."""
-    head = page_text.lstrip().split("\n", 1)[0].strip()
+    a number in the year range is always the year. Newer volumes head every
+    page "Volume 2515, I-44910" (A-... for Annex A; vol. 3200 has a
+    non-breaking hyphen) and put the folio on the next line that is not
+    blank. The UN's files for volumes not yet out head them "I-56487" alone,
+    with the file's own page numbers."""
+    lines = [l.strip() for l in page_text.split("\n") if l.strip()][:2]
+    head = lines[0] if lines else ""
+    if re.match(r"(?:Volume\s+\d+\s*,\s*)?(?:[IVX]+|A)\s*[^\w\s,]\s*\d+$", head):
+        m = re.match(r"(\d{1,4})$", lines[1]) if len(lines) > 1 else None
+        return int(m.group(1)) if m else None
     if not head or not _RUNNING_HEAD_RE.search(head):
         return None
     cands = []
@@ -1337,10 +1514,477 @@ def _resolve_page(pages: list, toc: list, page: int) -> Optional[dict]:
     return hit
 
 
+# ---------------------------------------------------------------------------
+# The parts of a registration
+# ---------------------------------------------------------------------------
+#
+# A registration holds much more than one treaty text: the registration note,
+# the parties and their reservations as at registration, the text in every
+# authentic language, other instruments registered under the same number, the
+# signatures, and the Secretariat's translations where English or French is
+# not authentic. The CRPD (vol. 2515) runs to 190 pages, 27 of them English.
+# The per-treaty files are no cleaner: the ICCPR's "English" file (vol. 999)
+# carries 26 pages of signatures and 20 of reservations per instrument.
+# label_pages() tags each page; select_pages() keeps the registration note
+# and the text in the language asked for.
+
+# "[ENGLISH TEXT - TEXTE ANGLAIS]", "[ ARABIC TEXT - TEXTE ARABE ]", as OCR
+# renders them "[BYELORUSSIAN XEXX - TEXXE BIELORUSSE]", and from about
+# vol. 3100 "[ TEXT IN ENGLISH - TEXTE EN ANGLAIS ]".
+_LANG_MARKER_RE = re.compile(
+    r"\[\s*(?:TEXT\s+IN\s+([A-Z][A-Za-z\- ]{2,30}?)\s*[^\w\s\]]{1,3}\s*TEXTE\s+EN\s+[^\]\n]{2,40}"
+    r"|(?!TEXT\s|TRA[DN])([A-Z][A-Za-z\- ]{2,30}?)\s+[A-Z]{3,5}(?:\s*[^\w\s\]]{1,3}\s*|\s+)[A-Z]{4,6}"
+    r"\s+[^\]\n]{2,40})\]")
+# Older volumes also print the marker bare, OCR'd in mixed case, at the head
+# of the first page: "No. 3237. JAPANESE TEXT - TEXTE JAPONAIS",
+# "No. 5757. KoREAN TEXT - TExTE CORAE,".
+_BARE_MARKER_RE = re.compile(
+    r"^\s*(?:No\.?\s*\d+\.\s*)?([A-Za-z][A-Za-z\- ]{2,30}?)\s+TEXT\s*[^\w\s]{1,3}\s*TEXTE\s+\S+",
+    re.I)
+# Treaties registered but not printed: "Not published herein in accordance
+# with article 12(2) of the General Assembly regulations ...", or in older
+# volumes printed as a title only, "Publication effected in accordance with
+# article 12(2) ...".
+_NOT_PUBLISHED_RE = re.compile(
+    r"Not\s+published\s+(?:herein|in\s+print)|Publication\s+effected\s+in\s+accordance", re.I)
+# "[TRANSLATION - TRADUCTION]", "[TRADUCTION - TRANSLATION]", "[TRANSLATION]",
+# "[ TRANSLATION IN FRENCH - TRADUCTION EN FRANCAIS ]"
+_TRANSLATION_RE = re.compile(
+    r"\[\s*(TRA[A-Z]{5,9})(?:\s+IN\s+([A-Z]+))?\s*[*'`]?\s*"
+    r"(?:(?:[^\w\s\]]{1,3}\s*)?TRA[A-Z]{5,9}(?:\s+EN\s+[^\]\n]{2,20}?)?\s*[*'`]?\s*)?\]")
+_RTL_LANGS = {"arabic", "hebrew", "persian", "farsi", "urdu"}
+_HEAD_LINE_RE = re.compile(
+    r"^\s*(?:(?:Vol(?:ume|\.)\s*\d+\s*,\s*)?(?:[IVX1l]+|A)\s*[^\w\s,]\s*\d+|\d{1,4}"
+    r"|.*(?:Treaty\s*\.?\s*Series|Recue\w*\s+des\s+Trait).*)\s*$", re.I)
+_PARTIES_RE = re.compile(
+    r"^\s*Participants?\s+(?:Ratification|Accession|Signature|Acceptance|Approval"
+    r"|Succession|Definitive|Consent)", re.I | re.M)
+_RESERVATIONS_RE = re.compile(
+    r"DECLARATIONS?\s+AND\s+RESERVA|RESERVATIONS?\s+AND\s+DECLARA"
+    r"|D.CLARATIONS?\s+ET\s+R.SERVES"
+    r"|\b(?:reservations?|(?:interpretative\s+)?declarations?|objections?)"
+    r"\s+made\s+(?:up)?on\b"
+    r"|\bR.serves?\s+(?:et\s+d.clarations?\s+)?faites?\s+lors\b", re.I)
+_REGISTRATION_RE = re.compile(
+    r"^\s*(?:No|N[o0°])\.?\s*\d{3,6}\s*$|(?:Authentic|Official)\s+texts?|\bRegistered\b"
+    r"|Registration\s+with|Enregistr|Came\s+into\s+force|Entry\s+into\s+force", re.I | re.M)
+_SIGNATORIES_RE = re.compile(r"LIST\s+OF\s+SIGNATORIES|LISTE\s+DES\s+SIGNATAIRES", re.I)
+# Facsimile signature pages: "FOR AFGHANISTAN:" over "POUR L'AFGHANISTAN:".
+# Upper case only, so that "For the Government of ...:" closing a text
+# does not count.
+_FOR_RE = re.compile(r"^\s*F[O0o][RBHUru]\s+(?:THE\s+)?[A-Z][^\n]*:", re.M)
+_POUR_RE = re.compile(r"^\s*P[O0o][UuC][RrHMm]\s+[A-Z][^\n]*:", re.M)
+_ARTICLE_LINE_RE = re.compile(
+    r"^\s*(?:Article|Art[ií]cul[oa]|PREAMBLE|PR.AMBULE)\b", re.I | re.M)
+_STOPWORDS = {
+    "en": set("the of and shall which with this be by any its or such".split()),
+    "fr": set("le les des et du aux une est sur dans par ses qui".split()),
+    "spanish": set("el los las del y por con una sus para".split()),
+    # Dutch shares "of" and "be" with English, so it needs its own set to
+    # stay out of the English text (vol. 232, No. 3233).
+    "dutch": set("het van een voor niet zijn wordt worden deze overeenkomst".split()),
+    "german": set("der die das und den dem zu mit nicht wird werden".split()),
+}
+LANG_NAMES = {"en": "English", "fr": "French", "other": "unidentified-language"}
+
+
+def lang_name(lang: str) -> str:
+    return LANG_NAMES.get(lang) or (lang or "unknown-language").capitalize()
+
+
+def _body_lines(page_text: str) -> list:
+    """The page's lines without the running head, folio and footer line."""
+    lines = [l for l in page_text.split("\n") if l.strip()]
+    for _ in range(3):
+        if lines and _HEAD_LINE_RE.match(lines[0]):
+            lines.pop(0)
+    for _ in range(2):
+        if lines and _HEAD_LINE_RE.match(lines[-1]):
+            lines.pop()
+    return lines
+
+
+def _text_lang(text: str, min_chars: int = 150) -> Optional[str]:
+    """en, fr, spanish, mixed (English and French side by side), other
+    (Cyrillic, CJK, OCR noise, ...), or None for a page with little or no
+    text layer - a scan, a blank verso."""
+    words = re.findall(r"[^\W\d_]+", text.lower())
+    if sum(len(w) for w in words) < min_chars:
+        return None
+    n = {k: sum(w in s for w in words) for k, s in _STOPWORDS.items()}
+    tot = sum(n.values())
+    if tot < 8:
+        return "other"
+    if n["en"] >= 0.7 * tot:
+        return "en"
+    if n["fr"] >= 0.7 * tot:
+        return "fr"
+    for lang in ("spanish", "dutch", "german"):
+        if n[lang] >= 0.6 * tot:
+            return lang
+    if n["en"] >= 0.25 * tot and n["fr"] >= 0.25 * tot:
+        return "mixed"
+    return "other"
+
+
+def _marker_lang(name: str) -> str:
+    name = " ".join(name.split()).lower()
+    return {"english": "en", "french": "fr"}.get(name, name)
+
+
+def _is_signature_page(body: str) -> bool:
+    if _SIGNATORIES_RE.search(body):
+        return True
+    return bool(_FOR_RE.search(body) and _POUR_RE.search(body)
+                and not _ARTICLE_LINE_RE.search(body)
+                and sum(c.isalpha() for c in body) < 1800)
+
+
+def label_pages(pages: list, authentic: Optional[set] = None) -> list:
+    """One label per page of a registration (pages[0] is its first page):
+    a set of (part, lang) pairs. part is registration, parties, reservations,
+    signatures, text or translation; lang is en, fr, a language name, or None
+    for the parts that are not a text.
+
+    Pages are read in order and a part runs on until the next heading or
+    language marker, so a scanned page with no text layer takes the label of
+    the page before it. Arabic is bound right to left: its marker sits on the
+    last page of its block, and the pages before it are relabelled.
+
+    Older volumes print a Secretariat translation on the pages facing the
+    authentic text, with one marker at the start, so an unmarked page is
+    told apart by its language: the registration note's authentic languages
+    decide, else whether that language has had a translation marker."""
+    labels = []
+    state = ("registration", None)
+    inherited = set()
+    authentic = authentic or (authentic_languages(pages[0]) if pages else None)
+    translated = set()
+
+    def part_for(lang):
+        if authentic and lang in ("en", "fr", "spanish"):
+            return "text" if LANG_NAMES.get(lang, lang).lower() in authentic else "translation"
+        return "translation" if lang in translated else "text"
+
+    for i, page in enumerate(pages):
+        lines = _body_lines(page)
+        body = "\n".join(lines)
+        head = "\n".join(lines[:3])
+        # A per-treaty file need not open with the registration note: the
+        # "Other" files start straight into the first language.
+        if i == 0 and _REGISTRATION_RE.search(body[:800]):
+            labels.append({("registration", None)})
+            # The note is one page: what follows unmarked and unreadable is
+            # a text (CJK in the OCR'd volumes, a scan in the newer ones).
+            state = ("text", "other")
+            continue
+        if _PARTIES_RE.search(head):
+            state = ("parties", None)
+        elif _RESERVATIONS_RE.search(head):
+            state = ("reservations", None)
+        elif _is_signature_page(body):
+            state = ("signatures", None)
+        else:
+            markers = sorted(
+                [(m.start(), m.end(), "text", _marker_lang(m.group(1) or m.group(2)))
+                 for m in _LANG_MARKER_RE.finditer(body)]
+                + [(m.start(), m.end(), "translation",
+                    _marker_lang(m.group(2)) if m.group(2)
+                    else "en" if m.group(1).startswith("TRANS") else "fr")
+                   for m in _TRANSLATION_RE.finditer(body)])
+            if not markers:
+                pos = 0
+                for line in lines[:3]:
+                    m = _BARE_MARKER_RE.match(line)
+                    if m:
+                        markers = [(pos, pos + len(line), "text", _marker_lang(m.group(1)))]
+                        break
+                    pos += len(line) + 1
+            top = markers[0] if markers and not body[:markers[0][0]].strip() else None
+            lang = _text_lang(body)
+            if state[0] in ("parties", "reservations", "signatures") \
+                    and not (top and top[2] == "text"):
+                # A reservation quotes its original under a language marker,
+                # so only a marker opening the page ends the section - or,
+                # in the older volumes, an unmarked page of treaty text.
+                if not markers and lang in ("en", "fr", "spanish") \
+                        and _ARTICLE_LINE_RE.search(body):
+                    state = (part_for(lang), lang)
+                elif lang is None:
+                    inherited.add(i)
+                labels.append({state})
+                continue
+            if not markers:
+                if lang is None:
+                    inherited.add(i)
+                elif lang == "mixed":
+                    labels.append({(part_for("en"), "en"), (part_for("fr"), "fr")})
+                    state = (part_for("en"), "en")
+                    continue
+                elif lang != "other" or state[1] is None:
+                    state = (part_for(lang), lang)
+                labels.append({state})
+                continue
+            # Split the page at its markers; each piece has its own label.
+            label = set()
+            if not top and _text_lang(body[:markers[0][0]], 40) is not None:
+                label.add((_block(state), state[1] or (lang if lang in ("en", "fr") else "other")))
+            for k, (s, e, part, mlang) in enumerate(markers):
+                piece = body[e:markers[k + 1][0] if k + 1 < len(markers) else len(body)]
+                plang = _text_lang(piece, 40)
+                if part == "translation":
+                    mlang = plang if plang in ("en", "fr") else mlang
+                    translated.add(mlang)
+                state = (part, mlang)
+                label.add(state)
+                if part == "text" and mlang in _RTL_LANGS and k == 0 and top:
+                    j = i - 1
+                    while j in inherited:
+                        labels[j] = {state}
+                        j -= 1
+            labels.append(label)
+            continue
+        labels.append({state})
+    _relabel_quoted_reservations(labels)
+    return labels
+
+
+def _relabel_quoted_reservations(labels: list) -> None:
+    """A declaration quoted in its original under a marker that opens the
+    page, with its heading only in the scan (the TPNW's Cook Islands
+    declaration, vol. 3370), reads as a short text block followed by the
+    next reservation's heading. Relabel such a block - at most 3 pages,
+    straight before a reservations page - but only when the same language
+    has a text block later on, so the treaty text itself is never lost."""
+    i = 0
+    while i < len(labels):
+        lab = labels[i]
+        if len(lab) != 1 or next(iter(lab))[0] != "text":
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(labels) and labels[j + 1] == lab:
+            j += 1
+        nxt = labels[j + 1] if j + 1 < len(labels) else set()
+        later = any(lab <= labels[k] for k in range(j + 2, len(labels)))
+        if j - i < 3 and ("reservations", None) in nxt and later:
+            for k in range(i, j + 1):
+                labels[k] = {("reservations", None)}
+        i = j + 1
+
+
+def _block(state) -> str:
+    return state[0] if state[0] in ("text", "translation") else "text"
+
+
+def authentic_languages(registration_page: str) -> Optional[set]:
+    """{"english", "french", ...} from the registration note's "Authentic
+    texts:" line, or None when the page has none (most older volumes)."""
+    m = re.search(r"(?:Authentic|Official)\s+texts?\s*:\s*(.+?)(?:\.|Registr|Enregistr|$)",
+                  registration_page, re.I | re.S)
+    if not m:
+        return None
+    return {w.lower() for w in re.findall(r"[A-Za-z]+", m.group(1))
+            if w.lower() not in ("and", "the")}
+
+
+def select_pages(labels: list, lang: str, authentic: Optional[set] = None):
+    """Indices of the pages to keep for --lang, or None when the text in that
+    language cannot be found.
+
+    The registration note always stays, with the text in that language of
+    every instrument registered under the number. Where English or French
+    is not authentic, the authentic texts and the Secretariat's translation
+    into it; other languages have no translations."""
+    def match(l):
+        return l == lang
+
+    texts = {l for lab in labels for (p, l) in lab if p == "text"}
+    if lang in ("en", "fr"):
+        name = LANG_NAMES[lang].lower()
+        is_authentic = (name in authentic) if authentic else lang in texts
+    else:
+        is_authentic = True
+    if is_authentic:
+        want = lambda p, l: p == "text" and match(l)
+    else:
+        want = lambda p, l: (p == "text" and l is not None) or (p == "translation" and l == lang)
+    keep = [i for i, lab in enumerate(labels) if any(want(p, l) for p, l in lab)]
+    if not keep:
+        return None
+    return sorted(set(keep) | {i for i, lab in enumerate(labels) if ("registration", None) in lab})
+
+
+def describe_label(label: set) -> str:
+    def one(p, l):
+        if p == "registration":
+            return "registration note"
+        if p == "parties":
+            return "parties as at registration"
+        if p == "reservations":
+            return "reservations and declarations"
+        if p == "signatures":
+            return "signatures"
+        name = lang_name(l)
+        return "%s %s" % (name, "translation (Secretariat)" if p == "translation" else "text")
+    return " + ".join(sorted(one(p, l) for p, l in label))
+
+
+def _runs(idxs: list) -> list:
+    """[[first, last], ...] of consecutive integers."""
+    out = []
+    for i in idxs:
+        if out and i == out[-1][1] + 1:
+            out[-1][1] = i
+        else:
+            out.append([i, i])
+    return out
+
+
+def _printed_span(pages: list, first: int, last: int) -> Optional[list]:
+    """Printed folios of pages[first..last], extrapolated over the pages that
+    carry none (half-titles, blank versos)."""
+    nums = [(i, printed_page_of(pages[i])) for i in range(first, last + 1)]
+    nums = [(i, n) for i, n in nums if n is not None]
+    if not nums:
+        return None
+    return [nums[0][1] - (nums[0][0] - first), nums[-1][1] + (last - nums[-1][0])]
+
+
+def registration_parts(pages: list, labels: list, keep: Optional[list],
+                       offset: int = 0) -> list:
+    """The runs of the registration with what each holds, its PDF and
+    printed pages (offset = PDF index of pages[0]) and whether it is kept."""
+    parts = []
+    for i, lab in enumerate(labels):
+        desc = describe_label(lab)
+        kept = keep is None or i in keep
+        if parts and parts[-1]["part"] == desc and parts[-1]["kept"] == kept:
+            parts[-1]["_last"] = i
+        else:
+            parts.append({"part": desc, "kept": kept, "_first": i, "_last": i})
+    for p in parts:
+        first, last = p.pop("_first"), p.pop("_last")
+        p["pdf_pages"] = [offset + first + 1, offset + last + 1]
+        p["printed_pages"] = _printed_span(pages, first, last)
+    return parts
+
+
+def write_pdf_pages(src: Path, idxs: list, dest: Path) -> bool:
+    """Pages idxs (0-based) of src into dest; False without pypdf."""
+    try:
+        from pypdf import PdfReader, PdfWriter  # type: ignore
+    except ImportError:
+        return False
+    reader, writer = PdfReader(str(src)), PdfWriter()
+    for i in idxs:
+        writer.add_page(reader.pages[i])
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".tmp")
+    with open(tmp, "wb") as f:
+        writer.write(f)
+    os.replace(tmp, dest)
+    return True
+
+
+def _cut(pages: list, offset: int, lang: str, full: bool, src_pdf: Path,
+         stem: Path, source_label: str, rerun: str, authentic: Optional[set] = None,
+         publication: Optional[str] = None) -> dict:
+    """Pick the pages of one registration (pages = its pages, offset = the
+    PDF index of the first), write <stem>.txt and, when it differs from
+    src_pdf, <stem>.cut.pdf. Returns the fields fetch_text reports.
+    authentic and publication come from the UNTS record when it was reached;
+    without them the registration note is read."""
+    authentic = authentic or (authentic_languages(pages[0]) if pages else None)
+    labels = label_pages(pages, authentic)
+    keep = None
+    if not full:
+        keep = select_pages(labels, lang, authentic)
+    trimmed = keep is not None and len(keep) < len(pages)
+    idxs = keep if keep is not None else list(range(len(pages)))
+    parts = registration_parts(pages, labels, keep if trimmed else None, offset)
+    kept_desc = sorted({p["part"] for p in parts if p["kept"]})
+    left_out = [p for p in parts if not p["kept"]]
+
+    if full:
+        what = "the whole registration: every language and part"
+    else:
+        what = ", ".join(kept_desc)
+    head = ["[%s - %s; PDF pages %s of %s]" % (
+        source_label, what,
+        ", ".join("%d-%d" % (a + offset + 1, b + offset + 1) for a, b in _runs(idxs)),
+        src_pdf.name)]
+    if left_out:
+        head.append("[Left out: %s. For these: %s]" % ("; ".join(
+            "%s (printed pp. %s)" % (p["part"], "%d-%d" % tuple(p["printed_pages"])
+                                     if p["printed_pages"] else "?")
+            for p in left_out), rerun))
+    out, prev = [], None
+    for i in idxs:
+        if prev is not None and i != prev + 1:
+            out.append("[... PDF pages %d-%d left out ...]" % (prev + offset + 2, i + offset))
+        out.append(pages[i])
+        prev = i
+    txt = stem.with_name(stem.name + ".txt")
+    _write_text(txt, "\n".join(head) + "\n\n" + "\n\f\n".join(out))
+
+    info = {"text_txt": str(txt), "parts": parts, "trimmed": trimmed}
+    if publication and "partial" in publication.lower():
+        info["partial_publication"] = (
+            "the UNTS record says Partial Publication: the Secretariat left parts of this "
+            "treaty out of the printed text (often long technical annexes)")
+    if (publication and "limited" in publication.lower()) \
+            or any(_NOT_PUBLISHED_RE.search(p) for p in pages[:2]):
+        info["not_published"] = (
+            "the UNTS registers this treaty but does not print its text (article 12(2) "
+            "of the General Assembly regulations on registration): the volume holds only "
+            "the registration note, at most with the title. The text must come from "
+            "another source, such as a party's treaty series")
+    elif keep is None and not full and lang not in ("en", "fr"):
+        found = sorted({lang_name(l) for lab in labels for p, l in lab if p == "text"})
+        raise SystemExit(
+            "no %s text in %s; it holds: %s. Give --lang one of those (English and "
+            "French as en / fr), or --full for every language"
+            % (lang_name(lang), source_label, ", ".join(found) or "no language text"))
+    elif keep is None and not full:
+        info["warning"] = ("could not find the %s text in the registration, so the whole "
+                           "registration was kept (every language and part)"
+                           % lang_name(lang))
+    if trimmed or offset or len(idxs) != _pdf_page_count(src_pdf):
+        cut = stem.with_name(stem.name + ".cut.pdf")
+        if write_pdf_pages(src_pdf, [i + offset for i in idxs], cut):
+            info["text_pdf"] = str(cut)
+    else:
+        info["text_pdf"] = str(src_pdf)
+    # A page whose text layer is only its running head is a scan.
+    scans = [i for i in idxs if i and _text_lang("\n".join(_body_lines(pages[i])), 40) is None
+             and not _LANG_MARKER_RE.search(pages[i])]
+    scans += [i for i in idxs if i and _LANG_MARKER_RE.search(pages[i])
+              and len("".join(_body_lines(pages[i]))) < 120]
+    if scans and len(scans) >= max(2, len(idxs) // 4):
+        runs = ", ".join("%d-%d" % (a + offset + 1, b + offset + 1) for a, b in _runs(sorted(scans)))
+        info["scanned_pages"] = runs
+        info["warning"] = ((info.get("warning", "") + "; ") if info.get("warning") else "") + (
+            "%d of the %d pages are scans with no text layer (PDF pages %s): the text file "
+            "does not hold their text. Read those pages of %s as images instead, and never "
+            "fill the gap from memory" % (len(scans), len(idxs), runs,
+                                          info.get("text_pdf", src_pdf)))
+    return info
+
+
+def _pdf_page_count(pdf: Path) -> Optional[int]:
+    PdfReader = _pypdf_reader()
+    if PdfReader is None:
+        return None
+    try:
+        return len(PdfReader(str(pdf)).pages)
+    except Exception:
+        return None
+
+
 def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
-               force=False, series="I", from_volume=False):
-    if lang not in TEXT_LANGS:
-        raise SystemExit("--lang for text must be one of %s" % "/".join(TEXT_LANGS))
+               force=False, series="I", from_volume=False, full=False):
+    lang = text_lang(lang)
     resolved_from = None
     if volume is None or (reg_num is None and page is None):
         if ref is None:
@@ -1378,16 +2022,54 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
     if resolved_from:
         info["resolved_from"] = resolved_from
 
+    # The UNTS record: authentic languages and publication format without
+    # OCR, and the files that exist, so nothing is guessed. Without it (site
+    # down, no record) the text still comes, as before.
+    record = unts_record(volume, reg_num, series, out_dir, force=force)
+    authentic = {a.lower() for a in record.get("authentic_texts") or []} or None
+    publication = record.get("publication_format")
+    docs = record.get("text_documents")
+    if record.get("error"):
+        info["record_error"] = record["error"]
+    else:
+        info["record"] = {k: record.get(k) for k in (
+            "details_url", "authentic_texts", "publication_format", "attachments")}
+        if record.get("related"):
+            info["record"]["related"] = ["%s %s" % (r["reg"], r["title"]) for r in record["related"]]
+    part_url = next((d for d in docs or [] if "/Part/" in d and "/No%20Volume/" not in d), None)
+    no_volume_url = next((d for d in docs or [] if "/No%20Volume/" in d), None)
+
     # 1. Per-treaty PDF (exists for most older volumes)
     url = url_unts_text(volume, reg_num, lang, series=series)
-    pdf = out_dir / ("text.%s.pdf" % lang)
+    pdf = out_dir / ("text.%s.pdf" % ({"en": "en", "fr": "fr"}.get(lang, "other")))
+    if ref is not None:
+        cmd = "untc.py text %s" % ref.slug
+    else:
+        cmd = "untc.py text --vol %d --reg %s" % (volume, reg_num)
+    rerun = ("`%s --full` gives the whole registration; `--lang en|fr|ar|zh|ru|es` "
+             "or a language name (e.g. `--lang norwegian`) another language version" % cmd)
     try:
-        if from_volume:
-            raise DocumentNotFound(url)
+        if from_volume or (docs is not None and not any(
+                d.endswith("-%s.pdf" % TEXT_FILES.get(lang, "Other")) for d in docs)):
+            raise DocumentNotFound(url)   # the record lists no such file
         download_pdf(url, pdf, force=force)
-        txt = extract_text(pdf, force=force)
-        info.update({"via": "treaty-pdf", "text_pdf": str(pdf),
-                     "text_txt": str(txt), "source_url": url})
+        info.update({"via": "treaty-pdf", "source_pdf": str(pdf), "source_url": url})
+        pages = _pdf_pages_text(pdf)
+        if pages is None or not any(p.strip() for p in pages):
+            # pdftotext only: no per-page text to pick parts from
+            txt = extract_text(pdf, force=True)
+            info.update({"text_pdf": str(pdf), "text_txt": str(txt), "trimmed": False,
+                         "note": "pypdf is missing, so the file was not cut to the %s "
+                                 "text; it holds every part the UN put in it"
+                                 % lang_name(lang)})
+        else:
+            pages = [p.replace("\xa0", " ") for p in pages]
+            slug = {"en": "en", "fr": "fr"}.get(lang, "other") if full else lang_slug(lang)
+            stem = out_dir / ("text.%s.full" % slug if full else "text.%s" % slug)
+            info.update(_cut(pages, 0, lang, full, pdf, stem,
+                             "UNTS volume %d, registration No. %s, per-treaty %s file %s"
+                             % (volume, reg_num, TEXT_FILES.get(lang, "Other"), url), rerun,
+                             authentic, publication))
         short = _short_page_report(pdf)
         if short:
             info["short_pages"] = short
@@ -1409,10 +2091,47 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
     except DocumentNotFound:
         pass
 
-    # 2. Slice the full volume PDF (the only file for many recent volumes).
+    def from_file(file_url, name, via, note):
+        """The registration's own file with every language (a 'Part' file
+        in the volume, or a 'No Volume' file before the volume is out)."""
+        dest = out_dir / name
+        download_pdf(file_url, dest, force=force)
+        fpages = _pdf_pages_text(dest)
+        if not fpages:
+            return False
+        fpages = [p.replace("\xa0", " ") for p in fpages]
+        stem = out_dir / ("text.full" if full else "text.%s" % lang_slug(lang))
+        info.update({"via": via, "source_pdf": str(dest), "source_url": file_url, "note": note,
+                     "printed_pages": _printed_span(fpages, 0, len(fpages) - 1)})
+        info.update(_cut(fpages, 0, lang, full, dest, stem,
+                         "UNTS volume %s, registration No. %s, %s" % (volume, reg_num, file_url),
+                         rerun, authentic, publication))
+        return True
+
+    # 2. The registration's own file in the volume, all languages: far
+    # smaller than the volume (vol. 3000, No. 52110: 10 KB against the
+    # whole volume).
+    if part_url and not from_volume:
+        try:
+            if from_file(part_url, "text.part.pdf", "part-pdf",
+                         "the registration's own file from the UNTS record (every language)"):
+                return info
+        except DocumentNotFound:
+            pass
+
+    # 3. Slice the full volume PDF.
     try:
         pages = volume_pages(volume, force=force)
     except SystemExit as e:
+        if no_volume_url:
+            try:
+                if from_file(no_volume_url, "text.novolume.pdf", "no-volume-pdf",
+                             "UNTS volume %s is not published yet; this is the UN's own file of "
+                             "the registration, with its own page numbers, not the UNTS pages"
+                             % volume):
+                    return info
+            except DocumentNotFound:
+                pass
         hint = ""
         if ref is not None:
             hint = ("\nThe certified true copy of the text is linked from the treaty's "
@@ -1431,15 +2150,7 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
     start, end = loc
     # The printed folios of the slice: what the citation gives, and the one
     # thing that shows at a glance whether the right pages were found.
-    printed = [(i, printed_page_of(pages[i])) for i in range(start, end)]
-    printed = [(i, n) for i, n in printed if n is not None]
-    printed_range = None
-    if printed:
-        # Half-titles and blank versos carry no folio; extrapolate from the
-        # nearest page that does, so the range starts at the page the
-        # citation gives rather than one page in.
-        printed_range = [printed[0][1] - (printed[0][0] - start),
-                         printed[-1][1] + (end - 1 - printed[-1][0])]
+    printed_range = _printed_span(pages, start, end - 1)
     page_warning = None
     if page is not None and printed_range and not (
             printed_range[0] - 2 <= page <= printed_range[1]):
@@ -1447,26 +2158,25 @@ def fetch_text(ref=None, *, volume=None, reg_num=None, page=None, lang="en",
             "the citation gives p. %d but the located text runs from printed "
             "p. %d to p. %d; check `untc.py volume %d` before quoting"
             % (page, printed_range[0], printed_range[1], volume))
-    # With --from-volume, keep the per-treaty extraction (text.<lang>.txt,
-    # which extract_text caches) apart from the volume slice.
-    txt = out_dir / ("text.volume.txt" if from_volume else "text.%s.txt" % lang)
-    header =("[UNTS volume %d, registration No. %s - pages %d-%d of the "
-              "volume PDF %s; all language versions in sequence]\n\n"
-              % (volume, reg_num, start + 1, end, url_unts_volume(volume)))
-    _write_text(txt, header + "\n\f\n".join(pages[start:end]))
+    # With --from-volume, keep the per-treaty extraction (text.<lang>.txt)
+    # apart from the volume slice.
+    stem = out_dir / ("text.volume" if from_volume else "text")
+    stem = stem.with_name(stem.name + (".full" if full else ".%s" % lang_slug(lang)))
     info.update({
         "via": "volume-pdf",
-        "text_pdf": str(volume_pdf(volume)),
+        "source_pdf": str(volume_pdf(volume)),
         "pdf_pages": [start + 1, end],
         "printed_pages": printed_range,
-        "text_txt": str(txt),
         "source_url": url_unts_volume(volume),
         "note": ("--from-volume: " if from_volume else "no per-treaty file; ")
-                + "text sliced from the volume PDF "
-                "(contains every authentic language in sequence)",
+                + "cut from the volume PDF",
     })
+    info.update(_cut(pages[start:end], start, lang, full, volume_pdf(volume), stem,
+                     "UNTS volume %d, registration No. %s, cut from the volume PDF %s"
+                     % (volume, reg_num, url_unts_volume(volume)), rerun,
+                     authentic, publication))
     if page_warning:
-        info["warning"] = page_warning
+        info["warning"] = ((info["warning"] + "; ") if info.get("warning") else "") + page_warning
     return info
 
 # ---------------------------------------------------------------------------
@@ -1583,7 +2293,16 @@ def cmd_unts_search(args):
 
 
 def cmd_unts_details(args):
-    _print_json(unts_details(args.objid))
+    objid = args.objid
+    if not objid:
+        if not args.reg:
+            raise SystemExit("give an objid, or --reg N (with --series II for filed and recorded)")
+        want = "%s-%s" % (args.series, args.reg)
+        rows = [r for r in unts_find_reg(args.reg) if r["reg"] == want]
+        if not rows:
+            raise SystemExit("no UNTS record registered as %s" % want)
+        objid = rows[0]["objid"]
+    _print_json(unts_details(objid, participants=args.participants))
 
 
 def cmd_status(args):
@@ -1599,7 +2318,7 @@ def cmd_text(args):
     info = fetch_text(
         ref=ref, volume=args.vol, reg_num=args.reg, page=args.page,
         lang=args.lang, force=args.force, series=args.series,
-        from_volume=args.from_volume,
+        from_volume=args.from_volume, full=args.full,
     )
     _print_json(info)
 
@@ -1630,8 +2349,8 @@ def cmd_fetch(args):
         print("resolved %r -> UNTS vol. %d No. %s (%s); not deposited with the "
               "Secretary-General, so there is no MTDSG status document"
               % (raw, vol, reg, title), file=sys.stderr)
-        lang = args.lang if args.lang in TEXT_LANGS else "en"
-        info = fetch_text(volume=vol, reg_num=reg, lang=lang, force=args.force)
+        info = fetch_text(volume=vol, reg_num=reg, lang=args.lang, force=args.force,
+                          full=args.full)
         info["title"] = title
         _print_json({"status": None, "text": info})
         return
@@ -1661,7 +2380,8 @@ def cmd_fetch(args):
     text_info = None
     if not args.no_text:
         try:
-            text_info = fetch_text(ref=ref, lang=args.lang, force=args.force)
+            text_info = fetch_text(ref=ref, lang=args.lang, force=args.force,
+                                   full=args.full)
         except SystemExit as e:
             text_info = {"error": str(e)}
         except Exception as e:  # network etc.
@@ -1716,7 +2436,12 @@ def main(argv=None):
     p_us.set_defaults(func=cmd_unts_search)
 
     p_ud = sub.add_parser("unts-details", help="UNTS record of a search hit: volume, page, PDFs")
-    p_ud.add_argument("objid", help="the object id a search hit shows")
+    p_ud.add_argument("objid", nargs="?", help="the object id a search hit shows")
+    p_ud.add_argument("--reg", help="or the registration number (e.g. 44910)")
+    p_ud.add_argument("--series", default="I", choices=["I", "II"])
+    p_ud.add_argument("--participants", action="store_true",
+                      help="add the actions registered with the UN (signatures, ratifications "
+                           "...), with the caveat that must go to the user")
     p_ud.set_defaults(func=cmd_unts_details)
 
     p_st = sub.add_parser("status", help="download MTDSG status doc")
@@ -1732,11 +2457,17 @@ def main(argv=None):
     p_tx.add_argument("--page", type=int, help="first page as cited, e.g. 161 for '729 UNTS 161'")
     p_tx.add_argument("--series", default="I", choices=["I", "II"],
                       help="I = registered, II = filed and recorded")
-    p_tx.add_argument("--lang", default="en", choices=list(TEXT_LANGS))
+    p_tx.add_argument("--lang", default="en",
+                      help="en (default), fr, ar, zh, ru, es, or the English name of "
+                           "another language the treaty is printed in, e.g. norwegian")
     p_tx.add_argument("--force", action="store_true")
     p_tx.add_argument("--from-volume", action="store_true",
                       help="slice the full volume PDF even if a per-treaty PDF "
                            "exists (for a per-treaty PDF with a cropped page)")
+    p_tx.add_argument("--full", action="store_true",
+                      help="the whole registration: every language, the signatures, and the "
+                           "parties and reservations as at registration (default: the "
+                           "registration note and the text in --lang)")
     p_tx.set_defaults(func=cmd_text)
 
     p_vol = sub.add_parser("volume", help="list a UNTS volume's table of contents")
@@ -1751,6 +2482,10 @@ def main(argv=None):
     p_fe.add_argument("--lang", default="en", choices=list(STATUS_LANGS))
     p_fe.add_argument("--no-text", action="store_true",
                       help="only download the status doc")
+    p_fe.add_argument("--full", action="store_true",
+                      help="the whole registration: every language, the signatures, and the "
+                           "parties and reservations as at registration (default: the "
+                           "registration note and the text in --lang)")
     p_fe.add_argument("--force", action="store_true")
     p_fe.set_defaults(func=cmd_fetch)
 

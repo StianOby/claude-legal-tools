@@ -295,16 +295,6 @@ def item_for_objid(objid: str, today: str = "") -> tuple:
     return item, notes, {"details": d}
 
 
-def _slice(volume_pdf: Path, first: int, last: int, dest: Path) -> None:
-    """Pages first..last (1-based, inclusive) of a volume PDF into dest."""
-    from pypdf import PdfReader, PdfWriter
-    reader, writer = PdfReader(str(volume_pdf)), PdfWriter()
-    for i in range(first - 1, last):
-        writer.add_page(reader.pages[i])
-    with open(dest, "wb") as f:
-        writer.write(f)
-
-
 def _own_text_pdf(d: dict, dest: Path) -> Optional[str]:
     """A UNTS record's own English text file (or, for records with no volume
     yet, its single "No Volume" file) at dest; its URL, or None."""
@@ -358,18 +348,30 @@ def fetch_pdf(source: dict, item: dict, dest: Path) -> tuple:
             return None, (f"UNTS vol. {vol.group(1)} is not published on treaties.un.org yet; "
                           f"the certified true copy is linked from {where}")
         return None, f"no UNTS text file was found for it (see {where})"
-    if info.get("via") == "treaty-pdf":
+    if info.get("not_published"):
+        return None, info["not_published"]
+    own_file = info.get("via") in ("treaty-pdf", "part-pdf", "no-volume-pdf")
+    if own_file and not info.get("trimmed"):
         shutil.copyfile(info["text_pdf"], dest)
         return info["source_url"], None
-    first, last = info["pdf_pages"]
-    try:
-        _slice(Path(info["text_pdf"]), first, last, dest)
-    except ImportError:
+    kept = [p for p in info.get("parts", []) if p["kept"]]
+    pages = ", ".join("%d-%d" % tuple(p["pdf_pages"]) for p in kept)
+    if not own_file and Path(info["text_pdf"]) == Path(info["source_pdf"]):
+        # pypdf is missing, so nothing could be cut out
         return None, ("the text is only in the whole UNTS volume PDF and pypdf, which cuts out "
-                      f"the treaty's pages, is not installed: pages {first}-{last} of "
+                      f"the treaty's pages, is not installed: pages {pages} of "
                       f"{info['source_url']}")
-    print(f"[pdf] pages {first}-{last} of the UNTS volume PDF {info['source_url']} "
-          "(every authentic language in sequence)")
+    shutil.copyfile(info["text_pdf"], dest)
+    what = "; ".join(sorted({p["part"] for p in kept}))
+    source = {"volume-pdf": "UNTS volume PDF", "part-pdf": "registration's own PDF",
+              "no-volume-pdf": "registration's own PDF (volume not yet published)"
+              }.get(info.get("via"), "per-treaty PDF")
+    print(f"[pdf] {what}: pages {pages} of the {source} {info['source_url']}")
+    for p in info.get("parts", []):
+        if not p["kept"]:
+            print(f"[pdf] left out: {p['part']}, pages {p['pdf_pages'][0]}-{p['pdf_pages'][1]}")
+    if info.get("scanned_pages"):
+        print(f"[pdf] scanned pages without a text layer: {info['scanned_pages']} of the source")
     return None, None
 
 
