@@ -163,6 +163,32 @@ The `.txt` keeps the PDF's lines as printed, hyphens at line ends included
 across lines. Grep for one distinctive word, or use
 `grep -iPzo 'state\s+aid'`.
 
+## Bulk downloads: warn and ask first
+
+A bulk download (documents for many cases, up to the whole corpus, to search
+or analyse them offline) is fine when the user wants it, but never start one
+on your own, not even when the server's search seems to miss something.
+Before fetching more than about 20 documents for one question, **ask the
+user**, and say:
+
+- how many documents, and roughly how long (`--bulk` takes 2 s each);
+- why, and what a narrower route would be (other words, a prefix,
+  `--meta-only`/`list` filters, `get` for a few likely candidates);
+- that fetching this much loads the Court's server and **could get the
+  connection rate-limited, blocked or blacklisted** by eftacourt.int.
+
+If the user agrees, fetch with `get … --bulk`. The documents stay in the
+cache for offline analysis. In a cloud session the cache is lost when the
+session ends; if the user has a connected folder, set
+`EFTA_COURT_CACHE_DIR` to a folder there so the copy is not fetched again.
+Documents the user asked for one by one, or the cases cited in a text under
+kildesjekk, are not bulk.
+
+The CLI enforces the question: after 60 downloads in an hour, `get` stops
+with `STOPPED: …`. Do not work round it: ask as above, and rerun with
+`--bulk` once the user agrees (or when they asked for exactly these
+documents). Cached documents never count.
+
 ## Presenting a case
 
 1. Give the **case number** and the **parties** (the case title).

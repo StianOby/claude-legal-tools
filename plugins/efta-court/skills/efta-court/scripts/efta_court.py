@@ -10,6 +10,7 @@ comes from `pdftotext` (poppler) or else `pypdf`.
 Cache layout (under the resolved cache dir):
 
   data.json                                  # the API collections, refreshed hourly
+  downloads.log                              # times of the last hour's PDF downloads
   cases/<KEY>/<type>-<LANG>.pdf|.txt|.json   # case documents (.json: source + method)
   texts/<slug>-<LANG>.pdf|.txt|.json         # procedural texts
 
@@ -42,7 +43,7 @@ from source_text import SPACES, finish, fold, mark_emphasis, mark_lists  # noqa:
 
 SITE = "https://eftacourt.int"
 DEFAULT_API = "https://api.eftacourt.int/api"
-USER_AGENT = "efta-court-skill/2.0.1 (+https://github.com/StianOby/claude-legal-tools)"
+USER_AGENT = "efta-court-skill/2.0.2 (+https://github.com/StianOby/claude-legal-tools)"
 FIRST_YEAR = 1994  # the EFTA Court's first case is E-1/94
 DATA_TTL = 3600
 # The API collections the skill reads. Others (press, members …) are not used.
@@ -587,7 +588,37 @@ def extract_pdf_text(pdf: Path) -> tuple[str | None, str]:
         return None, ""
 
 
-def fetch_document(file_url: str, stem: Path, api: str) -> tuple[Path, Path | None]:
+# A brake on bulk downloads (maintainer, 2026-11-02): a session once fetched
+# every PDF on the site to work round a search miss. More than BULK_LIMIT
+# downloads within BULK_WINDOW stops with a message telling Claude to ask the
+# user; `get --bulk` goes on, BULK_PAUSE seconds apart.
+BULK_LIMIT = 60
+BULK_WINDOW = 3600
+BULK_PAUSE = 2.0
+
+
+def download_brake(bulk: bool) -> None:
+    """Log one download; refuse it when the last hour already holds BULK_LIMIT
+    and the user has not approved a bulk run."""
+    log = cache_dir() / "downloads.log"
+    now = time.time()
+    try:
+        recent = [float(t) for t in _read(log).split() if now - float(t) < BULK_WINDOW]
+    except (OSError, ValueError):
+        recent = []
+    if len(recent) >= BULK_LIMIT:
+        if not bulk:
+            raise SystemExit(
+                f"STOPPED: {len(recent)} PDFs downloaded from eftacourt.int in the last hour. More is a bulk "
+                "download. Ask the user before going on: say how many documents you would fetch and why "
+                "(a search alone may answer it), and warn that this loads the Court's server and could get "
+                "the connection blocked or blacklisted. If the user agrees, or asked for exactly these "
+                "documents (e.g. a kildesjekk), rerun with `get … --bulk`.")
+        time.sleep(BULK_PAUSE)
+    _write(log, "\n".join(f"{t:.0f}" for t in recent + [now]))
+
+
+def fetch_document(file_url: str, stem: Path, api: str, bulk: bool = False) -> tuple[Path, Path | None]:
     """Download (if the cached copy is from another file) and extract.
     The sidecar <stem>.json records the source file and extraction method."""
     pdf, txt, side = stem.with_suffix(".pdf"), stem.with_suffix(".txt"), stem.with_suffix(".json")
@@ -599,6 +630,7 @@ def fetch_document(file_url: str, stem: Path, api: str) -> tuple[Path, Path | No
         except json.JSONDecodeError:
             meta = {}
     if meta.get("file") != urllib.parse.urlsplit(url).path or not _has_content(pdf):
+        download_brake(bulk)
         try:
             data = _request(url, accept="application/pdf,*/*", timeout=180)
         except urllib.error.HTTPError as e:
@@ -1053,7 +1085,7 @@ def cmd_get(a: argparse.Namespace) -> None:
         if not chosen:
             raise SystemExit(f"No {a.type!r} document for {res['main']['ref']}. Available:\n" + format_documents(docs))
     stem = cache_dir() / "cases" / _key(chosen["record"]) / doc_stem(docs, chosen)
-    pdf, txt = fetch_document(chosen["file"], stem, data["api"])
+    pdf, txt = fetch_document(chosen["file"], stem, data["api"], a.bulk)
     rec = next(c for c in data["cases"] if c["id"] == chosen["record_id"])
     kind = f"{chosen['type']} {chosen['lang']}".strip()
     print(f"{chosen['title']}  ({kind}, {chosen['date'] or 'no date'})")
@@ -1349,6 +1381,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--lang", default="EN", help="EN (default), NO, IS, DE")
     p.add_argument("--party", help="with --type observations: whose (Norway, Commission, ESA …)")
     p.add_argument("--doc", type=int, help="document number from the list")
+    p.add_argument("--bulk", action="store_true",
+                   help=f"the user approved more than {BULK_LIMIT} downloads an hour (slower, {BULK_PAUSE:g} s apart)")
     p.set_defaults(func=cmd_get)
 
     p = sub.add_parser("calendar", help="hearings, judgments and deadlines ahead (and --past days back)")

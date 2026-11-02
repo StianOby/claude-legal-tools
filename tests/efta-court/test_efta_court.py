@@ -38,7 +38,15 @@ def raises(fn):
     return False
 
 
-FILE = "https://efta_back.on-forge.com/storage/imports/{}.pdf"
+def _exit(fn):
+    try:
+        fn()
+    except SystemExit as e:
+        return e.code
+    return None
+
+
+FILE ="https://efta_back.on-forge.com/storage/imports/{}.pdf"
 
 
 def dl(i, doc_type, lang="English", title="", date="2024-01-01", category="Cases", file=None):
@@ -333,6 +341,19 @@ check("deadline date", ec.text_date("Deadline for written observations (cf. Arti
                                     "Tuesday, 4 August 2026"), "2026-08-04")
 check("last date wins", ec.text_date("received on 5 June 2026; hearing on 12 November 2026"), "2026-11-12")
 check("none", ec.text_date("Service of the written observations"), "")
+
+print("bulk-download brake")
+log = Path(os.environ["EFTA_COURT_CACHE_DIR"]) / "downloads.log"
+ec.BULK_PAUSE = 0
+log.write_text("\n".join(str(ec.time.time() - 7200) for _ in range(50)))
+for _ in range(ec.BULK_LIMIT):
+    ec.download_brake(False)
+check("an hour-old log does not count", len(log.read_text().split()), ec.BULK_LIMIT)
+check("over the limit: stops", raises(lambda: ec.download_brake(False)), True)
+check("the stop asks the user", "Ask the user" in str(_exit(lambda: ec.download_brake(False))), True)
+ec.download_brake(True)
+check("--bulk goes on and is logged", len(log.read_text().split()), ec.BULK_LIMIT + 1)
+log.unlink()
 
 print("1.x cache is removed")
 root = Path(os.environ["EFTA_COURT_CACHE_DIR"])

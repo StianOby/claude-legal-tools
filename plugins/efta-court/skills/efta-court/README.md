@@ -49,6 +49,12 @@ Offline tests live in the repository at `tests/efta-court/`, not in the plugin
 - **PDF text extraction:** `pdftotext` from poppler-utils (preferred), or
   `pip install pypdf`. Without either, the CLI still downloads the PDFs.
 
+To spare the Court's server, `get` stops after 60 PDF downloads in an hour
+and the skill asks you before fetching more, with a warning that a bulk
+download could get your connection blocked by eftacourt.int. If you agree
+(for offline analysis of the whole corpus, say), `get --bulk` goes on, two
+seconds apart. Documents already in the cache do not count.
+
 The cache (API data for an hour, downloaded PDFs and their text) is written to
 a user-writable directory, not the skill folder:
 
