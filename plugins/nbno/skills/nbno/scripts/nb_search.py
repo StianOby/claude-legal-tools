@@ -47,6 +47,9 @@ import urllib.parse
 import urllib.request
 
 API = "https://api.nb.no/catalog/v1/items"
+# The plugin's version (plugin.json); tests/nbno checks that they agree.
+VERSION = "1.5.2"
+USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 _MEDIATYPE = {
     "bok": "bøker", "bøker": "bøker", "book": "bøker", "books": "bøker",
@@ -59,7 +62,7 @@ _MEDIATYPE = {
 def _get(url: str, timeout: float = 30.0) -> dict:
     req = urllib.request.Request(url, headers={
         "Accept": "application/json",
-        "User-Agent": "nbno-skill nb_search.py",
+        "User-Agent": USER_AGENT,
     })
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))

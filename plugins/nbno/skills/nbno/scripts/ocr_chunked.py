@@ -50,6 +50,9 @@ from concurrent.futures import (FIRST_COMPLETED, ThreadPoolExecutor, wait)
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+# The plugin's version (plugin.json); tests/nbno checks that they agree.
+VERSION = "1.5.2"
+USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 # Mirror the install-target / preflight helpers from zotero_book.py.
 # Kept inline so ocr_chunked.py is usable as a standalone script too.
@@ -220,8 +223,9 @@ def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
         dst = target / f"{code}.traineddata"
         if not dst.exists():
             try:
-                with urllib.request.urlopen(TESSDATA_URL.format(code=code),
-                                            timeout=60) as resp:
+                req = urllib.request.Request(TESSDATA_URL.format(code=code),
+                                             headers={"User-Agent": USER_AGENT})
+                with urllib.request.urlopen(req, timeout=60) as resp:
                     data = resp.read()
             except (OSError, http.client.HTTPException) as exc:
                 print(f"[ocr] could not fetch {code}.traineddata ({exc})",

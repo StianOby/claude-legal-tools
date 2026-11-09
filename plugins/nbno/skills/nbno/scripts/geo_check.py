@@ -56,6 +56,10 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
+# The plugin's version (plugin.json); tests/nbno checks that they agree.
+VERSION = "1.5.2"
+USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
+
 ME_URL = "https://api.nb.no/me/v1"
 ITEM_URL = "https://api.nb.no/catalog/v1/items/URN:NBN:no-nb_{id}"
 # Two manifest endpoints with different coverage; the first 404s for many
@@ -96,7 +100,7 @@ def decide_route(access_allowed_from: Optional[str], probe: Optional[int]) -> st
 def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
     # `Accept: */*`, not application/json: /me/v1 serves only
     # application/hal+json and answers 406 to a narrower Accept header.
-    headers = {"Accept": "*/*"}
+    headers = {"Accept": "*/*", "User-Agent": USER_AGENT}
     if nbsso:
         headers["cookie"] = nbsso
     req = urllib.request.Request(url, headers=headers)
@@ -130,7 +134,8 @@ def probe_tile(canonical: str, nbsso: Optional[str],
         base = canvases[pick]["images"][0]["resource"]["service"]["@id"]
     except (TypeError, KeyError, IndexError, StopIteration):
         return None
-    headers = {"referer": f"https://www.nb.no/items/URN:NBN:no-nb_{canonical}"}
+    headers = {"referer": f"https://www.nb.no/items/URN:NBN:no-nb_{canonical}",
+               "User-Agent": USER_AGENT}
     if nbsso:
         headers["cookie"] = nbsso
     req = urllib.request.Request(f"{base}/0,0,1024,1024/full/0/default.jpg",

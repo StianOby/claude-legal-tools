@@ -136,6 +136,17 @@ class NormalizedBook:
     extra: str = ""                 # Zotero's Extra field
 
 
+# The plugin's version (plugin.json); tests/nbno checks that they agree.
+VERSION = "1.5.2"
+USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
+
+
+def _request(url: str, headers: Optional[Dict[str, str]] = None) -> urllib.request.Request:
+    """A GET request with the skill's own User-Agent (never Python's
+    default "Python-urllib/…", which some hosts refuse; see CLAUDE.md)."""
+    return urllib.request.Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
+
+
 def book_to_item(book: NormalizedBook) -> dict:
     """The Zotero item (Zotero's own JSON) for a book. Every nb.no item type
     is a Zotero Book: Zotero has no "newspaper issue" type. The URL field
@@ -338,7 +349,7 @@ def fetch_nb_metadata(canonical_id: str, timeout: float = 30.0,
     headers = {"Accept": "application/json"}
     if nbsso:
         headers["cookie"] = nbsso
-    req = urllib.request.Request(url, headers=headers)
+    req = _request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -563,7 +574,7 @@ def _fetch_manifest(canonical_id: str, hdr_api: Dict[str, str],
     last_err: Optional[Exception] = None
     for url in candidates:
         try:
-            req = urllib.request.Request(url, headers=hdr_api)
+            req = _request(url, headers=hdr_api)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
@@ -589,7 +600,7 @@ def _read_url(url: str, headers: Dict[str, str], timeout: float) -> bytes:
     there", which a retry will not change."""
     for attempt in range(len(_RETRY_DELAYS) + 1):
         try:
-            req = urllib.request.Request(url, headers=headers)
+            req = _request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as e:
@@ -1250,7 +1261,7 @@ def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
         dst = target / f"{code}.traineddata"
         if not dst.exists():
             try:
-                with urllib.request.urlopen(TESSDATA_URL.format(code=code),
+                with urllib.request.urlopen(_request(TESSDATA_URL.format(code=code)),
                                             timeout=60) as resp:
                     data = resp.read()
             except (OSError, http.client.HTTPException) as exc:

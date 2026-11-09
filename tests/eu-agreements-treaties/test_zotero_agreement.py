@@ -268,5 +268,26 @@ check("no English: the database's title, Language of the text, OJ without series
       {k: y_item.get(k) for k in ("nameOfAct", "language", "code", "codeNumber", "pages")},
       {"nameOfAct": yaounde["title"], "language": "fr", "code": "OJ 1964", "codeNumber": "93", "pages": "1431-1457"})
 
+print("status line")
+ended = dict(merged["21963A0720(01)"], ojnum="093", ojyear="1964", ojid="oj:JOP_1964_093_R", ojdate="1964-06-11")
+for ends, want in ((["1975-01-31"], True), (["9999-12-31"], False), (["1001-01-01"], False),
+                   (["2099-01-01"], False), ([], False)):
+    check(f"past end of validity {ends}: ended={want}", za._ended(dict(ended, ends=ends), TODAY), want)
+e_item, _ = za.build_item(dict(yaounde, oj=[], entry_into_force="1964-06-01"),
+                          ("21963A0720(01)", dict(ended, ends=["1969-05-31"]), False), today=TODAY)
+check("in force once, ended: the translator's line", e_item["extra"].split("\n")[-3:-2], ["status: not in force"])
+n_item, _ = za.build_item(dict(yaounde, oj=[]), ("21963A0720(01)", dict(ended, ends=["1969-05-31"]), False),
+                          today=TODAY)
+check("one status line only", sum(l.startswith("status:") for l in n_item["extra"].split("\n")), 1)
+check("merge keeps every end date", za._merge({"x": [{"celex": "x", "title": "t", "end": "2001-01-01"},
+                                                     {"celex": "x", "title": "t", "end": "9999-12-31"}]})["x"]["ends"],
+      ["2001-01-01", "9999-12-31"])
+
+print("user agent")
+version = json.loads((SKILL.parents[1] / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
+check("UA carries the plugin version", za.UA.startswith(f"eu-agreements-treaties-skill/{version} "), True)
+check("UA names the repo", "github.com/StianOby/claude-legal-tools" in za.UA, True)
+check("UA not Mozilla/ or Python-urllib/", za.UA.startswith(("Mozilla/", "Python-urllib/")), False)
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)

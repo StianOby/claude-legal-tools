@@ -148,10 +148,14 @@ Treaties (Zotero `statute`):
     2026-11-09). Deliberate differences: `dateEnacted` and
     `available-date` come from the Council database, not Cellar/ELI (the
     translator can take provisional application for entry into force,
-    e.g. CETA); the status line marks agreements not yet in force, dated,
-    where the translator writes `status: not in force` only for ones with
-    a past end date; Extra adds CELEX, Consilium ID, provisional
-    application and depositary.
+    e.g. CETA); Extra adds CELEX, Consilium ID, provisional application
+    and depositary.
+  - Status: an agreement with a past end of validity in Cellar gets the
+    translator's `status: not in force`, word for word (real dates only:
+    Cellar writes 1001-01-01 for unknown and 9999-12-31 for open). One not
+    yet in force (no entry into force in the Council database) keeps the
+    dated line "status: not in force (as of …; EU perspective, Council
+    Treaties Office)". Never both.
   - URL is the ELI, or EUR-Lex by CELEX when there is no ELI.
   - `dateEnacted` is the agreement-level entry into force.
   - ELIs with an "(n)" suffix don't resolve on EUR-Lex. That is a bug in

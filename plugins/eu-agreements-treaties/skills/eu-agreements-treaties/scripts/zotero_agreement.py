@@ -80,7 +80,10 @@ SPARQL = "https://publications.europa.eu/webapi/rdf/sparql"
 TEXT_LANGS = {"ENG": "en", "FRA": "fr", "DEU": "de", "ITA": "it", "NLD": "nl"}
 _LANG_VALUES = " ".join(f"<http://publications.europa.eu/resource/authority/language/{c}>" for c in TEXT_LANGS)
 XSD = "http://www.w3.org/2001/XMLSchema#"
-UA = "claude-legal-tools eu-agreements-treaties (zotero_agreement.py)"
+# The plugin's version (plugin.json); tests/eu-agreements-treaties checks
+# that the two agree.
+VERSION = "0.3.1"
+UA = f"eu-agreements-treaties-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 _MONTHS = {m: i for i, m in enumerate(
     ["january", "february", "march", "april", "may", "june", "july", "august",
      "september", "october", "november", "december"], 1)}
@@ -190,7 +193,8 @@ _OJ_ISSUE = """
              ?ojr cdm:official-journal_number ?ojnum ; cdm:official-journal_year ?ojyear ;
                   cdm:work_id_document ?ojid . FILTER(STRSTARTS(STR(?ojid), "oj:JO"))
              OPTIONAL {{ ?ojr cdm:publication_general_date_publication ?ojdate }} }}
-  OPTIONAL {{ ?work cdm:official-journal-act_date_publication ?actdate }}"""
+  OPTIONAL {{ ?work cdm:official-journal-act_date_publication ?actdate }}
+  OPTIONAL {{ ?work cdm:resource_legal_date_end-of-validity ?end }}"""
 
 
 def _lang_rank(row: dict) -> int:
@@ -219,6 +223,9 @@ def _merge(rows_by_celex: dict) -> dict:
                 work["page"] = paged["page"]
                 if paged.get("plast"):
                     work["plast"] = paged["plast"]
+        # A work can have several end dates; keep them all (see _ended)
+        work["ends"] = sorted({r["end"] for r in rows if r.get("end")})
+        work.pop("end", None)
         fr = next((r["title"] for r in rows if (r.get("lang") or "").endswith("/FRA")), None)
         if fr:
             work["title_fr"] = fr
@@ -233,7 +240,7 @@ def cellar_works(celexes: list) -> dict:
     for i in range(0, len(celexes), 300):
         vals = " ".join(f'"{c}"^^<{XSD}string>' for c in celexes[i:i + 300])
         q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang ?end WHERE {{
   VALUES ?celex {{ {vals} }}
   ?work cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
   VALUES ?lang {{ {_LANG_VALUES} }}
@@ -254,7 +261,7 @@ def works_signed_on(date: str) -> dict:
     """Fallback for an OJ reference with a wrong date in the database (seen:
     "L 350 (22/01/2016)" for 22 December): agreements signed that day."""
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang ?end WHERE {{
   ?work cdm:resource_legal_date_signature "{date}"^^<{XSD}date> ;
         cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
   BIND("{date}" AS ?sig)
@@ -285,7 +292,7 @@ def works_in_issue(ref: dict) -> dict:
         return {}
     ojid = f"oj:JO{ref['series']}_{ref['year']}_{int(m.group(1)):03d}{m.group(2)}_R"
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang ?end WHERE {{
   VALUES ?ojid0 {{ "{ojid}"^^<{XSD}string> "{ojid}" }}
   ?ojr0 cdm:work_id_document ?ojid0 .
   ?work cdm:resource_legal_published_in_official-journal ?ojr0 ;
@@ -538,6 +545,14 @@ def oj_citation(celex: str, work: dict, refs: list) -> dict:
     return {k: v for k, v in out.items() if v}
 
 
+def _ended(work: Optional[dict], today: str) -> bool:
+    """A past end of validity in Cellar, as the EUR-Lex translator reads it:
+    Cellar writes an unknown date as 1001-01-01 and an open end as
+    9999-12-31, so only real dates before today count. Cellar's in-force
+    flag is not used: it is also off for agreements with no dates recorded."""
+    return any("1900" < d[:10] < today for d in (work or {}).get("ends") or [])
+
+
 def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
     today = today or _dt.date.today().isoformat()
     notes = []
@@ -597,7 +612,11 @@ def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
     prov = provisional_date(rec.get("observations"))
     if prov:
         extra.append(f"provisional application: {prov}")
-    if not rec.get("entry_into_force"):
+    if _ended(work, today):
+        # No longer in force: the EUR-Lex translator's line, word for word
+        # (zotero/translators#3721; maintainer's choice, 2026-11-09).
+        extra.append("status: not in force")
+    elif not rec.get("entry_into_force"):
         extra.append(f"status: {'provisionally applied, ' if prov else ''}not in force (as of {today}; "
                      "EU perspective, Council Treaties Office)")
     if celex:

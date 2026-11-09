@@ -63,7 +63,7 @@ What the item holds:
 | Date Enacted | the agreement-level entry into force; **empty when not in force** | 2017-09-01 |
 | URL | the ELI; the EUR-Lex address by CELEX for older agreements without one | http://data.europa.eu/eli/agree_internation/2016/837(1)/oj |
 | Language | the language of the attached text: `en`, or `fr`/`de`/`it`/`nl` when Cellar has no English text (agreements from before 1973) | en |
-| Extra | `type: treaty`, `available-date: <signature>`, `event-date: <OJ date>` (left out when unknown), `provisional application: <date>`, `status: …` when not in force, `CELEX: …`, `Consilium: <id>`, `depositary: …` | type: treaty / available-date: 2016-05-03 / event-date: 2016-05-28 / provisional application: 2016-08-01 / CELEX: 22016A0528(01) / Consilium: 2016032 |
+| Extra | `type: treaty`, `available-date: <signature>`, `event-date: <OJ date>` (left out when unknown), `provisional application: <date>`, `status: not in force` when Cellar gives a past end date (as the EUR-Lex translator), else `status: not in force (as of …)` when not yet in force, `CELEX: …`, `Consilium: <id>`, `depositary: …` | type: treaty / available-date: 2016-05-03 / event-date: 2016-05-28 / provisional application: 2016-08-01 / CELEX: 22016A0528(01) / Consilium: 2016032 |
 
 How the OJ publication is found: the database lists every OJ reference of an
 agreement — its text, but also Council decisions, notices of entry into
@@ -112,9 +112,11 @@ Lines starting `NOTE:` are for the user; pass them on:
   OJ date (`event-date`), the Norsk henvisningsstandard style cites the
   agreement in the wrong form, so say that it should be added.
 
-Also say, when it applies: the status line is dated and is the **EU's
-perspective** (for Norway's own entry into force, `norges-traktater` is
-authoritative); and an act-by-act OJ citation has no page.
+Also say, when it applies: a "not in force (as of …)" status line is dated
+and is the **EU's perspective** (for Norway's own entry into force,
+`norges-traktater` is authoritative); a plain "status: not in force" means
+the agreement has ended (its end of validity in EUR-Lex has passed); and an
+act-by-act OJ citation has no page.
 
 ## RDF route
 
