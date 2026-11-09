@@ -817,10 +817,12 @@ def rescale_pdf_pages(pdf_path: Path) -> int:
     for page in reader.pages:
         h = float(page.mediabox.height)
         scale = 72.0 / _page_dpi(round(h)) if h > 0 else 1.0
+        # Scale the writer's copy: pypdf 7 refuses to change the contents of
+        # a page not attached to a writer (DeprecationError, 2026-11-09).
+        page = writer.add_page(page)
         if scale < 0.99:
             page.scale_by(scale)
             changed += 1
-        writer.add_page(page)
     if changed:
         tmp = pdf_path.with_suffix(".rescaled.tmp")
         with open(tmp, "wb") as fh:
