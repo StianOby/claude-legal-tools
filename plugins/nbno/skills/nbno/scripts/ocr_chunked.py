@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 # Mirror the install-target / preflight helpers from zotero_book.py.

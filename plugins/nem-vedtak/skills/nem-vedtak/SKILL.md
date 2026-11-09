@@ -113,10 +113,11 @@ stderr; say there is more than one.
 2. The copy is the one found in "Start here" step 1; a new copy goes in
    **`<connected folder>/nem-vedtak/`**. Call that the copy folder. Start every call
    with `test -f <dir>/.ready || exit 4;` and call the script by its
-   absolute path with `PYTHONUTF8=1`.
+   absolute path with `PYTHONUTF8=1`, using the Python 3.13 that
+   `bash <dir>/scripts/local_python.sh <dir>` prints once (`<py>`; exit 1 → `python3`).
 3. Run `sync` at the first use in each conversation:
    ```bash
-   test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/nem.py sync --dir "<copy folder>"
+   test -f <dir>/.ready || exit 4; PYTHONUTF8=1 <py> <dir>/scripts/nem.py sync --dir "<copy folder>"
    ```
    A first sync takes about 15 s (234 pages plus the filter lists); later
    ones fetch only decisions whose sitemap date changed, and refresh the

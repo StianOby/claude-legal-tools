@@ -202,7 +202,9 @@ if [[ -z "$NBNO_BIN" ]]; then
   echo "Installing nbno (one-time, persistent at $PYLIB)..."
   # The pinned versions beside this script (Dependabot keeps them current) as
   # constraints; the newest versions if pip cannot install them on this Python.
-  PIP=(pip install --break-system-packages --no-cache-dir --target "$PYLIB" --upgrade --quiet)
+  # NBNO_PYTHON: the Python to install with (the local route passes the one
+  # local_python.sh prints); python3 otherwise.
+  PIP=("${NBNO_PYTHON:-python3}" -m pip install --break-system-packages --no-cache-dir --target "$PYLIB" --upgrade --quiet)
   if [[ -f "$SCRIPT_DIR/requirements.txt" ]] \
      && "${PIP[@]}" -c "$SCRIPT_DIR/requirements.txt" nbno >/dev/null 2>&1; then
     :
@@ -267,7 +269,7 @@ for pdf in "${PDFS[@]}"; do
   # nbno embeds page images at 72 DPI, so pages come out poster-size (~1 m).
   # Rescale them to book size (same rule as zotero_book.py); failure is
   # non-fatal — the PDF is still valid, just oversized.
-  PYBIN="$(command -v python3 || command -v python)"
+  PYBIN="${NBNO_PYTHON:-$(command -v python3 || command -v python)}"
   if [[ -n "$PYBIN" ]]; then
     "$PYBIN" - "$SCRIPT_DIR" "$OUT/$base" <<'PYEOF' || echo "WARNING: could not rescale PDF page size (left as nbno produced it)." >&2
 import sys

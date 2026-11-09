@@ -174,7 +174,7 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
   until then nothing was pinned). A skill whose scripts install Python
   packages (nbno, kildesjekk) has `scripts/requirements.in` (its direct
   dependencies, unversioned) and `scripts/requirements.txt`, the lock
-  pip-compile makes from it with Python 3.10 (the Cowork local VM's), every
+  pip-compile makes from it with Python 3.13 (the cloud sandbox's), every
   package `==`, no hashes. They sit in `scripts/` because the local route
   packs only that folder.
   - Every install passes the lock as constraints: `pip install -c
@@ -187,14 +187,25 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
     `.github/workflows/dependabot-bump.yml` pushes the plugin version bump
     to its PRs with the `DEPENDABOT_BUMP_TOKEN` Dependabot secret.
     validate.yml's `pinned` job runs each plugin's tests on its lock on
-    Python 3.10; a red Dependabot PR is not merged.
+    Python 3.13; a red Dependabot PR is not merged.
   - validate.yml's main job still installs the newest versions, and runs
     weekly too, as the early warning.
   - A new pip dependency goes into `requirements.in`; then regenerate with
     `pip-compile --strip-extras --no-emit-index-url requirements.in` on
-    Python 3.10 (`uv venv --python 3.10` gets one). Bump versions with
+    Python 3.13 (`uv venv --python 3.13` gets one). Bump versions with
     `.github/scripts/bump-plugin-versions.py`, which also updates the
     `VERSION = "…"` and `<name>-skill/<version>` copies in the scripts.
+  - **One Python, 3.13, everywhere.** The cloud sandbox has 3.13 (3.13.18
+    on 2026-11-09). The Cowork local VM is an unprivileged Ubuntu 22.04 with
+    Python 3.10, which current releases have dropped (Pillow's security
+    fixes since 13.0.0 need 3.11+). So every local-route skill runs its
+    scripts with the Python `scripts/local_python.sh` prints (canonical copy
+    in `shared/local-route/`): one already there, or a standalone CPython
+    3.13 that uv (pinned in nbno's lock) fetches into the run directory,
+    ~33 MB in ~3 s, no root. validate.yml tests that path.
+  - Upstream caps count too: the `nbno` CLI package capped Pillow at `<13`
+    (PR Lanjelin/NBNO.py#28 raises it). When an alert's fix is blocked by a
+    dependency's own cap, fix it upstream rather than overriding the cap.
   - Not pinned: eurlex-mcp-server (`npx -y` in the user's own Claude
     config, out of Dependabot's reach), the sandbox's apt packages, and
     the `pip install pypdf` hints in skills that do not install it

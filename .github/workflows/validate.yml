@@ -49,6 +49,16 @@ jobs:
       - name: Check shared files are identical in every plugin that carries them
         run: python3 .github/scripts/check-shared.py
 
+      # The runner's python3 is older than 3.13, so this takes the uv path the
+      # Cowork local VM (Python 3.10) takes: network, ~35 MB, a few seconds.
+      - name: local_python.sh provides a Python 3.13 without root (network)
+        run: |
+          py=$(bash shared/local-route/local_python.sh /tmp/lp)
+          "$py" -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
+          if ! python3 -c "import sys; sys.exit(sys.version_info[:2] < (3, 13))"; then
+            case "$py" in /tmp/lp/*) ;; *) echo "::error::uv's Python not under the run directory: $py"; exit 1;; esac
+          fi
+
       - name: Check SKILL.md description length (≤ 1024 chars after YAML parsing)
         run: |
           pip install --quiet pyyaml
@@ -125,9 +135,9 @@ jobs:
           done
 
   # What users get: each lock file (plugins/*/skills/*/scripts/requirements.txt)
-  # installed on Python 3.10, the oldest Python the skills meet (the Cowork
-  # local VM), and that plugin's tests run on it. A Dependabot PR that pins a
-  # version 3.10 cannot install fails here: don't merge it.
+  # installed on Python 3.13, the cloud sandbox's (the local route gets the
+  # same from local_python.sh), and that plugin's tests run on it. A
+  # Dependabot PR whose pins fail here is not merged.
   pinned:
     runs-on: ubuntu-latest
     steps:
@@ -135,7 +145,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - name: Run each plugin's tests on its pinned versions
         run: |

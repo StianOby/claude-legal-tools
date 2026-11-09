@@ -57,7 +57,7 @@ import urllib.request
 from typing import Optional
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 ME_URL = "https://api.nb.no/me/v1"

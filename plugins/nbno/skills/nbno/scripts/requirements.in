@@ -1,6 +1,6 @@
 # Direct dependencies of the nbno skill's scripts. requirements.txt is the
-# lock compiled from this file with Python 3.10 (the oldest Python the skill
-# meets: the Cowork local VM, 2026-10), and Dependabot keeps it current.
+# lock compiled from this file with Python 3.13, the cloud sandbox's (3.13.18 on
+# 2026-11-09); the local route gets the same Python from scripts/local_python.sh. Dependabot keeps it current.
 # Every install uses the lock as constraints: pip install -c requirements.txt …
 # Regenerate: pip-compile --strip-extras --no-emit-index-url requirements.in
 nbno
@@ -10,3 +10,4 @@ img2pdf
 pypdf
 Pillow
 numpy
+uv

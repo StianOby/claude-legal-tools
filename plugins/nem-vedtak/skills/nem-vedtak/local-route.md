@@ -95,15 +95,24 @@ The local shell does not have the skill's files, so every run copies them in.
   exit 4 means the VM lost the copy — redo step 2. Call scripts by their
   **absolute** path (`<dir>/scripts/x.py`), not `cd <dir> && scripts/x.py`:
   some scripts change directory and then look for their neighbours.
-- Prefix Python with `PYTHONUTF8=1`.
+- **Python 3.13, the cloud sandbox's version** (the local VM's own `python3`
+  is 3.10, too old for current packages and their security fixes). Get its
+  path once, after `READY <dir>`:
+  `test -f <dir>/.ready || exit 4; bash <dir>/scripts/local_python.sh <dir>`.
+  It prints one path (`<py>` below), using a Python 3.13 already there or
+  fetching a standalone one with uv into `<dir>` (~33 MB, a few seconds; no
+  root, nothing outside `<dir>`). Use that path literally for every script:
+  `PYTHONUTF8=1 <py> <dir>/scripts/x.py`. If it exits 1 (no network to
+  GitHub, say), use `python3` and tell the user that the newest package
+  versions may not install.
 - **Python packages:** install into the run directory, never globally. When
   the skill has `scripts/requirements.txt` (its pinned versions), add
   `-c <dir>/scripts/requirements.txt`; never type a version yourself:
   ```bash
-  python3 -m venv <dir>/venv && <dir>/venv/bin/pip install --quiet --upgrade -c <dir>/scripts/requirements.txt <packages>
+  <py> -m venv <dir>/venv && <dir>/venv/bin/pip install --quiet --upgrade -c <dir>/scripts/requirements.txt <packages>
   ```
   If `venv` is unavailable:
-  `python3 -m pip install --quiet --upgrade --target <dir>/pylib -c <dir>/scripts/requirements.txt <packages>` and
+  `<py> -m pip install --quiet --upgrade --target <dir>/pylib -c <dir>/scripts/requirements.txt <packages>` and
   run with `PYTHONPATH=<dir>/pylib`. Without `requirements.txt`, leave out
   `-c …`. If pip says a pinned version cannot be installed on this Python,
   run the command again without `-c …` and tell the user.
@@ -120,8 +129,9 @@ The local shell does not have the skill's files, so every run copies them in.
 - **Final files** go to `<connected folder>/<skill>/<item-id>/`. Intermediate
   files (page tiles, cookies, downloads being assembled) stay in `<dir>`.
 - **Finish the whole pipeline in the local shell** (download → OCR → shrink →
-  metadata); its toolchain is enough for that (Python 3 with venv/pip,
-  tesseract, qpdf, gs, pdftoppm; `ocrmypdf` is pip-installed into `<dir>`).
+  metadata); its toolchain is enough for that (`<py>` from
+  `local_python.sh`, tesseract, qpdf, gs, pdftoppm; `ocrmypdf` is
+  pip-installed into `<dir>`).
   Final files stay in the connected folder; tell the user where.
 - **The cloud side cannot see the connected folder.** `device_stage_files`
   copies a file from it to `/mnt/user-data/uploads/<folder>/<path>`

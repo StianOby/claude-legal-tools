@@ -52,8 +52,12 @@ def bumped(version: str, part: str) -> str:
 
 
 def changed_files(base: str, name: str) -> list:
-    out = git("diff", "--name-only", base, "HEAD", "--", f"plugins/{name}")
-    return [f for f in out.splitlines() if f != f"plugins/{name}/.claude-plugin/plugin.json"]
+    """Files under plugins/<name>/ that differ from `base` in the working
+    tree (committed or not), new untracked files included."""
+    path = f"plugins/{name}"
+    out = git("diff", "--name-only", base, "--", path) + git(
+        "ls-files", "--others", "--exclude-standard", "--", path)
+    return sorted({f for f in out.splitlines() if f and f != f"{path}/.claude-plugin/plugin.json"})
 
 
 def bump(name: str, part: str, base) -> str:

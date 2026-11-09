@@ -102,22 +102,23 @@ not one. So:
    For nbno, once `READY <dir>` is printed:
    - `NB` only: put the cookie in a mode-600 file inside `<dir>`, never in the connected folder:
      `umask 077; printf 'authorization=\ncookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
+   - Get the Python once (`local-route.md` §3): `test -f <dir>/.ready || exit 4; bash <dir>/scripts/local_python.sh <dir>`
+     prints `<py>`, a Python 3.13 (exit 1 → use `python3` and say newer packages may not install).
    - Probe again from the user's machine, in `device_bash`:
-     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 python3 <dir>/scripts/geo_check.py --id <id>` (add
+     `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 <py> <dir>/scripts/geo_check.py --id <id>` (add
      `--cookie <dir>/cookie.txt` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
      them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
      the cookie, retry **once**, then stop.
    - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), calling the scripts by
-     absolute path (`bash <dir>/scripts/nbno_run.sh …`, `python3 <dir>/scripts/zotero_book.py …`) with
+     absolute path (`NBNO_PYTHON=<py> bash <dir>/scripts/nbno_run.sh …`, `<py> <dir>/scripts/zotero_book.py …`) with
      `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or
      `--nbsso "$(grep -o 'nbsso=[^;]*' <dir>/cookie.txt)"` for `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
      `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
    - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
      2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
-     Missing → `--no-ocr`. Current ocrmypdf needs Python ≥ 3.11 (macOS ships 3.9, where pip would quietly
-     install a years-old ocrmypdf): check `python3 -c 'import sys; print(sys.version_info[:2])'`, and if it
-     is older, run the scripts with a newer `python3.1x` if one is on the PATH (e.g. from Homebrew);
-     otherwise `--no-ocr` and say why. Never install Python or conda yourself. Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
+     Missing → `--no-ocr`. Current ocrmypdf needs Python ≥ 3.11: with `<py>` that holds; if
+     `local_python.sh` failed and you are on the VM's `python3` (3.10), pip installs an older ocrmypdf, so say
+     so. Install no Python other than through `local_python.sh` (never system-wide, never conda). Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
      handle it as in **OCR failed (exit 5)** under Step 4.
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/` and tell the user where it is. Keep
      `<dir>` for further nb.no downloads in this conversation (`local-route.md` §2.4); when you are done with
