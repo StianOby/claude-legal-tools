@@ -43,7 +43,7 @@ BASE = "https://www.forskningsetikk.no"
 LIST_PATH = "/om-oss/komiteer-og-utvalg/nem/sok-i-nems-vedtak/"
 LIST_URL = BASE + LIST_PATH
 SITEMAP_URL = BASE + "/sitemaps/forskningsetikk/no/content.xml"
-UA = "nem-vedtak-skill/0.3.9 (+https://github.com/StianOby/claude-legal-tools)"
+UA = "nem-vedtak-skill/0.3.10 (+https://github.com/StianOby/claude-legal-tools)"
 PAGE_SIZE = 10
 # How a decision's text is converted. A decision in the copy with another
 # (or no) text_format is fetched again on the next sync. 2 (0.3.6): soft

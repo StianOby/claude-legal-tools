@@ -49,13 +49,14 @@ jobs:
       - name: Check shared files are identical in every plugin that carries them
         run: python3 .github/scripts/check-shared.py
 
-      # The runner's python3 is older than 3.13, so this takes the uv path the
-      # Cowork local VM (Python 3.10) takes: network, ~35 MB, a few seconds.
+      # The runner's python3 is not 3.13 (3.14 on 2026-11-09), so this takes
+      # the uv path the Cowork local VM (Python 3.10) takes: network, ~35 MB,
+      # a few seconds.
       - name: local_python.sh provides a Python 3.13 without root (network)
         run: |
           py=$(bash shared/local-route/local_python.sh /tmp/lp)
           "$py" -c "import sys; print(sys.version); assert sys.version_info[:2] == (3, 13)"
-          if ! python3 -c "import sys; sys.exit(sys.version_info[:2] < (3, 13))"; then
+          if ! command -v python3.13 >/dev/null && ! python3 -c "import sys; sys.exit(sys.version_info[:2] != (3, 13))"; then
             case "$py" in /tmp/lp/*) ;; *) echo "::error::uv's Python not under the run directory: $py"; exit 1;; esac
           fi
 
