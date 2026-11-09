@@ -8,8 +8,11 @@ library".
 The result is one Zotero **statute** item with the English text as published
 in the Official Journal attached as a PDF. It is entered like the Dublin and
 Schengen items in the shared group library *Norsk henvisningsstandard for
-rettsvitenskapelige tekster – eksempler*: `code` "EUT 2001 L", `pages`
-"93/40", the ELI as URL.
+rettsvitenskapelige tekster – eksempler*, which follow the EUR-Lex
+translator: `code` "OJ 2001 L", `codeNumber` "93", `pages` "40-47",
+`event-date` (the OJ date) in Extra, the ELI as URL. The Norsk
+henvisningsstandard style needs `event-date` together with `codeNumber` to
+cite it as "OJ 2001 L 93/40".
 
 An ELI with a sequence suffix, such as `…/2016/837(1)/oj` (the first
 agreement published with Council Decision 2016/837), lands on "No results
@@ -45,7 +48,7 @@ reaches:
    ```
 
 It writes `<base>.pdf`, `<base>.rdf` and `<base>.zotero.json`, e.g.
-`EUT_2016_L_141_3_Agreement_between_the_European_Union_Iceland_the.*`.
+`OJ_2016_L_141_3_Agreement_between_the_European_Union_Iceland_the.*`.
 About a second or two per agreement; Cellar answers 503 now and then, which
 the script retries.
 
@@ -54,12 +57,13 @@ What the item holds:
 | Zotero field | Value | 2016032 |
 |---|---|---|
 | Name of Act | the database's title without its editorial insertions ("- See 2014013 (EEA Agreement)", "(BG/ES/…)", "(Deposited with …)", "(including …)") | Agreement between the European Union, Iceland, the Principality of Liechtenstein and the Kingdom of Norway on an EEA Financial Mechanism 2014-2021 |
-| Code | `EUT <OJ year> <series>`; `EUT L` in the act-by-act OJ (since October 2023) | EUT 2016 L |
-| Pages | `<issue>/<first page>`; `<year>/<act number>` in the act-by-act OJ | 141/3 |
+| Code | `OJ <OJ year> <series>`; `OJ L` in the act-by-act OJ (since October 2023) | OJ 2016 L |
+| Code Number | the OJ issue; empty in the act-by-act OJ | 141 |
+| Pages | `<first>-<last page>`; `<year>/<act number>` in the act-by-act OJ | 3-10 |
 | Date Enacted | the agreement-level entry into force; **empty when not in force** | 2017-09-01 |
 | URL | the ELI; the EUR-Lex address by CELEX for older agreements without one | http://data.europa.eu/eli/agree_internation/2016/837(1)/oj |
-| Language | English | English |
-| Extra | `type: treaty`, `available-date: <signature>`, `provisional application: <date>`, `status: …` when not in force, `CELEX: …`, `Consilium: <id>`, `depositary: …` | type: treaty / available-date: 2016-05-03 / provisional application: 2016-08-01 / CELEX: 22016A0528(01) / Consilium: 2016032 |
+| Language | the language of the attached text: `en`, or `fr`/`de`/`it`/`nl` when Cellar has no English text (agreements from before 1973) | en |
+| Extra | `type: treaty`, `available-date: <signature>`, `event-date: <OJ date>` (left out when unknown), `provisional application: <date>`, `status: …` when not in force, `CELEX: …`, `Consilium: <id>`, `depositary: …` | type: treaty / available-date: 2016-05-03 / event-date: 2016-05-28 / provisional application: 2016-08-01 / CELEX: 22016A0528(01) / Consilium: 2016032 |
 
 How the OJ publication is found: the database lists every OJ reference of an
 agreement — its text, but also Council decisions, notices of entry into
@@ -76,6 +80,17 @@ an exchange of letters not published on its own, and the 1972 Accession
 Treaty, whose signature date Cellar has wrong (1970-04-22). It prefers no
 citation to a wrong one.
 
+Agreements from before 1973, when English became an official language,
+often have no English version in Cellar. Then the script takes the French
+text, else German, Italian or Dutch: the PDF is in that language and so is
+Language, while the title stays the database's English one. Pages come from
+any language's copy (the language editions of the OJ share their page
+numbers). With no English title to compare, an agreement is matched on its
+signature date: it must be the only one without English signed that day,
+or the only one of the same kind (Convention, Agreement, Protocol …) as the
+database's title, and the match is always reported as one to check. Before
+1968 the OJ had no series, so Code is "OJ 1964", without "L".
+
 Lines starting `NOTE:` are for the user; pass them on:
 
 - **"the OJ publication of the agreement could not be identified"**: the
@@ -85,10 +100,17 @@ Lines starting `NOTE:` are for the user; pass them on:
 - **"matched to CELEX … on a weak title match"**: the signature date could
   not confirm the match. Show the user the matched title and ask whether it
   is the same agreement.
+- **"matched to CELEX … on its signature date and kind of instrument
+  alone"**: Cellar has the agreement only in other languages; show the
+  matched (e.g. French) title and ask whether it is the same agreement.
+- **"Cellar has no English text"**: say which language the PDF is in, and
+  that Language says so while the title is English.
 - **"the database lists this record as a bundle"**: the item describes the
   main agreement only.
-- **"no ELI …"** / **"the first page … is not in Cellar"**: say which field
-  is missing.
+- **"no ELI …"** / **"the pages … are not in Cellar"** / **"the OJ date is
+  not in Cellar or the database"**: say which field is missing. Without the
+  OJ date (`event-date`), the Norsk henvisningsstandard style cites the
+  agreement in the wrong form, so say that it should be added.
 
 Also say, when it applies: the status line is dated and is the **EU's
 perspective** (for Norway's own entry into force, `norges-traktater` is
@@ -143,13 +165,14 @@ annexes is 37 MiB). The PDF then cannot leave the cloud sandbox, so:
    hits. `zotero_search_items` with `q` = the CELEX without its sequence
    (`22016A0528`) and `itemType: "statute"`; then the Consilium ID
    (`2016032`). Both found exactly the item in a real library (2026-10-22).
-   An item entered by hand has neither, so if both find nothing, search the
-   OJ citation's issue/page (`141/3`) and a distinctive title word.
-   Confirm a hit by its Code and Pages before calling it a duplicate. If it
-   is the same agreement, show it and ask: add the PDF to it, or create a new
-   item.
-4. **Ask before writing:** "Save *<title>* (<code> <pages>) to <library /
-   collection>?"
+   An item entered by hand or saved with the EUR-Lex translator has
+   neither, so if both find nothing, search the ELI (`agree_internation/2016/837`)
+   and a distinctive title word. Confirm a hit by its Code, Code Number and
+   Pages before calling it a duplicate; an older item may have the earlier
+   form "EUT 2016 L" + "141/3". If it is the same agreement, show it and
+   ask: add the PDF to it, or create a new item.
+4. **Ask before writing:** "Save *<title>* (<code> <code number>/<first
+   page>) to <library / collection>?"
 5. `zotero_create_items` with the `items` array from the JSON unchanged (add
    `collections` if chosen). Note the new item's key.
 6. **PDF:** `zotero_attach_file` with `parent` = the key and `url` = `pdf.url`

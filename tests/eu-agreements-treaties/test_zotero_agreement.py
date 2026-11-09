@@ -147,28 +147,54 @@ celex, _, _ = za.pick({"title": "Treaty concerning the accession of Norway", "si
 check("…but not against Cellar's own signature date (1972: 1970-04-22 in Cellar; not worked around)", celex, None)
 
 print("citation and item")
-check("old OJ from Cellar's issue", za.oj_citation("21972A1219(01)", w("x", page="0002", ojnum="133", ojyear="1973",
-                                                                       ojid="oj:JOL_1973_133_R"), []),
-      ("EUT 1973 L", "133/2"))
+# The library's Dublin item (ZRVR9TTR, as the EUR-Lex translator saves it):
+# "OJ 2001 L", 93, "40-47", event-date 2001-04-03 — Cellar's values for
+# 22001A0403(01), 2026-11-09.
+check("Dublin as in the library", za.oj_citation("22001A0403(01)", w(
+    "x", page="0040", plast="0047", ojnum="093", ojyear="2001", ojid="oj:JOL_2001_093_R", ojdate="2001-04-03"), []),
+      {"code": "OJ 2001 L", "codeNumber": "93", "pages": "40-47", "oj_date": "2001-04-03"})
+check("old OJ: the OJ date from the database's reference when Cellar has none", za.oj_citation(
+    "21972A1219(01)", w("x", page="0002", ojnum="133", ojyear="1973", ojid="oj:JOL_1973_133_R"),
+    [za.parse_oj({"text": "L 133 (21/05/1973);"})]),
+      {"code": "OJ 1973 L", "codeNumber": "133", "pages": "2", "oj_date": "1973-05-21"})
+# Cellar's own act date first (22026A00757, the Energy Charter item: the
+# EUR-Lex translator gives event-date 2026-03-27 too)
+check("act-numbered OJ: Cellar's act date", za.oj_citation("22026A00757", w("x", actdate="2026-03-27"), []),
+      {"code": "OJ L", "pages": "2026/757", "oj_date": "2026-03-27"})
 check("act-numbered OJ", za.oj_citation("22024A02603", w("x"), [za.parse_oj({"text": "L, 2024/02603 (08/10/2024);"})]),
-      ("EUT L", "2024/2603"))
-check("issue without page", za.oj_citation("22016A0528(01)", w("x", ojnum="141", ojyear="2016", ojid="oj:JOL_2016_141_R"), []),
-      ("EUT 2016 L", "141"))
+      {"code": "OJ L", "pages": "2024/2603", "oj_date": "2024-10-08"})
+check("act-numbered OJ C: \"C/\" as in the translator", za.oj_citation(
+    "52024A03400", w("x"), [za.parse_oj({"text": "C, 2024/03400 (10/06/2024);"})]),
+      {"code": "OJ C", "pages": "C/2024/3400", "oj_date": "2024-06-10"})
+# The translator's 1956 ECSC case (21956A0507(01)): "OJ 1957", 7; Cellar's
+# values 2026-11-09 (no page in Cellar)
+check("ECSC OJ: no series", za.oj_citation("21956A0507(01)", w(
+    "x", ojnum="7", ojyear="1957", ojid="oj:JOA_1957_007_R", ojdate="1957-02-21"), []),
+      {"code": "OJ 1957", "codeNumber": "7", "oj_date": "1957-02-21"})
+check("OJ before 1968: no series", za.oj_citation("21963A0720(01)", w(
+    "x", page="1431", plast="1457", ojnum="093", ojyear="1964", ojid="oj:JOP_1964_093_R", ojdate="1964-06-11"), [])["code"],
+      "OJ 1964")
+check("issue without page or date", za.oj_citation("22016A0528(01)", w("x", ojnum="141", ojyear="2016",
+                                                                         ojid="oj:JOL_2016_141_R"), []),
+      {"code": "OJ 2016 L", "codeNumber": "141"})
+check("last page equal to the first: one page", za._pages({"page": "0005", "plast": "0005"}), "5")
 rec = PROBE["2016032"]
 item, notes = za.build_item(rec, ("22016A0528(01)", w(
     "Agreement between the European Union, Iceland, the Principality of Liechtenstein and the Kingdom of Norway on an "
     "EEA Financial Mechanism 2014-2021", "2016-05-03", "0003", eli="http://data.europa.eu/eli/agree_internation/2016/837(1)/oj",
-    ojnum="141", ojyear="2016", ojid="oj:JOL_2016_141_R_0002"), True), today=TODAY)
-check("item as the library's Dublin/Schengen pattern", {k: item[k] for k in ("code", "pages", "dateEnacted", "url", "language")},
-      {"code": "EUT 2016 L", "pages": "141/3", "dateEnacted": "2017-09-01",
+    plast="0010", ojnum="141", ojyear="2016", ojid="oj:JOL_2016_141_R_0002", ojdate="2016-05-28"), True), today=TODAY)
+check("item as the library's Dublin/Schengen pattern",
+      {k: item.get(k) for k in ("code", "codeNumber", "pages", "dateEnacted", "url", "language")},
+      {"code": "OJ 2016 L", "codeNumber": "141", "pages": "3-10", "dateEnacted": "2017-09-01",
        # The ELI is kept although EUR-Lex fails to resolve suffixed ones (2026-10-22).
-       "url": "http://data.europa.eu/eli/agree_internation/2016/837(1)/oj", "language": "English"})
+       "url": "http://data.europa.eu/eli/agree_internation/2016/837(1)/oj", "language": "en"})
+check("no notes when the citation is complete", notes, [])
 eea_item, _ = za.build_item(PROBE["1992045"], ("21994A0103(01)", w(
     "Agreement on the European Economic Area - Final Act", "1992-05-02", "0003",
     eli="http://data.europa.eu/eli/agree_internation/1994/1/oj", ojnum="1", ojyear="1994", ojid="oj:JOL_1994_001_R"), True),
     today=TODAY)
 check("a plain ELI is used too (EEA)", eea_item["url"], "http://data.europa.eu/eli/agree_internation/1994/1/oj")
-check("extra", item["extra"].split("\n"), ["type: treaty", "available-date: 2016-05-03",
+check("extra", item["extra"].split("\n"), ["type: treaty", "available-date: 2016-05-03", "event-date: 2016-05-28",
                                            "provisional application: 2016-08-01", "CELEX: 22016A0528(01)",
                                            "Consilium: 2016032"])
 air_item, _ = za.build_item(PROBE["2011036"], None, today=TODAY)
@@ -179,7 +205,68 @@ check("no match: Consilium URL and a note", (air_item["url"].startswith("https:/
 old, _ = za.build_item(PROBE["2003104"], ("22004A0429(04)", w("x", "2003-10-14", "0081", ojnum="130", ojyear="2004",
                                                             ojid="oj:JOL_2004_130_R"), True), today=TODAY)
 check("no ELI: EUR-Lex by CELEX", old["url"], "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22004A0429(04)")
-check("basename", za.basename(item), "EUT_2016_L_141_3_Agreement_between_the_European_Union_Iceland_the")
+check("basename", za.basename(item), "OJ_2016_L_141_3_Agreement_between_the_European_Union_Iceland_the")
+old2, old_notes = za.build_item(PROBE["2003104"], ("22004A0429(04)", w("x", "2003-10-14", ojnum="130", ojyear="2004",
+                                                                       ojid="oj:JOL_2004_130_R"), True), today=TODAY)
+check("no OJ date in Cellar: the database's reference to the same issue (L 130 (29/04/2004))",
+      "event-date: 2004-04-29" in old2["extra"].split("\n"), True)
+check("missing pages are reported", [n.split(";")[0] for n in old_notes],
+      ["the pages of the agreement in the OJ issue are not in Cellar"])
+_, nodate_notes = za.build_item({"id": "0000000", "title": "x", "oj": []}, ("22016A0528(01)", w(
+    "x", page="0003", ojnum="141", ojyear="2016", ojid="oj:JOL_2016_141_R"), True), today=TODAY)
+check("missing OJ date is reported", [n.split(";")[0] for n in nodate_notes],
+      ["the OJ date is not in Cellar or the database"])
+aba, aba_notes = za.build_item({"id": "2026004", "title": "x", "oj": []}, ("22026A02350", w("x"), True), today=TODAY)
+check("act-by-act OJ without a date: no event-date, no note",
+      (any(l.startswith("event-date") for l in aba["extra"].split("\n")), aba_notes), (False, []))
+
+print("agreements without an English version (before 1973)")
+L = "http://publications.europa.eu/resource/authority/language/"
+# Cellar's rows for 21963A0720(01)/(02), 2026-11-09 (trimmed): no English;
+# the 1956 ECSC agreement has an English title but pages only in French.
+merged = za._merge({
+    "21963A0720(01)": [
+        {"celex": "21963A0720(01)", "lang": L + "DEU", "title": "Abkommen über die Assoziation …", "sig": "1963-07-20",
+         "page": "1431", "plast": "1457", "type": "A"},
+        {"celex": "21963A0720(01)", "lang": L + "FRA", "type": "A", "sig": "1963-07-20", "page": "1431", "plast": "1457",
+         "title": "Convention d'association entre la Communauté économique européenne et les États africains et "
+                  "malgache associés à cette Communauté /* Signée à Yaoundé le 20 juillet 1963 */"}],
+    "21963A0720(02)": [
+        {"celex": "21963A0720(02)", "lang": L + "FRA", "type": "A", "sig": "1963-07-20", "page": "1458",
+         "title": "Accord relatif aux produits relevant de la Communauté européenne du charbon et de l'acier"}],
+    "21956A0507(01)": [
+        {"celex": "21956A0507(01)", "lang": L + "ENG", "type": "A", "sig": "1956-05-07",
+         "title": "Consultation Agreement between the Swiss Confederation and the High Authority …"},
+        {"celex": "21956A0507(01)", "lang": L + "FRA", "type": "A", "sig": "1956-05-07", "page": "0085", "plast": "0087",
+         "title": "Accord de consultation …", "ojnum": "7"}]})
+check("merge: French before German", (merged["21963A0720(01)"]["lang"], merged["21963A0720(01)"]["title"][:10]),
+      ("FRA", "Convention"))
+check("merge: English title, French pages, work fields from any row",
+      {k: merged["21956A0507(01)"].get(k) for k in ("lang", "page", "plast", "ojnum")},
+      {"lang": "ENG", "page": "0085", "plast": "0087", "ojnum": "7"})
+yaounde = {"id": "x", "title": "Convention of Association between the European Economic Community and the "
+                               "African and Malagasy States associated with that Community", "signature": "1963-07-20"}
+check("two signed that day: the one of the same kind (Convention, not Accord), to check",
+      za.pick(yaounde, {k: merged[k] for k in ("21963A0720(01)", "21963A0720(02)")})[0::2],
+      ("21963A0720(01)", False))
+check("…the Accord for an Agreement",
+      za.pick(dict(yaounde, title="Agreement on products within the province of the ECSC"),
+              {k: merged[k] for k in ("21963A0720(01)", "21963A0720(02)")})[0],
+      "21963A0720(02)")
+check("two of the same kind: no match",
+      za.pick(dict(yaounde, title="Protocol on something"),
+              {k: merged[k] for k in ("21963A0720(01)", "21963A0720(02)")})[0], None)
+check("one signed that day: matched whatever its kind",
+      za.pick(dict(yaounde, title="Protocol on something"), {"21963A0720(02)": merged["21963A0720(02)"]})[0],
+      "21963A0720(02)")
+check("a different signature date: no match",
+      za.pick(dict(yaounde, signature="1963-07-21"), {"21963A0720(01)": merged["21963A0720(01)"]})[0], None)
+y_item, _ = za.build_item(dict(yaounde, oj=[]), ("21963A0720(01)", dict(
+    merged["21963A0720(01)"], ojnum="093", ojyear="1964", ojid="oj:JOP_1964_093_R", ojdate="1964-06-11"), False),
+    today=TODAY)
+check("no English: the database's title, Language of the text, OJ without series",
+      {k: y_item.get(k) for k in ("nameOfAct", "language", "code", "codeNumber", "pages")},
+      {"nameOfAct": yaounde["title"], "language": "fr", "code": "OJ 1964", "codeNumber": "93", "pages": "1431-1457"})
 
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)

@@ -120,9 +120,38 @@ Treaties (Zotero `statute`):
   - Flow: `__cs.zotero(id)` in the browser gives a base64 record, and
     `zotero_agreement.py --record-b64` matches it to the OJ publication in
     Cellar (publications.europa.eu/webapi/rdf/sparql).
-  - OJ reference: `code` "EUT <OJ year> L" with `pages` "<issue>/<page>".
-    For act-by-act OJ (from October 2023): `code` "EUT L" with `pages`
-    "<year>/<number>". Always "EUT".
+  - OJ reference as the EUR-Lex translator saves treaties
+    (zotero/translators#3721, followed by the group library and read by
+    the style since citation-style-language/styles#8420, 2026-11): `code`
+    "OJ <OJ year> L", `codeNumber` the issue, `pages` "<first>-<last>",
+    and `event-date: <OJ date>` in Extra. The style recognises an OJ
+    treaty by `event-date` together with `codeNumber` and prints
+    "OJ 2001 L 93/40". For act-by-act OJ (from October 2023): `code`
+    "OJ L" with `pages` "<year>/<number>", no `codeNumber`. "OJ", not
+    "EUT" (changed 2026-11-09; earlier items have "EUT 2001 L" +
+    "93/40"). Before 1968 (and the ECSC's OJ) there was no series:
+    `code` "OJ 1964", as in the translator.
+  - `event-date` only when the OJ date is known (Cellar's act or OJ
+    issue, else the database's OJ reference); never a guess. Like the
+    translator, act-by-act agreements get it too.
+  - No English version in Cellar (agreements before 1973; maintainer's
+    decisions 2026-11-09): the text in French, else German, Italian,
+    Dutch; `language` is the language of the attached text (`fr` …),
+    while the title stays the database's English one; pages from any
+    language's copy. Matching then rests on the signature date: the only
+    agreement without English signed that day, or the only one of the
+    same kind of instrument (English title's "Convention"/"Agreement"/…
+    against the French title's first word), always reported as a match
+    to check. Yaoundé 1963: the Convention and an ECSC products Accord
+    were signed the same day.
+  - Cross-checked with the translator's code (PR head abf9ae71,
+    2026-11-09). Deliberate differences: `dateEnacted` and
+    `available-date` come from the Council database, not Cellar/ELI (the
+    translator can take provisional application for entry into force,
+    e.g. CETA); the status line marks agreements not yet in force, dated,
+    where the translator writes `status: not in force` only for ones with
+    a past end date; Extra adds CELEX, Consilium ID, provisional
+    application and depositary.
   - URL is the ELI, or EUR-Lex by CELEX when there is no ELI.
   - `dateEnacted` is the agreement-level entry into force.
   - ELIs with an "(n)" suffix don't resolve on EUR-Lex. That is a bug in

@@ -21,13 +21,22 @@ the shared group library "Norsk henvisningsstandard for rettsvitenskapelige
 tekster - eksempler":
 
     nameOfAct    the title, without the database's editorial insertions
-    code         "EUT 2001 L" (OJ year and series); "EUT L" for acts in the
+    code         "OJ 2001 L" (OJ year and series); "OJ L" for acts in the
                  act-by-act OJ (since October 2023)
-    pages        "93/40" (issue/first page); "2024/2603" in the act-by-act OJ
+    codeNumber   "93" (the OJ issue); empty in the act-by-act OJ
+    pages        "40-47" (the pages in the issue); "2024/2603" in the
+                 act-by-act OJ
     dateEnacted  the agreement-level entry into force; empty when not in force
     url          the ELI (EUR-Lex by CELEX when there is none)
-    extra        type: treaty / available-date: <signature> / provisional
-                 application / status / CELEX / Consilium ID / depositary
+    language     en
+    extra        type: treaty / available-date: <signature> / event-date:
+                 <OJ date> / provisional application / status / CELEX /
+                 Consilium ID / depositary
+
+These are the fields the EUR-Lex translator gives treaties
+(zotero/translators#3721), which the Norsk henvisningsstandard style reads
+(citation-style-language/styles#8420): it recognises a treaty in the OJ by
+event-date together with codeNumber, and prints "OJ 2001 L 93/40".
 
 How the OJ publication is found: the database lists every OJ reference of an
 agreement (its text, but also Council decisions, notices of entry into force,
@@ -64,7 +73,12 @@ if str(_HERE) not in sys.path:
 import zotero_rdf   # noqa: E402  (after sys.path mutation)
 
 SPARQL = "https://publications.europa.eu/webapi/rdf/sparql"
-ENG = "<http://publications.europa.eu/resource/authority/language/ENG>"
+# The text is English where Cellar has it. Agreements from before 1973, when
+# English became an official language, often exist only in the languages of
+# the founding six: then French, German, Italian, Dutch (maintainer's
+# choice, 2026-11-09), and Language is the language of the attached text.
+TEXT_LANGS = {"ENG": "en", "FRA": "fr", "DEU": "de", "ITA": "it", "NLD": "nl"}
+_LANG_VALUES = " ".join(f"<http://publications.europa.eu/resource/authority/language/{c}>" for c in TEXT_LANGS)
 XSD = "http://www.w3.org/2001/XMLSchema#"
 UA = "claude-legal-tools eu-agreements-treaties (zotero_agreement.py)"
 _MONTHS = {m: i for i, m in enumerate(
@@ -169,52 +183,93 @@ def celex_candidates(ref: Optional[dict] = None, signature: str = "") -> list:
 # The OJ issue an act was published in: number, year and, in its document
 # id ("oj:JOL_1973_133_R"), the series. Older agreements have no other route
 # to it: their CELEX number carries the signature date, not the OJ date.
+# The issue's publication date becomes `event-date` in Extra; an act in the
+# act-by-act OJ has no issue and carries its own publication date.
 _OJ_ISSUE = """
   OPTIONAL {{ ?work cdm:resource_legal_published_in_official-journal ?ojr .
              ?ojr cdm:official-journal_number ?ojnum ; cdm:official-journal_year ?ojyear ;
-                  cdm:work_id_document ?ojid . FILTER(STRSTARTS(STR(?ojid), "oj:JO")) }}"""
+                  cdm:work_id_document ?ojid . FILTER(STRSTARTS(STR(?ojid), "oj:JO"))
+             OPTIONAL {{ ?ojr cdm:publication_general_date_publication ?ojdate }} }}
+  OPTIONAL {{ ?work cdm:official-journal-act_date_publication ?actdate }}"""
+
+
+def _lang_rank(row: dict) -> int:
+    code = (row.get("lang") or "").rsplit("/", 1)[-1]
+    return list(TEXT_LANGS).index(code) if code in TEXT_LANGS else len(TEXT_LANGS)
+
+
+def _merge(rows_by_celex: dict) -> dict:
+    """One work per CELEX from Cellar's rows (one per language and
+    manifestation): the title in the first language of TEXT_LANGS Cellar
+    has (`lang` "ENG", "FRA", …; `title_fr` kept for matching by kind of
+    instrument), and the pages from any language when that one has none:
+    the OJ's language editions share their page numbers."""
+    out = {}
+    for celex, rows in rows_by_celex.items():
+        rows = sorted(rows, key=lambda r: (_lang_rank(r), not r.get("page")))
+        work = dict(rows[0])
+        work["lang"] = (work.get("lang") or "").rsplit("/", 1)[-1] or "ENG"
+        for r in rows[1:]:
+            for k, v in r.items():
+                if k not in ("title", "lang", "page", "plast"):
+                    work.setdefault(k, v)
+        if not work.get("page"):
+            paged = next((r for r in rows if r.get("page")), None)
+            if paged:
+                work["page"] = paged["page"]
+                if paged.get("plast"):
+                    work["plast"] = paged["plast"]
+        fr = next((r["title"] for r in rows if (r.get("lang") or "").endswith("/FRA")), None)
+        if fr:
+            work["title_fr"] = fr
+        out[celex] = work
+    return out
 
 
 def cellar_works(celexes: list) -> dict:
-    """{celex: {title, type, eli, sig, page, ojnum, ojyear, ojid}} for the
-    CELEX numbers that exist, English title and first OJ page included."""
+    """{celex: {title, lang, type, eli, sig, page, plast, ojnum, ojyear, ojid,
+    ojdate, actdate}} for the CELEX numbers that exist (see _merge)."""
     out = {}
     for i in range(0, len(celexes), 300):
         vals = " ".join(f'"{c}"^^<{XSD}string>' for c in celexes[i:i + 300])
         q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?ojnum ?ojyear ?ojid WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
   VALUES ?celex {{ {vals} }}
   ?work cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
-  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language {ENG} ;
+  VALUES ?lang {{ {_LANG_VALUES} }}
+  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language ?lang ;
         cdm:expression_title ?title .
   OPTIONAL {{ ?work cdm:resource_legal_eli ?eli }}
   OPTIONAL {{ ?work cdm:resource_legal_date_signature ?sig }}
   OPTIONAL {{ ?man cdm:manifestation_manifests_expression ?expr ;
-                  cdm:manifestation_official-journal_part_page_first ?page }}{_OJ_ISSUE.format()}
+                  cdm:manifestation_official-journal_part_page_first ?page .
+             OPTIONAL {{ ?man cdm:manifestation_official-journal_part_page_last ?plast }} }}{_OJ_ISSUE.format()}
 }}"""
         for b in sparql(q):
-            out.setdefault(b["celex"]["value"], {k: v["value"] for k, v in b.items()})
-    return out
+            out.setdefault(b["celex"]["value"], []).append({k: v["value"] for k, v in b.items()})
+    return _merge(out)
 
 
 def works_signed_on(date: str) -> dict:
     """Fallback for an OJ reference with a wrong date in the database (seen:
     "L 350 (22/01/2016)" for 22 December): agreements signed that day."""
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?ojnum ?ojyear ?ojid WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
   ?work cdm:resource_legal_date_signature "{date}"^^<{XSD}date> ;
         cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
   BIND("{date}" AS ?sig)
-  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language {ENG} ;
+  VALUES ?lang {{ {_LANG_VALUES} }}
+  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language ?lang ;
         cdm:expression_title ?title .
   OPTIONAL {{ ?work cdm:resource_legal_eli ?eli }}
   OPTIONAL {{ ?man cdm:manifestation_manifests_expression ?expr ;
-                  cdm:manifestation_official-journal_part_page_first ?page }}{_OJ_ISSUE.format()}
+                  cdm:manifestation_official-journal_part_page_first ?page .
+             OPTIONAL {{ ?man cdm:manifestation_official-journal_part_page_last ?plast }} }}{_OJ_ISSUE.format()}
 }}"""
     out = {}
     for b in sparql(q):
-        out.setdefault(b["celex"]["value"], {k: v["value"] for k, v in b.items()})
-    return out
+        out.setdefault(b["celex"]["value"], []).append({k: v["value"] for k, v in b.items()})
+    return _merge(out)
 
 
 def works_in_issue(ref: dict) -> dict:
@@ -230,40 +285,46 @@ def works_in_issue(ref: dict) -> dict:
         return {}
     ojid = f"oj:JO{ref['series']}_{ref['year']}_{int(m.group(1)):03d}{m.group(2)}_R"
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?ojnum ?ojyear ?ojid WHERE {{
+SELECT DISTINCT ?celex ?type ?title ?eli ?sig ?page ?plast ?ojnum ?ojyear ?ojid ?ojdate ?actdate ?lang WHERE {{
   VALUES ?ojid0 {{ "{ojid}"^^<{XSD}string> "{ojid}" }}
   ?ojr0 cdm:work_id_document ?ojid0 .
   ?work cdm:resource_legal_published_in_official-journal ?ojr0 ;
         cdm:resource_legal_id_celex ?celex ; cdm:resource_legal_type ?type .
-  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language {ENG} ;
+  VALUES ?lang {{ {_LANG_VALUES} }}
+  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language ?lang ;
         cdm:expression_title ?title .
   OPTIONAL {{ ?work cdm:resource_legal_eli ?eli }}
   OPTIONAL {{ ?work cdm:resource_legal_date_signature ?sig }}
   OPTIONAL {{ ?man cdm:manifestation_manifests_expression ?expr ;
-                  cdm:manifestation_official-journal_part_page_first ?page }}{_OJ_ISSUE.format()}
+                  cdm:manifestation_official-journal_part_page_first ?page .
+             OPTIONAL {{ ?man cdm:manifestation_official-journal_part_page_last ?plast }} }}{_OJ_ISSUE.format()}
 }}"""
     out = {}
     for b in sparql(q):
-        out.setdefault(b["celex"]["value"], {k: v["value"] for k, v in b.items()})
-    return out
+        out.setdefault(b["celex"]["value"], []).append({k: v["value"] for k, v in b.items()})
+    return _merge(out)
 
 
-def english_pdf_url(celex: str) -> Optional[str]:
+def text_pdf(celex: str) -> tuple:
+    """(url, ISO 639-1 language) of the PDF in the first language of
+    TEXT_LANGS that has one; (None, None) when none has."""
     q = f"""PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-SELECT ?mtype ?item WHERE {{
+SELECT ?lang ?mtype ?item WHERE {{
+  VALUES ?lang {{ {_LANG_VALUES} }}
   ?work cdm:resource_legal_id_celex "{celex}"^^<{XSD}string> .
-  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language {ENG} .
+  ?expr cdm:expression_belongs_to_work ?work ; cdm:expression_uses_language ?lang .
   ?man cdm:manifestation_manifests_expression ?expr ; cdm:manifestation_type ?mtype .
   ?item cdm:item_belongs_to_manifestation ?man .
 }}"""
-    items = [(b["mtype"]["value"], b["item"]["value"]) for b in sparql(q)]
-    for want in ("pdfa2a", "pdfa1a", "pdfa1b", "pdf", "pdfx"):
-        for mtype, item in sorted(items):
-            if mtype == want:
-                # Cellar names its items http://; Zoteus on a hosted server
-                # accepts only https links, which the same host serves.
-                return re.sub(r"^http://", "https://", item)
-    return None
+    items = [(b["lang"]["value"].rsplit("/", 1)[-1], b["mtype"]["value"], b["item"]["value"]) for b in sparql(q)]
+    for code, iso in TEXT_LANGS.items():
+        for want in ("pdfa2a", "pdfa1a", "pdfa1b", "pdf", "pdfx"):
+            for lang, mtype, item in sorted(items):
+                if lang == code and mtype == want:
+                    # Cellar names its items http://; Zoteus on a hosted server
+                    # accepts only https links, which the same host serves.
+                    return re.sub(r"^http://", "https://", item), iso
+    return None, None
 
 
 # --------------------------------------------------------------------------
@@ -346,9 +407,15 @@ def pick(rec: dict, works: dict) -> tuple:
     Lugano 2007); then signature date, title, an agreement (type A), and
     the lowest page (the main text before its protocols)."""
     sig = rec.get("signature")
-    ranked = []
+    ranked, foreign = [], []
     for celex, w in works.items():
         s = None if not (sig and w.get("sig")) else w["sig"] == sig
+        if (w.get("lang") or "ENG") != "ENG":
+            # No English title to compare: only the signature date counts
+            # (see _pick_foreign).
+            if s is True:
+                foreign.append(celex)
+            continue
         if s is False or name_conflict(rec["title"], w["title"]):
             continue
         sim = similarity(rec["title"], w["title"])
@@ -360,7 +427,7 @@ def pick(rec: dict, works: dict) -> tuple:
             sim = max(sim, 0.9 * contained(rec["title"], w["title"]))
         ranked.append((s is True, round(sim, 2), w.get("type") == "A", -_page_int(w), celex))
     if not ranked:
-        return None, None, False
+        return _pick_foreign(rec, works, foreign)
     ranked.sort(reverse=True)
     sig_ok, sim, _, _, celex = ranked[0]
     # 0.6: a related agreement signed the same day scored 0.50 (2014030).
@@ -383,6 +450,38 @@ def pick(rec: dict, works: dict) -> tuple:
     txt = [r for r in ranked if r[0] and re.fullmatch(r"1\d{4}[A-Z]+/TXT", r[4])]
     if txt:
         return txt[0][4], works[txt[0][4]], False
+    return _pick_foreign(rec, works, foreign)
+
+
+# The kind of instrument, as the first such word of the database's English
+# title, and as the first word of Cellar's French title.
+_KINDS = {"agreement": "accord", "agreements": "accord", "convention": "convention",
+          "protocol": "protocole", "treaty": "traite", "exchange": "echange",
+          "arrangement": "arrangement", "memorandum": "memorandum"}
+
+
+def _kind_en(title: str) -> Optional[str]:
+    return next((_KINDS[w] for w in key(title).split() if w in _KINDS), None)
+
+
+def _kind_fr(title: Optional[str]) -> Optional[str]:
+    t = re.sub(r"^\d{2,4}/\d+/[A-Za-z(), ]+:\s+", "", title or "")
+    words = key(t).split()
+    return words[0] if words else None
+
+
+def _pick_foreign(rec: dict, works: dict, foreign: list) -> tuple:
+    """Agreements without an English version (before 1973): signed on the
+    record's date and, when several were, of the same kind as the record's
+    title ("Convention …" / "Convention d'association …", not "Accord
+    relatif aux produits …", both signed at Yaoundé on 20 July 1963).
+    Exactly one must be left, and the match is always reported as one to
+    check (maintainer's rule, 2026-11-09)."""
+    if len(foreign) > 1:
+        kind = _kind_en(rec.get("title") or "")
+        foreign = [c for c in foreign if kind and _kind_fr(works[c].get("title_fr")) == kind]
+    if len(foreign) == 1:
+        return foreign[0], works[foreign[0]], False
     return None, None, False
 
 
@@ -390,18 +489,37 @@ def pick(rec: dict, works: dict) -> tuple:
 # The item
 # --------------------------------------------------------------------------
 
-def oj_citation(celex: str, work: dict, refs: list) -> tuple:
-    """(code, pages) for the library's pattern: "EUT 2001 L" + "93/40", or
-    "EUT L" + "2024/2603" in the act-by-act OJ."""
+def _pages(work: dict) -> str:
+    """"40-47" from Cellar's first and last page ("0040", "0047"); the first
+    page alone when the last is missing or the same; "" when neither is."""
+    first, last = (work.get("page") or ""), (work.get("plast") or "")
+    if not first.isdigit():
+        return ""
+    if last.isdigit() and int(last) > int(first):
+        return f"{int(first)}-{int(last)}"
+    return str(int(first))
+
+
+def oj_citation(celex: str, work: dict, refs: list) -> dict:
+    """The OJ fields as the EUR-Lex translator gives them (code, codeNumber,
+    pages) plus the OJ date (oj_date, for `event-date`): "OJ 2001 L" + "93"
+    + "40-47", or "OJ L" + "2024/2603" in the act-by-act OJ. {} when the
+    publication is unknown; keys without a value are left out."""
     m = re.fullmatch(r"\d(\d{4})A(\d{5})", celex)
     if m:   # act-numbered OJ: 22024A02603
         ref = next((r for r in refs if r.get("number") and int(r["number"]) == int(m.group(2))), None)
         series = ref["series"] if ref else "L"
-        return f"EUT {series}", f"{m.group(1)}/{int(m.group(2))}"
-    page = str(int(work["page"])) if (work.get("page") or "").isdigit() else None
+        # As the EUR-Lex translator: "2024/1689" in OJ L, "C/2024/3400" in OJ C
+        prefix = "C/" if series == "C" else ""
+        out = {"code": f"OJ {series}", "pages": f"{prefix}{m.group(1)}/{int(m.group(2))}",
+               "oj_date": (work.get("actdate") or work.get("ojdate") or (ref or {}).get("date") or "")[:10]}
+        return {k: v for k, v in out.items() if v}
     if work.get("ojnum") and work.get("ojyear") and work.get("ojid"):
         series = work["ojid"][len("oj:JO")]                 # oj:JOL_… / oj:JOC_…
         year, issue = work["ojyear"], work["ojnum"].lstrip("0") or work["ojnum"]
+        ref = next((r for r in refs if r.get("series") == series and r.get("year") == year
+                    and (r.get("issue") or "").lstrip("0") == issue), None)
+        oj_date = work.get("ojdate") or (ref or {}).get("date") or ""
     else:
         # No issue in Cellar: the database's reference published on the
         # date the CELEX number carries, if there is one.
@@ -409,9 +527,15 @@ def oj_citation(celex: str, work: dict, refs: list) -> tuple:
         oj_date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None
         ref = next((r for r in refs if r.get("date") == oj_date and r.get("issue")), None)
         if not ref:
-            return None, None
+            return {}
         series, year, issue = ref["series"], ref["year"], ref["issue"].lstrip("0") or ref["issue"]
-    return f"EUT {year} {series}", f"{issue}/{page}" if page else issue
+    # As the EUR-Lex translator: the OJ had no series before 1968 (Cellar's
+    # "oj:JOP_1964_093_R"), nor had the ECSC's OJ ("oj:JOA_1957_007_R"), so
+    # Code is "OJ 1964", not "OJ 1964 P".
+    code = f"OJ {year}" if series in ("A", "P") else f"OJ {year} {series}"
+    out = {"code": code, "codeNumber": issue, "pages": _pages(work),
+           "oj_date": (oj_date or "")[:10]}
+    return {k: v for k, v in out.items() if v}
 
 
 def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
@@ -421,17 +545,25 @@ def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
     notes += title_notes
     refs = [r for r in (parse_oj(o) for o in rec.get("oj") or []) if r]
     celex, work = (match or (None, None))[:2]
-    if work and title.isupper():   # "REGIONAL CONVENTION ON …": Cellar has it in normal case
+    # "REGIONAL CONVENTION ON …": Cellar has it in normal case (in English only:
+    # the item keeps the database's English title)
+    if work and title.isupper() and (work.get("lang") or "ENG") == "ENG":
         title = work["title"].split(" - ")[0].strip()
 
     item = {"itemType": "statute", "nameOfAct": title}
-    if celex:
-        code, pages = oj_citation(celex, work, refs)
-        if code:
-            item["code"] = code
-            item["pages"] = pages
-            if "/" not in pages:
-                notes.append("the first page of the agreement in the OJ issue is not in Cellar; add it by hand")
+    oj = oj_citation(celex, work, refs) if celex else {}
+    if oj:
+        for k in ("code", "codeNumber", "pages"):
+            if oj.get(k):
+                item[k] = oj[k]
+        if not oj.get("pages"):
+            notes.append("the pages of the agreement in the OJ issue are not in Cellar; add them by hand")
+        # The style needs event-date only beside codeNumber: it tells an
+        # OJ issue/page citation from other treaty series. The act-by-act OJ
+        # cites the act number alone, so there it is not worth a note.
+        if not oj.get("oj_date") and oj.get("codeNumber"):
+            notes.append("the OJ date is not in Cellar or the database; add it to Extra by hand "
+                         "as \"event-date: YYYY-MM-DD\"")
     else:
         listed = "; ".join(o.get("text", "").rstrip(";") for o in rec.get("oj") or []) or "none"
         notes.append("the OJ publication of the agreement could not be identified (OJ references in the "
@@ -453,11 +585,15 @@ def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
     else:
         item["url"] = rec.get("url")
         notes.append("no ELI or CELEX found; the URL is the Treaties Office record")
-    item["language"] = "English"
+    # The language of the text: Cellar's English where it has one, else the
+    # first of TEXT_LANGS it has. main() sets it to the PDF's language.
+    item["language"] = TEXT_LANGS.get((work or {}).get("lang") or "ENG", "en")
 
     extra = ["type: treaty"]
     if rec.get("signature"):
         extra.append(f"available-date: {rec['signature']}")
+    if oj.get("oj_date"):
+        extra.append(f"event-date: {oj['oj_date']}")
     prov = provisional_date(rec.get("observations"))
     if prov:
         extra.append(f"provisional application: {prov}")
@@ -474,12 +610,14 @@ def build_item(rec: dict, match: Optional[tuple], today: str = "") -> tuple:
 
 
 def basename(item: dict) -> str:
-    """EUT_2016_L_141_3_Agreement_between_the_European_Union_Iceland…"""
+    """OJ_2016_L_141_3_Agreement_between_the_European_Union_Iceland…"""
     s = unicodedata.normalize("NFKD", item["nameOfAct"]).encode("ascii", "ignore").decode("ascii")
     s = re.sub(r"[^A-Za-z0-9]+", "_", s).strip("_")
     if len(s) > 60:
         s = s[:61].rsplit("_", 1)[0]
-    cite = re.sub(r"[^A-Za-z0-9]+", "_", f"{item.get('code', '')} {item.get('pages', '')}").strip("_")
+    first_page = (item.get("pages") or "").split("-")[0]
+    cite = re.sub(r"[^A-Za-z0-9]+", "_",
+                  f"{item.get('code', '')} {item.get('codeNumber', '')} {first_page}").strip("_")
     return f"{cite}_{s}" if cite else s
 
 
@@ -537,19 +675,29 @@ def main(argv=None) -> int:
         match = None
     item, notes = build_item(rec, match)
     if match and not match[2]:
-        notes.append(f"matched to CELEX {match[0]} \"{match[1]['title'][:120]}\" on a weak title match; "
+        how = ("on its signature date and kind of instrument alone (Cellar has no English version)"
+               if (match[1].get("lang") or "ENG") != "ENG" else "on a weak title match")
+        notes.append(f"matched to CELEX {match[0]} \"{match[1]['title'][:120]}\" {how}; "
                      "check it is the same agreement")
     base = basename(item)
     out_dir = Path(args.out).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"[meta] {item['nameOfAct']}")
-    print(f"[meta] {item.get('code', '')} {item.get('pages', '')}  CELEX {match[0] if match else '—'}")
+    cite = " ".join(item[k] for k in ("code", "codeNumber", "pages") if item.get(k))
+    print(f"[meta] {cite}  CELEX {match[0] if match else '—'}")
     print(f"[meta] entry into force: {item.get('dateEnacted') or 'none recorded'}")
 
-    pdf_name, pdf_url, missing = None, None, "no English PDF of the agreement in Cellar"
+    pdf_name, pdf_url, missing = None, None, "no PDF of the agreement in Cellar"
     if match:
         try:
-            pdf_url = english_pdf_url(match[0])
+            pdf_url, pdf_lang = text_pdf(match[0])
+            if pdf_url and pdf_lang != item["language"]:
+                # Language is the language of the attached text.
+                item["language"] = pdf_lang
+            if pdf_url and pdf_lang != "en":
+                name = {"fr": "French", "de": "German", "it": "Italian", "nl": "Dutch"}[pdf_lang]
+                notes.append(f"Cellar has no English text of this agreement; the PDF is the {name} text, "
+                             f"and Language is \"{pdf_lang}\" (the title stays the database's English one)")
             if pdf_url:
                 req = urllib.request.Request(pdf_url, headers={"User-Agent": UA})
                 with urllib.request.urlopen(req, timeout=180) as r:
