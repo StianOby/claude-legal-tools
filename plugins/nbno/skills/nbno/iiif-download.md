@@ -207,7 +207,7 @@ print(f"downloaded in {time.time()-t0:.1f}s")
 # DPI → poster-size pages); img2pdf falls back to 96 DPI unless the DPI is
 # *embedded in each JPEG* (its own dpi= argument is ignored when metadata
 # exists). So bake the per-page DPI into each JPEG, then let img2pdf assemble.
-import img2pdf  # pip install --break-system-packages img2pdf
+import img2pdf  # pip install --break-system-packages -c {SKILL_DIR}/scripts/requirements.txt img2pdf
 dpi_paths = []
 for _, p in sorted(results.items()):
     if not p:

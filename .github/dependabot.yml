@@ -1,0 +1,35 @@
+# Dependabot keeps the pinned dependencies current (CLAUDE.md, "Pinned
+# dependencies"). Version updates wait 14 days after a release (cooldown), so
+# a malicious or broken release is usually pulled before it is proposed;
+# security updates are not delayed (GitHub never applies cooldown to them).
+# .github/workflows/dependabot-bump.yml adds the plugin version bump to each
+# PR; validate.yml tests it, also on Python 3.10. Merge only when green.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directories:
+      # The lock files the skills install from: scripts/requirements.txt,
+      # compiled with pip-compile from requirements.in.
+      - /plugins/nbno/skills/nbno/scripts
+      - /plugins/kildesjekk/skills/kildesjekk/scripts
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      # One PR per lock file for the routine version updates; security
+      # updates still come one by one.
+      python:
+        applies-to: version-updates
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns: ["*"]

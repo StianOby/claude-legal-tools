@@ -170,12 +170,35 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
 
 ## Design rules
 
-- **Don't pin external dependencies.** Packages and servers the skills
-  install at run time (eurlex-mcp-server via npx; nbno, ocrmypdf etc. via
-  pip) use the bare name, with no version and not even `@latest`. Existing
-  `--upgrade` flags are fine. The maintainer prefers the newest upstream
-  release, and accepts the risk that upstream changes break something, over
-  stale packages. Don't propose pinning in reviews or fixes.
+- **Pinned dependencies, kept current by Dependabot** (since 2026-11-09;
+  until then nothing was pinned). A skill whose scripts install Python
+  packages (nbno, kildesjekk) has `scripts/requirements.in` (its direct
+  dependencies, unversioned) and `scripts/requirements.txt`, the lock
+  pip-compile makes from it with Python 3.10 (the Cowork local VM's), every
+  package `==`, no hashes. They sit in `scripts/` because the local route
+  packs only that folder.
+  - Every install passes the lock as constraints: `pip install -c
+    <scripts>/requirements.txt <package>`, also in SKILL.md commands and
+    error messages. Never type a version. If pip cannot install a pin on the
+    Python at hand, retry without `-c` and say so (the scripts'
+    `pip_install_pinned` pattern); never fail outright.
+  - `.github/dependabot.yml`: weekly, a 14-day cooldown for version updates
+    (a bad release is usually pulled by then), none for security updates.
+    `.github/workflows/dependabot-bump.yml` pushes the plugin version bump
+    to its PRs with the `DEPENDABOT_BUMP_TOKEN` Dependabot secret.
+    validate.yml's `pinned` job runs each plugin's tests on its lock on
+    Python 3.10; a red Dependabot PR is not merged.
+  - validate.yml's main job still installs the newest versions, and runs
+    weekly too, as the early warning.
+  - A new pip dependency goes into `requirements.in`; then regenerate with
+    `pip-compile --strip-extras --no-emit-index-url requirements.in` on
+    Python 3.10 (`uv venv --python 3.10` gets one). Bump versions with
+    `.github/scripts/bump-plugin-versions.py`, which also updates the
+    `VERSION = "…"` and `<name>-skill/<version>` copies in the scripts.
+  - Not pinned: eurlex-mcp-server (`npx -y` in the user's own Claude
+    config, out of Dependabot's reach), the sandbox's apt packages, and
+    the `pip install pypdf` hints in skills that do not install it
+    themselves.
 - **Source text: as little conversion as possible.** When a skill turns a
   source document into text, it takes the text out of the markup, shows
   what the reader sees, and changes nothing else. Take the rendition closest

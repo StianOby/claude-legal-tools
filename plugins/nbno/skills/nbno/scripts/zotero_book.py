@@ -137,7 +137,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.5.2"
+VERSION = "1.6.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -656,7 +656,7 @@ def _fetch_page_singleshot(
     except ImportError as exc:
         raise SystemExit(
             "Pillow is required. Install with: "
-            "pip install --break-system-packages Pillow"
+            f"pip install --break-system-packages -c {CONSTRAINTS} Pillow"
         ) from exc
     import io
     size = "full" if scale == 1 else f"pct:{100 // scale}"
@@ -689,7 +689,7 @@ def _fetch_page_tiled(
     except ImportError as exc:
         raise SystemExit(
             "Pillow is required. Install with: "
-            "pip install --break-system-packages Pillow"
+            f"pip install --break-system-packages -c {CONSTRAINTS} Pillow"
         ) from exc
     import io
     full_w = int(info.get("width") or 0)
@@ -1365,6 +1365,26 @@ def _ensure_pylib_on_path() -> Path:
     return target
 
 
+# The pinned versions (requirements.txt beside this script, kept current by
+# Dependabot): every install uses them as constraints.
+CONSTRAINTS = Path(__file__).resolve().parent / "requirements.txt"
+
+
+def pip_install_pinned(base_cmd: List[str], packages: List[str], log=print) -> int:
+    """Run `base_cmd + packages` with the pinned versions as constraints.
+    If pip cannot install a pinned version on this Python (a lock compiled
+    for 3.10 meeting an older or much newer interpreter), retry with the
+    newest versions rather than fail, and say so."""
+    if not CONSTRAINTS.exists():
+        return subprocess.call(base_cmd + packages)
+    rc = subprocess.call(base_cmd + ["-c", str(CONSTRAINTS)] + packages)
+    if rc != 0:
+        log(f"[pip] WARNING: the pinned versions in {CONSTRAINTS.name} could not be installed "
+            f"on Python {sys.version.split()[0]}; retrying {' '.join(packages)} without them")
+        rc = subprocess.call(base_cmd + packages)
+    return rc
+
+
 def _pip_install_to_pylib(packages: List[str]) -> int:
     target = _ensure_pylib_on_path()
     cmd = [
@@ -1372,9 +1392,9 @@ def _pip_install_to_pylib(packages: List[str]) -> int:
         "--break-system-packages",
         "--target", str(target),
         "--upgrade",
-    ] + packages
+    ]
     print(f"[pip] installing {' '.join(packages)} -> {target}")
-    return subprocess.call(cmd)
+    return pip_install_pinned(cmd, packages)
 
 
 def _which_in_pylib(binary: str) -> Optional[str]:
@@ -1459,7 +1479,7 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor",
             raise SystemExit(
                 "ERROR: failed to install ocrmypdf. Install manually with: "
                 f"pip install --target {_pylib_target()} "
-                "--break-system-packages ocrmypdf"
+                f"--break-system-packages -c {CONSTRAINTS} ocrmypdf"
             )
     languages = tesseract_preflight(languages)
     jobs = max(1, jobs) if jobs else default_ocr_jobs()

@@ -47,8 +47,10 @@ The user's preferences for this skill:
   for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/nbno}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/nbno/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
   ```
 - **`nbno` CLI** — the wrapper installs it automatically on first run via
-  `pip install --break-system-packages nbno`. If auto-install fails, run
-  that command manually before proceeding.
+  `pip install --break-system-packages -c <scripts>/requirements.txt nbno`
+  (the pinned versions, kept current by Dependabot). If auto-install fails,
+  run `pip install --break-system-packages -c {SKILL_DIR}/scripts/requirements.txt nbno`
+  manually before proceeding.
 - **Built-in browser (optional, Cowork only).** If the built-in browser tools
   are present, **Step 0** uses them for the session check, item
   classification and cookie capture.

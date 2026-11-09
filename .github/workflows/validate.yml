@@ -4,6 +4,11 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Weekly, so the tests also meet each new upstream release (the next step
+  # installs the newest versions) before Dependabot's 14-day cooldown
+  # proposes it: pypdf 7.0.0 broke nbno that way (2026-11-09).
+  schedule:
+    - cron: "17 5 * * 1"
 
 jobs:
   validate:
@@ -14,6 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check that changed plugins have a bumped version
+        if: github.event_name != 'schedule'
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base="origin/${{ github.base_ref }}"
@@ -27,7 +33,9 @@ jobs:
       - name: Check data snapshot age (warning only, see CLAUDE.md)
         run: .github/scripts/snapshots.py check || true
 
-      - name: Run script unit tests (no network)
+      # On the newest upstream versions, deliberately unpinned: the early
+      # warning. The "pinned" job below tests what the skills install.
+      - name: Run script unit tests (no network, newest dependency versions)
         run: |
           pip install --quiet openpyxl Pillow pypdf pikepdf numpy
           for t in tests/*/test_*.py; do
@@ -114,4 +122,32 @@ jobs:
         run: |
           for p in plugins/*/; do
             claude plugin validate "$p" --strict
+          done
+
+  # What users get: each lock file (plugins/*/skills/*/scripts/requirements.txt)
+  # installed on Python 3.10, the oldest Python the skills meet (the Cowork
+  # local VM), and that plugin's tests run on it. A Dependabot PR that pins a
+  # version 3.10 cannot install fails here: don't merge it.
+  pinned:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Run each plugin's tests on its pinned versions
+        run: |
+          for lock in plugins/*/skills/*/scripts/requirements.txt; do
+            p=$(echo "$lock" | cut -d/ -f2)
+            echo "::group::$p ($lock)"
+            python -m venv "/tmp/venv-$p"
+            "/tmp/venv-$p/bin/pip" install --quiet -r "$lock"
+            for t in tests/$p/test_*.py; do
+              [ -e "$t" ] || continue
+              echo "== $t"
+              "/tmp/venv-$p/bin/python" "$t"
+            done
+            echo "::endgroup::"
           done

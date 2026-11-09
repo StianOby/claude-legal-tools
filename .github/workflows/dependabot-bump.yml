@@ -1,0 +1,55 @@
+# Dependabot changes a plugin's lock file (scripts/requirements.txt) but never
+# its version, so validate.yml's version check would fail every one of its PRs.
+# This job pushes the patch bump to the PR branch (.github/scripts/bump-plugin-versions.py).
+#
+# It pushes with DEPENDABOT_BUMP_TOKEN, a fine-grained personal access token
+# with "Contents: read and write" on this repository only, stored under
+# Settings → Secrets and variables → Dependabot (workflows that Dependabot
+# triggers see only Dependabot secrets). The default GITHUB_TOKEN cannot be
+# used: its pushes do not start workflows, so CI would not rerun on the bump.
+#
+# After this push Dependabot no longer rebases the PR by itself; comment
+# "@dependabot rebase" to have it redone (the bump is then added again).
+name: Bump plugin versions on Dependabot PRs
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    # Only Dependabot's own pushes: the bump commit (pushed as the token's
+    # owner) does not run this again.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the token is set
+        env:
+          TOKEN: ${{ secrets.DEPENDABOT_BUMP_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::DEPENDABOT_BUMP_TOKEN is not set (Settings → Secrets and variables → Dependabot); bump the plugin version by hand: python3 .github/scripts/bump-plugin-versions.py --base origin/main"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.DEPENDABOT_BUMP_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump the plugins the PR changes
+        run: |
+          git fetch --quiet origin "${{ github.base_ref }}"
+          python3 .github/scripts/bump-plugin-versions.py --base "origin/${{ github.base_ref }}"
+          if git diff --quiet; then
+            echo "nothing to bump"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet -am "Bump plugin versions for the Dependabot update"
+          git push --quiet

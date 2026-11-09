@@ -1,0 +1,6 @@
+# Direct dependencies of the kildesjekk skill. requirements.txt is the lock
+# compiled from this file with Python 3.10, kept current by Dependabot.
+# Install with the lock as constraints: pip install -c requirements.txt openpyxl
+# Regenerate: pip-compile --strip-extras --no-emit-index-url requirements.in
+openpyxl
+pypdf

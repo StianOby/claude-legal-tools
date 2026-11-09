@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.5.2"
+VERSION = "1.6.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 # Mirror the install-target / preflight helpers from zotero_book.py.
@@ -84,13 +84,24 @@ def _ensure_pylib_on_path() -> Path:
     return target
 
 
+# The pinned versions (requirements.txt beside this script, kept current by
+# Dependabot), used as constraints; as zotero_book.pip_install_pinned.
+CONSTRAINTS = Path(__file__).resolve().parent / "requirements.txt"
+
+
 def _pip_install(packages: List[str]) -> int:
     target = _ensure_pylib_on_path()
-    return subprocess.call([
-        sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
-        "--break-system-packages", "--target", str(target), "--upgrade",
-        *packages,
-    ])
+    cmd = [sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
+           "--break-system-packages", "--target", str(target), "--upgrade"]
+    if not CONSTRAINTS.exists():
+        return subprocess.call(cmd + packages)
+    rc = subprocess.call(cmd + ["-c", str(CONSTRAINTS)] + packages)
+    if rc != 0:
+        print(f"[ocr] WARNING: the pinned versions in {CONSTRAINTS.name} could not be installed "
+              f"on Python {sys.version.split()[0]}; retrying {' '.join(packages)} without them",
+              file=sys.stderr)
+        rc = subprocess.call(cmd + packages)
+    return rc
 
 
 def _which(binary: str) -> Optional[str]:
@@ -309,7 +320,7 @@ def _ensure_ocrmypdf() -> str:
     if rc != 0 or binary is None:
         sys.exit(
             "ERROR: failed to install ocrmypdf. Install manually with: "
-            f"pip install --target {_pylib_target()} ocrmypdf"
+            f"pip install --target {_pylib_target()} -c {CONSTRAINTS} ocrmypdf"
         )
     return binary
 
@@ -325,7 +336,7 @@ def _ensure_pikepdf():
     if rc != 0:
         sys.exit(
             "ERROR: failed to install pikepdf. Install manually with: "
-            f"pip install --target {_pylib_target()} pikepdf"
+            f"pip install --target {_pylib_target()} -c {CONSTRAINTS} pikepdf"
         )
     _ensure_pylib_on_path()
     import pikepdf  # type: ignore

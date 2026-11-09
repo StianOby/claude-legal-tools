@@ -393,7 +393,8 @@ be added by hand.
      instead of carrying broken pages through to the final merge.
 - **Persistent installs.** `pip --user` writes to `~/.local/`, which Cowork
   wipes between bash invocations. Both `zotero_book.py` and `ocr_chunked.py`
-  install dependencies (ocrmypdf, pikepdf) via `pip install --target` into
+  install dependencies (ocrmypdf, pikepdf) via `pip install --target`, with
+  the pinned versions in `scripts/requirements.txt` as constraints, into
   `<--out>/_pylib/` instead, which lives under the workspace and survives
   across calls. `nbno_run.sh` does the same for the `nbno` CLI. Override
   the target with `NBNO_PYLIB=/some/abs/path` if you want a shared install

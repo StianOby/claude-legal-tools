@@ -94,15 +94,20 @@ def _ensure_deps():
     if missing:
         import subprocess
         print(f"[shrink] installing {missing} -> {target}", file=sys.stderr)
-        rc = subprocess.call([
-            sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
-            "--break-system-packages", "--target", target, "--upgrade",
-            *missing,
-        ])
+        cmd = [sys.executable, "-m", "pip", "install", "--quiet", "--no-cache-dir",
+               "--break-system-packages", "--target", target, "--upgrade"]
+        # The pinned versions beside this script, as constraints; newest
+        # versions if they cannot be installed here (as zotero_book).
+        constraints = Path(__file__).resolve().parent / "requirements.txt"
+        rc = subprocess.call(cmd + (["-c", str(constraints)] if constraints.exists() else []) + missing)
+        if rc != 0 and constraints.exists():
+            print(f"[shrink] WARNING: the pinned versions in requirements.txt could not be installed "
+                  f"on Python {sys.version.split()[0]}; retrying without them", file=sys.stderr)
+            rc = subprocess.call(cmd + missing)
         if rc != 0:
             sys.exit(
                 f"ERROR: failed to install {missing}. "
-                f"pip install --target {target} {' '.join(missing)}"
+                f"pip install --target {target} -c {constraints} {' '.join(missing)}"
             )
     import pikepdf  # type: ignore
     from PIL import Image  # type: ignore

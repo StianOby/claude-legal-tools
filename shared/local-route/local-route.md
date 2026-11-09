@@ -96,14 +96,17 @@ The local shell does not have the skill's files, so every run copies them in.
   **absolute** path (`<dir>/scripts/x.py`), not `cd <dir> && scripts/x.py`:
   some scripts change directory and then look for their neighbours.
 - Prefix Python with `PYTHONUTF8=1`.
-- **Python packages:** install into the run directory, never globally, and
-  without pinning versions:
+- **Python packages:** install into the run directory, never globally. When
+  the skill has `scripts/requirements.txt` (its pinned versions), add
+  `-c <dir>/scripts/requirements.txt`; never type a version yourself:
   ```bash
-  python3 -m venv <dir>/venv && <dir>/venv/bin/pip install --quiet --upgrade <packages>
+  python3 -m venv <dir>/venv && <dir>/venv/bin/pip install --quiet --upgrade -c <dir>/scripts/requirements.txt <packages>
   ```
   If `venv` is unavailable:
-  `python3 -m pip install --quiet --upgrade --target <dir>/pylib <packages>` and
-  run with `PYTHONPATH=<dir>/pylib`.
+  `python3 -m pip install --quiet --upgrade --target <dir>/pylib -c <dir>/scripts/requirements.txt <packages>` and
+  run with `PYTHONPATH=<dir>/pylib`. Without `requirements.txt`, leave out
+  `-c …`. If pip says a pinned version cannot be installed on this Python,
+  run the command again without `-c …` and tell the user.
 - **Check tools before relying on them** (`command -v tesseract ocrmypdf`).
   The local VM's toolchain is not guaranteed; if something is missing, say
   what you are skipping (message **C** for OCR) rather than failing silently.

@@ -56,7 +56,8 @@ procedures relevant to a given task are loaded into Claude's context.
 - **Bash** (for `nbno_run.sh`) — pre-installed on macOS/Linux; on Windows
   use Git Bash or WSL.
 - **`nbno` CLI** — the wrapper installs it automatically on first run via
-  `pip install --break-system-packages nbno`. If auto-install fails, run
+  `pip install --break-system-packages -c scripts/requirements.txt nbno`
+  (pinned versions, kept current by Dependabot). If auto-install fails, run
   that command manually.
 - **Nothing else.** Cookie capture uses the Cowork built-in browser where
   available; everywhere else you paste two cookie values from DevTools.

@@ -28,7 +28,8 @@ from pathlib import Path
 try:
     from openpyxl import load_workbook
 except ImportError:  # pragma: no cover - environment-dependent
-    sys.exit("worklist.py needs openpyxl: pip install openpyxl")
+    sys.exit("worklist.py needs openpyxl: pip install -c "
+             f"{Path(__file__).resolve().parent / 'requirements.txt'} openpyxl")
 
 # The report quotes the worklist back - references, quotations, Norwegian
 # and other non-ASCII text. A console that cannot encode a character must

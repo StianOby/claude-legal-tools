@@ -200,7 +200,15 @@ fi
 
 if [[ -z "$NBNO_BIN" ]]; then
   echo "Installing nbno (one-time, persistent at $PYLIB)..."
-  if ! pip install --break-system-packages --no-cache-dir --target "$PYLIB" --upgrade --quiet nbno >/dev/null 2>&1; then
+  # The pinned versions beside this script (Dependabot keeps them current) as
+  # constraints; the newest versions if pip cannot install them on this Python.
+  PIP=(pip install --break-system-packages --no-cache-dir --target "$PYLIB" --upgrade --quiet)
+  if [[ -f "$SCRIPT_DIR/requirements.txt" ]] \
+     && "${PIP[@]}" -c "$SCRIPT_DIR/requirements.txt" nbno >/dev/null 2>&1; then
+    :
+  elif "${PIP[@]}" nbno >/dev/null 2>&1; then
+    [[ -f "$SCRIPT_DIR/requirements.txt" ]] && echo "WARNING: the pinned nbno version (requirements.txt) could not be installed on this Python; installed the newest instead." >&2
+  else
     echo "ERROR: pip install nbno failed." >&2
     exit 2
   fi

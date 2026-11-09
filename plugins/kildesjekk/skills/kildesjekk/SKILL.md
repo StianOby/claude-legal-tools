@@ -112,7 +112,7 @@ For chain references (ibid./op.cit./same work p. X), follow the chain back to th
 # 2) Worklist and output initialization
 Create an .xlsx file, and save it in the working directory. File name: Kildesjekk_<documentname>.xlsx The <documentname> placeholder in the file name must match the Document name value in the Metadata sheet.
 
-Write the file with Python and `openpyxl` (`pip install openpyxl` if the sandbox lacks it); set row colours with `PatternFill(fill_type="solid", start_color=...)` on every cell of the row. Always write to a temporary file and rename it over the worklist, so a failed save never destroys the previous state.
+Write the file with Python and `openpyxl` (`pip install -c {SKILL_DIR}/scripts/requirements.txt openpyxl` if the sandbox lacks it: the pinned version); set row colours with `PatternFill(fill_type="solid", start_color=...)` on every cell of the row. Always write to a temporary file and rename it over the worklist, so a failed save never destroys the previous state.
 
 If you write a helper script that fills in results by looking rows up on the location column, build the lookup as location → **list** of row numbers and apply the update to every row in the list, or refuse to run when a location occurs twice. A plain `{location: row}` dict keeps only the last row with a given key, so updates for the others vanish without an error. After every save, re-read the file and confirm that the number of rows you meant to update actually changed, and that the row invariants below still hold.
 
@@ -448,7 +448,7 @@ For Norwegian books not found in Zotero, use the /nbno skill to look for them at
 3. Fetch only the pages you need with `--start`/`--stop` (canvas numbers, which are not printed page numbers: download a few canvases first to find the offset), then read them as described in nbno's `reading-ocr.md`. Use the printed pagination in the worklist.
 4. **Local route:** the PDF is made on the user's computer and lands in `<connected folder>/nbno/<id>/`; the cloud side sees it only after `device_stage_files`, so read it where it is. Make it with a text layer (`zotero_book.py --start N --stop M`, which OCRs with Tesseract) and read the text in the same local shell, printing it page by page:
    ```bash
-   test -f <dir>/.ready || exit 4; python3 -m pip install --quiet --no-cache-dir --target <dir>/pylib pypdf && PYTHONPATH=<dir>/pylib python3 -c "import sys, pypdf; [print('--- PDF page', i + 1, chr(10) + (pg.extract_text() or '')) for i, pg in enumerate(pypdf.PdfReader(sys.argv[1]).pages)]" "<pdf>"
+   test -f <dir>/.ready || exit 4; python3 -m pip install --quiet --no-cache-dir --target <dir>/pylib -c <dir>/scripts/requirements.txt pypdf && PYTHONPATH=<dir>/pylib python3 -c "import sys, pypdf; [print('--- PDF page', i + 1, chr(10) + (pg.extract_text() or '')) for i, pg in enumerate(pypdf.PdfReader(sys.argv[1]).pages)]" "<pdf>"
    ```
    OCR text is good enough to find a passage and check its wording, but it can misread characters: a mismatch that could be an OCR error (ligatures, `rn`/`m`, lost diacritics, hyphenation) is not a "Quotation not verbatim" finding on its own — note it in the description and, if it matters, ask the user to look at that page in the PDF in their folder.
 

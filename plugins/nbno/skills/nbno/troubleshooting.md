@@ -136,7 +136,7 @@ at the end of `SKILL.md`.
   orchestrator installs to
   `<--out>/_pylib/` and prepends `<--out>/_pylib/bin` to `PATH`
   automatically; if you're running ocrmypdf by hand, install with
-  `pip install --target outputs/_pylib --break-system-packages ocrmypdf`
+  `pip install --target outputs/_pylib --break-system-packages -c {SKILL_DIR}/scripts/requirements.txt ocrmypdf`
   and `export PATH="outputs/_pylib/bin:$PATH"
   PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
 - *Single ocrmypdf call times out on a long book.* Expected: Tesseract does
