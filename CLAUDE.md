@@ -203,9 +203,9 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
     in `shared/local-route/`): one already there, or a standalone CPython
     3.13 that uv (pinned in nbno's lock) fetches into the run directory,
     ~33 MB in ~3 s, no root. validate.yml tests that path.
-  - Upstream caps count too: the `nbno` CLI package capped Pillow at `<13`
-    (PR Lanjelin/NBNO.py#28 raises it). When an alert's fix is blocked by a
-    dependency's own cap, fix it upstream rather than overriding the cap.
+  - Upstream caps count too: when an alert's fix is blocked by a
+    dependency's own cap (e.g. the `nbno` CLI's Pillow cap), fix it
+    upstream rather than overriding the cap.
   - Not pinned: eurlex-mcp-server (`npx -y` in the user's own Claude
     config, out of Dependabot's reach), the sandbox's apt packages, and
     the `pip install pypdf` hints in skills that do not install it

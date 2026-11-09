@@ -42,7 +42,7 @@ markdown-it-py==4.2.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
-nbno==1.2.4
+nbno==1.2.5
     # via -r requirements.in
 numpy==2.5.4
     # via -r requirements.in
@@ -59,7 +59,7 @@ pikepdf==10.18.0
     #   -r requirements.in
     #   img2pdf
     #   ocrmypdf
-pillow==12.3.0
+pillow==13.0.0
     # via
     #   -r requirements.in
     #   fpdf2
