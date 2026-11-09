@@ -19,7 +19,7 @@ jobs:
       contents: write
     steps:
       # Check out the commit that was validated, not the current tip of main.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
