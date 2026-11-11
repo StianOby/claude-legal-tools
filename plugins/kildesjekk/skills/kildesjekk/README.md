@@ -34,13 +34,23 @@ the skill picks up where it left off rather than starting over.
 kildesjekk/
 ├── SKILL.md                          # Skill manifest Claude reads
 ├── README.md                         # This file
-└── references/
-    ├── zoteus-caselaw.md             # Zoteus lookup recipes for Norwegian case law
-    └── zoteus-prepworks.md           # Zoteus lookup recipes for preparatory works
+├── references/
+│   ├── retrieve.md                   # Zotero step: finding the source, saving the passage
+│   ├── judge.md                      # Zotero step: deciding what a row says
+│   ├── zotero.md                     # Finding and reading an item with Zoteus
+│   ├── zoteus-caselaw.md             # Zoteus lookup recipes for Norwegian case law
+│   └── zoteus-prepworks.md           # Zoteus lookup recipes for preparatory works
+└── scripts/
+    ├── worklist.py                   # Validates the worklist; writes batches and results
+    └── quote_check.py                # Compares quotations with saved passages
 ```
 
-No scripts — kildesjekk is an orchestrator that delegates to the skills and MCP
-servers listed below.
+kildesjekk is an orchestrator that delegates to the skills and MCP servers
+listed below. In the Zotero step it saves the passage each check rests on
+(`kildesjekk_evidence/`, beside the worklist), compares quotations with a
+script, and, for a manuscript with many references, hands batches to
+subagents: Haiku finds the sources, Opus reads whether they support the
+claims. The design is in `docs/kildesjekk-subagents.md` in the repo.
 
 ## Dependencies
 

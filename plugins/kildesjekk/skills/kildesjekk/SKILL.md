@@ -61,7 +61,7 @@ Throughout these instructions, **`{SKILL_DIR}`** means this skill's directory �
 ```bash
 for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/kildesjekk}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/kildesjekk/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
 ```
-This skill ships one: `scripts/worklist.py`, the worklist validator used in §2 and §17. It needs `openpyxl`, which you will be installing anyway to write the worklist.
+This skill ships two: `scripts/worklist.py`, which validates the worklist (§2 and §17) and writes batches and results (§5), and `scripts/quote_check.py`, which compares quotations with saved passages (§5). `worklist.py` needs `openpyxl`, which you will be installing anyway to write the worklist.
 
 **Browser tools.** The built-in browser's tool prefix differs by environment (`mcp__Claude_Browser__…` in local
 Cowork, `mcp__remote-devices__Claude_Browser__…` in cloud Cowork). They are often deferred: run one ToolSearch with
@@ -75,7 +75,7 @@ kildesjekk orchestrates the other skills; each source step runs where that skill
 
 | Step | Runs in |
 |---|---|
-| `scripts/worklist.py`, writing the .xlsx (openpyxl) | cloud sandbox (`Bash`) |
+| `scripts/worklist.py`, `scripts/quote_check.py`, writing the .xlsx (openpyxl) | cloud sandbox (`Bash`) |
 | Zotero (zoteus MCP), eurlex MCP | as today (MCP tools, not `Bash`) |
 | Source steps for EEA-Lex, HUDOC, ICJ, EFTA Court, UNTC, ETS | where each skill says: `Bash` scripts, with the browser pane where the skill uses it |
 | lovdata-pro, eu-agreements-treaties, browser fallbacks | browser pane |
@@ -182,6 +182,19 @@ In addition to the main worksheet, create a second worksheet named "Metadata" in
 - `Main-text references` | the count of references found in the main text
 
 Fill in the Metadata sheet immediately after extracting all references from the text, before you start populating rows in the main worksheet. Confirm the totals in your reply to the user before proceeding with the source check (steps 3 onwards).
+
+## The claims file
+Beside the worklist, write `kildesjekk_claims.json`: what each reference is meant to support. §5 is checked from this file and not from the manuscript, so write it with care, once all rows have their keys. It is a JSON list with one object for every row that points to an external source:
+
+```json
+[
+  {"key": "14b", "claim": "The sentence or sentences of the manuscript that the reference supports, verbatim.", "full_reference": "Smith, Title (2nd ed., 1962) p. 149"}
+]
+```
+
+- `key`: the row's key, exactly as in the worklist.
+- `claim`: the manuscript's own words, verbatim. Include the sentence before when the sentence does not stand alone, and for a footnote that itself makes a claim, the footnote's text. For a bibliography entry, the entry.
+- `full_reference`: the full bibliographic reference, resolved from the bibliography for a short form and from the chain for "ibid.". Leave it out when the reference is already complete.
 
 ## The "footnote no./location in text" column
 **This column is the row's unique key.** Every row must have a different value, and you will use that value to find the row again when you fill in a result. If two rows share a location string, an update meant for one of them will silently land on the other — or on neither — so a duplicate is never acceptable, however natural it looks to describe seven references with the same words.
@@ -300,54 +313,74 @@ The Zotero library (zoteus MCP) may contain all types of sources, such as judgme
 - Norwegian statutes and regulations
 - EU legislation (regulations and directives)
 
-All tools are called against the personal library; do not pass `library_type` or `library_id`.
+How to find an item in Zotero and read it is in `references/zotero.md`. Read it before the first Zotero call, in this step and in §§7–8.
 
-## Finding the item
-Search with `zotero_search_items`. Put the most distinctive part of the reference in `q` (author surname plus a title word, a case number, a citation number). Every space-separated word in `q` must match. The default `qmode` matches title, creators and year; when that finds nothing, Zoteus automatically retries in `everything` mode (all fields, notes and PDF text) and marks the response `broadened: true`. Narrow with `itemType` when the category is known (e.g. `case`, `book`, `journalArticle`, `bookSection`) and use `response_format: "detailed"` when you need to disambiguate between similar hits.
+This step is done in three parts, each with its own instructions:
 
-Two things to know about the `itemType` filter:
-- Matches inside the PDF text are returned as the *attachment* item, not its parent. An `itemType` filter therefore hides them. When you need a hit from inside the text, search without `itemType`, then call `zotero_get_item` on the attachment key and follow its `parentItem` to the record.
-- Matches in metadata fields (e.g. "Docket number", "History") are returned as the parent item and survive the filter.
+| Part | What it does | Instructions |
+|---|---|---|
+| Retrieval | Finds the source and saves the passage the check rests on, one evidence file per row | `references/retrieve.md` |
+| Quotation check | Compares each quotation with the saved passage, character for character | `scripts/quote_check.py` |
+| Judging | Reads the claim, the passage and the quotation check, and decides what the row says | `references/judge.md` |
 
-Searching inside PDF text is reliable only for distinctive strings. Short tokens ("Rt.") and common words ("side") get lost, and hyphenated identifiers behave inconsistently: in testing "HR-2016-2554-P" missed the judgment while "HR 2016 2554 P" found it, whereas "LF-1998-997" worked as written. When a text search fails, retry with spaces in place of hyphens, then with a distinctive phrase of 5–8 consecutive words. Metadata searches on `caseName`, `docketNumber` and the like are not affected.
+The parts are kept apart so that every `checked = yes` rests on a saved passage the user can open, and so that the wording of a quotation is compared by a script and not by eye.
 
-For case law, the default quick search matches the "Case name" field. The case number (e.g. C-123/17, HR-2026-123-A) is in "Docket number" and is reached by the broadened search.
+## Batches
+Take the rows this step covers that still have checked = "no". Put rows that cite the same work in the same batch, so that each work is opened once; 10–15 rows per batch. Name the batches `zotero-01`, `zotero-02` … and write each batch file with:
 
-Item types used in the library: judgments are `case`; Norwegian preparatory works are `bill` (preferred) or `report` depending on how they were entered (see §7); treaties are `statute` with "type: treaty" in the Extra field; literature is `book`, `bookSection`, `journalArticle` or `thesis`. `statute` items keep their name in `nameOfAct`, so search results list them as "(untitled)" — recognise them by `shortTitle` (e.g. "UNCLOS", "ECHR") and confirm with `zotero_get_item`. Treaty numbers sit in `publicLawNumber` ("ETS No. 5"), in `code`/`codeNumber` ("UNTS" 1833) or, for agreements published in the Official Journal, in `code`/`codeNumber`/`pages` ("OJ 2001 L" 93 "40-47") and are reached by the broadened search.
+```
+python {SKILL_DIR}/scripts/worklist.py batch Kildesjekk_<documentname>.xlsx --claims kildesjekk_claims.json --name zotero-01 --keys "12a" "12b" "text p. 14a"
+```
 
-Confirm every hit with `zotero_get_item` (`item_key`, `include_children: true`). This returns the full record (all bibliographic fields) plus the child attachments and notes. Check author, title, year and edition against the reference before reading, and note the attachment keys.
+It writes `kildesjekk_batches/zotero-01.json` beside the worklist and prints its path. A batch file names the rows, their evidence files (`kildesjekk_evidence/`), and where the quotation check (`kildesjekk_quotes/`) and the results (`kildesjekk_results/`) go. If it refuses, fix what it reports; never write a batch file by hand.
 
-## Reading the source
-Read the text with `zotero_get_fulltext`. Passing the parent `item_key` resolves the item's best PDF (or EPUB) automatically. Useful parameters:
-- `query` — returns the passages most relevant to a phrase, each with an approximate page. This is the fastest way to locate a quotation: pass a distinctive phrase of 5–8 consecutive words from it.
-- `page_range` (e.g. `"41-43"`, 1-based PDF pages) — reads a span in full. Use it to verify a quotation verbatim in context and to read the running header.
-- `max_chars` — the default cap is 12 000 characters (maximum 100 000). Raise it when you need to read a quotation in context.
-- `precise_pages: true` — with `query`, re-extracts the PDF so each passage carries an exact `page` instead of `pageApprox`. Try it first; the response's `pageSource` says whether you got `"exact"` pages or an estimate.
-- `outline: true` returns the PDF's table of contents only when Zoteus has its optional PDF parser installed. If it errors, skip it.
-- `zotero_pdf_images` (same `item_key`, a page span) renders pages as images. Use it for a scanned PDF whose text layer is missing or garbled — old Norwegian books typically — so the quotation can still be read off the page instead of the row being marked unavailable. It refuses PDFs over about 20 MB (see below).
+## With workers
+Use workers when you have the `Agent` tool and this step covers 30 rows or more. Otherwise go to "Without workers".
 
-Page numbers: unless that optional parser is installed (or `precise_pages`/`page_range` re-extracted the file — `pageSource: "exact"`), every page number Zoteus reports is an estimate (`pageApprox`) derived from character counts, and the estimate drifts through a document — in testing the gap between PDF page and printed page was 5 at PDF page 30 and 3 at page 60 of the same book. Therefore:
-- Never convert an estimated page to a printed page with a fixed offset for the whole item.
-- To reach a printed pinpoint, read a small `page_range` near the expected position, find the running header or printed page number in the text, and step forward or back until the header shows the cited page. Use the printed pagination in the worklist.
-- To verify a quotation: `query` with a distinctive phrase, note `pageApprox`, read a `page_range` around it, confirm the text verbatim, and take the printed page number from the header.
+You start every worker yourself, with the `Agent` tool. Give each one only the prompt below, with the paths written out in full. Always pass `model`; never pass `subagent_type: "fork"`.
 
-PDFs larger than about 20 MB are served from Zotero's stored index rather than re-extracted; the response says so in `notice`. `page_range` and `query` still work, but `precise_pages` is skipped and `zotero_pdf_images` refuses the file, so there is no page image to look at. Scanned books are often this large. For them:
-- Settle the printed page from the running headers of the neighbouring pages (e.g. headers 21, 22, ?, 24 around the quotation put it on 23). A page number in the OCR text can itself be misread.
-- A difference the OCR cannot show, such as en dash against em dash or a lost diacritic, is not a "Quotation not verbatim" finding. Say in the description that it could not be checked.
-- If the page image matters and the book is on nb.no, fetch that one page through §15. Otherwise ask the user to look at the page in Zotero.
+**Retrieval workers**, `model: "haiku"`, one per batch, at most three running at a time (start them in the same message):
 
-Note that a single Zotero item may contain multiple attachments (e.g. PDFs). `zotero_get_fulltext` selects one attachment automatically; if it does not contain what you are looking for, take the other attachment keys from the `zotero_get_item` children list and call `zotero_get_fulltext` with that attachment key as `item_key`.
+```
+You are a retrieval worker in a source check. Read {SKILL_DIR}/references/retrieve.md and follow it exactly. Your batch file: <full path of the batch file>
+```
 
-If you don't find any fulltext (e.g. only metadata and no attachments, or `zotero_get_fulltext` returns nothing even with `fallback: true`) when you look up an item in Zotero, leave the reference as "checked" = "no" (if the source can be found with other tools, it will then be picked up in a later step).
+When a retrieval worker has finished, run the quotation check on its batch:
 
-Certain Zotero items, notably some monographs, will only have a single PDF attachment with a Table of Contents or a short excerpt, and not the full text. These can be marked as "checked" = "no" (so that they may be picked up in a later step).
+```
+python {SKILL_DIR}/scripts/quote_check.py kildesjekk_batches/zotero-01.json
+```
 
-## Semantic search (secondary)
-`zotero_semantic_search` searches by meaning and, if the user has built a full-text index, also inside PDF bodies. It always searches the personal library and cannot be pointed at a group library. Not every user has built this index, so:
-- Always call it with `auto_build: false`. If it reports an empty or missing index, skip it — do not start an index build.
-- Use it only after the metadata search in "Finding the item" has been tried: to find a quotation whose reference appears to be wrong (candidate for "Wrong source" or "Wrong page/section/paragraph"), or when a work you would expect to be in the library did not surface by title/creator.
-- Hits are often listed as "(untitled)" with only a key, snippet and score. Identify each hit with `zotero_get_item` before doing anything else with it.
-- A semantic hit is a lead, never a verification. Always open the record with `zotero_get_item` and read the passage with `zotero_get_fulltext` before filling in the worklist.
+If it lists rows without usable evidence, delete those rows' evidence files and start one new retrieval worker for the batch (it skips the rows that have evidence). If rows are still missing after that, tell the user which.
+
+**Judging workers**, `model: "opus"`, one for up to three batches whose quotation check has run:
+
+```
+You are a judging worker in a source check. Read {SKILL_DIR}/references/judge.md and follow it exactly. The skill's instructions: {SKILL_DIR}/SKILL.md. Your batch files: <full paths of the batch files>
+```
+
+While workers run, do not look up their rows yourself. A worker that fails or returns nothing is started once more; after that, tell the user. Do not fill in its rows as a quiet fallback.
+
+## Applying the results
+When a judging worker has finished, write each of its batches into the worklist:
+
+```
+python {SKILL_DIR}/scripts/worklist.py apply Kildesjekk_<documentname>.xlsx kildesjekk_batches/zotero-01.json
+```
+
+`apply` checks the results against the batch, the evidence and the row invariants, writes the rows and their colours, and runs the validator. Rows that were not found in Zotero stay at checked = "no" for a later step. If it refuses, it writes nothing and says why: start a new judging worker for that batch with the refusal added to its prompt. Never edit a results file only to get it accepted.
+
+## Review
+Before you report this step as done, go through the applied rows yourself:
+
+- **Every row with discrepancy = "yes":** open its evidence file and confirm that the description fits the passage.
+- **Every "Quotation not verbatim", "Wrong page/section/paragraph" and "Assessment uncertain":** read that passage in Zotero yourself (`zotero_get_fulltext`, at the evidence file's `locator`). A retrieval worker copies the passage by hand, and a slip in the copy looks like a misquotation.
+- **One in ten of the rows with a quotation and discrepancy = "no":** read the passage in Zotero the same way.
+
+If the source reads differently from the evidence file, correct the passage in the evidence file, run `quote_check.py` on the batch again, correct the row in the results file, and run `apply` with `--recheck`. Say in your report of the step which rows you corrected and why.
+
+## Without workers
+Do the same parts yourself, in the same order: write the batch files; for each batch follow `references/retrieve.md` and write the evidence files; run `quote_check.py`; follow `references/judge.md` and write the results file; run `apply`. Do not skip the evidence files or write to the worklist directly in this step. The review above is then limited to its first point.
 
 # 6) Check Norwegian statutes and regulations
 Use the /lovdata-api skill for Norwegian statutes and regulations in force: it is the only tool for current law, and it is free. It holds *only* current consolidated text, so two kinds of reference must go to the /lovdata-pro skill instead:
@@ -414,7 +447,7 @@ Which source counts for each is in the eea-lex skill ("Checking a claim or quota
 For EFTA Court case law not found in Zotero, use the /efta-court skill. If there is something you cannot find, write "source unavailable" in the "checked" column. Do not search the web.
 
 # 12) Check treaties
-Treaties found in Zotero (`statute` items, see §5) were handled there. For the rest, pick the appropriate tool from the list below — do not run them in a fixed order:
+Treaties found in Zotero (`statute` items, see `references/zotero.md`) were handled in §5. For the rest, pick the appropriate tool from the list below — do not run them in a fixed order:
 	- /ets for Council of Europe treaties: anything cited with an ETS/CETS number or a CoE name (ECHR and its protocols, the Social Charter, the Istanbul, Lanzarote, Budapest and Oviedo conventions, Convention 108). Authentic English and French texts, explanatory reports, signatures, ratifications and reservations per state.
 	- /untc for treaties registered with the UN: the UN Charter, the 1966 Covenants, CEDAW, CRC, CAT, the Vienna Convention on the Law of Treaties, UNCLOS, the Rome Statute, the Geneva Conventions and, in principle, any treaty cited with a UNTS volume/page. Authentic texts and status (parties, reservations, entry into force). A status claim is only as current as the UN's status document: give its `status_date` (not today's date) in the description column, and when the claim turns on a recent ratification, withdrawal or reservation, run `status <ref> --force` first. For a treaty with another depositary (NATO, the Geneva Conventions, the Chicago Convention) /untc has no status, but its UNTS text is usually the best English/French text to check a quotation against: whenever a reference cites the UN Treaty Series by volume and page (e.g. "34 UNTS 243" = volume 34, page 243), run `text --vol <volume> --page <page>` and compare, even if the quotation was already checked elsewhere. If `text` returns a `warning` about short pages, re-run with `--from-volume` before concluding that words are missing.
 	- /norges-traktater for what is specific to Norway: the Norwegian text of a treaty, Norway's signature/ratification/entry-into-force dates, reservations and Stortinget consent, and bilateral or regional agreements with no EU party (Nordic conventions, boundary agreements) that neither the UN nor the CoE database indexes well. The Norwegian text is also what to check when the manuscript quotes a treaty in Norwegian. For agreements between the EU and Norway it is the primary register when the manuscript is in Norwegian (see "Two sides of an EU agreement" below).
