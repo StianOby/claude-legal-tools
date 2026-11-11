@@ -122,6 +122,8 @@ jobs:
           node -r ../browser-helpers/stripped_preload.js run.js
           echo "== lovdata-pro toText() on a DOM (uses the same linkedom)"
           node ../lovdata-pro/dom.js
+          echo "== lovdata-pro new-Pro (pro2) backend on a DOM"
+          node ../lovdata-pro/pro2.js
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code

@@ -94,6 +94,12 @@ True
 >>> search_hint("Rt. 2000 s. 1811 (Finanger I) på s. 1827")
 'Rt-2000-1811'
 
+>>> # The new Lovdata Pro resolves the short form directly.
+>>> explain("Rt. 2000 s. 1811 (Finanger I) på s. 1827")["pro2_ref"]
+'avgjorelse/rt-2000-1811'
+>>> explain("RG 2010 s. 100")["pro2_ref"]
+'avgjorelse/rg-2010-100'
+
 >>> # Stortingsmeldinger have a Lovdata-assigned sequence number in the
 >>> # slug (STS/forarbeid/stsg-202021-352), so they cannot be resolved
 >>> # offline either — explain() says where to look.
@@ -317,12 +323,19 @@ def explain(ref):
         if pin:
             out["pinpoint"] = pin
         out["search_hint"] = search_hint(ref)
+        hint = out["search_hint"]
+        if re.fullmatch(r"(Rt|RG)-\d{4}-\d+", hint):
+            # The new Lovdata Pro resolves Lovdata's own short form (the form
+            # its links use) to the underlying judgment: load() takes it.
+            out["pro2_ref"] = f"avgjorelse/{hint.lower()}"
         if re.match(r"(Meld\.?\s*St\.?|St\.?\s*meld\.?)", s, re.I):
             out["note"] = (
                 "stortingsmeldinger live in STS/forarbeid/stsg-<sesjon>-<løpenummer> "
-                "(e.g. Meld. St. 17 (2020-2021) is STS/forarbeid/stsg-202021-352). "
-                "The løpenummer is assigned by Lovdata and cannot be derived from the "
-                "citation — search for the search_hint and verify the hit's title")
+                "in Lovdata Pro Klassisk (e.g. Meld. St. 17 (2020-2021) is "
+                "STS/forarbeid/stsg-202021-352). The løpenummer is assigned by Lovdata and "
+                "cannot be derived from the citation — search for the search_hint and verify "
+                "the hit's title. The new Lovdata Pro (pro2) has no stortingsmeldinger "
+                "(2026-11-11): use Klassisk")
         elif re.match(r"TRR-", s, re.I):
             out["note"] = (
                 "TRR- is Trygderetten, not a tingrett — its Lovdata Pro collection is not "
@@ -334,7 +347,8 @@ def explain(ref):
                 "nothing at all. Say so rather than quoting from elsewhere")
         else:
             out["note"] = ("no deterministic slug for this citation form (Rt./RG/other); "
-                           "search Lovdata Pro for the search_hint and verify the hit")
+                           "on the new Lovdata Pro load the pro2_ref if there is one, "
+                           "else search Lovdata Pro for the search_hint and verify the hit")
     return out
 
 

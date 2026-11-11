@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.2.2';
+  const HELPER_VERSION = '1.3.0';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -33,6 +33,41 @@
     // just its main text field: newlines and quotes double in size when
     // JSON-escaped, and a big toc or many grep hits add up the same way.
     const jsonLen = (v) => JSON.stringify(v).length;
+
+    // --- meter -----------------------------------------------------------------
+    // Counts, per public function, the calls and the characters returned to
+    // the conversation (JSON, as javascript_tool sends it), plus every
+    // network fetch's time and size. The same meter on both backends, for
+    // the default-site comparison (docs/lovdata-pro-default-test.md).
+    // __lp.stats() reads it; __lp.stats({ reset: true }) reads and zeroes it.
+    const meter = { since: Date.now(), calls: {}, returnedChars: 0, fetches: 0, fetchMs: 0, fetchBytes: 0 };
+
+    function metered(name, fn) {
+      return async (...args) => {
+        const t0 = Date.now();
+        const out = await fn(...args);
+        const m = meter.calls[name] || (meter.calls[name] = { n: 0, chars: 0, ms: 0 });
+        let len = 0;
+        try { len = jsonLen(out === undefined ? null : out); } catch (e) { /* not serialisable */ }
+        m.n += 1; m.chars += len; m.ms += Date.now() - t0;
+        meter.returnedChars += len;
+        return out;
+      };
+    }
+
+    async function meteredFetch(url, init) {
+      const t0 = Date.now();
+      const res = await fetch(url, init);
+      const text = await res.text();
+      meter.fetches += 1; meter.fetchMs += Date.now() - t0; meter.fetchBytes += text.length;
+      return { status: res.status, text };
+    }
+
+    function stats({ reset = false } = {}) {
+      const out = { ...meter, calls: JSON.parse(JSON.stringify(meter.calls)), site: (backend() || {}).kind || null, ms: Date.now() - meter.since };
+      if (reset) Object.assign(meter, { since: Date.now(), calls: {}, returnedChars: 0, fetches: 0, fetchMs: 0, fetchBytes: 0 });
+      return out;
+    }
 
     // Longest slice of text from `offset` (at most `size` chars) whose JSON
     // encoding fits in `budget`. An escaped char costs at least 2, so cutting
@@ -77,23 +112,218 @@
     // because the session can expire between turns.
     const PROBE_PATH = 'LGSIV/avgjorelse/lg-2008-135938';
 
-    // From 2026-11-26 a Pro login lands on the new Lovdata Pro
-    // (pro2.lovdata.no, an Elm app with a JSON API and none of the markup
-    // this helper reads). The old site lives on as "Lovdata Pro Klassisk"
-    // at KLASSISK_URL. From any other origin the document fetch fails as
-    // CORS, so name the real cause instead.
+    // --- which Lovdata Pro this tab is on ----------------------------------
+    // Two backends behind the same functions:
+    // - 'klassisk': the GWT app at lovdata.no/pro ("Lovdata Pro Klassisk"
+    //   from 2026-11-26), HTML documents and the Hurtigsøk field.
+    // - 'pro2': the new Lovdata Pro, an Elm app over a JSON API, at
+    //   pro2.lovdata.no (docs/lovdata-pro2.md). Its bundle also names
+    //   https://lovdata.no/pro/api as an API base, so after the switch the
+    //   new app may be served from lovdata.no/pro as well; it is told from
+    //   Klassisk there by its Vite bundle (<script src=".../assets/index-…">).
     const KLASSISK_URL = 'https://lovdata.no/pro/?forceFullVersion=true';
+    const PRO2_URL = 'https://pro2.lovdata.no/';
+
+    function backend() {
+      const host = location.hostname;
+      if (!host) return { kind: 'klassisk' }; // unit-test stubs
+      if (host === 'pro2.lovdata.no') return { kind: 'pro2', api: `${location.origin}/api` };
+      if (host === 'lovdata.no') {
+        const vite = document.querySelector && document.querySelector('script[src*="/assets/index-"]');
+        return vite ? { kind: 'pro2', api: 'https://lovdata.no/pro/api' } : { kind: 'klassisk' };
+      }
+      return null;
+    }
 
     function wrongSite() {
-      const host = location.hostname;
-      if (!host || host === 'lovdata.no') return null;
-      return { error: 'wrong_site', host,
-               detail: `this helper works on Lovdata Pro Klassisk; navigate the tab to ${KLASSISK_URL} and paste the helper again` };
+      if (backend()) return null;
+      return { error: 'wrong_site', host: location.hostname,
+               detail: `this helper works on Lovdata Pro (${PRO2_URL}) or Lovdata Pro Klassisk (${KLASSISK_URL}); navigate the tab there and paste the helper again` };
+    }
+
+    const isPro2 = () => { const b = backend(); return !!b && b.kind === 'pro2'; };
+
+    // --- pro2: JSON API -----------------------------------------------------
+    // Read-only calls only: auth/user, checkDocument, references,
+    // documentContent, documentMeta and search. Never breadcrumbs (that
+    // writes the user's Smulesti) and never Lovdata's KI services
+    // (ai-search, ai-chat, reference-preview): their rules forbid automated
+    // queries (docs/lovdata-pro-terms.md).
+    async function api(path, init) {
+      try {
+        const res = await meteredFetch(`${backend().api}/${path}`, { credentials: 'include', ...init });
+        const { text } = res;
+        let json = null;
+        try { json = JSON.parse(text); } catch (e) { /* not JSON */ }
+        return { status: res.status, json };
+      } catch (e) {
+        return { status: 0, json: null, fetchError: String(e && e.message || e) };
+      }
+    }
+
+    const encPath = (p) => p.split('/').map(encodeURIComponent).join('/');
+    const uriPath = (u) => [u.base, u.type, u.id].join('/');
+    const isBase = (s) => /^[A-Z0-9]+$/.test(s);
+    const denied = (status) => status === 401 || status === 403;
+
+    async function pro2IsLoggedIn() {
+      const r = await api('auth/user?frontendVersion=lovdata-pro-skill');
+      if (r.fetchError) return { loggedIn: false, source: 'api', site: 'pro2', error: 'cors', detail: r.fetchError };
+      // Only the yes/no leaves the tab: the reply also carries the user's
+      // name and e-mail.
+      if (r.status === 200 && r.json && r.json.userID != null) return { loggedIn: true, source: 'api', site: 'pro2' };
+      return { loggedIn: false, source: 'api', site: 'pro2', detail: `auth/user returned ${r.status}` };
+    }
+
+    // Finds the document for a list of candidates. A full path
+    // (BASE/type/id) goes to checkDocument, which also answers RedirectTo
+    // for the wrong collection (HRSTR for an HRSIV case). A short form
+    // without the collection (avgjorelse/rt-2000-1811, the form Lovdata's
+    // own links use) goes to references, which resolves Rt./RG citations
+    // to the underlying judgment; a full path that checkDocument does not
+    // know is retried there too.
+    async function pro2Locate(candidates) {
+      const tried = [];
+      const shorts = [];
+      for (const c of candidates) {
+        const parts = String(c).split('/').filter(Boolean);
+        if (parts.length >= 3 && isBase(parts[0])) {
+          const path = parts.slice(0, 3).join('/');
+          tried.push(`checkDocument ${path}`);
+          const r = await api('checkDocument/' + encPath(path));
+          if (r.fetchError) return { error: 'cors', detail: r.fetchError };
+          if (denied(r.status)) return { error: 'not_logged_in' };
+          const t = r.json && r.json.type;
+          if (t === 'Success') return { path, part: parts.slice(3).join('/') || null };
+          if (t === 'RedirectTo' && r.json.documentURI) return { path: uriPath(r.json.documentURI), part: r.json.documentURI.part || null, redirectedFrom: path };
+          if (t === 'StaticFile') return { error: 'static_file', detail: `${path} is a static file in Lovdata Pro, not a text document`, file: r.json.url || null, fileType: r.json.fileType || null };
+          if (t === 'MissingJSON') return { error: 'missing_json', detail: `${path} has no text version in the new Lovdata Pro; try Lovdata Pro Klassisk (${KLASSISK_URL})`, proURL: r.json.proURL || null };
+          shorts.push(parts.slice(1).join('/'));
+        } else if (parts.length >= 2) {
+          shorts.push(parts.join('/'));
+        }
+      }
+      for (const s of [...new Set(shorts)]) {
+        tried.push(`references ${s}`);
+        const r = await api('references/' + encPath(s));
+        if (r.fetchError) return { error: 'cors', detail: r.fetchError };
+        if (denied(r.status)) return { error: 'not_logged_in' };
+        const hits = Array.isArray(r.json) ? r.json.filter(h => h && h.documentURI) : [];
+        if (hits.length) {
+          const u = hits[0].documentURI;
+          const out = { path: uriPath(u), part: u.part || null, via: `references ${s}` };
+          if (hits.length > 1) out.alternatives = hits.slice(1, 6).map(h => uriPath(h.documentURI));
+          return out;
+        }
+      }
+      return { error: 'not_found', detail: `tried: ${tried.join('; ')}` };
+    }
+
+    // documentContent is JSON-ML: an element is [tag, {attrs}, [children]],
+    // a child a string or an element. It is rebuilt as DOM nodes in an inert
+    // document (nothing loads, no scripts run), so toText(), buildToc() and
+    // section() read it exactly as they read a Klassisk page.
+    const isEl = (n) => Array.isArray(n) && n.length === 3 && typeof n[0] === 'string'
+      && !!n[1] && typeof n[1] === 'object' && !Array.isArray(n[1]) && Array.isArray(n[2]);
+
+    function jsonmlToDom(doc, node) {
+      if (typeof node === 'string') return doc.createTextNode(node);
+      if (!isEl(node)) return null;
+      const [tag, attrs, kids] = node;
+      let el;
+      try { el = doc.createElement(tag); } catch (e) { el = doc.createElement('span'); }
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v === null || v === undefined || typeof v === 'object') continue;
+        try { el.setAttribute(k, String(v)); } catch (e) { /* attribute name the DOM refuses */ }
+      }
+      for (const c of kids) {
+        const n = jsonmlToDom(doc, c);
+        if (n) el.appendChild(n);
+      }
+      return el;
+    }
+
+    // Header field labels as the page shows them, for a <dt> that comes
+    // without text (the JSON's own <dt> text wins when there is some).
+    const PRO2_META_LABELS = {
+      court: 'Instans', dateVerdictPublished: 'Avsagt', publishedLovdata: 'Publisert (Lovdata)', caseNumber: 'Saksnummer',
+      keywords: 'Stikkord', summary: 'Sammendrag', proceedings: 'Saksgang', parties: 'Parter', membersOfTheCourt: 'Rettsmedlemmer',
+      dateLastUpdated: 'Sist oppdatert', quotedlegislation: 'Sitert regelverk', caseID: 'Dokumentnummer', title: 'Tittel',
+      advised: 'Tilrådet', ministry: 'Departement', numberOfPages: 'Antall sider', note: 'Merknad', titleShort: 'Korttittel',
+      changestodocuments: 'Foreslåtte endringer',
+    };
+
+    function pro2Metadata(header) {
+      const meta = {};
+      if (!header) return meta;
+      for (const dt of header.querySelectorAll('dt')) {
+        const dd = dt.nextElementSibling;
+        if (!dd || dd.tagName.toLowerCase() !== 'dd') continue;
+        const cls = String(dt.getAttribute('class') || '').split(/\s+/)[0];
+        const key = inlineText(dt).replace(/\s+/g, ' ').replace(/:$/, '').trim() || PRO2_META_LABELS[cls] || cls;
+        const val = inlineText(dd);
+        if (key && val) meta[key] = val;
+      }
+      return meta;
+    }
+
+    async function pro2Load(candidates) {
+      const loc = await pro2Locate(candidates);
+      if (loc.error) return loc;
+      const { path } = loc;
+      if (cache[path]) return describe(path, cache[path], loc);
+      const [content, metaRes] = await Promise.all([
+        api('documentContent/' + encPath(path)),
+        api('documentMeta/' + encPath(path)),
+      ]);
+      if (content.fetchError) return { error: 'cors', detail: content.fetchError };
+      if (denied(content.status)) return { error: 'not_logged_in' };
+      if (content.status === 404) return { error: 'not_found', detail: `${path}: no document content (Karnov comments and other non-document records have none)` };
+      if (content.status !== 200 || !content.json) return { error: `http_${content.status}`, detail: `documentContent ${path}` };
+      const c = content.json;
+      if (c.version !== 1 && c.version !== 2) return { error: 'unsupported_format', detail: `documentContent version ${c.version} for ${path}; the helper knows versions 1 and 2` };
+      const doc = new DOMParser().parseFromString('<!doctype html><html><body></body></html>', 'text/html');
+      const body = doc.createElement('div');
+      body.id = 'documentBody';
+      const main = isEl(c.mainTags) ? [c.mainTags] : (Array.isArray(c.mainTags) ? c.mainTags : []);
+      for (const n of main) { const el = jsonmlToDom(doc, n); if (el) body.appendChild(el); }
+      doc.body.appendChild(body);
+      const header = jsonmlToDom(doc, c.header);
+      const m = metaRes.status === 200 && metaRes.json ? metaRes.json : {};
+      const title = m.title || m.shortTitle || path;
+      const metadata = pro2Metadata(header);
+      const toc = buildToc(body);
+      const fullText = toText(body);
+      cache[path] = { doc, body, title, metadata, toc, fullText, site: 'pro2' };
+      return describe(path, cache[path], loc);
+    }
+
+    // POST /api/search ranks by relevance only when asked to: without
+    // sortField/sortOrder an exact reference comes behind Karnov comments.
+    // filterBases takes Lovdata's collection or group codes (HRA = all
+    // Høyesterett, AVG = all court decisions, LBSIV, NOU, PROP, INNST …).
+    // Karnov comments (base COMMENT) and literature are dropped: they are
+    // not documents by public bodies, the skill's scope under the terms.
+    async function pro2Search(query, n, bases) {
+      const body = { offset: 0, term: query, sortField: 'relevance', sortOrder: 'desc', filterBases: bases || [] };
+      const r = await api('search?minimal=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      if (r.fetchError) return { error: 'cors', detail: r.fetchError };
+      if (denied(r.status)) return { error: 'not_logged_in' };
+      if (r.status !== 200 || !r.json) return { error: `http_${r.status}`, detail: 'search' };
+      const results = [];
+      for (const h of r.json.results || []) {
+        const u = h.documentURI;
+        if (!u || u.base === 'COMMENT' || /^(karnov|litteratur)$/.test(u.type)) continue;
+        results.push({ path: uriPath(u), title: (h.documentTitles && h.documentTitles.title) || undefined, date: h.isoDate || undefined });
+        if (results.length >= n) break;
+      }
+      return { query, site: 'pro2', filterBases: body.filterBases, totalHits: r.json.totalHits, results };
     }
 
     async function isLoggedIn({ probe = true } = {}) {
       const wrong = wrongSite();
       if (wrong) return { loggedIn: false, ...wrong };
+      if (isPro2()) return pro2IsLoggedIn();
       const hash = location.hash;
       const title = document.title;
       if (/Min side/i.test(title)) return { loggedIn: true, source: 'title', hash, title };
@@ -116,9 +346,8 @@
 
     async function fetchHtml(url) {
       try {
-        const res = await fetch(url, { credentials: 'include' });
-        const html = await res.text();
-        return { status: res.status, html };
+        const res = await meteredFetch(url, { credentials: 'include' });
+        return { status: res.status, html: res.text };
       } catch (e) {
         return { status: 0, html: '', fetchError: String(e && e.message || e) };
       }
@@ -349,6 +578,28 @@
       return inlineNodes(node.childNodes, opts);
     }
 
+    const hasClass = (n, c) => !!n.getAttribute && new RegExp(`(^|\\s)${c}(\\s|$)`).test(n.getAttribute('class') || '');
+
+    // New Lovdata Pro (pro2) markup, drawn by its CSS rather than tags:
+    // span.data-originalId is a list item's drawn label (also in the li's
+    // data-name, which listMarker() writes, so the span itself is skipped);
+    // a §-title (span.legalArticleTitle) and a figure caption are set in
+    // italic, which is part of the text.
+    const isListLabel = (n) => hasClass(n, 'data-originalId');
+    const cssItalic = (n, tag) => tag === 'figcaption' || hasClass(n, 'legalArticleTitle');
+    const isPageNumber = (n) => n.nodeType === 1 && n.tagName.toLowerCase() === 'aside' && hasClass(n, 'pagenumber');
+
+    // A heading's text without the "Side N" page markers set inside it
+    // (pro2 floats them to the right); those become their own lines.
+    function headingParts(h) {
+      const clone = h.cloneNode(true);
+      const pages = [];
+      for (const a of Array.from(clone.querySelectorAll('aside'))) {
+        if (isPageNumber(a)) { pages.push(a.textContent.replace(/\s+/g, ' ').trim()); a.remove(); }
+      }
+      return { clone, pages: pages.filter(Boolean) };
+    }
+
     function inlineNodes(nodes, { skipLists = false, emphasis = true } = {}) {
       const parts = [];
       const visit = (n) => {
@@ -358,10 +609,11 @@
         if (tag === 'script' || tag === 'style') return;
         if (tag === 'br') { parts.push('\n'); return; }
         if (skipLists && (tag === 'ul' || tag === 'ol')) return;
+        if (isListLabel(n)) return;
         const fn = footnoteLabel(n);
         if (fn !== null) { parts.push(`[fn ${fn}]`); return; }
         if (tag === 'sup') { parts.push(stSuperscript(inlineText(n, { skipLists, emphasis: false }))); return; }
-        const mark = emphasis ? ST_EMPHASIS[tag] : null;
+        const mark = emphasis ? (ST_EMPHASIS[tag] || (cssItalic(n, tag) ? ST_EMPHASIS.i : null)) : null;
         if (mark) parts.push(mark[0]);
         for (const child of n.childNodes) visit(child);
         if (mark) parts.push(mark[1]);
@@ -382,7 +634,8 @@
     // (data-name="a."), else the number of an <ol> item, else "- ".
     function listMarker(li) {
       const name = li.getAttribute && li.getAttribute('data-name');
-      if (name) return name + ' ';
+      // pro2 sets some labels in italic (data-list-id-style="i").
+      if (name) return li.getAttribute('data-list-id-style') === 'i' ? `*${name}* ` : name + ' ';
       const list = li.parentElement;
       if (!list || list.tagName.toLowerCase() !== 'ol') return '- ';
       let n = Number(list.getAttribute('start') || 1);
@@ -411,7 +664,23 @@
         if (tag === 'script' || tag === 'style') return;
         if (/^h[1-6]$/.test(tag)) {
           const level = Number(tag[1]);
-          lines.push('#'.repeat(level) + ' ' + inlineText(node, { emphasis: false }).replace(/\n/g, ' '));
+          const { clone, pages } = headingParts(node);
+          lines.push('#'.repeat(level) + ' ' + inlineText(clone, { emphasis: false }).replace(/\n/g, ' '));
+          lines.push(...pages);
+          return;
+        }
+        // pro2 judgments: a numbered paragraph is drawn as one row, the
+        // "(77)" label (span.verdictNumberedPId) and then the paragraph.
+        // Written "(77) text" on one line; Klassisk's table layout gave
+        // "| (77) |" instead, and grep "(77)" finds both.
+        if (hasClass(node, 'verdictNumberedP')) {
+          const clone = node.cloneNode(true);
+          const label = Array.from(clone.children).find(ch => hasClass(ch, 'verdictNumberedPId'));
+          const num = label ? label.textContent.replace(/\s+/g, ' ').trim() : '';
+          if (label) label.remove();
+          clone.removeAttribute('class');
+          const rest = toText(clone);
+          lines.push(num && rest ? `${num} ${rest}` : (num || rest));
           return;
         }
         if (tag === 'table') {
@@ -526,15 +795,21 @@
         i,
         id: h.closest('[id]') ? h.closest('[id]').id : (h.id || null),
         level: Number(h.tagName[1]),
-        title: h.textContent.replace(/\s+/g, ' ').trim(),
+        title: headingParts(h).clone.textContent.replace(/\s+/g, ' ').trim(),
       }));
       // Chars per section via Range.toString(): one linear pass per
       // section. (The earlier version summed textContent over every node
       // in the section, which is quadratic and took tens of seconds on a
       // multi-MB NOU.)
+      // A DOM without full Range support (the test DOM) gets chars: null
+      // rather than no ToC.
       toc.forEach((entry, idx) => {
-        const range = headingRange(body, headings, toc, idx);
-        entry.chars = range ? range.toString().length : 0;
+        try {
+          const range = headingRange(body, headings, toc, idx);
+          entry.chars = range ? range.toString().length : 0;
+        } catch (e) {
+          entry.chars = null;
+        }
       });
       return toc;
     }
@@ -571,6 +846,9 @@
       for (const c of candidates) {
         if (cache[c]) return describe(c, cache[c]);
       }
+      const wrong = wrongSite();
+      if (wrong) return wrong;
+      if (isPro2()) return pro2Load(candidates);
       const result = await tryPaths(candidates);
       if (result.error) return result;
 
@@ -586,13 +864,20 @@
       return describe(path, cache[path]);
     }
 
-    function describe(path, entry) {
+    function describe(path, entry, loc = null) {
       const out = {
         path,
         title: entry.title,
         metadata: entry.metadata,
         totalChars: entry.fullText.length,
       };
+      if (entry.site) out.site = entry.site;
+      // pro2 resolves a reference with a pinpoint (rt-2000-1811/s1820, a NOU
+      // chapter) to a part id; it says where in the text, not what to load.
+      if (loc && loc.part) out.part = loc.part;
+      if (loc && loc.redirectedFrom) out.redirectedFrom = loc.redirectedFrom;
+      if (loc && loc.via) out.via = loc.via;
+      if (loc && loc.alternatives) out.alternatives = loc.alternatives;
       // Some Pro records are header-only (St.prp. and other non-law
       // propositions, pre-1985 NOUs under PUBG, Meld. St. shells): the page
       // loads, the title and metadata are real, but there is no body text.
@@ -765,9 +1050,12 @@
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    async function search(query, n = 10, { timeoutMs = 8000 } = {}) {
+    // On pro2 search is one API call; `bases` (pro2 only) limits it to
+    // Lovdata collection or group codes, e.g. ['HRA'] or ['NOU'].
+    async function search(query, n = 10, { timeoutMs = 8000, bases = null } = {}) {
       const wrong = wrongSite();
       if (wrong) return wrong;
+      if (isPro2()) return pro2Search(query, n, bases);
       const input = document.querySelector(SEARCH_INPUT);
       if (!input) {
         return { error: 'no_search_field',
@@ -825,6 +1113,7 @@
     // Reads the result anchors already rendered in the DOM. search() calls
     // it; call it directly after submitting a query by hand (type + click).
     async function readSearchResults(n = 10) {
+      if (isPro2()) return { error: 'not_needed', detail: 'on the new Lovdata Pro, search() returns the results itself' };
       return collectResults(n);
     }
 
@@ -849,18 +1138,19 @@
     return {
       VERSION: HELPER_VERSION,
       cache,
-      isLoggedIn,
-      load,
-      toc,
-      section,
-      grep,
-      page,
-      search,
-      readSearchResults,
+      isLoggedIn: metered('isLoggedIn', isLoggedIn),
+      load: metered('load', load),
+      toc: metered('toc', toc),
+      section: metered('section', section),
+      grep: metered('grep', grep),
+      page: metered('page', page),
+      search: metered('search', search),
+      readSearchResults: metered('readSearchResults', readSearchResults),
+      stats,
       docUrl,
       PAGE_SIZE,
       // exposed for unit testing / debugging only:
-      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage },
+      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage, backend, isEl, jsonmlToDom, pro2Metadata },
     };
   })();
 })();

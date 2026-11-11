@@ -81,24 +81,31 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
 
 ## Steg 0 — sesjon (alltid først, hver ny samtale)
 
-1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`.
-   Gjenbruk den om den finnes (cachen i `window.__lp` dør ved navigering, så
-   ikke naviger denne fanen bort fra `https://lovdata.no/pro/` for annet enn
-   søk — se Steg 3). Er det ingen faner: `preview_start {url: "https://lovdata.no/pro/?forceFullVersion=true"}`.
-   Hjelperen virker bare i **Lovdata Pro Klassisk** (`lovdata.no/pro`), ikke
-   i nye Lovdata Pro (`pro2.lovdata.no`), som innlogging fører til fra
-   26.11.2026. Står fanen på `pro2.lovdata.no` (også etter innlogging), eller
-   svarer et kall `wrong_site`: `navigate` til
-   `https://lovdata.no/pro/?forceFullVersion=true` og lim inn hjelperen igjen.
+1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`
+   eller `pro2.lovdata.no`. Gjenbruk den om den finnes (cachen i
+   `window.__lp` dør ved navigering, så ikke naviger fanen bort for annet
+   enn søk i Klassisk — se Steg 3). Er det ingen faner: `preview_start` med
+   **standardadressen**:
+
+   **Standard: `https://lovdata.no/pro/?forceFullVersion=true`** (Lovdata Pro Klassisk)
+
+   Hjelperen virker på begge Lovdata Pro-utgavene, med samme funksjoner:
+   **nye Lovdata Pro** (`pro2.lovdata.no`; innlogging fører dit fra
+   26.11.2026) og **Lovdata Pro Klassisk** (`lovdata.no/pro`, tilgjengelig
+   ut 2027). `isLoggedIn()` og `load()` svarer med `site: "pro2"` på nye
+   Pro. Står fanen et annet sted, svarer kallene `wrong_site`. Fungerer ikke
+   den ene utgaven (innlogging, feil eller manglende dokument), prøv den
+   andre: `https://pro2.lovdata.no/` eller
+   `https://lovdata.no/pro/?forceFullVersion=true`.
    Står en annen skills fane åpen (f.eks. nb.no), åpne en egen fane med
    `tabs_create` og `navigate` — `preview_start` gjenbruker fanen som er
    fremme, og den andre skillen mister da hjelperen sin.
 2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
    godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
-   og prøv igjen.
+   (på nye Pro: `https://pro2.lovdata.no/`) og prøv igjen.
 3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash. Den skriver en kopi
-   uten kommentarer og innrykk (ca. 17 000 tegn i stedet for 30 000) og
+   uten kommentarer og innrykk (ca. 35 000 tegn i stedet for 55 000) og
    skriver ut stien. Les den filen og send **hele** innholdet via
    `javascript_tool` (`action: "javascript_exec"`). Virker ikke `paste.py`,
    lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
@@ -112,11 +119,14 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    `https://lovdata.no/pro/#document/<path>` (path fra Steg 1, f.eks.
    `HRSIV/avgjorelse/hr-2016-2554-p`), vent et par sekunder og les med
    `get_page_text` (eller `read_page`). Åpnes dokumentet i nye Lovdata Pro
-   (`pro2.lovdata.no/dokument/…`), les det der på samme måte. Søk skjer som i fallbacken i Steg 3,
-   med `get_page_text` i stedet for `readSearchResults`. Lese-ruten har ingen
+   (`pro2.lovdata.no/dokument/…`), les det der på samme måte; på nye Pro
+   kan du også `navigate` direkte til `https://pro2.lovdata.no/dokument/<path>`.
+   Søk skjer som i fallbacken i Steg 3, med `get_page_text` i stedet for
+   `readSearchResults`. Lese-ruten har ingen
    `grep`/`section`/biter: lange dokumenter kan bli avkortet, så si fra hvis
    teksten slutter brått, og sitér bare det siden faktisk viser.
-4. Kjør `await __lp.isLoggedIn()`. På `#myPage` avgjøres svaret av
+4. Kjør `await __lp.isLoggedIn()`. På nye Pro spør den Pro-ets API
+   (`source: "api"`). I Klassisk avgjøres svaret på `#myPage` av
    `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
    lite prøveoppslag mot Pro (`source: "probe"`).
    - **Ikke innlogget** → si til brukeren: *"Logg inn på Lovdata Pro i
@@ -165,14 +175,22 @@ aktuelle:
 - **`search_hint`** — når `parsed:false`: søkestrengen som fungerer best i
   Pro, i Lovdatas egen referanseform (`Rt-2000-1811`, `RG-2010-100`), ikke
   prosasiteringen.
+- **`pro2_ref`** — for Rt. og RG: Lovdatas kortform (`avgjorelse/rt-2000-1811`).
+  På nye Pro tar `load()` den direkte og finner den underliggende dommen
+  (Rt. 2000 s. 1811 = `HRSIV/avgjorelse/hr-2000-49-b`); legg til `/s<side>`
+  for en side (`avgjorelse/rt-2000-1811/s1827`), så svarer `load()` med
+  `part: "s1827"`. I Klassisk: søk på `search_hint`.
 - **`note`** — hvorfor referansen ikke kunne løses, og hvor dokumentet
-  faktisk ligger. Tre tilfeller er verdt å kjenne:
-  - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Søk på `search_hint`.
-  - **Meld. St. / St.meld.** — ligger i `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
+  faktisk ligger. Disse tilfellene er verdt å kjenne:
+  - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Nye Pro: `load(pro2_ref)`.
+    Klassisk: søk på `search_hint`.
+  - **Meld. St. / St.meld.** — finnes bare i Klassisk, i `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
     (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-352`). Løpenummeret
     kan ikke utledes av referansen; søk og verifiser tittelen på treffet.
-  - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro.
-    Si det til brukeren i stedet for å sitere fra andre kilder.
+    Nye Pro har ikke stortingsmeldinger.
+  - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro
+    (og finnes ikke i nye Pro). Si det til brukeren i stedet for å sitere
+    fra andre kilder.
   - **TRR-** — Trygderetten, ikke en tingrett. Samlingen er ikke kartlagt;
     søk på referansen.
 
@@ -185,7 +203,8 @@ python {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
 ```
 
 Hvis `parsed:false` (typisk pre-2008 Rt.-dommer, RG-dommer, uvanlige
-referanseformer): hopp til **Steg 3 — søk**, og søk på `search_hint`.
+referanseformer): på nye Pro, prøv `load(pro2_ref)` hvis feltet finnes;
+ellers hopp til **Steg 3 — søk**, og søk på `search_hint`.
 
 ---
 
@@ -198,7 +217,11 @@ await __lp.load(["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-25
 Returnerer `{path, title, metadata, totalChars, toc}` (eller en
 `{error: ...}`-payload — se **Feilhåndtering**). Dokumentet caches i fanen på
 `path`, så alle videre kall (`section`, `grep`, `page`) på samme `path` er
-gratis (ingen ny nettforespørsel).
+gratis (ingen ny nettforespørsel). Bruk alltid `path` fra svaret i videre
+kall: på nye Pro kan den avvike fra kandidaten (feil samling rettes
+automatisk, `redirectedFrom`; en kortform gir `via`). `part` (nye Pro)
+sier hvor i dokumentet en referanse peker (`s1827`, `k4-1-4`); finn stedet
+med `grep`.
 
 To flagg i svaret styrer hva du kan gjøre videre:
 
@@ -223,8 +246,9 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   for hvor mye ett `javascript_tool`-svar tåler), hent den med `page(path, 0)`.
   Partene og prosessfullmektigene står ikke i brødteksten — de ligger i
   `metadata.Parter` (én linje per part).
-  **Avsnittsnumre** står som `(77)` i en egen tabellcelle (i teksten
-  `| (77) |`), ikke som «avsnitt 77». Finn avsnitt 77 med
+  **Avsnittsnumre** står som `(77)`, ikke som «avsnitt 77»: på nye Pro
+  først på avsnittets linje (`(77) Teksten …`), i Klassisk i en egen
+  tabellcelle (`| (77) |`). Finn avsnitt 77 med
   `grep(path, "(77)", 600, 3)` — `term` er bokstavelig, så parentesene
   trenger ingen escaping — og les videre med `page(path, offset)`.
 - **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
@@ -280,9 +304,19 @@ feiler med `not_found`.
 
 ```javascript
 await __lp.search("Rt-2000-1811", 10)
+await __lp.search("tomtefeste", 10, { bases: ["HRA"] })   // bare nye Pro
 ```
 
-`search()` skriver spørringen inn i `#quickSearchField-input` og sender en
+**På nye Pro** er `search()` ett API-kall, sortert etter relevans; svaret er
+`{query, site: "pro2", filterBases, totalHits, results: [{path, title, date}]}`.
+`bases` avgrenser til Lovdatas samlings- eller gruppekoder: `HRA` (hele
+Høyesterett), `AVG` (alle rettsavgjørelser), `LBSIV`, `TRSIV`, `NOU`, `PROP`,
+`INNST` osv. Karnov-kommentarer og litteratur tas bort fra treffene (de er
+ikke dokumenter fra offentlige organer). Det trengs ingen fallback, og
+`readSearchResults()` brukes ikke. Søket legges ikke i brukerens
+søkehistorikk (smulesti).
+
+**I Klassisk** skriver `search()` spørringen inn i `#quickSearchField-input` og sender en
 syntetisk `keyup` med Enter, som er hendelsen GWT-søket faktisk lytter på
 (målt: `input` alene, syntetisk `keydown`, syntetisk `keypress` og et *ekte*
 Enter-tastetrykk gjør ingenting — `keyup` submitter). Deretter venter den på
@@ -297,7 +331,7 @@ Merk at Pro skriver om spørringen: den settes til små bokstaver og får et
 trunkeringsjokertegn (`TOSL-2022` → `q=TOSL-2022*`). `submitted` viser hva
 feltet endte opp med. Ikke sammenlign `hash` med spørringen din.
 
-**Fallback — hvis `search()` svarer `search_timeout`:**
+**Fallback (Klassisk) — hvis `search()` svarer `search_timeout`:**
 
 1. Sørg for at fanen viser søkefeltet (`#quickSearchField-input`).
 2. Skriv inn søketeksten med `computer {action:"type"}`.
@@ -319,7 +353,8 @@ Samme advarsler som før:
   EØS-vedlegget fordi fulltekstsøket slår på alle treff i
   dokumentkorpuset — ikke selve dokumentet.
 - **Pre-2008 Rt.-slugs har et opakt suffiks** (`rt-YYYY-PAGENUMBER-SUFFIX`)
-  som ikke kan gjettes deterministisk — søk er eneste pålitelige vei.
+  som ikke kan gjettes deterministisk — i Klassisk er søk eneste pålitelige
+  vei; på nye Pro løser `load(pro2_ref)` det (Steg 1).
 - **Verifiser alltid** at topptreffets `path` faktisk tilsvarer den
   etterspurte referansen før du siterer fra den — sjekk tittel/metadata via
   `load()` på treffet.
@@ -418,11 +453,18 @@ kaste. Kodene:
 - **`no_search_field`** / **`search_timeout`** (fra `search()`) → fanen viser
   ikke Hurtigsøk-feltet, eller søket kom ikke gjennom. Bruk fallback-flyten i
   Steg 3.
-- **`cors`** → du kjørte JS i en fane som ikke er på `lovdata.no`. Sjekk at
-  fanen faktisk viser en `lovdata.no/pro`-side (Steg 0).
-- **`wrong_site`** → fanen står på nye Lovdata Pro (`pro2.lovdata.no`).
-  `navigate` til `https://lovdata.no/pro/?forceFullVersion=true`, lim inn
-  hjelperen igjen og prøv på nytt (Steg 0).
+- **`cors`** → du kjørte JS i en fane som ikke er på Lovdata Pro. Sjekk at
+  fanen faktisk viser en Lovdata Pro-side (Steg 0).
+- **`wrong_site`** → fanen står verken på nye Lovdata Pro eller Klassisk.
+  `navigate` til standardadressen i Steg 0, lim inn hjelperen igjen og prøv
+  på nytt.
+- **`missing_json`** (nye Pro) → dokumentet finnes, men uten tekstversjon i
+  nye Pro. Åpne Klassisk (`https://lovdata.no/pro/?forceFullVersion=true`) i
+  en egen fane, lim inn hjelperen der og `load()` på nytt.
+- **`static_file`** (nye Pro) → dokumentet er bare en fil (PDF/HTML) i Pro,
+  ikke tekst hjelperen kan lese. Si det til brukeren; prøv gjerne Klassisk.
+- **`unsupported_format`** (nye Pro) → Lovdata har endret dokumentformatet.
+  Bruk Klassisk, og si til brukeren at skill-en bør oppdateres.
 - **Siden er ikke godkjent / brukeren avslo tilgangsforespørselen** → fortell
   brukeren dette og stopp; ikke prøv å omgå det.
 
