@@ -5,20 +5,21 @@
 // functions are async and return plain JSON-serialisable objects (this is
 // what javascript_tool returns to the caller — no DOM nodes, no functions).
 //
-// Keep this tab parked on https://lovdata.no/pro/ and never navigate it
+// Keep this tab parked on Lovdata Pro Klassisk (https://lovdata.no/pro/,
+// opened as https://lovdata.no/pro/?forceFullVersion=true) and never navigate it
 // away — window.__lp.cache dies on navigation, and every load()/section()/
 // grep() after the first for a given path reuses the cached parsed
 // Document instead of re-fetching.
 //
 // Error convention: functions never throw to the caller. They return
-// {error: 'not_logged_in' | 'not_found' | 'collection_mismatch' | 'cors' | 'http_<n>', detail}.
+// {error: 'not_logged_in' | 'not_found' | 'collection_mismatch' | 'cors' | 'wrong_site' | 'http_<n>', detail}.
 
 // HELPER_VERSION follows the plugin version and changes whenever this file
 // does (bump it by hand; CI checks it). A helper of another
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.2.0';
+  const HELPER_VERSION = '1.2.2';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -76,7 +77,23 @@
     // because the session can expire between turns.
     const PROBE_PATH = 'LGSIV/avgjorelse/lg-2008-135938';
 
+    // From 2026-11-26 a Pro login lands on the new Lovdata Pro
+    // (pro2.lovdata.no, an Elm app with a JSON API and none of the markup
+    // this helper reads). The old site lives on as "Lovdata Pro Klassisk"
+    // at KLASSISK_URL. From any other origin the document fetch fails as
+    // CORS, so name the real cause instead.
+    const KLASSISK_URL = 'https://lovdata.no/pro/?forceFullVersion=true';
+
+    function wrongSite() {
+      const host = location.hostname;
+      if (!host || host === 'lovdata.no') return null;
+      return { error: 'wrong_site', host,
+               detail: `this helper works on Lovdata Pro Klassisk; navigate the tab to ${KLASSISK_URL} and paste the helper again` };
+    }
+
     async function isLoggedIn({ probe = true } = {}) {
+      const wrong = wrongSite();
+      if (wrong) return { loggedIn: false, ...wrong };
       const hash = location.hash;
       const title = document.title;
       if (/Min side/i.test(title)) return { loggedIn: true, source: 'title', hash, title };
@@ -147,6 +164,8 @@
     }
 
     async function tryPaths(paths) {
+      const wrong = wrongSite();
+      if (wrong) return wrong;
       const queue = [...paths];
       const seen = new Set(paths);
       for (let i = 0; i < queue.length; i++) {
@@ -747,6 +766,8 @@
     }
 
     async function search(query, n = 10, { timeoutMs = 8000 } = {}) {
+      const wrong = wrongSite();
+      if (wrong) return wrong;
       const input = document.querySelector(SEARCH_INPUT);
       if (!input) {
         return { error: 'no_search_field',

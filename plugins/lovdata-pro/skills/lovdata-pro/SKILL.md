@@ -84,7 +84,12 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
 1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`.
    Gjenbruk den om den finnes (cachen i `window.__lp` dør ved navigering, så
    ikke naviger denne fanen bort fra `https://lovdata.no/pro/` for annet enn
-   søk — se Steg 3). Er det ingen faner: `preview_start {url: "https://lovdata.no/pro/"}`.
+   søk — se Steg 3). Er det ingen faner: `preview_start {url: "https://lovdata.no/pro/?forceFullVersion=true"}`.
+   Hjelperen virker bare i **Lovdata Pro Klassisk** (`lovdata.no/pro`), ikke
+   i nye Lovdata Pro (`pro2.lovdata.no`), som innlogging fører til fra
+   26.11.2026. Står fanen på `pro2.lovdata.no` (også etter innlogging), eller
+   svarer et kall `wrong_site`: `navigate` til
+   `https://lovdata.no/pro/?forceFullVersion=true` og lim inn hjelperen igjen.
    Står en annen skills fane åpen (f.eks. nb.no), åpne en egen fane med
    `tabs_create` og `navigate` — `preview_start` gjenbruker fanen som er
    fremme, og den andre skillen mister da hjelperen sin.
@@ -106,7 +111,8 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    `isLoggedIn()` — spør brukeren), `navigate` til
    `https://lovdata.no/pro/#document/<path>` (path fra Steg 1, f.eks.
    `HRSIV/avgjorelse/hr-2016-2554-p`), vent et par sekunder og les med
-   `get_page_text` (eller `read_page`). Søk skjer som i fallbacken i Steg 3,
+   `get_page_text` (eller `read_page`). Åpnes dokumentet i nye Lovdata Pro
+   (`pro2.lovdata.no/dokument/…`), les det der på samme måte. Søk skjer som i fallbacken i Steg 3,
    med `get_page_text` i stedet for `readSearchResults`. Lese-ruten har ingen
    `grep`/`section`/biter: lange dokumenter kan bli avkortet, så si fra hvis
    teksten slutter brått, og sitér bare det siden faktisk viser.
@@ -414,6 +420,9 @@ kaste. Kodene:
   Steg 3.
 - **`cors`** → du kjørte JS i en fane som ikke er på `lovdata.no`. Sjekk at
   fanen faktisk viser en `lovdata.no/pro`-side (Steg 0).
+- **`wrong_site`** → fanen står på nye Lovdata Pro (`pro2.lovdata.no`).
+  `navigate` til `https://lovdata.no/pro/?forceFullVersion=true`, lim inn
+  hjelperen igjen og prøv på nytt (Steg 0).
 - **Siden er ikke godkjent / brukeren avslo tilgangsforespørselen** → fortell
   brukeren dette og stopp; ikke prøv å omgå det.
 

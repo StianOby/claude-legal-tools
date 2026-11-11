@@ -135,6 +135,17 @@ async function main() {
   s = await lp.search('HR-2016-2554-P', 10, { timeoutMs: 1000 });
   check('different query without results times out', s.error, 'search_timeout');
 
+  // A tab on the new Lovdata Pro (pro2.lovdata.no) gets wrong_site from
+  // every entry point that would fetch or search, not a bare CORS error.
+  location.hostname = 'pro2.lovdata.no';
+  const wl = await lp.isLoggedIn();
+  check('wrong_site from isLoggedIn', [wl.loggedIn, wl.error, wl.host], [false, 'wrong_site', 'pro2.lovdata.no']);
+  check('wrong_site from load', (await lp.load(['HRSIV/avgjorelse/hr-2016-2554-p'])).error, 'wrong_site');
+  check('wrong_site from search', (await lp.search('HR-2016-2554-P', 10, { timeoutMs: 500 })).error, 'wrong_site');
+  check('wrong_site names Klassisk', /forceFullVersion=true/.test(wl.detail), true);
+  location.hostname = 'lovdata.no';
+  check('lovdata.no is fine', (await lp.isLoggedIn()).loggedIn, true);
+
   console.log(failures ? `${failures} failure(s)` : 'all ok');
   process.exit(failures ? 1 : 0);
 }

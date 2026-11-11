@@ -66,9 +66,12 @@ any browser.
 Lovdata Pro is governed by Lovdata's terms of use. Section 2.2
 (*Lovdatas innloggingstjenester*) of the
 [brukervilkår](https://lovdata.no/artikkel/brukervilkar_for_lovdatas_tjenester/1324)
-reads (as of 28 October 2026):
+reads (as of 11 November 2026; the terms cover the new Lovdata Pro,
+"Lovdata Pro 2", too):
 
-> Du kan med noen begrensninger bruke innholdet på de innloggingstjenestene
+> Med Lovdatas innloggingstjenester menes tjenester som krever innlogging
+> for å få tilgang til tjenesten. Tilgangen til disse tjenestene reguleres
+> av egne kundeavtaler. Du kan med noen begrensninger bruke innholdet på de innloggingstjenestene
 > til nødvendig arbeid for organisasjonen brukerprofilen er registrert under.
 > Du kan dele innholdet med andre som har tilgang til den innloggingstjenesten
 > innholdet er hentet fra. Du kan også bruke innhold i en konkret sak i
@@ -82,7 +85,11 @@ reads (as of 28 October 2026):
 > utdrag som kun inneholder slike enkeltdokumenter kan brukes i KI, og kun
 > dersom du er sikker på at programmet ikke lagrer innholdet eller bruker det
 > til trening. Det er ikke tillatt å bruke innholdet til trening eller
-> utvikling av KI-algoritmer.
+> utvikling av KI-algoritmer. Ved å bruke Lovdatas KI-tjenester, godtar du
+> samtidig Lovdatas regler for bruk av KI-tjenestene.
+
+The skill never uses Lovdata's own AI services (KI-søk, KI-chat): their
+rules forbid querying them with automated tools.
 
 The skill is built to stay within these terms: it fetches single court
 decisions and preparatory works (documents written by public bodies), one

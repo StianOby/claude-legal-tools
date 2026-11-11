@@ -6,7 +6,9 @@ innloggingstjenester*:
 (The free API used by `lovdata-api` is under NLOD 2.0 and is not affected.)
 The section is quoted in full in `plugins/lovdata-pro/skills/lovdata-pro/README.md`.
 
-**Last compared: 2026-10-28.**
+**Last compared: 2026-11-11** (terms "Sist endret: 31.10.2025"; wording
+unchanged, but the README quote had left out the two opening sentences of
+2.2 and its last sentence on Lovdata's KI-tjenester — now quoted in full).
 
 ## Review routine
 
@@ -39,3 +41,20 @@ How the skill relates to each part of section 2.2:
   "massenedlasting".
 - **Quotations** in answers and kildesjekk worklists rest on sitatretten in
   åndsverkloven.
+
+## New Lovdata Pro (2026-11-11)
+
+From 2026-11-26 a Pro login lands on the new Lovdata Pro (pro2.lovdata.no;
+the old one stays as "Lovdata Pro Klassisk"). Section 1 (*Omfang*) lists
+"Lovdata Pro 2" among the services, so 2.2 and the decisions above apply
+unchanged.
+
+- **Lovdata's KI-tjenester are off limits.** The new Pro has KI-søk and
+  KI-chat (`/api/ai-search`, `/api/ai-chat`, `/api/v2/ai-chat`). Using them
+  means accepting Lovdata's *Regler for bruk av Lovdatas KI-tjenester*
+  (<https://hjelp.lovdata.no/article/278-regler-for-bruk-av-lovdatas-ki-tjenester>),
+  which forbid "automatiserte løsninger for å gjøre spørringer mot eller
+  chatte med KI-tjenestene". The skill never calls those endpoints, and a
+  pro2 helper must not either. Document fetches (`documentMeta`,
+  `documentContent`) and ordinary search (`/api/search`) are not
+  KI-tjenester and stay under 2.2.
