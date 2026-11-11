@@ -185,8 +185,10 @@ aktuelle:
   - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Nye Pro: `load(pro2_ref)`.
     Klassisk: søk på `search_hint`.
   - **Meld. St. / St.meld.** — finnes bare i Klassisk, i `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
-    (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-352`). Løpenummeret
-    kan ikke utledes av referansen; søk og verifiser tittelen på treffet.
+    (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-355`). Løpenummeret
+    kan ikke utledes av referansen; søk med referansen i anførselstegn
+    (`"Meld. St. 17 (2020-2021)"` — uten dem kommer bare Prop./NOU-treff) og
+    verifiser tittelen på treffet.
     Nye Pro har ikke stortingsmeldinger.
   - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro
     (og finnes ikke i nye Pro). Si det til brukeren i stedet for å sitere
@@ -252,7 +254,8 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   `grep(path, "(77)", 600, 3)` — `term` er bokstavelig, så parentesene
   trenger ingen escaping — og les videre med `page(path, offset)`.
 - **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
-  (NOU 2022:8 har 708 seksjoner). Vis `toc` til brukeren eller velg selv
+  (NOU 2022:8 har flere hundre; `toc` kommer da i flere
+  omganger, se `tocNext`). Vis `toc` til brukeren eller velg selv
   relevante kapitler ut fra tittel/spørsmål. `grep(path, "søkeord")` finner
   riktig kapittel raskt; `section(path, i)` henter det ut.
   Lovdata bruker ikke `<ul>/<li>`: litra- og nummerpunkter kommer som

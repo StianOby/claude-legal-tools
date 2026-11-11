@@ -56,6 +56,9 @@ is tested (resolve, load, find, quote), not only the helper.
   true})` rett etter at hjelperen er limt inn og `await __lp.stats()` til
   slutt, og rapporter tallene.)"* with `<URL>` =
   `https://pro2.lovdata.no/` or `https://lovdata.no/pro/?forceFullVersion=true`.
+- **Re-pasting resets the meter**: a navigation or reload wipes `__lp`,
+  and the new paste starts `stats()` from zero. Read `__lp.stats()` before
+  any navigation away from the tab's page, and add up the readings.
 - **No document text in the results file**: record paths, counts, times,
   yes/no; quotations are compared in the session, not written down.
 

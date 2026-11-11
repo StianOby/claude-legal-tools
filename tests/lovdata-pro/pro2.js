@@ -56,7 +56,7 @@ const JUDGMENT = {
     numbered(1, ['Første avsnitt med ', el('i', {}, ['kursiv']), ' og ', el('strong', {}, ['fet']), ' skrift.']),
     numbered(2, ['Andre avsnitt, jf. ', el('a', { href: 'lov/1999-05-21-30/§2' }, ['§ 2']), '.']),
     el('ol', { class: 'defaultList', type: 'a' }, [
-      el('li', { value: '1', 'data-name': 'a.' }, [el('span', { class: 'data-originalId' }, ['a.']), el('article', { class: 'listArticle' }, ['første punkt'])]),
+      el('li', { value: '1', 'data-name': 'a.' }, [el('span', { class: 'data-originalId' }, ['a.']), el('article', { class: 'listArticle' }, ['første', el('aside', { class: 'pagenumber', 'aria-label': 'side 4' }, ['Side 4']), ' punkt'])]),
       el('li', { value: '2', 'data-name': 'b.', 'data-list-id-style': 'i' }, [el('span', { class: 'data-originalId', 'data-list-id-style': 'i' }, ['b.']), el('article', { class: 'listArticle' }, ['andre punkt'])]),
     ]),
   ],
@@ -156,7 +156,9 @@ async function main() {
     'Innledende tekst.',
     '(1) Første avsnitt med *kursiv* og **fet** skrift.',
     '(2) Andre avsnitt, jf. § 2.',
-    'a. første punkt',
+    'a. første',
+    'Side 4',
+    'punkt',
     '*b.* andre punkt',
   ].join('\n'));
   check('grep "(2)" finds the paragraph', (await lp.grep(r.path, '(2)', 20, 5)).matches, 1);

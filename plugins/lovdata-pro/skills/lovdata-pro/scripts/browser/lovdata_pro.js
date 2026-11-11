@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.3.0';
+  const HELPER_VERSION = '1.3.1';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -610,6 +610,9 @@
         if (tag === 'br') { parts.push('\n'); return; }
         if (skipLists && (tag === 'ul' || tag === 'ol')) return;
         if (isListLabel(n)) return;
+        // A page marker inside inline content (a list item's paragraph) is
+        // its own line, as toText() gives it everywhere else.
+        if (isPageNumber(n)) { parts.push('\n' + n.textContent.replace(/\s+/g, ' ').trim() + '\n'); return; }
         const fn = footnoteLabel(n);
         if (fn !== null) { parts.push(`[fn ${fn}]`); return; }
         if (tag === 'sup') { parts.push(stSuperscript(inlineText(n, { skipLists, emphasis: false }))); return; }

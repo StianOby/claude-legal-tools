@@ -101,7 +101,7 @@ True
 'avgjorelse/rg-2010-100'
 
 >>> # Stortingsmeldinger have a Lovdata-assigned sequence number in the
->>> # slug (STS/forarbeid/stsg-202021-352), so they cannot be resolved
+>>> # slug (STS/forarbeid/stsg-202021-355), so they cannot be resolved
 >>> # offline either — explain() says where to look.
 >>> parse_reference("Meld. St. 17 (2020-2021)") is None
 True
@@ -332,8 +332,8 @@ def explain(ref):
             out["note"] = (
                 "stortingsmeldinger live in STS/forarbeid/stsg-<sesjon>-<løpenummer> "
                 "in Lovdata Pro Klassisk (e.g. Meld. St. 17 (2020-2021) is "
-                "STS/forarbeid/stsg-202021-352). The løpenummer is assigned by Lovdata and "
-                "cannot be derived from the citation — search for the search_hint and verify "
+                "STS/forarbeid/stsg-202021-355). The løpenummer is assigned by Lovdata and "
+                "cannot be derived from the citation — search for the search_hint in quotes (\"Meld. St. 17 (2020-2021)\"; unquoted, Klassisk returns only Prop./NOU hits) and verify "
                 "the hit's title. The new Lovdata Pro (pro2) has no stortingsmeldinger "
                 "(2026-11-11): use Klassisk")
         elif re.match(r"TRR-", s, re.I):
