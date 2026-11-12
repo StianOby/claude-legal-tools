@@ -34,13 +34,19 @@ the skill picks up where it left off rather than starting over.
 kildesjekk/
 ├── SKILL.md                          # Skill manifest Claude reads
 ├── README.md                         # This file
-└── references/
-    ├── zoteus-caselaw.md             # Zoteus lookup recipes for Norwegian case law
-    └── zoteus-prepworks.md           # Zoteus lookup recipes for preparatory works
+├── references/
+│   ├── zoteus-caselaw.md             # Zoteus lookup recipes for Norwegian case law
+│   └── zoteus-prepworks.md           # Zoteus lookup recipes for preparatory works
+└── scripts/
+    ├── worklist.py                   # Checks that the .xlsx worklist is well formed
+    ├── requirements.in               # Its direct dependency (openpyxl)
+    └── requirements.txt              # The pinned lock
 ```
 
-No scripts — kildesjekk is an orchestrator that delegates to the skills and MCP
-servers listed below.
+One script, `scripts/worklist.py`, checks the worklist's shape: permitted
+values, row invariants, colours and Metadata counts. It cannot tell whether a
+source was really consulted. Everything else is orchestration: kildesjekk
+delegates the source checks to the skills and MCP servers listed below.
 
 ## Dependencies
 
