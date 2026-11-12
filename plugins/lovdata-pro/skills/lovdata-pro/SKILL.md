@@ -105,7 +105,7 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    (på nye Pro: `https://pro2.lovdata.no/`) og prøv igjen.
 3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash. Den skriver en kopi
-   uten kommentarer og innrykk (ca. 35 000 tegn i stedet for 55 000) og
+   uten kommentarer og innrykk (ca. 36 000 tegn i stedet for 58 000) og
    skriver ut stien. Les den filen og send **hele** innholdet via
    `javascript_tool` (`action: "javascript_exec"`). Virker ikke `paste.py`,
    lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
@@ -253,6 +253,9 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   tabellcelle (`| (77) |`). Finn avsnitt 77 med
   `grep(path, "(77)", 600, 3)` — `term` er bokstavelig, så parentesene
   trenger ingen escaping — og les videre med `page(path, offset)`.
+  **Domsslutningen** står under «Slutning», «SLUTNING» eller «Domsslutning»
+  (tingrett ofte med store bokstaver): `grep(path, "slutning")` finner alle
+  tre (`grep` skiller ikke mellom store og små bokstaver); ta det siste treffet.
 - **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
   (NOU 2022:8 har flere hundre; `toc` kommer da i flere
   omganger, se `tocNext`). Vis `toc` til brukeren eller velg selv
@@ -326,7 +329,9 @@ Enter-tastetrykk gjør ingenting — `keyup` submitter). Deretter venter den på
 at hash-en blir `#result…` og at trefflisten fra *dette* søket er tegnet opp
 (treff som sto på skjermen fra før, telles ikke), og returnerer `{query,
 hash, submitted, results}`. Kjører du samme søk to ganger og Pro ikke tegner
-listen på nytt, får du treffene som står der, med `reused: true`.
+listen på nytt, får du treffene som står der, med `reused: true`. Viser
+resultatsiden for søket ingen dokumentlenker, svarer den `noHits: true` med
+tom `results`: trolig ingen treff (sjekk med `get_page_text` om det betyr noe).
 Hash-navigering laster ikke siden på nytt, så `window.__lp.cache` overlever
 et søk i samme fane.
 

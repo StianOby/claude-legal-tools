@@ -93,10 +93,11 @@ const NOU = {
 
 // --- a fake pro2 tab ----------------------------------------------------------
 
-function makeTab({ loggedIn = true } = {}) {
+function makeTab({ loggedIn = true, host = 'pro2.lovdata.no', pathname = '/', apiRoot = 'https://pro2.lovdata.no/api/', vite = true } = {}) {
   const calls = [];
   const json = (status, body) => ({ status, text: async () => JSON.stringify(body) });
   const routes = {
+    ping: () => ({ status: 200, text: async () => 'Pong' }),
     'auth/user': () => (loggedIn ? json(200, { userID: 7, name: 'Navn Navnesen', email: 'x@example.org' }) : json(401, {})),
     'checkDocument/HRSIV/avgjorelse/hr-2016-1-a': () => json(200, { type: 'Success' }),
     'checkDocument/HRSTR/avgjorelse/hr-2016-1-a': () => json(200, { type: 'RedirectTo', documentURI: { base: 'HRSIV', type: 'avgjorelse', id: 'hr-2016-1-a', part: null } }),
@@ -123,7 +124,7 @@ function makeTab({ loggedIn = true } = {}) {
       ] });
     },
   };
-  const API = 'https://pro2.lovdata.no/api/';
+  const API = apiRoot;
   const fetch = async (url, init = {}) => {
     calls.push({ url, method: init.method || 'GET' });
     if (!url.startsWith(API)) throw new TypeError('Failed to fetch');
@@ -131,8 +132,9 @@ function makeTab({ loggedIn = true } = {}) {
     const route = routes[key];
     return route ? route(init) : json(404, {});
   };
-  const { document } = parseHTML('<html><head><script type="module" src="/assets/index-X.js"></script></head><body></body></html>');
-  const location = { hostname: 'pro2.lovdata.no', origin: 'https://pro2.lovdata.no', hash: '', pathname: '/' };
+  const head = vite ? '<script type="module" src="/assets/index-X.js"></script>' : '';
+  const { document } = parseHTML(`<html><head>${head}</head><body></body></html>`);
+  const location = { hostname: host, origin: `https://${host}`, hash: '', pathname };
   const ctx = { location, document, DOMParser, fetch, setTimeout, console };
   ctx.window = ctx;
   vm.createContext(ctx);
@@ -215,12 +217,23 @@ async function main() {
 
   // lovdata.no: Klassisk unless the page is the new app's Vite bundle.
   const k = makeTab();
-  k.location.hostname = 'lovdata.no'; k.location.origin = 'https://lovdata.no';
-  check('lovdata.no with Vite bundle is pro2 at /pro/api', k.lp._internal.backend(), { kind: 'pro2', api: 'https://lovdata.no/pro/api' });
+  k.location.hostname = 'lovdata.no'; k.location.origin = 'https://lovdata.no'; k.location.pathname = '/pro/';
+  check('lovdata.no/pro with Vite bundle is pro2, /pro/api first', k.lp._internal.backend(), { kind: 'pro2', apis: ['https://lovdata.no/pro/api', 'https://lovdata.no/api'] });
   k.document.querySelector('script').remove();
   check('lovdata.no without it is Klassisk', k.lp._internal.backend(), { kind: 'klassisk' });
   k.location.hostname = 'example.org';
   check('other host is wrong_site', (await k.lp.isLoggedIn()).error, 'wrong_site');
+
+  // After the launch the new app may sit at lovdata.no/pro with its API at
+  // /api rather than /pro/api: the base is found by /ping, not guessed.
+  const moved = makeTab({ host: 'lovdata.no', pathname: '/pro/dokument/x', apiRoot: 'https://lovdata.no/api/' });
+  check('moved app: logged in via the API that answers ping', (await moved.lp.isLoggedIn()).loggedIn, true);
+  check('moved app: /pro/api tried first, then /api, then remembered',
+    moved.calls.map(c => c.url.replace(/\?.*$/, '')),
+    ['https://lovdata.no/pro/api/ping', 'https://lovdata.no/api/ping', 'https://lovdata.no/api/auth/user']);
+  check('moved app: load works there', (await moved.lp.load(['HRSIV/avgjorelse/hr-2016-1-a'])).path, 'HRSIV/avgjorelse/hr-2016-1-a');
+  check('another lovdata.no host with the bundle is pro2', makeTab({ host: 'pro.lovdata.no' }).lp._internal.backend().kind, 'pro2');
+  check('another lovdata.no host without it is wrong_site', (await makeTab({ host: 'pro.lovdata.no', vite: false }).lp.isLoggedIn()).error, 'wrong_site');
 
   console.log(failures ? `${failures} failure(s)` : 'all ok');
   process.exit(failures ? 1 : 0);

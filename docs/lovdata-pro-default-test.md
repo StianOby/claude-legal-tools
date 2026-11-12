@@ -102,3 +102,7 @@ SKILL.md Step 0.
 
 One file per round: `docs/lovdata-pro-default-test-YYYY-MM.md`, a row per
 task and site with the fields above, then the decision.
+
+- Round 1: `docs/lovdata-pro-default-test-2026-11.md` — a tie; the new Pro
+  becomes the default at its launch. Its "Notes for the next round" (cost,
+  replacing S12, checking against the drawn page) apply to the 2027 rerun.

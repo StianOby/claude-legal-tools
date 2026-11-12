@@ -89,12 +89,38 @@ NOU 2022:8 drew 184 chars more than its JSON; not traced.
 
 ## Default site
 
-SKILL.md Step 0 names one default URL (Klassisk until decided). It is
-chosen by the comparison test in `docs/lovdata-pro-default-test.md`
-(correctness gate, then tokens, then speed), rerun in mid/late 2027 before
-Klassisk goes away.
+SKILL.md Step 0 names one default URL. Round 1 of the comparison test
+(`docs/lovdata-pro-default-test-2026-11.md`) was a tie on correctness,
+tokens and speed. **Decision (maintainer, 2026-11-12): the new Pro becomes
+the default when it launches**, Klassisk the fallback. Until the switchover
+below, SKILL.md keeps Klassisk.
+
+## Switchover (after 2026-11-26)
+
+To do once the new Lovdata Pro has launched and its final state is known:
+
+1. **Find where it lives.** Log in at `https://lovdata.no/pro/` and note the
+   address it lands on; check whether `pro2.lovdata.no` still answers. The
+   helper recognises the new app on any lovdata.no host by its Vite bundle
+   and finds the API base by `/ping` (`/pro/api` or `/api`), so it should
+   need no change — but confirm.
+2. **Check Klassisk too:** `https://lovdata.no/pro/?forceFullVersion=true`
+   still opens Klassisk, its `isLoggedIn()` title check still works, and the
+   document fetch `https://lovdata.no/pro/document/<path>/*` still returns
+   Klassisk HTML (not the new app).
+3. **Run the Round 0 smoke test** (`docs/lovdata-pro-default-test.md`) on
+   the new Pro at its final address.
+4. **Switch the default:** the one "Standard:" line in SKILL.md Step 0, to
+   the new Pro's address; keep Klassisk named as the fallback. If the
+   address changed, also `PRO2_URL` in `lovdata_pro.js`, the fallback URLs
+   in SKILL.md, and `tests/lovdata-pro/pro2.js`.
+5. Bump the plugin (and `HELPER_VERSION` if the helper changed) and record
+   the date here.
 
 ## Later (2027)
+
+- **December 2027: ask the maintainer whether to retire Klassisk** (Lovdata
+  has said it is available through 2027). Until then both backends stay.
 
 - **Advanced search.** Lovdata's *Avansert søk* exists only in Klassisk so
   far ("Avansert søk: ikke ennå", help article 380). When pro2 gets it,

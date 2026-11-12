@@ -135,6 +135,12 @@ async function main() {
   s = await lp.search('HR-2016-2554-P', 10, { timeoutMs: 1000 });
   check('different query without results times out', s.error, 'search_timeout');
 
+  // A query whose result page comes up empty: the hash moves to this
+  // query's results but no document links appear — no hits, not a timeout.
+  tab.onEnter = (q) => { setTimeout(() => { tab.anchors = []; location.hash = `#result&id=3&q=${encodeURIComponent(q.toLowerCase())}*`; }, 200); };
+  s = await lp.search('Ingen treff her', 10, { timeoutMs: 1000 });
+  check('empty result page is noHits', [s.error, s.noHits, s.results && s.results.length], [undefined, true, 0]);
+
   // A tab on a site that is neither Lovdata Pro gets wrong_site from every
   // entry point that would fetch or search, not a bare CORS error. (The
   // new Lovdata Pro has its own backend: tests/lovdata-pro/pro2.js.)

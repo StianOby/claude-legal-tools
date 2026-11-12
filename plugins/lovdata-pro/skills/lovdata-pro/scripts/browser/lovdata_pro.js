@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.3.1';
+  const HELPER_VERSION = '1.3.2';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -118,21 +118,44 @@
     //   from 2026-11-26), HTML documents and the Hurtigsøk field.
     // - 'pro2': the new Lovdata Pro, an Elm app over a JSON API, at
     //   pro2.lovdata.no (docs/lovdata-pro2.md). Its bundle also names
-    //   https://lovdata.no/pro/api as an API base, so after the switch the
-    //   new app may be served from lovdata.no/pro as well; it is told from
-    //   Klassisk there by its Vite bundle (<script src=".../assets/index-…">).
+    //   https://lovdata.no/pro/api as an API base, so after the launch
+    //   (2026-11-26) the new app may be served from lovdata.no/pro or another
+    //   lovdata.no host. Any lovdata.no page with its Vite bundle
+    //   (<script src=".../assets/index-…">) counts as the new Pro, and the API
+    //   base is found by asking /ping at each candidate (apiBase()), not
+    //   guessed. Klassisk has no such bundle.
     const KLASSISK_URL = 'https://lovdata.no/pro/?forceFullVersion=true';
     const PRO2_URL = 'https://pro2.lovdata.no/';
 
     function backend() {
       const host = location.hostname;
       if (!host) return { kind: 'klassisk' }; // unit-test stubs
-      if (host === 'pro2.lovdata.no') return { kind: 'pro2', api: `${location.origin}/api` };
-      if (host === 'lovdata.no') {
-        const vite = document.querySelector && document.querySelector('script[src*="/assets/index-"]');
-        return vite ? { kind: 'pro2', api: 'https://lovdata.no/pro/api' } : { kind: 'klassisk' };
+      if (host !== 'lovdata.no' && !host.endsWith('.lovdata.no')) return null;
+      const vite = document.querySelector && document.querySelector('script[src*="/assets/index-"]');
+      if (host === 'pro2.lovdata.no' || vite) {
+        const origin = location.origin;
+        const underPro = /^\/pro(\/|$)/.test(location.pathname || '');
+        return { kind: 'pro2', apis: underPro ? [`${origin}/pro/api`, `${origin}/api`] : [`${origin}/api`, `${origin}/pro/api`] };
       }
-      return null;
+      return host === 'lovdata.no' ? { kind: 'klassisk' } : null;
+    }
+
+    // The first candidate whose /ping answers "Pong" (pro2's health check),
+    // remembered for the tab; with no answer, the first candidate.
+    let apiBaseCache = null;
+    async function apiBase() {
+      const { apis } = backend();
+      if (apiBaseCache && apis.includes(apiBaseCache)) return apiBaseCache;
+      if (apis.length > 1) {
+        for (const base of apis) {
+          try {
+            const r = await meteredFetch(`${base}/ping`, { credentials: 'include' });
+            if (r.status === 200 && /^\s*pong\s*$/i.test(r.text)) { apiBaseCache = base; return base; }
+          } catch (e) { /* next candidate */ }
+        }
+      }
+      apiBaseCache = apis[0];
+      return apiBaseCache;
     }
 
     function wrongSite() {
@@ -151,7 +174,7 @@
     // queries (docs/lovdata-pro-terms.md).
     async function api(path, init) {
       try {
-        const res = await meteredFetch(`${backend().api}/${path}`, { credentials: 'include', ...init });
+        const res = await meteredFetch(`${await apiBase()}/${path}`, { credentials: 'include', ...init });
         const { text } = res;
         let json = null;
         try { json = JSON.parse(text); } catch (e) { /* not JSON */ }
@@ -587,14 +610,19 @@
     // italic, which is part of the text.
     const isListLabel = (n) => hasClass(n, 'data-originalId');
     const cssItalic = (n, tag) => tag === 'figcaption' || hasClass(n, 'legalArticleTitle');
-    const isPageNumber = (n) => n.nodeType === 1 && n.tagName.toLowerCase() === 'aside' && hasClass(n, 'pagenumber');
+    // Page markers ("Side 39"): aside.pagenumber in the new Lovdata Pro,
+    // span.side in Klassisk forarbeider (an Innst. had "fraSide 39" glued
+    // into a sentence before this was recognised).
+    const isPageNumber = (n) => n.nodeType === 1 && (
+      (n.tagName.toLowerCase() === 'aside' && hasClass(n, 'pagenumber'))
+      || (n.tagName.toLowerCase() === 'span' && hasClass(n, 'side')));
 
     // A heading's text without the "Side N" page markers set inside it
     // (pro2 floats them to the right); those become their own lines.
     function headingParts(h) {
       const clone = h.cloneNode(true);
       const pages = [];
-      for (const a of Array.from(clone.querySelectorAll('aside'))) {
+      for (const a of Array.from(clone.querySelectorAll('aside, span'))) {
         if (isPageNumber(a)) { pages.push(a.textContent.replace(/\s+/g, ' ').trim()); a.remove(); }
       }
       return { clone, pages: pages.filter(Boolean) };
@@ -1106,6 +1134,12 @@
         if (results.length) {
           return { query, hash: location.hash, submitted: input.value, results, reused: true };
         }
+      }
+      // The hash moved to this query's result page but no result link came:
+      // most likely a search without hits, which used to end as a timeout.
+      if (location.hash !== before && shown != null && norm(shown) === norm(query)) {
+        return { query, hash: location.hash, submitted: input.value, results: [], noHits: true,
+                 hint: 'the result page for this query shows no document links — probably no hits; check with get_page_text if it matters' };
       }
       return {
         error: 'search_timeout', query, hash: location.hash,

@@ -52,6 +52,10 @@ check('list labels: data-name, <ol>, <ul>',
        '<ol type="i" start="2"><li>to</li><li>tre</li></ol><ul><li>punkt</li></ul>'),
   'a. første\nb. andre\nii. to\niii. tre\n- punkt');
 check('<br> in a party list', text('<p>A (advokat X)<br>mot<br>B</p>'), 'A (advokat X)\nmot\nB');
+// Klassisk forarbeider mark page breaks with span.side, inside a sentence.
+check('Klassisk page marker on its own line', text('<p>vurdert fra<span class="side">Side 39</span> departementets side</p>'),
+  'vurdert fra\nSide 39\ndepartementets side');
+check('page marker kept out of a heading', text('<h2>Merknader<span class="side">Side 4</span></h2>'), '## Merknader\nSide 4');
 
 console.log(failures ? `${failures} failure(s)` : 'all ok');
 process.exit(failures ? 1 : 0);
