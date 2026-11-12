@@ -1,10 +1,72 @@
 # kildesjekk with subagents: design draft
 
-Status: the Zotero step (§5) is built as a pilot in kildesjekk 1.7.0
-(2026-11-11) and not yet tested in Cowork. The other steps run as before. The
-probe of what subagents can do in Cowork came out well on every point (see
-"Probe"). "As built" below says where the pilot differs from this design.
-No decisions are open.
+Status: tried and withdrawn. The Zotero step (§5) was built as a pilot in
+kildesjekk 1.7.0 (commit 7e2d69a, 2026-11-11) and taken out again in 1.7.1
+(2026-11-12), which restores the 1.6.1 skill. The pilot showed that the
+design costs far more than one conversation and catches nothing more on a
+manuscript of this size. Read "Pilot results" first; the rest of this file is
+the design as it was tried, kept for the record and for a later attempt.
+
+## Pilot results
+
+The manuscript: 84 references (43 footnotes), with 14 planted errors.
+
+| Run | Skill | Outcome |
+|---|---|---|
+| 1 | 1.6.1, one conversation, through §5 | Finished. 12 of 14 planted errors flagged; one more noticed in a note on a row left for later (the cited page is not in Zotero); one missed (a page one off, where the wrong page also supports the claim) |
+| 2 | 1.7.0, Opus retrieval and Opus judging | Stopped by the 5-hour usage limit with 34 of 74 Zotero rows judged and no review done |
+| 3 | 1.7.0 as built, Haiku retrieval | Stopped by the same limit with 24 rows retrieved and none judged |
+
+Runs 2 and 3 ran at the same time and shared one usage limit, so neither
+shows what one run alone would have reached. The per-row figures still
+stand.
+
+**Accuracy.** On the rows run 2 judged, it flagged all ten planted errors
+that fell in them, the same ten as run 1. It also flagged seven rows as weak,
+uncertain or wrongly pinpointed that run 1 passed. Those were never reviewed; a judge that sees
+only a saved passage has less to go on than a reader with the source open.
+
+**Cost.** A retrieval worker used 150,000 to 270,000 tokens for 11 to 13
+rows and took about five minutes: about 14,500 tokens per row on Opus, and
+15,500 to 22,600 on Haiku. Haiku used more tokens than Opus for the same
+work. Six retrieval workers and two or three judges for 74 rows come to
+well over a million tokens before the orchestrator's own review. Run 1
+did all 84 rows inside one session's limit.
+
+**Why it costs so much**
+
+1. Every worker starts cold: 81,000 to 87,000 tokens of fixed context, the
+   instructions, and finding each item again.
+2. The passage passes through a model twice: the retrieval worker writes it
+   out token by token, and the judge reads it. In one conversation the
+   passage is read once and never written.
+3. The review step exists only because of point 2, and adds a third read.
+4. Large scanned books need several reads to reach a printed page, and each
+   worker pays for that again.
+5. 40 of the 74 rows cite 8 works. One conversation opens each work once and
+   keeps it in context.
+
+**What the pilot did not test.** The reason for the design was a manuscript
+of several hundred references, where one conversation fills up and is
+compacted. 84 rows did not get there: run 1 finished cleanly, with no
+validator violations. Whether workers help at 300 rows is still open.
+
+**If this is tried again**
+
+- Only above a row count where one conversation demonstrably degrades, and
+  that count has to be found first.
+- One worker per work or group of works, doing the reading and the judging
+  together and returning only its results. No copied passages, no separate
+  judge, no review of copies.
+- The orchestrator passes the Zotero item and attachment keys it already
+  has.
+- A passage is saved to a file only where a script can write it without a
+  model in between (not possible through an MCP tool).
+- `quote_check.py` and `worklist.py apply` in commit 7e2d69a worked and
+  were tested; they can be taken from there.
+- Workers must accept Zotero's cloud route when the desktop app is not
+  running. In runs 2 and 3 it was not, and the orchestrators had to override
+  `retrieve.md`.
 
 ## Why
 
@@ -196,7 +258,7 @@ can fetch, writing the passage to the file without a model in between.
 - An evidence record with `found` but an empty `passage`: treated as a failed
   row.
 
-## As built (the §5 pilot, kildesjekk 1.7.0)
+## As built (the §5 pilot, kildesjekk 1.7.0; removed in 1.7.1)
 
 - `scripts/quote_check.py`: the quotation script and the evidence-file
   reader. Standard library only.

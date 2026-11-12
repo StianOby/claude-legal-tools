@@ -1,21 +1,11 @@
 #!/usr/bin/env python3
-"""worklist.py - check a kildesjekk worklist, and write results into it.
+"""worklist.py - check that a kildesjekk worklist is well formed.
 
     python worklist.py validate Kildesjekk_<documentname>.xlsx [--final] [--json]
-    python worklist.py batch Kildesjekk_<documentname>.xlsx --claims kildesjekk_claims.json
-                             --name <batch> --keys <key> [<key> ...]
-    python worklist.py apply Kildesjekk_<documentname>.xlsx kildesjekk_batches/<batch>.json
 
-`validate` reads the worklist and reports every row that breaks one of the
+This reads the worklist and reports every row that breaks one of the
 invariants in SKILL.md ("Row invariants"), plus the status counts that its
 "Final verification" step asks for. It never writes to the file.
-
-`batch` and `apply` serve the steps that run with workers (SKILL.md,
-"Checking with workers"). `batch` writes a batch file: the rows a worker is
-to handle, each with its reference, quotation, claim and the path of its
-evidence file. `apply` takes the results a judging worker wrote for that
-batch, refuses them as a whole if anything is wrong, and otherwise writes
-them into the worklist with the row colours and runs `validate`.
 
 What it can and cannot tell you: it checks the *shape* of the worklist -
 that the permitted values are used, that a "source unavailable" row carries
@@ -30,18 +20,13 @@ file could not be read as a worklist at all.
 
 import argparse
 import json
-import os
 import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from quote_check import evidence_name, read_evidence, write_json  # noqa: E402
-
 try:
     from openpyxl import load_workbook
-    from openpyxl.styles import PatternFill
 except ImportError:  # pragma: no cover - environment-dependent
     sys.exit("worklist.py needs openpyxl: pip install -c "
              f"{Path(__file__).resolve().parent / 'requirements.txt'} openpyxl")
@@ -179,7 +164,7 @@ def expected_fill(values):
     return None
 
 
-def check_rows(rows, report, colours=True):
+def check_rows(rows, report):
     seen = defaultdict(list)
     for entry in rows:
         r, v = entry["row"], entry["values"]
@@ -250,7 +235,7 @@ def check_rows(rows, report, colours=True):
         # 7. the colour says the same thing as the columns
         want = expected_fill(v)
         fills = {f for f in entry["fills"] if f}
-        if colours and want is not None:
+        if want is not None:
             if len(fills) > 1:
                 report.bad("colour", r, "the cells of the row have different "
                                         "fills (%s); expected %s throughout"
@@ -375,240 +360,9 @@ def print_report(path, report):
         print("    [%s] %s: %s" % (v["rule"], where, v["message"]))
 
 
-# --------------------------------------------------------------------------
-# batch and apply: the steps that run with workers
-
-BATCH_DIRS = {"batches": "kildesjekk_batches", "evidence": "kildesjekk_evidence",
-              "quotes": "kildesjekk_quotes", "results": "kildesjekk_results"}
-RESULT_FIELDS = ("checked", "discrepancy", "type", "severity", "description", "source")
-# what a judging worker may conclude from each retrieval outcome
-OUTCOME_FOR = {"yes": "found", "source unavailable": "unavailable", "no": "not_here"}
-
-
-def open_worklist(path):
-    """The workbook, its first sheet, the column map and the data rows."""
-    try:
-        book = load_workbook(path)
-    except Exception as e:  # noqa: BLE001
-        print("cannot read %s: %s" % (path, e), file=sys.stderr)
-        raise SystemExit(2)
-    sheet = book[book.sheetnames[0]]
-    report = Report()
-    cols = find_columns(sheet, report)
-    if report.violations:
-        print(report.violations[0]["message"], file=sys.stderr)
-        raise SystemExit(2)
-    return book, sheet, cols, read_rows(sheet, cols)
-
-
-def rows_by_key(rows):
-    index = defaultdict(list)
-    for entry in rows:
-        index[entry["values"]["location"]].append(entry)
-    return index
-
-
-def refuse(problems, what):
-    print("%s refused - nothing was written:" % what)
-    for p in problems:
-        print("  - %s" % p)
-    return 1
-
-
-def make_batch(path, claims_path, name, keys, recheck=False):
-    path = Path(path).resolve()
-    problems = []
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
-        problems.append("the batch name %r may hold only letters, digits, - and _" % name)
-    base = path.parent
-    batch_file = base / BATCH_DIRS["batches"] / (name + ".json")
-    if batch_file.exists():
-        problems.append("%s exists already; reuse it or choose another name" % batch_file)
-    try:
-        claims_raw = json.loads(Path(claims_path).read_text(encoding="utf-8"))
-        claims = {}
-        for c in claims_raw:
-            if c["key"] in claims:
-                problems.append("the claims file has the key %r twice" % c["key"])
-            claims[c["key"]] = c
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        return refuse(["cannot read the claims file %s: %s (it must be a JSON "
-                       "list of objects with key and claim)" % (claims_path, e)], "batch")
-
-    _, _, _, rows = open_worklist(path)
-    index = rows_by_key(rows)
-    out = []
-    for key in keys:
-        if keys.count(key) > 1:
-            problems.append("the key %r is given more than once" % key)
-        at = index.get(key, [])
-        if len(at) != 1:
-            problems.append("the key %r matches %d rows of the worklist; it must "
-                            "match exactly one" % (key, len(at)))
-            continue
-        v = at[0]["values"]
-        if v["checked"].lower() != "no" and not recheck:
-            problems.append("row %r has checked = %r already (use --recheck to "
-                            "check it again)" % (key, v["checked"]))
-        claim = claims.get(key, {})
-        if not str(claim.get("claim", "")).strip():
-            problems.append("the claims file has no claim for %r" % key)
-        out.append({
-            "key": key,
-            "reference": v["reference"],
-            "full_reference": str(claim.get("full_reference", "") or ""),
-            "quoted": v["quoted"],
-            "claim": str(claim.get("claim", "") or ""),
-            "evidence_file": str(base / BATCH_DIRS["evidence"] / evidence_name(key)),
-        })
-    if problems:
-        return refuse(sorted(set(problems)), "batch")
-    (base / BATCH_DIRS["evidence"]).mkdir(parents=True, exist_ok=True)
-    write_json(batch_file, {
-        "batch": name,
-        "worklist": str(path),
-        "quotes_file": str(base / BATCH_DIRS["quotes"] / (name + ".json")),
-        "results_file": str(base / BATCH_DIRS["results"] / (name + ".json")),
-        "rows": out,
-    })
-    print("batch %s: %d rows" % (name, len(out)))
-    print("  written: %s" % batch_file)
-    return 0
-
-
-def apply_results(path, batch_path, results_path=None, recheck=False):
-    path = Path(path).resolve()
-    try:
-        batch = json.loads(Path(batch_path).read_text(encoding="utf-8"))
-        batch_rows = {r["key"]: r for r in batch["rows"]}
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        return refuse(["cannot read the batch file %s: %s" % (batch_path, e)], "apply")
-    results_path = Path(results_path or batch["results_file"])
-    try:
-        data = json.loads(results_path.read_text(encoding="utf-8"))
-        results = data["rows"]
-        keys = [r["key"] for r in results]
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        return refuse(["cannot read the results file %s: %s (it must be a JSON "
-                       'object {"rows": [...]}, each row with a key)'
-                       % (results_path, e)], "apply")
-
-    problems = []
-    for key in sorted(set(keys)):
-        if keys.count(key) > 1:
-            problems.append("the results have the key %r %d times" % (key, keys.count(key)))
-        if key not in batch_rows:
-            problems.append("the results have the key %r, which is not in the batch" % key)
-    for key in batch_rows:
-        if key not in keys:
-            problems.append("the results have no row for %r" % key)
-
-    quotes = {}
-    try:
-        qdata = json.loads(Path(batch["quotes_file"]).read_text(encoding="utf-8"))
-        quotes = {r["key"]: r for r in qdata["rows"]}
-    except (OSError, ValueError, KeyError, TypeError):
-        pass  # no quotation check was run for this batch
-
-    book, sheet, cols, rows = open_worklist(path)
-    index = rows_by_key(rows)
-    updates = []
-    for result in results:
-        key = result["key"]
-        if key not in batch_rows:
-            continue
-        at = index.get(key, [])
-        if len(at) != 1:
-            problems.append("the key %r matches %d rows of the worklist" % (key, len(at)))
-            continue
-        entry = at[0]
-        if entry["values"]["checked"].lower() != "no" and not recheck:
-            problems.append("row %r has checked = %r already (use --recheck to "
-                            "overwrite it)" % (key, entry["values"]["checked"]))
-        new = {f: _cell(result.get(f)) for f in RESULT_FIELDS}
-        for f in ("checked", "discrepancy", "severity"):
-            new[f] = new[f].lower()
-        checked = new["checked"]
-        if checked not in CHECKED_VALUES:
-            problems.append("row %r: checked = %r; must be one of %s"
-                            % (key, new["checked"], "/".join(CHECKED_VALUES)))
-            continue
-
-        evidence, bad = read_evidence(batch_rows[key]["evidence_file"], key)
-        if bad:
-            problems.append("row %r: %s" % (key, "; ".join(bad)))
-            continue
-        if evidence["outcome"] != OUTCOME_FOR[checked]:
-            problems.append("row %r: checked = %r, but the evidence outcome is %r "
-                            "(%s needs the outcome %r)"
-                            % (key, checked, evidence["outcome"], checked,
-                               OUTCOME_FOR[checked]))
-        if checked == "no":
-            if any(new[f] for f in RESULT_FIELDS if f != "checked"):
-                problems.append("row %r: checked = no (left for a later step), so "
-                                "the other fields must be empty" % key)
-            continue  # the row stays as it is
-
-        values = dict(entry["values"], **new)
-        trial = Report()
-        check_rows([{"row": entry["row"], "values": values, "fills": set()}],
-                   trial, colours=False)
-        for v in trial.violations:
-            problems.append("row %r: %s" % (key, v["message"]))
-        verdict = quotes.get(key, {}).get("verdict")
-        emphasis = quotes.get(key, {}).get("emphasis")
-        if (checked == "yes" and new["discrepancy"] == "no" and not new["description"]
-                and (verdict in ("differs", "not_in_passage", "marks_only")
-                     or emphasis == "differs")):
-            problems.append("row %r: the quotation check says %r%s, but the row has "
-                            "discrepancy = no and no description; say in the "
-                            "description why it is not a finding"
-                            % (key, verdict,
-                               " with different emphasis" if emphasis == "differs" else ""))
-        updates.append((entry, values))
-
-    if problems:
-        return refuse(problems, "apply")
-
-    for entry, values in updates:
-        colour = expected_fill(values)
-        for name in COLUMNS:
-            cell = sheet.cell(row=entry["row"], column=cols[name])
-            if name in RESULT_FIELDS:
-                cell.value = values[name] or None
-            if colour:
-                cell.fill = PatternFill(fill_type="solid", start_color=colour,
-                                        end_color=colour)
-    tmp = path.with_name(path.stem + ".tmp.xlsx")
-    book.save(tmp)
-    os.replace(tmp, path)
-
-    left = len(results) - len(updates)
-    print("applied %s: %d row(s) written, %d left at checked = no for a later step"
-          % (Path(batch_path).name, len(updates), left))
-    report, _ = validate(path)
-    print_report(path, report)
-    return 1 if report.violations else 0
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    b = sub.add_parser("batch", help="write a batch file for a worker")
-    b.add_argument("path")
-    b.add_argument("--claims", required=True,
-                   help="JSON list of {key, claim, full_reference}")
-    b.add_argument("--name", required=True, help="batch name, e.g. zotero-01")
-    b.add_argument("--keys", required=True, nargs="+",
-                   help="the row keys, each quoted (\"text p. 14a\")")
-    b.add_argument("--recheck", action="store_true",
-                   help="allow rows that are already checked")
-    a = sub.add_parser("apply", help="write a batch's results into the worklist")
-    a.add_argument("path")
-    a.add_argument("batch")
-    a.add_argument("--results", help="default: the batch's results_file")
-    a.add_argument("--recheck", action="store_true",
-                   help="allow overwriting rows that are already checked")
     v = sub.add_parser("validate", help="check a worklist against the row invariants")
     v.add_argument("path")
     v.add_argument("--final", action="store_true",
@@ -616,11 +370,6 @@ def main(argv=None):
                         "left unchecked)")
     v.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args(argv)
-
-    if args.command == "batch":
-        return make_batch(args.path, args.claims, args.name, args.keys, args.recheck)
-    if args.command == "apply":
-        return apply_results(args.path, args.batch, args.results, args.recheck)
 
     report, _ = validate(args.path, final=args.final)
     if args.json:
