@@ -46,7 +46,7 @@ nbno==1.2.5
     # via -r requirements.in
 numpy==2.5.4
     # via -r requirements.in
-ocrmypdf==17.13.0
+ocrmypdf==17.14.0
     # via -r requirements.in
 packaging==26.3
     # via
