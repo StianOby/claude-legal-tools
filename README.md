@@ -1,4 +1,4 @@
-# Øby's legal tools for Claude Cowork
+# Øby's legal tools for Claude Desktop
 Stian Øby Johansen's collection of skills and other tools for use with Claude Desktop (cowork).
 
 ## Document retrieval skills
