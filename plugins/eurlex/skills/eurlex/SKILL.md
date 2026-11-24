@@ -1,14 +1,15 @@
 ---
 name: eurlex
 description: |
-  Use for any EU-law source question that needs the actual text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Bauer, Schrems II), act name (GDPR, AI Act, Working Time Directive), or asks to quote/verify a paragraph or article, find case law interpreting an act, get a consolidated version, or check dates/transposition. No scripts: a usage guide for the eurlex MCP server (*__eurlex_* tools; the user installs it separately) — case number to CELEX, paging long judgments by eurlex_structure offsets, citing. Do NOT use for: EFTA Court (efta-court); EEA status of EU acts, EEA JCDs (eea-lex); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
+  Use for any EU-law source question that needs the text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Schrems II), act name (GDPR, AI Act), or asks to quote/verify a paragraph or article, find case law interpreting an act or article, search case law in full text ("CJEU cases on abuse of rights", "which judgments mention X"), get a consolidated version, or check dates/transposition. Prefer over web search and the EUR-Lex/Curia websites. A guide to the eurlex MCP server (*__eurlex_* tools; the user installs it separately), plus a full-text case-law search script. Do NOT use for: EFTA Court (efta-court); EEA status of EU acts, JCDs (eea-lex); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
 # eurlex — using the EUR-Lex MCP well
 
-This skill contains no code. Everything is done with the eurlex MCP server
-([Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server)),
-which the user installs separately (the `eurlex` plugin does not bundle it).
+Everything is done with the eurlex MCP server, except full-text search of case
+law, which it lacks and `scripts/case_law_search.py` provides. The server
+([Honeyfield-Org/eurlex-mcp-server](https://github.com/Honeyfield-Org/eurlex-mcp-server))
+is installed by the user separately (the `eurlex` plugin does not bundle it).
 Its tools are the ones whose names end in `__eurlex_<tool>` (pattern
 `*__eurlex_*`, e.g. `mcp__eurlex__eurlex_fetch`), with `<tool>` one of the
 names listed below. The prefix before `__eurlex_` varies by client
@@ -39,7 +40,8 @@ list only says which tool to pick.
   "not recorded". For staged application read `dates_effect`, not only
   `date_application`. It gives neither ECLI nor language of the case.
 - **Case law, and the ECLI of a case:** `eurlex_case_law`, with
-  `type: "JUDG"` when you want the judgment itself.
+  `type: "JUDG"` when you want the judgment itself. Its `query` matches
+  titles only; for words inside judgments see "Full-text search" below.
 - **Legislation by title / by topic:** `eurlex_search` / `eurlex_by_eurovoc`.
 - **What cites, amends, repeals what:** `eurlex_citations`.
 - **National implementing measures:** `eurlex_transposition`.
@@ -47,6 +49,10 @@ list only says which tool to pick.
   quotation. Given a judgment it can return the summary of an act or case
   line that mentions it (for Google Spain, one headed by C-507/17).
 - **Anything else:** `eurlex_sparql`.
+
+**Do not use web search, the EUR-Lex or Curia websites, or the browser** to find
+or read EU acts and case law, unless the user asks for it. If neither the
+MCP server nor the script gives the answer, say so and let the user choose.
 
 EUR-Lex has no Norwegian texts. For Norwegian users fetch `ENG` (what
 Norwegian legal writing cites) and, when wording matters, the language of the
@@ -79,6 +85,54 @@ OJ references for legislation. Convert what the user gives you:
   `year: 2016`, `number: 679` needs no CELEX at all. Otherwise
   `eurlex_search` (`resource_type: "REG"|"DIR"|"DEC"`) or ELI short form
   `reg/2016/679` in `eurlex_fetch`.
+
+## Full-text search of case law
+
+Use the script **only when the search has to look inside the texts**:
+
+| Need | Tool |
+|---|---|
+| CELEX, ECLI, case number, case or party name | MCP only |
+| Cases interpreting or citing a known act, no particular wording in mind | MCP only (`eurlex_case_law` with `related_celex`, `eurlex_citations`) |
+| Where a phrase stands in a known judgment | MCP only: fetch the text and look |
+| Cases on a doctrine, phrase or concept | script |
+| Cases on a particular article | MCP first (`related_celex`); if it returns more cases than you can reasonably read (about 10), script |
+| A name or nickname the title search does not find | script, after the MCP search |
+| Text, quotation, ECLI, metadata | always MCP, also for the script's hits |
+
+An MCP timeout is no reason to run the script: retry the MCP call.
+
+Run it in the cloud sandbox (Python standard library only), one search at a
+time; never loop through pages or queries to collect material in bulk:
+
+```bash
+python3 scripts/case_law_search.py '"abuse of rights" tax' --type judgment --court C --from 2015-01-01
+```
+
+- Words must all occur; `"…"` is an exact phrase; `OR` widens. **Quote
+  phrases:** `abuse of rights` unquoted finds the words anywhere (4,700 hits,
+  against 382 quoted). A common phrase is best narrowed with a second term.
+- `--type judgment|opinion|order`, `--court C|T|F` (Court of Justice, General
+  Court, Civil Service Tribunal), `--from`/`--to`, `--newest`, `--page`,
+  `--size`, `--language`. The result also says how many hits there are in all.
+- Only texts in `--language` (default `EN`) are searched. Not every decision
+  has been translated, so repeat the search in French (`--language FR` with the
+  French term) before calling something absent.
+- **Article searches** miss judgments that cite the article differently (an
+  older Treaty number, the predecessor act), and an article number alone
+  matches other acts. Combine it with the act's number or name or the
+  provision's key wording: `'"Article 12(5)" "2016/679"'`. Use `OR` for
+  alternatives, and do not present the hits as complete.
+- A hit only shows that the words occur, perhaps in a party's argument. The
+  snippet is for choosing what to read: fetch the hit's CELEX with
+  `eurlex_fetch` before relying on it, and quote from that, never from the
+  snippet. If a hit has no CELEX, build it from the case number, and say so if it
+  cannot be fetched.
+- **`SEARCH FAILED` (exit 1) is not a negative result.** The service is
+  undocumented and may change or refuse. Retry once, then tell the user that
+  full-text search is unavailable, and go on with the MCP tools.
+- Tell the user that the hits come from a full-text search of InfoCuria, and
+  with which query.
 
 ## Quoting a paragraph of a long judgment
 

@@ -27,6 +27,49 @@ traps below.
 | `eurlex_summary` on a judgment gives another case's summary | 62012CJ0131 → headed C-507/17 | – |
 | Consolidated version exists but is not retrievable | 32003L0088 | – |
 
+## Full-text search of case law (1.3.0, 2026-11-24)
+
+**Why:** the server works on Cellar, whose SPARQL endpoint holds metadata; the
+texts are separate files. `eurlex_search` and `eurlex_case_law` match titles.
+The server's other possible source, the EUR-Lex SOAP web service, has full-text
+search but needs registration and has a daily limit; the EUR-Lex site's search
+page answered an empty 202 to the honest UA.
+
+**What:** `scripts/case_law_search.py` sends one POST to InfoCuria's backend,
+`https://infocuriaws.curia.europa.eu/elastic-connector/search`. It is found in
+the site's `assets/config/config.prod.json`, undocumented, and needs no login
+or cookie. The honest UA got 200 from a residential IP and from the cloud
+sandbox.
+
+**Maintainer's decision (2026-11-24):** rely on it, as long as it is used only
+when full-text search is needed. Hence the "Need / Tool" table in SKILL.md, and
+the rule against web search and the websites (Claude Desktop had been
+improvising with both). Terms: the copyright page
+(`https://curia.europa.eu/site/jcms/d2_5167/en/copyright`) permits reproduction
+of case law with the source acknowledged; no clause on automated access was
+found, but the terms were seen only as search excerpts (WebFetch got 403 from
+curia.europa.eu). `robots.txt` on infocuria.curia.europa.eu: `Allow: /`.
+
+Behaviour, as probed:
+
+| Point | Evidence |
+|---|---|
+| Quoted = exact phrase; unquoted = the words | 382 / 4,707 |
+| Terms are ANDed; `OR` works | 4 for two phrases, 471 with `OR` |
+| `isSearchExact` had no effect on an unquoted query | 4,707 either way |
+| Filters go in `filtersValue`, as `{field, values}`; dates as two values | `docTypeCode`, `affairJurisdictionCode`, `docDate` |
+| An unknown filter field gives 0 hits, no error | hence the control searches on every 0 |
+| `advancedFiltersValue` with `docTypeCode` replaced the query | 68,750 hits; not used |
+| `pageNumber` is zero-based | page 2 differs from page 1 |
+| A joined-case document comes once per case | same ECLI; deduplicated |
+| Index name ends in a date (30-06-2026) that is not its cut-off | newest hit 2026-11-19 |
+| About 320 KB for 20 hits | the script prints a few lines per hit |
+
+Not used: the `citationsMotif`, `citationsDispositif` and `citationsConclusion`
+facets (acts and provisions cited, e.g. `12008M004-P3`).
+
+If it breaks, look at the request the site itself sends and compare.
+
 ## Reviewing a new release
 
 1. Compare the source with the last reviewed version (`git diff v2.4.5..` in
@@ -40,3 +83,4 @@ traps below.
 4. If SKILL.md changed, bump the plugin. If kildesjekk's EU section (§9)
    relies on what changed, update it too.
 5. Update "Last reviewed against" at the top.
+6. If the server gains full-text search, consider dropping the script.

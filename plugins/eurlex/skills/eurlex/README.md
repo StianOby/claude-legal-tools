@@ -1,11 +1,18 @@
 # eurlex
 
-A usage-guide skill for EU law. It contains no scripts: all retrieval is
-done through the
+A usage-guide skill for EU law. Retrieval is done through the
 [eurlex MCP server](https://github.com/Honeyfield-Org/eurlex-mcp-server),
 and `SKILL.md` teaches Claude how to use that server's tools well —
 converting case numbers and ECLIs to CELEX, paging long judgments by
 paragraph offset, choosing consolidated versions, and citing correctly.
+
+The server cannot search inside the texts. For case law, a small script fills
+that gap with a full-text search in the Court's
+[InfoCuria](https://infocuria.curia.europa.eu/). It is used only when a question
+needs full-text search, and only to find cases: they are read and quoted through
+the MCP server. The service behind InfoCuria is undocumented, so this search may
+stop working without notice; Claude then says so. Full-text search of
+legislation is not covered.
 
 ## Requirements
 
@@ -23,7 +30,8 @@ paragraph offset, choosing consolidated versions, and citing correctly.
   }
   ```
 
-- No Python, no packages, no cache directory.
+- Full-text search runs in the cloud sandbox (Python standard library only).
+  No packages, no cache directory.
 
 ## Layout
 
@@ -31,6 +39,7 @@ paragraph offset, choosing consolidated versions, and citing correctly.
 eurlex/
   SKILL.md    # trigger description + MCP usage guide
   README.md   # this file
+  scripts/case_law_search.py   # full-text search of case law
 ```
 
 ## Installing as a Claude skill
