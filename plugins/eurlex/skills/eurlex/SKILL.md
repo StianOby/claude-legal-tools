@@ -11,7 +11,7 @@ This skill contains no code. Everything is done with the eurlex MCP server
 which the user installs separately (the `eurlex` plugin does not bundle it).
 Its tools are the ones whose names end in `__eurlex_<tool>` (pattern
 `*__eurlex_*`, e.g. `mcp__eurlex__eurlex_fetch`), with `<tool>` one of the
-names in the tool map below. The prefix before `__eurlex_` varies by client
+names listed below. The prefix before `__eurlex_` varies by client
 (cloud Cowork adds `mcp__remote-devices__`) and by the name the user gave the
 server, so never assume one. The tools are often deferred: run one ToolSearch
 with query `eurlex` and `max_results` 20 before deciding they are absent, and
@@ -25,25 +25,32 @@ Developer → Edit Config** (`claude_desktop_config.json`, under
 "eurlex": { "command": "npx", "args": ["-y", "eurlex-mcp-server"] }
 ```
 
-## Tool map
+## Which tool when
 
-| Need | Tool | Notes |
-|---|---|---|
-| Text of an act or judgment | `eurlex_fetch` | `celex_id`, `eli` or `oj_ref`; `format: "plain"` or `"xhtml"`; paginated |
-| In-force version of an act | `eurlex_consolidated` | `celex_id` **or** `doc_type`+`year`+`number`; returns `consolidation_date` |
-| Outline with character offsets | `eurlex_structure` | Lists articles; for case law lists `Paragraph N` with offset |
-| Dates, in-force status, authors, legal basis | `eurlex_metadata` | `null` dates mean "not recorded" |
-| Find case law | `eurlex_case_law` | by `ecli`, `celex_id`, party `query`, or `related_celex` (cases interpreting an act) |
-| Find legislation | `eurlex_search`, `eurlex_by_eurovoc` | title substring / EuroVoc concept |
-| What cites / amends / repeals what | `eurlex_citations` | `direction: cites | cited_by | both` |
-| National implementing measures | `eurlex_transposition` | directive CELEX + optional country |
-| Plain-language summary (LEGISSUM) | `eurlex_summary` | may return `total_summaries: 0` |
-| Anything else | `eurlex_sparql` | read-only SELECT/ASK against Cellar |
+Parameters are documented in the tools' own descriptions; read those. This
+list only says which tool to pick.
 
-Language is a 3-letter Cellar code (`ENG`, `FRA`, `DEU`, `DAN`, `SWE`, …).
-Norwegian is not an EU language and EUR-Lex has no Norwegian texts; for
-Norwegian users fetch `ENG` (what Norwegian legal writing cites) and, when
-wording matters, the language of the case (see "Authentic language" below).
+- **Text of an act, treaty article or judgment:** `eurlex_fetch`. Pass
+  `format: "plain"` (the default is `xhtml`).
+- **Consolidated text of an act:** `eurlex_consolidated`, also with
+  `format: "plain"`. Check the date it returns (see "Consolidated versions").
+- **Where an article or paragraph begins:** `eurlex_structure`.
+- **Dates, in-force status, legal basis:** `eurlex_metadata`. `null` means
+  "not recorded". For staged application read `dates_effect`, not only
+  `date_application`. It gives neither ECLI nor language of the case.
+- **Case law, and the ECLI of a case:** `eurlex_case_law`, with
+  `type: "JUDG"` when you want the judgment itself.
+- **Legislation by title / by topic:** `eurlex_search` / `eurlex_by_eurovoc`.
+- **What cites, amends, repeals what:** `eurlex_citations`.
+- **National implementing measures:** `eurlex_transposition`.
+- **Plain-language overview:** `eurlex_summary`. Never a source for a
+  quotation. Given a judgment it can return the summary of an act or case
+  line that mentions it (for Google Spain, one headed by C-507/17).
+- **Anything else:** `eurlex_sparql`.
+
+EUR-Lex has no Norwegian texts. For Norwegian users fetch `ENG` (what
+Norwegian legal writing cites) and, when wording matters, the language of the
+case (see "Authentic language" below).
 
 ## Identifiers: getting to a CELEX
 
@@ -58,10 +65,16 @@ OJ references for legislation. Convert what the user gives you:
 - **ECLI:** pass straight to `eurlex_case_law` (`ecli: "ECLI:EU:C:2014:317"`);
   the result gives the CELEX and title.
 - **Case name only** ("Schrems II", "Bauer"): `eurlex_case_law` with `query`
-  matches the *title*, which starts "Judgment of the Court … " and contains
-  the party names, so search the party name, not the nickname; narrow with
-  `date_from`/`date_to` or `court`. If that fails, use `related_celex` with
+  matches the *title*, so search a party name, not the nickname; narrow with
+  `type: "JUDG"`, `date_from`/`date_to` or `court`. Without `type`, notices and
+  résumés come too (`62012CA0131`, `62018CJ0311_RES`); a CELEX ending `_RES`
+  cannot be fetched, so drop the suffix. If that fails, use `related_celex` with
   the act the case interprets, or `eurlex_sparql`.
+- **Case number as a `query`:** titles write it either with an ordinary hyphen
+  (`C-311/18`) or a non-breaking one (`C‑131/12`), and only the matching form
+  is found. Build the CELEX instead, or search both forms.
+- **Treaty article:** sector 1, e.g. `12016E267` (Article 267 TFEU),
+  `12016M006` (Article 6 TEU), in `eurlex_fetch`.
 - **Act name / number:** `eurlex_consolidated` with `doc_type: "reg"`,
   `year: 2016`, `number: 679` needs no CELEX at all. Otherwise
   `eurlex_search` (`resource_type: "REG"|"DIR"|"DEC"`) or ELI short form
@@ -86,25 +99,69 @@ Long judgments exceed one `eurlex_fetch` call (default 20 000 chars, max
 large documents; then fetch by offset ranges and read paragraph numbers from
 the text itself.
 
-Some older judgments come back with **no** `Paragraph N` entries (the
-numbers stand alone on their own line, e.g. Google Spain, 62012CJ0131). Then
-estimate: fetch a small piece near the end to learn the last paragraph
-number and where the grounds end (the operative part, "On those grounds,
-the Court … hereby rules", and the costs follow the last paragraph). Start
-at about `N / last_paragraph × <offset where the grounds end>`, minus 10 %,
-and step forward or back by the paragraph numbers you see until you have
-paragraph N. Using the total length overshoots.
+**No `Paragraph N` entries.** Some judgments (Google Spain, 62012CJ0131; Van
+Gend en Loos) and AG opinions generally come back without an outline, though
+the tool calls such a document "short" or "PDF". A single number can also be
+missing (Schmidberger, 62000CJ0112, starts at 2); it then stands just before
+the next one. Without an outline, estimate: fetch a small piece near the end
+to learn the last paragraph number and where the grounds end (the operative
+part, "On those grounds, the Court … hereby rules", and the costs follow the
+last paragraph). Start at about
+`N / last_paragraph × <offset where the grounds end>`, minus 10 %, and step
+forward or back by the paragraph numbers you see until you have paragraph N.
+Using the total length overshoots.
 
-For legislation, `eurlex_structure` gives article offsets the same way;
-prefer `eurlex_consolidated` when the user wants what is in force, and
-report the `consolidation_date` alongside the quote.
+Plain text of older documents can contain undecoded HTML entities (`&uuml;`,
+`&hellip;`). Read them as the character they stand for; they are not a
+discrepancy in a quotation.
+
+For legislation as published in the OJ, `eurlex_structure` gives article
+offsets the same way.
+
+## Consolidated versions
+
+- **The version returned may lie in the future.** `eurlex_consolidated` calls
+  its result "currently in-force" but returns the newest consolidation, even
+  one dated later than today. Compare `consolidation_date` with today every
+  time. If it is later, do not quote it as the law in force: tell the user,
+  and find the right version as in the next point.
+- **The law on a given date.** The tool takes no date, and `eurlex_fetch`
+  rejects a consolidated CELEX (`02013L0034-20260318`) and a dated ELI. List
+  the versions with `eurlex_sparql` (slow, about 20–30 s; replace the CELEX):
+
+  ```sparql
+  PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+  SELECT DISTINCT ?c WHERE {
+    ?w cdm:resource_legal_id_celex ?c .
+    FILTER(REGEX(STR(?c), "^02013L0034-"))
+  } ORDER BY DESC(?c) LIMIT 100
+  ```
+
+  The last eight digits are the date; the version that applied is the latest
+  one not after the date in question. If that is the one
+  `eurlex_consolidated` returns, use it. Otherwise its text is out of reach:
+  give the user the link
+  `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02013L0034-20260318`
+  and say that you have not read it, or work from the original act and the
+  amending acts and say so.
+- **Offsets from `eurlex_structure` do not fit consolidated text.** They index
+  the OJ version. Page through the consolidated text with `next_offset`, or
+  jump by estimate and step until the article heading appears. The annexes
+  and amendment list make estimates rough.
+- **"No consolidated version available"** means either that there is none
+  (often because the act was never amended) or that one exists but "could not
+  be retrieved" (e.g. 32003L0088). The message shows which. In the second
+  case do not say the act is unamended; check with `eurlex_citations`.
+- Report `consolidation_date` with every quotation. Consolidated text has no
+  legal effect; where exact wording is decisive, check the OJ text too.
 
 ## Authentic language
 
 Judgments are authentic only in the language of the case (usually the
 referring court's). If the user's argument turns on exact wording, fetch
-that language too (`eurlex_metadata` and the ECLI page show it; the case
-language is also printed at the end of the judgment) and quote both.
+that language too and quote both. The language is in a footnote at the very
+end of the judgment ("Language of the case: Spanish"); no tool returns it as
+a field.
 
 ## When something is missing
 
@@ -113,14 +170,15 @@ language is also printed at the end of the judgment) and quote both.
   language and most complete), and retry once after a short wait — Cellar
   renders some documents on demand. Confirm the CELEX with `eurlex_case_law`
   (`ecli`) or `eurlex_search` before concluding it is absent.
-- **A timeout is not a negative result.** `eurlex_search` times out
-  intermittently, regardless of whether the query is any good. Retry it, and
-  if it times out again reword the query slightly (drop a term, or search the
-  party name instead of the case nickname) — that usually goes through. Never
-  report a source as absent, or a row as unverifiable, on the strength of one
-  timed-out search.
-- **`eurlex_consolidated` says no consolidated version:** the act was never
-  amended (fetch the original) or is a decision/judgment (not consolidated).
+- **"Document not found"** can mean that EUR-Lex has the document only as PDF,
+  or that the CELEX is wrong. Confirm the CELEX; if it exists, give the user
+  the EUR-Lex link.
+- **A timeout is not a negative result.** Any tool that queries Cellar can
+  time out (after about 90 s), also on a good query; `eurlex_search` and
+  `eurlex_metadata` do so most. Retry the same call. If a search times out
+  again, reword it (drop a term, use the party name, add `resource_type` or
+  dates). Never report a source as absent, or a row as unverifiable, on the
+  strength of a timed-out call.
 - **Truly absent from Cellar** (some early orders, unpublished AG opinions,
   material from before electronic publication): say so and give the
   InfoCuria search URL for the user to check manually:
@@ -130,7 +188,7 @@ language is also printed at the end of the judgment) and quote both.
 ## Citing
 
 - Case law: *Case C‑131/12 Google Spain, ECLI:EU:C:2014:317, para 80.* Give
-  the ECLI (from `eurlex_case_law`/`eurlex_metadata`) and the EUR-Lex URL
+  the ECLI (from `eurlex_case_law`) and the EUR-Lex URL
   `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62012CJ0131`.
 - Legislation: article + paragraph + the act's full title once, then short
   title; for consolidated text add "as consolidated on <consolidation_date>".
