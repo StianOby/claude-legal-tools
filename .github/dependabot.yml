@@ -3,7 +3,7 @@
 # a malicious or broken release is usually pulled before it is proposed;
 # security updates are not delayed (GitHub never applies cooldown to them).
 # .github/workflows/dependabot-bump.yml adds the plugin version bump to each
-# PR; validate.yml tests it, also on Python 3.10. Merge only when green.
+# PR; validate.yml tests it. Merge only when green.
 version: 2
 updates:
   - package-ecosystem: pip
