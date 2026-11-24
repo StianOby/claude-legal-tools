@@ -19,7 +19,7 @@ import sys
 import urllib.error
 import urllib.request
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 USER_AGENT = f"eurlex-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 URL = "https://infocuriaws.curia.europa.eu/elastic-connector/search"
 LANGUAGES = ("BG CS DA DE EL EN ES ET FI FR GA HR HU IT LT LV MT NL PL PT RO "

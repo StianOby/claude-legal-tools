@@ -86,6 +86,54 @@ OJ references for legislation. Convert what the user gives you:
   `eurlex_search` (`resource_type: "REG"|"DIR"|"DEC"`) or ELI short form
   `reg/2016/679` in `eurlex_fetch`.
 
+## Cases on a particular article
+
+`related_celex` takes a whole act. Cellar also records which provision a
+decision cites or interprets, and in which of its paragraphs (`N 49`). Query it
+with `eurlex_sparql`, here for Article 12(5) GDPR:
+
+```sparql
+PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
+PREFIX annot: <http://publications.europa.eu/ontology/annotation#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT ?case ?how ?prov ?paras WHERE {
+  VALUES ?act { "32016R0679"^^xsd:string }
+  VALUES (?rel ?ann ?how) {
+    (cdm:work_cites_work annot:fragment_cited_target "cites")
+    (cdm:case-law_interpretes_resource_legal annot:reference_to_modified_location "interprets")
+  }
+  ?t cdm:resource_legal_id_celex ?act .
+  ?a owl:annotatedTarget ?t ; owl:annotatedProperty ?rel ; owl:annotatedSource ?w ; ?ann ?prov .
+  ?w cdm:resource_legal_id_celex ?case .
+  FILTER(REGEX(STR(?prov), "^A12P5([^0-9]|$)"))
+  FILTER(REGEX(STR(?case), "^6....[CT]J"))
+  OPTIONAL { ?a annot:fragment_citing_source ?paras }
+} ORDER BY DESC(?case) LIMIT 100
+```
+
+- **Provision codes:** `A12` article, `P5` paragraph, `L1` subparagraph, `LB`
+  point (b), `SNT2` sentence, `C63` recital. The pattern above includes
+  everything below Article 12(5). Decisions are often tagged only with the
+  article, so also try `^A12([^0-9]|$)` (the paragraphs then come along).
+- **Case types:** `[CT]J` is judgments; use `[CT][JCO]` to add AG opinions
+  and orders.
+- **Treaty and Charter articles** have a CELEX of their own, one per edition,
+  and cases are spread over them: put all in `VALUES ?act`, e.g.
+  `"12008E267"^^xsd:string "12010E267"^^xsd:string "12012E267"^^xsd:string
+  "12016E267"^^xsd:string` (TEU likewise with `M004`; Charter `12007P007`,
+  `12010P007`, `12012P007`, `12016P007`). The provision code then starts at
+  the paragraph: `^P3([^0-9]|$)` for Article 4(3) TEU. For a whole article, replace
+  `; ?ann ?prov .` with `.` and the `?prov` filter with
+  `OPTIONAL { ?a ?ann ?prov }`.
+- **100 rows, or `truncated: true`** (100 is the tool's maximum) means there are more: narrow the years in
+  the `?case` filter (`^6202[0-9][CT]J`) and repeat. One case can have several
+  rows.
+- **Older cases** may be tagged with the article's former number or the
+  predecessor act; search those too when they matter.
+- The tags are not quite complete (the judgment in C-307/22
+  lacks 12(5)), so do not say that the list has every case.
+
 ## Full-text search of case law
 
 Use the script **only when the search has to look inside the texts**:
@@ -96,7 +144,7 @@ Use the script **only when the search has to look inside the texts**:
 | Cases interpreting or citing a known act, no particular wording in mind | MCP only (`eurlex_case_law` with `related_celex`, `eurlex_citations`) |
 | Where a phrase stands in a known judgment | MCP only: fetch the text and look |
 | Cases on a doctrine, phrase or concept | script |
-| Cases on a particular article | MCP first (`related_celex`); if it returns more cases than you can reasonably read (about 10), script |
+| Cases citing or interpreting a particular article | MCP only (`eurlex_sparql`, see "Cases on a particular article") |
 | A name or nickname the title search does not find | script, after the MCP search |
 | Text, quotation, ECLI, metadata | always MCP, also for the script's hits |
 
@@ -118,11 +166,6 @@ python3 scripts/case_law_search.py '"abuse of rights" tax' --type judgment --cou
 - Only texts in `--language` (default `EN`) are searched. Not every decision
   has been translated, so repeat the search in French (`--language FR` with the
   French term) before calling something absent.
-- **Article searches** miss judgments that cite the article differently (an
-  older Treaty number, the predecessor act), and an article number alone
-  matches other acts. Combine it with the act's number or name or the
-  provision's key wording: `'"Article 12(5)" "2016/679"'`. Use `OR` for
-  alternatives, and do not present the hits as complete.
 - A hit only shows that the words occur, perhaps in a party's argument. The
   snippet is for choosing what to read: fetch the hit's CELEX with
   `eurlex_fetch` before relying on it, and quote from that, never from the

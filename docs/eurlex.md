@@ -66,7 +66,11 @@ Behaviour, as probed:
 | About 320 KB for 20 hits | the script prints a few lines per hit |
 
 Not used: the `citationsMotif`, `citationsDispositif` and `citationsConclusion`
-facets (acts and provisions cited, e.g. `12008M004-P3`).
+facets (acts and provisions cited, e.g. `12008M004-P3`). Cellar has the same
+data with citing paragraphs, so cases on an article go through
+`eurlex_sparql`. Both lack some tags (C-307/22 for Article 12(5) GDPR). The
+maintainer decided (2026-11-24) not to add a full-text search to make up for
+that: too burdensome for a small imperfection.
 
 If it breaks, look at the request the site itself sends and compare.
 
