@@ -1,5 +1,5 @@
 {
-  "fetched_utc": "2026-10-14T09:53:40Z",
+  "fetched_utc": "2026-11-24T12:16:45Z",
   "source": "https://treaties.un.org/Pages/Treaties.aspx",
   "chapters": [
     1,
@@ -2715,6 +2715,41 @@
       "place_date": "Geneva, 27 June 2025"
     },
     {
+      "ref": "XI-B-16-179",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 179. Uniform provisions concerning the approval of motor vehicles with regard to laboratory measurement of brake emissions for light-duty vehicles",
+      "place_date": "Geneva, 11 March 2026"
+    },
+    {
+      "ref": "XI-B-16-180",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 180. Uniform provisions concerning the approval of light duty passenger and commercial vehicles with regards to On-board monitoring (OBM) systems, environmental vehicle passport (EVP) and in-vehicle display of environmental data",
+      "place_date": "Geneva, 11 March 2026"
+    },
+    {
+      "ref": "XI-B-16-181",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 181. Uniform technical prescriptions concerning the approval of: I. The engine fire suppression system for vehicles as a component II. Vehicles with regard to the installation of the engine fire suppression systems of approved types",
+      "place_date": "Geneva, 11 March 2026"
+    },
+    {
+      "ref": "XI-B-16-182",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 182. Uniform provisions concerning the approval of a vehicle type with regard to a Driver Drowsiness and Attention Warning (DDAW) system",
+      "place_date": "Geneva, 11 March 2026"
+    },
+    {
+      "ref": "XI-B-16-183",
+      "chapter_int": 11,
+      "subchapter": "B",
+      "title": "United Nations Regulation No. 183. Uniform provisions concerning the approval of a vehicle type with regard to an Advanced Driver Distraction Warning (ADDW) system",
+      "place_date": "Geneva, 11 March 2026"
+    },
+    {
       "ref": "XI-B-17",
       "chapter_int": 11,
       "subchapter": "B",
@@ -4020,7 +4055,7 @@
       "ref": "XIX-47",
       "chapter_int": 19,
       "subchapter": "",
-      "title": "International Cocoa Agreement, 2010",
+      "title": "International Cocoa Agreement, 2010*",
       "place_date": "Geneva, 25 June 2010"
     },
     {
