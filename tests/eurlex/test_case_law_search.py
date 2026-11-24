@@ -62,6 +62,13 @@ class Search(unittest.TestCase):
         data = answer(hit(), hit(celex="62099CJ0002"), hit(ecli="ECLI:EU:C:2099:9"))
         self.assertEqual(len(cls.parse(data)[2]), 2)
 
+    def test_notice_gives_way_to_the_decision(self):
+        for order in (('ARRET_DR', 'ARRET_NP'), ('ARRET_NP', 'ARRET_DR')):
+            data = answer(*(hit(docTypeCode=t) for t in order))
+            self.assertEqual([h['type'] for h in cls.parse(data)[2]], ['ARRET_NP'])
+        out = run(['x'], answer(hit(docTypeCode='ARRET_DR')))[1]
+        self.assertIn('summary notice', out)
+
     def test_missing_identifiers_survive(self):
         code, out, _, _ = run(["x"], answer(hit(celex="", ecli=None, id="a"),
                                             hit(celex="", ecli="", id="b")))

@@ -62,15 +62,27 @@ Behaviour, as probed:
 | `advancedFiltersValue` with `docTypeCode` replaced the query | 68,750 hits; not used |
 | `pageNumber` is zero-based | page 2 differs from page 1 |
 | A joined-case document comes once per case | same ECLI; deduplicated |
+| `_DR` = summary notice (site label "Judgment (Information)"); full text is an `_NP` document under the same CELEX | T-196/19: notice in 23 languages, judgment in DE and FR; Cellar serves the FR text (`text/html`), 404 for EN |
 | Index name ends in a date (30-06-2026) that is not its cut-off | newest hit 2026-11-19 |
 | About 320 KB for 20 hits | the script prints a few lines per hit |
 
 Not used: the `citationsMotif`, `citationsDispositif` and `citationsConclusion`
 facets (acts and provisions cited, e.g. `12008M004-P3`). Cellar has the same
 data with citing paragraphs, so cases on an article go through
-`eurlex_sparql`. Both lack some tags (C-307/22 for Article 12(5) GDPR). The
-maintainer decided (2026-11-24) not to add a full-text search to make up for
-that: too burdensome for a small imperfection.
+`eurlex_sparql`. Both lack some tags (C-307/22 for Article 12(5) GDPR).
+
+Judgments (Court of Justice and General Court) with no article tag on any
+`cdm:work_cites_work` relation, by date of judgment, measured 2026-11-24:
+2018-21 22/3813, 2022 41/934, 2023 32/953, 2024 69/1021, 2025 111/927, 2026
+498/814. By month in 2026: January 5/71, April 11/74, July 83/83, September
+131/131, November 94/94 (the others not sampled). In 172 preliminary rulings
+(case years 2005-2024), the article named in the operative part was tagged in
+all judgments that had tags but one (62010CJ0256, Article 16); exact paragraphs
+in about 82 % (untagged judgments included), so search the whole article too.
+
+The maintainer therefore decided (2026-11-24) on one full-text search, limited
+to the last two years, after the SPARQL query, and none for older cases. Measure
+again before changing this.
 
 If it breaks, look at the request the site itself sends and compare.
 

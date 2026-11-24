@@ -114,8 +114,11 @@ SELECT ?case ?how ?prov ?paras WHERE {
 
 - **Provision codes:** `A12` article, `P5` paragraph, `L1` subparagraph, `LB`
   point (b), `SNT2` sentence, `C63` recital. The pattern above includes
-  everything below Article 12(5). Decisions are often tagged only with the
-  article, so also try `^A12([^0-9]|$)` (the paragraphs then come along).
+  everything below Article 12(5). **Single-digit articles are zero-padded:**
+  Article 3(2) is `^A0?3P2([^0-9]|$)` (without the `0` the query finds next to
+  nothing). Articles 3a and 3b are `A03BIS` and `A03TER`. Decisions are often
+  tagged only with the article, so also try `^A12([^0-9]|$)` (the paragraphs
+  then come along).
 - **Case types:** `[CT]J` is judgments; use `[CT][JCO]` to add AG opinions
   and orders.
 - **Treaty and Charter articles** have a CELEX of their own, one per edition,
@@ -131,10 +134,18 @@ SELECT ?case ?how ?prov ?paras WHERE {
   rows.
 - **Older cases** may be tagged with the article's former number or the
   predecessor act; search those too when they matter.
-- The tags are good but not complete, so do not say that the list has every
-  case. **Do not supplement it with the full-text script**, neither for the
-  article number nor for the provision's wording, unless the user asks; the
-  gaps are too small to be worth it.
+- **Recent judgments are missing:** for several months after delivery they have
+  no article tags at all, and some of the later ones never get any. So after the
+  SPARQL query, unless the user only asks about older cases, run **one**
+  full-text search for the article and the act, from two years before today:
+  `'"Article 12(5)" "2016/679"' --type judgment --from <date> --newest --size 50`.
+  Use the paragraph if the user asked for one, otherwise `"Article 12"`; for
+  Treaty articles the name (`"Article 267 TFEU"`). Add hits not already in the
+  list and say which search found them: a hit may only mention the article,
+  or the number may belong to another act, so fetch before relying on it.
+- **No full-text search for cases older than that**, nor for the provision's
+  wording, unless the user asks; there the tags are good. They are still not
+  complete, so do not say that the list has every case.
 
 ## Full-text search of case law
 
@@ -146,7 +157,7 @@ Use the script **only when the search has to look inside the texts**:
 | Cases interpreting or citing a known act, no particular wording in mind | MCP only (`eurlex_case_law` with `related_celex`, `eurlex_citations`) |
 | Where a phrase stands in a known judgment | MCP only: fetch the text and look |
 | Cases on a doctrine, phrase or concept, where the question is not about a particular article | script |
-| Cases citing or interpreting a particular article | MCP only (`eurlex_sparql`, see "Cases on a particular article") |
+| Cases citing or interpreting a particular article | MCP (`eurlex_sparql`), then one script search for the last two years (see "Cases on a particular article") |
 | A name or nickname the title search does not find | script, after the MCP search |
 | Text, quotation, metadata | always MCP, also for the script's hits (their CELEX and ECLI may be used as printed) |
 
@@ -173,6 +184,14 @@ python3 scripts/case_law_search.py '"abuse of rights" tax' --type judgment --cou
   `eurlex_fetch` before relying on it, and quote from that, never from the
   snippet. If a hit has no CELEX, build it from the case number, and say so if it
   cannot be fetched.
+- **Type codes:** `ARRET` judgment, `CONCL` AG opinion, `ORD` order; `_NP` marks
+  a decision not published in the Reports. **`_DR` is only a summary notice of
+  such a decision.** The search has then matched the notice, not the text. The
+  full text exists under the same CELEX, usually only in French and the
+  language of the case: if `ENG` is not found, fetch `FRA`, and search again
+  with `--language FR`.
+- A blank case name is not in the data. Take it from `eurlex_case_law`, or
+  leave it out.
 - **`SEARCH FAILED` (exit 1) is not a negative result.** The service is
   undocumented and may change or refuse. Retry once, then tell the user that
   full-text search is unavailable, and go on with the MCP tools.
@@ -197,7 +216,9 @@ Long judgments exceed one `eurlex_fetch` call (default 20 000 chars, max
    from memory; if the fetched text does not contain it, say so.
 
 The same goes for describing a case: state its facts and reasoning, and cite
-paragraphs, only from text you have fetched. Mark anything from memory as such.
+paragraphs, only from text you have fetched. Mark anything from memory as such,
+case names included. If a document could not be fetched, say that; do not guess
+why.
 
 `eurlex_structure` caps at 300 entries and sets `truncated: true` for very
 large documents; then fetch by offset ranges and read paragraph numbers from

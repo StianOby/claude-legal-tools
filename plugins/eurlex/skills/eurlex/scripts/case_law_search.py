@@ -19,7 +19,7 @@ import sys
 import urllib.error
 import urllib.request
 
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 USER_AGENT = f"eurlex-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 URL = "https://infocuriaws.curia.europa.eu/elastic-connector/search"
 LANGUAGES = ("BG CS DA DE EL EN ES ET FI FR GA HR HU IT LT LV MT NL PL PT RO "
@@ -87,7 +87,7 @@ def parse(data, language="EN"):
         total, raw = data["totalHits"], data["searchHits"]
         if type(total) is not int or not isinstance(raw, list):
             raise TypeError
-        hits, seen = [], set()
+        hits = {}
         for h in raw:
             c = h["content"]
             hit = {
@@ -96,14 +96,19 @@ def parse(data, language="EN"):
                 "name": case_name(h, language), "snippet": snippet(h),
             }
             # A document in joined cases, or filed under two procedures, is
-            # returned once for each: same ECLI, possibly another CELEX.
+            # returned once for each: same ECLI, possibly another CELEX. A
+            # summary notice (_DR) gives way to the decision itself.
             key = hit["ecli"] or hit["celex"] or c["id"]
-            if key not in seen:
-                seen.add(key)
-                hits.append(hit)
+            if key not in hits or (is_notice(hits[key]) and not is_notice(hit)):
+                hits[key] = hit
     except (KeyError, TypeError, AttributeError) as e:
         raise SearchError("InfoCuria's answer has changed form") from e
-    return total, data.get("totalHitsRelation") == "EQUAL_TO", hits
+    return total, data.get("totalHitsRelation") == "EQUAL_TO", list(hits.values())
+
+
+def is_notice(hit):
+    """A summary notice ("Judgment (Information)"), not the decision itself."""
+    return hit["type"].endswith("_DR")
 
 
 def case_name(hit, language):
@@ -197,6 +202,9 @@ def main(argv=None):
     for h in hits:
         print(f"\n{h['celex'] or '(no CELEX)'} | {h['case']} {h['name']} | {h['type']} | "
               f"{h['date']} | {h['ecli'] or '(no ECLI)'}")
+        if is_notice(h):
+            print("   [summary notice; the full text is usually only in French and the "
+                  "language of the case: fetch with FRA]")
         if h["snippet"]:
             print(f"   {h['snippet']}")
     return 0
