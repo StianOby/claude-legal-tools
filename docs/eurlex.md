@@ -55,7 +55,7 @@ Behaviour, as probed:
 | Point | Evidence |
 |---|---|
 | Quoted = exact phrase; unquoted = the words | 382 / 4,707 |
-| Terms are ANDed; `OR` works | 4 for two phrases, 471 with `OR` |
+| Terms are ANDed; `OR` breaks quoted phrases | `A` 62 hits, `A OR A` 389 |
 | `isSearchExact` had no effect on an unquoted query | 4,707 either way |
 | Filters go in `filtersValue`, as `{field, values}`; dates as two values | `docTypeCode`, `affairJurisdictionCode`, `docDate` |
 | An unknown filter field gives 0 hits, no error | hence the control searches on every 0 |
@@ -81,8 +81,25 @@ all judgments that had tags but one (62010CJ0256, Article 16); exact paragraphs
 in about 82 % (untagged judgments included), so search the whole article too.
 
 The maintainer therefore decided (2026-11-24) on one full-text search, limited
-to the last two years, after the SPARQL query, and none for older cases. Measure
+to the last four years, after the SPARQL query, and none for older cases. Measure
 again before changing this.
+
+Why four years (14 provisions, French search, measured 2026-11-24): judgments
+naming the article in the operative part that SPARQL does not return, by window:
+2 to 3 years 7, 3 to 4 years 3, 4 to 5 years 0; all ten lack article tags. Three
+of them (Charter 47 twice, 108(3) TFEU) lie beyond the 50 listed hits. For the 11
+narrower provisions the average is 14 / 22 / 30 / 36 hits for 2 / 3 / 4 / 5 years;
+of the 80 hits in years 2-5 that SPARQL lacks, 8 are such judgments.
+
+That search runs in French. Compared on 2026-11-24 (last two years): the same 3,
+19 and 16 hits as in English for Articles 12(5) and 15 GDPR and 3 InfoSoc; 47
+against 34 for Article 108(3) TFEU, all the extra ones but one `_NP`; 305 against
+229 for Article 47 of the Charter. French misses `paragraphes 1 et 2` (C-579/24,
+Article 3(1) InfoSoc) and a subparagraph inside a Treaty reference (`article 4,
+paragraphe 3, premier alinéa, TUE`; 8 of 50 English hits missed, the cause seen
+in 3 of the 4 checked). `OR` is no remedy:
+the backend does not keep quoted phrases exact around it (`A` 62 hits, `A OR A`
+389), so SKILL.md says to search alternatives separately.
 
 If it breaks, look at the request the site itself sends and compare.
 

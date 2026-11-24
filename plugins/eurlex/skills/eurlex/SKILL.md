@@ -137,12 +137,19 @@ SELECT ?case ?how ?prov ?paras WHERE {
 - **Recent judgments are missing:** for several months after delivery they have
   no article tags at all, and some of the later ones never get any. So after the
   SPARQL query, unless the user only asks about older cases, run **one**
-  full-text search for the article and the act, from two years before today:
-  `'"Article 12(5)" "2016/679"' --type judgment --from <date> --newest --size 50`.
-  Use the paragraph if the user asked for one, otherwise `"Article 12"`; for
-  Treaty articles the name (`"Article 267 TFEU"`). Add hits not already in the
-  list and say which search found them: a hit may only mention the article,
-  or the number may belong to another act, so fetch before relying on it.
+  full-text search for the article and the act, from four years before today,
+  **in French**, the Court's working language (unpublished judgments are usually
+  not translated into English):
+  `'"article 12, paragraphe 5" "2016/679"' --language FR --type judgment --from <date> --newest --size 50`.
+  Use the paragraph if the user asked for one, otherwise `"article 12"`. The
+  French forms are `article 5 bis` (5a), `article 267 TFUE`, `article 47 de la
+  Charte`, `article 4, paragraphe 3, TUE`. Other wordings are missed (`article 3,
+  paragraphes 1 et 2`; `paragraphe 3, premier alinéa, TUE`).
+  Look only at hits not already in the list. Many concern the same number in
+  another act or only mention the article: drop a hit without fetching it when
+  the snippet shows another act, and fetch the others before relying on them
+  (`FRA` if there is no `ENG`). Say which search found a case. If there are more than 50
+  hits, give the number and say that only the newest 50 were listed.
 - **No full-text search for cases older than that**, nor for the provision's
   wording, unless the user asks; there the tags are good. They are still not
   complete, so do not say that the list has every case.
@@ -157,7 +164,7 @@ Use the script **only when the search has to look inside the texts**:
 | Cases interpreting or citing a known act, no particular wording in mind | MCP only (`eurlex_case_law` with `related_celex`, `eurlex_citations`) |
 | Where a phrase stands in a known judgment | MCP only: fetch the text and look |
 | Cases on a doctrine, phrase or concept, where the question is not about a particular article | script |
-| Cases citing or interpreting a particular article | MCP (`eurlex_sparql`), then one script search for the last two years (see "Cases on a particular article") |
+| Cases citing or interpreting a particular article | MCP (`eurlex_sparql`), then one script search for the last four years (see "Cases on a particular article") |
 | A name or nickname the title search does not find | script, after the MCP search |
 | Text, quotation, metadata | always MCP, also for the script's hits (their CELEX and ECLI may be used as printed) |
 
@@ -170,7 +177,8 @@ time; never loop through pages or queries to collect material in bulk:
 python3 scripts/case_law_search.py '"abuse of rights" tax' --type judgment --court C --from 2015-01-01
 ```
 
-- Words must all occur; `"…"` is an exact phrase; `OR` widens. **Quote
+- Words must all occur; `"…"` is an exact phrase. `OR` does not keep phrases
+  exact, so search alternative phrases separately. **Quote
   phrases:** `abuse of rights` unquoted finds the words anywhere (4,700 hits,
   against 382 quoted). A common phrase is best narrowed with a second term.
 - `--type judgment|opinion|order`, `--court C|T|F` (Court of Justice, General

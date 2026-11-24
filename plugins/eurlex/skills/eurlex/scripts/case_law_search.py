@@ -19,7 +19,7 @@ import sys
 import urllib.error
 import urllib.request
 
-VERSION = "1.3.3"
+VERSION = "1.3.4"
 USER_AGENT = f"eurlex-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 URL = "https://infocuriaws.curia.europa.eu/elastic-connector/search"
 LANGUAGES = ("BG CS DA DE EL EN ES ET FI FR GA HR HU IT LT LV MT NL PL PT RO "
@@ -161,7 +161,7 @@ def iso_date(text):
 
 def arguments(argv):
     p = argparse.ArgumentParser(description="Full-text search of EU case law (InfoCuria).")
-    p.add_argument("query", help='words (all must occur), "exact phrase", AND, OR')
+    p.add_argument("query", help='words (all must occur), "exact phrase"')
     p.add_argument("--language", default="EN", type=str.upper, choices=LANGUAGES)
     p.add_argument("--type", choices=sorted(TYPES), dest="kind")
     p.add_argument("--court", choices=COURTS, type=str.upper,
