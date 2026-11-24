@@ -283,6 +283,16 @@ When working on lovdata-pro, compare that quote with the live terms and
 follow the routine in `docs/lovdata-pro-terms.md`, which also records the
 maintainer's decisions on how the skill relates to them.
 
+## eurlex follows the eurlex MCP server
+
+The eurlex skill is a guide to a third-party MCP server that users run
+unpinned (`npx -y`), so **each new server release calls for a review of the
+skill, and an update if needed.** At the start of any session that will
+change files under `plugins/`, compare `npm view eurlex-mcp-server version`
+with "Last reviewed against" in `docs/eurlex.md`. If they differ, tell the
+user and, with their go-ahead, follow "Reviewing a new release" there. A
+release with only dependency bumps needs just the new version number.
+
 ## Zotero-ready output
 
 Several skills can make a Zotero item (an RDF file, or a direct import via

@@ -1,7 +1,9 @@
 # eurlex: what the skill adds to the MCP server
 
+Last reviewed against: eurlex-mcp-server **2.4.5** (2026-11-24).
+
 The skill covers only what the eurlex MCP server's own tool descriptions do
-not (reviewed 2026-11-24 against eurlex-mcp-server 2.4.5). Parameters are left
+not. Parameters are left
 to the server, so they cannot go stale here.
 
 Why a skill is still needed: the server sends no `instructions`, and its
@@ -25,8 +27,16 @@ traps below.
 | `eurlex_summary` on a judgment gives another case's summary | 62012CJ0131 → headed C-507/17 | – |
 | Consolidated version exists but is not retrievable | 32003L0088 | – |
 
-## Keeping it current
+## Reviewing a new release
 
-When the server releases a new version, rerun the calls in the table. Remove
-a trap from SKILL.md once its fix is released: `npx -y` gives users the
-newest version.
+1. Compare the source with the last reviewed version (`git diff v2.4.5..` in
+   a clone of the server's repository). If nothing under `src/` changed, go
+   to step 5.
+2. List the tools of the new version and compare their names and descriptions
+   with "Which tool when" in SKILL.md, and check whether the server now sends
+   `instructions`.
+3. Rerun the calls in the table above and check the linked issues. Remove a
+   trap from SKILL.md and the table once its fix is released; add new ones.
+4. If SKILL.md changed, bump the plugin. If kildesjekk's EU section (§9)
+   relies on what changed, update it too.
+5. Update "Last reviewed against" at the top.
