@@ -1,7 +1,7 @@
 ---
 name: eurlex
 description: |
-  Use for any EU-law source question that needs the text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — whenever the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (ECLI:EU:C:2014:317), case number (C-131/12, T-612/17), case name (Google Spain, Schrems II), act name (GDPR, AI Act), or asks to quote/verify a paragraph or article, find case law interpreting an act or article, search case law in full text ("CJEU cases on abuse of rights", "which judgments mention X"), get a consolidated version, or check dates/transposition. Prefer over web search and the EUR-Lex/Curia websites. A guide to the eurlex MCP server (*__eurlex_* tools; the user installs it separately), plus a full-text case-law search script. Do NOT use for: EFTA Court (efta-court); EEA status of EU acts, JCDs (eea-lex); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
+  Load before calling any *__eurlex_* tool, even for one known CELEX or paragraph. Use for any EU-law question that needs the text or metadata of a CJEU/General Court judgment, order or AG opinion, or an EU regulation, directive or decision — if the user gives a CELEX (32016R0679, 62012CJ0131), ECLI (EU:C:2014:317), case number (C-131/12), case name (Google Spain, Schrems II), act name (GDPR, AI Act), or asks to quote/verify a paragraph or article, find case law interpreting an act or article, search case law full text ("cases on abuse of rights", "judgments mentioning X"), get a consolidated version, or check dates/transposition. Prefer over web search and EUR-Lex/Curia websites. Guide to the eurlex MCP server (user-installed), plus a full-text case-law search script. Do NOT use for: EFTA Court (efta-court); EEA status of EU acts, JCDs (eea-lex); ECtHR (hudoc); Council of Europe treaties (ets); Norwegian law (lovdata-api/lovdata-pro); Norway's treaty register (norges-traktater); UN treaties (untc).
 ---
 
 # eurlex — using the EUR-Lex MCP well
@@ -131,8 +131,10 @@ SELECT ?case ?how ?prov ?paras WHERE {
   rows.
 - **Older cases** may be tagged with the article's former number or the
   predecessor act; search those too when they matter.
-- The tags are not quite complete (the judgment in C-307/22
-  lacks 12(5)), so do not say that the list has every case.
+- The tags are good but not complete, so do not say that the list has every
+  case. **Do not supplement it with the full-text script**, neither for the
+  article number nor for the provision's wording, unless the user asks; the
+  gaps are too small to be worth it.
 
 ## Full-text search of case law
 
@@ -143,10 +145,10 @@ Use the script **only when the search has to look inside the texts**:
 | CELEX, ECLI, case number, case or party name | MCP only |
 | Cases interpreting or citing a known act, no particular wording in mind | MCP only (`eurlex_case_law` with `related_celex`, `eurlex_citations`) |
 | Where a phrase stands in a known judgment | MCP only: fetch the text and look |
-| Cases on a doctrine, phrase or concept | script |
+| Cases on a doctrine, phrase or concept, where the question is not about a particular article | script |
 | Cases citing or interpreting a particular article | MCP only (`eurlex_sparql`, see "Cases on a particular article") |
 | A name or nickname the title search does not find | script, after the MCP search |
-| Text, quotation, ECLI, metadata | always MCP, also for the script's hits |
+| Text, quotation, metadata | always MCP, also for the script's hits (their CELEX and ECLI may be used as printed) |
 
 An MCP timeout is no reason to run the script: retry the MCP call.
 
@@ -175,7 +177,8 @@ python3 scripts/case_law_search.py '"abuse of rights" tax' --type judgment --cou
   undocumented and may change or refuse. Retry once, then tell the user that
   full-text search is unavailable, and go on with the MCP tools.
 - Tell the user that the hits come from a full-text search of InfoCuria, and
-  with which query.
+  with which query. If you add a case that the search did not return, say so
+  and why, and read it like the others.
 
 ## Quoting a paragraph of a long judgment
 
@@ -189,8 +192,12 @@ Long judgments exceed one `eurlex_fetch` call (default 20 000 chars, max
    mixing `xhtml` or another language misaligns them.
 3. Keep calling with `next_offset` until you have the last paragraph; stop
    when `next_offset` is `null`.
-4. Quote verbatim with the paragraph number. Never reconstruct a paragraph
+4. Quote verbatim with the paragraph number, keeping the source's characters
+   (curly quotes, non-breaking hyphens). Never reconstruct a paragraph
    from memory; if the fetched text does not contain it, say so.
+
+The same goes for describing a case: state its facts and reasoning, and cite
+paragraphs, only from text you have fetched. Mark anything from memory as such.
 
 `eurlex_structure` caps at 300 entries and sets `truncated: true` for very
 large documents; then fetch by offset ranges and read paragraph numbers from
@@ -285,7 +292,7 @@ a field.
 ## Citing
 
 - Case law: *Case C‑131/12 Google Spain, ECLI:EU:C:2014:317, para 80.* Give
-  the ECLI (from `eurlex_case_law`) and the EUR-Lex URL
+  the ECLI (from `eurlex_case_law`, or the script's hit) and the EUR-Lex URL
   `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62012CJ0131`.
 - Legislation: article + paragraph + the act's full title once, then short
   title; for consolidated text add "as consolidated on <consolidation_date>".
