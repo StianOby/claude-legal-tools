@@ -44,8 +44,8 @@ Every skill is published in two forms: as a **plugin** in this repository's mark
 
 **Claude Cowork** (Claude Desktop for Mac and Windows; any paid plan):
 
-1. Open the **Claude Desktop** app and click **Customize** (top left), then **Plugins**.
-2. Click **Add marketplace** and enter `StianOby/claude-legal-tools`.
+1. Open the **Claude Desktop** app and click **Plugins** (top left).
+2. Click **Add** --> **Add marketplace** and enter `StianOby/claude-legal-tools`.
 3. The skills above now appear as plugins. Click **Install** on each one you want.
 4. Later, click **Update** on the marketplace to get the newest versions of all installed plugins.
 
