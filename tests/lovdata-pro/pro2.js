@@ -70,7 +70,7 @@ const NOU = {
   toc: el('ul', { class: 'tocTopUl' }, []),
   mainTags: [
     el('section', { class: 'section', id: 'kapittel-1', 'data-part-id': 'k1', 'data-name': 'kap1' }, [
-      el('h2', { 'data-text-align': 'center' }, ['Innledning', el('aside', { class: 'pagenumber', 'aria-label': 'side 11', 'data-pagenumbervalue': '11' }, ['Side 11'])]),
+      el('h2', { 'data-text-align': 'center' }, ['Inn', el('br', {}, []), 'ledning', el('aside', { class: 'pagenumber', 'aria-label': 'side 11', 'data-pagenumbervalue': '11' }, ['Side 11'])]),
       el('article', { class: 'defaultP' }, ['Tekst i kapittel 1', el('sup', { class: 'footnotereference', 'data-footnotereferencevalue': '1' }, ['1']), '.']),
       el('section', { class: 'section', id: 'kapittel-1-kapittel-1', 'data-part-id': 'k1-1' }, [
         el('h3', {}, ['Bakgrunn']),
@@ -213,10 +213,14 @@ async function main() {
 
   // NOU: headings, page markers, footnotes, superscript, table, §-title.
   r = await lp.load(['NOU/forarbeid/nou-2000-1']);
-  check('NOU toc', r.toc.map(e => [e.level, e.title]), [[2, 'Innledning'], [3, 'Bakgrunn'], [2, 'Lovforslag']]);
+  check('NOU toc', r.toc.map(e => [e.level, e.title]), [[2, 'Inn ledning'], [3, 'Bakgrunn'], [2, 'Lovforslag']]);
   check('NOU metadata', r.metadata, { Dokumentnummer: 'NOU 2000: 1' });
+  const toc0 = r.toc[0].title;
+  const mq = await lp.checkQuotes(r.path, [toc0, 'NOU 2000: 1', 'Tekst i kapittel 1']);
+  check('checkQuotes: a toc title, a metadata value and body text are all found',
+    [mq.allFound, mq.checked, mq.quotes.map(q => [q.matches > 0, q.inMetadata || 0])], [true, 3, [[true, 0], [true, 2], [true, 0]]]);
   check('NOU text', (await lp.page(r.path, 0)).text, [
-    '## Innledning',
+    '## Inn ledning',
     'Side 11',
     'Tekst i kapittel 1[fn 1].',
     '### Bakgrunn',

@@ -3,18 +3,18 @@ name: lovdata-pro
 description: >
   Use for Norwegian legal sources behind the Lovdata Pro login that the free
   `lovdata-api` skill lacks: case law (Høyesterett, lagmannsrett, tingrett,
-  special courts such as Trygderetten, Arbeidsretten, jordskifte), forarbeider
-  and Storting documents, rundskriv, uttalelser (Lovavdelingen, Sivilombudet,
-  Skattedirektoratet) and decisions of nemnder (KOFA, Finansklagenemnda …),
-  and the history of laws and regulations (earlier and original texts,
-  repealed acts, Lovtidend, local forskrifter). Needs the Cowork built-in browser. Triggers:
-  references like HR-YYYY-N, Rt. YYYY s. N, RG, LB-/LG-YYYY-N, TOSL-YYYY-N,
-  TRR-, AR-, ND YYYY s. N, KOFA-, FinKN-, SOM-, JDLOV-, rundskriv G-2019-3,
-  Ot.prp./Prop. N L, NOU YYYY:N, Innst., Meld. St., Lovvedtak, LOV-/FOR-;
-  asks like "find the Holship judgment", "hent forarbeidene til mineralloven",
-  "aml. § 14-9 slik den lød i 2019". Use even if Lovdata isn't named. Do NOT
-  use for: current lov/forskrift text (lovdata-api); finding a lawyer; legal
-  theory that needs no document text.
+  special courts such as Trygderetten, Arbeidsretten, jordskifte), forarbeider and
+  Storting documents, rundskriv, uttalelser (Lovavdelingen, Sivilombudet),
+  decisions of nemnder (KOFA, Finansklagenemnda …), and the history of laws and
+  regulations (earlier and original texts, repealed acts, Lovtidend, local
+  forskrifter). Needs the Cowork built-in browser. Triggers: references like
+  HR-YYYY-N, Rt. YYYY s. N, RG, LB-/LG-YYYY-N, TOSL-YYYY-N, TRR-, AR-, ND YYYY s.
+  N, KOFA-, FinKN-, SOM-, JDLOV-, rundskriv G-2019-3, Ot.prp./Prop. N L, NOU
+  YYYY:N, Innst., Meld. St., LOV-/FOR-; asks like "find the Holship judgment",
+  "hent forarbeidene til mineralloven", "aml. § 14-9 slik den lød i 2019", "Norske
+  Lov 1687 as enacted". Use even if Lovdata isn't named. Do NOT use for: current
+  lov/forskrift text (lovdata-api); finding a lawyer; legal theory that needs no
+  document text.
 ---
 
 # Lovdata Pro — rettspraksis, forarbeider, rundskriv, uttalelser og nemnder
@@ -131,7 +131,7 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    29 000 for Klassisk), og skriver ut stien. Les den filen og send **hele**
    innholdet via `javascript_tool` (`action: "javascript_exec"`), uten å
    legge til noe: kopiens siste linje gjør at svaret er `[VERSION, SITE]`
-   (f.eks. `["1.4.2", "pro2"]`), og det bekrefter at innlimingen virket.
+   (f.eks. `["1.4.3", "pro2"]`), og det bekrefter at innlimingen virket.
    Virker ikke `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene, ca.
    44 000 tegn). Kort aldri ned hjelperen.
@@ -253,11 +253,13 @@ løser til gjeldende tekst (`NL`, `SF`, `LF`), opphevet tekst (`NLO`, `SFO`,
 Se Steg 2b for tidligere versjoner.
 
 **En lov eller forskrift oppgitt bare med navn** («arbeidsmiljøloven»,
-«den gamle arbeidsmiljøloven fra 1977»): slå opp dato og nummer før du
-bruker dem, med `search("<navn>", 5, { bases: ["NL"] })` (`["NLO"]` for en
+«den gamle arbeidsmiljøloven fra 1977»): slå opp dato og nummer **før du
+bruker dem noe sted**, også før `resolve` og i argumentene til Skill-kallet,
+med `search("<navn>", 5, { bases: ["NL"] })` (`["NLO"]` for en
 opphevet lov, `["SF"]`/`["SFO"]` for forskrifter) eller `lovdata-api`, og
-bruk `path` fra treffet. Ta aldri dato og nummer fra hukommelsen, heller
-ikke når du er sikker.
+bruk `path` fra treffet (det kan gå rett i `load()`, uten `resolve`). Ta
+aldri dato og nummer fra hukommelsen, heller ikke når du er sikker, og
+heller ikke for å «bekrefte» dem etterpå: oppslaget kommer først.
 
 Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
@@ -348,14 +350,20 @@ await __lp.checkQuotes(path, ["<sitat 1>", "<sitat 2>", "<kort frase>"])
 ```
 
 Det gjelder **alt** du setter i anførselstegn fra dokumentet, også korte
-fraser, overskrifter og sitater fra metadata eller sammendrag. Kopier
-sitatene ordrett fra et `page`/`section`/`grep`-svar. Svaret er
-`{allFound, quotes: [{n, matches, ignoringCase}]}`; sjekken skiller mellom
+fraser, overskrifter, titler og sitater fra metadata (sjekken leter også
+i `title` og `metadata`; `inMetadata` sier hvor mange treff som var der).
+Kopier sitatene ordrett fra et `page`/`section`/`grep`/`load`-svar; sett
+ikke sammen to biter med et tegn som ikke står i kilden. Svaret er
+`{allFound, checked, quotes: [{n, matches, inMetadata, ignoringCase}]}`;
+sjekken skiller mellom
 store og små bokstaver og tåler uthevingsmerker og linjeskift. Er
 `matches` 0 for et sitat, har det et avvik (et ord, en stor bokstav, et
 tegn, en sammenstykket bit; `ignoringCase` over 0 betyr at bare store og
 små bokstaver avviker): finn stedet igjen og rett det. Sitér aldri fra
-hukommelsen av et tidligere svar.
+hukommelsen av et tidligere svar. **Skriv til slutt i svaret hvor mange
+sitater som ble kontrollert** («5 av 5 sitater kontrollert mot Lovdatas
+tekst»), med tallene fra `checked`/`matches`. Står et sitat utenfor
+sjekken, si det i stedet for å skrive at alle er kontrollert.
 
 Eksempler på JS-kall:
 
@@ -424,6 +432,12 @@ await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger
   grense hos Pro. Er eldste versjon mye senere enn loven, kan versjoner
   mangle; for én paragraf gir `part` en egen liste.
 - `part` tar §-id-en slik den står i dokumentet (`§14-9`, uten mellomrom).
+- **Loven slik den ble vedtatt:** Lovtidend-teksten `LTI/lov/<id>` er
+  loven som kunngjort. Den første `HIST`-versjonen er Lovdatas konsoliderte
+  tekst fra den datoen; den er som regel lik, men det er Lovtidend som er
+  den vedtatte teksten. Sitér fra `LTI` og oppgi «Norsk Lovtidend»; mangler
+  `LTI` (eldre lover), bruk den første versjonen og si at det er Lovdatas
+  tekst.
 - Christian Vs Norske Lov: `lov/1687-04-15` er bare bestemmelsene som
   fortsatt gjelder; hele originalteksten er den eldste versjonen
   (`versions("lov/1687-04-15")`, første oppføring; dansk, ca. 650 000 tegn). Landslova
@@ -585,12 +599,15 @@ høy kostnad.
 
 ### Brukeren spør om forarbeidene til en lov
 
-**Start med registeret (nye Pro):** `resolve "LOV-<dato>-<nr>"` gir i
-feltet `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over
-lovens forarbeider (også for endringslover). `load()` den og hent
-dokumentene listen nevner. Lovens dato og nummer får du fra `lovdata-api`
-eller ved å `load()` loven (`metadata.Datokode`); oppgir brukeren bare
-navnet, se Steg 1 («En lov eller forskrift oppgitt bare med navn»). For forarbeidene til en *endring*: finn endringsloven med
+1. **Har brukeren oppgitt lovens dato og nummer?** Hvis ikke: finn loven
+   først, som i Steg 1 («En lov eller forskrift oppgitt bare med navn»),
+   før `resolve` eller noe annet.
+2. **Registeret (nye Pro):** `resolve "LOV-<dato>-<nr>"` gir i feltet
+   `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over lovens
+   forarbeider (også for endringslover). `load()` den og hent dokumentene
+   listen nevner.
+
+For forarbeidene til en *endring*: finn endringsloven med
 `backlinks(lov, "endringslover")` og slå opp dens `RFA`.
 
 Forarbeidene består typisk av tre dokumenter — alle bør hentes når brukeren

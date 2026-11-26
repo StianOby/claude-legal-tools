@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.4.2';
+  const HELPER_VERSION = '1.4.3';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
@@ -1046,7 +1046,9 @@
         i,
         id: h.closest('[id]') ? h.closest('[id]').id : (h.id || null),
         level: Number(h.tagName[1]),
-        title: headingParts(h).clone.textContent.replace(/\s+/g, ' ').trim(),
+        // As toText() writes the heading: textContent would join two text
+        // nodes without the space the page draws ("Forslagtil", 2026-11-26).
+        title: inlineText(headingParts(h).clone, { emphasis: false }).replace(/\s+/g, ' ').trim(),
       }));
       // Chars per section via Range.toString(): one linear pass per
       // section. (The earlier version summed textContent over every node
@@ -1295,20 +1297,32 @@
     // Checks quotations against the loaded text in one call: each quote is
     // matched as a literal phrase (emphasis markers, soft hyphens and
     // line breaks tolerated as in grep), but case-sensitively, since a changed
-    // capital letter is a misquotation. Returns only counts, never text:
-    // {path, allFound, quotes: [{n, chars, matches, ignoringCase?}]}.
+    // capital letter is a misquotation. The title and the metadata values
+    // count too (a quoted document title, a "Beriktiget" note): `matches`
+    // is the total, `inMetadata` the part found there. Returns only counts,
+    // never text: {path, allFound, checked, quotes: [{n, chars, matches,
+    // inMetadata?, ignoringCase?}]}.
     async function checkQuotes(path, quotes) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
       const list = Array.isArray(quotes) ? quotes : [quotes];
-      const count = (re) => (entry.fullText.match(re) || []).length;
+      const meta = [entry.title || '', ...Object.values(entry.metadata || {})].join('\n');
+      const count = (s, re) => (s.match(re) || []).length;
       const out = list.map((q, n) => {
         const pattern = literalPattern(q);
-        const r = { n, chars: String(q).length, matches: pattern ? count(new RegExp(pattern, 'g')) : 0 };
-        if (!r.matches && pattern) r.ignoringCase = count(new RegExp(pattern, 'gi'));
+        const r = { n, chars: String(q).length, matches: 0 };
+        if (!pattern) return r;
+        const re = new RegExp(pattern, 'g');
+        const inMeta = count(meta, re);
+        r.matches = count(entry.fullText, re) + inMeta;
+        if (inMeta) r.inMetadata = inMeta;
+        if (!r.matches) {
+          const ri = new RegExp(pattern, 'gi');
+          r.ignoringCase = count(entry.fullText, ri) + count(meta, ri);
+        }
         return r;
       });
-      return { path, allFound: out.every((r) => r.matches > 0), quotes: out };
+      return { path, allFound: out.every((r) => r.matches > 0), checked: out.length, quotes: out };
     }
 
     async function page(path, offset = 0, size = PAGE_SIZE) {
