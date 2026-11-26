@@ -6,9 +6,8 @@ innloggingstjenester*:
 (The free API used by `lovdata-api` is under NLOD 2.0 and is not affected.)
 The section is quoted in full in `plugins/lovdata-pro/skills/lovdata-pro/README.md`.
 
-**Last compared: 2026-11-11** (terms "Sist endret: 31.10.2025"; wording
-unchanged, but the README quote had left out the two opening sentences of
-2.2 and its last sentence on Lovdata's KI-tjenester — now quoted in full).
+**Last compared: 2026-11-26** (terms "Sist endret: 31.10.2025", unchanged
+since 2026-11-11, when the README quote was completed).
 
 ## Review routine
 
@@ -27,6 +26,17 @@ How the skill relates to each part of section 2.2:
   `search()`. Literature and other non-public material are outside that
   scope, but the skill never looks for them; a user who pushes it to fetch
   them takes that responsibility.
+- **Nemnder, uttalelser and rundskriv (decision 2026-11-26).** The skill
+  now also covers the new Pro's special courts, publications, rundskriv,
+  uttalelser and nemnder og utvalg. Some of those bodies are private or set
+  up by industry agreement (Finansklagenemnda, Elklagenemnda,
+  Pakkereiseklagenemnda, Parkeringsklagenemnda, Reklamasjonsnemnda for
+  eiendomsmeglingstjenester, Næringslivets konkurranseutvalg, Oslo Børs,
+  Byggebransjens Faglig Juridiske Råd). They are included like the public
+  nemnder: their decisions are quasi-public dispute resolution, often under
+  approval or a framework set by law (e.g. finansavtaleloven,
+  forbrukerklageloven), and are published as decision practice next to
+  that of the public bodies. Literature and commentary (`LIT`) stay out.
 - **"ikke lagrer innholdet eller bruker det til trening".** Storage in the
   user's own local folder or the user's own areas of Anthropic's cloud
   (conversation, outputs) is not what the clause covers. Training is the

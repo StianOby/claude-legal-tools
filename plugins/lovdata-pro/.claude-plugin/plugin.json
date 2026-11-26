@@ -1,7 +1,7 @@
 {
   "name": "lovdata-pro",
-  "version": "1.3.2",
-  "description": "Norwegian case law and preparatory works from Lovdata Pro",
+  "version": "1.4.0",
+  "description": "Norwegian case law, preparatory works, circulars and tribunal decisions from Lovdata Pro",
   "author": {
     "name": "Stian Øby Johansen",
     "url": "https://github.com/StianOby"

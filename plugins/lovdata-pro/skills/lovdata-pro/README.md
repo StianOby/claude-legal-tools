@@ -1,6 +1,7 @@
-# lovdata-pro — Norsk rettspraksis og forarbeider
+# lovdata-pro — Norsk rettspraksis, forarbeider, rundskriv og nemndspraksis
 
-A Claude skill for retrieving Norwegian case law and preparatory works from
+A Claude skill for retrieving Norwegian case law, preparatory works,
+circulars, opinions and tribunal decisions from
 [Lovdata Pro](https://lovdata.no/pro/), using Claude Desktop's built-in
 browser (Cowork). The skill never paraphrases from training-data recall —
 every quote is fetched live from Lovdata's servers in the user's own,
@@ -16,15 +17,29 @@ anywhere else — the built-in browser tools it depends on exist only there.
 - Fetch district court decisions (TOSLO-2019-12345, TOSL-2022-123456 —
   Lovdata prefixes the court, and the abbreviations changed with the 2021
   court reform)
-- Fetch preparatory works: NOU, Prop. L, Ot.prp., Innst.
+- Fetch decisions of special courts (Trygderetten TRR-, Arbeidsretten AR-,
+  jordskifte, Utmarksdomstolen) and Nordiske Domme i Sjøfartsanliggender (ND)
+- Fetch preparatory works and Storting documents: NOU, Prop. L, Ot.prp.,
+  Innst., Dokument 8 and 12, Lovvedtak, statsrådsforedrag, and Lovdata's
+  register of a law's forarbeider
+- Fetch circulars and opinions: departmental rundskriv (G-2019-3),
+  Lovavdelingen (JDLOV-), Sivilombudet (SOM-), Skattedirektoratet (BFU-, SKM-)
+- Fetch decisions of complaints boards and tribunals: KOFA, Finansklagenemnda,
+  Diskrimineringsnemnda, Pasientskadenemnda, Husleietvistutvalget and some 60
+  more
+- Fetch the history of laws and regulations: earlier versions (the text in
+  force on a given date, or the versions of one §), repealed laws and
+  regulations, Lovtidend, local regulations, amending acts, Christian V's
+  Norske Lov and Landslova
+- Search with Lovdata's category filters (all nemnder, all rundskriv, …)
 - Navigate large documents by table of contents, section, or full-text grep
   instead of dumping the whole thing (judgments usually have no headings, so
   grep and paging are the tools there)
 - Run full-text Pro searches from a single JS call
 - Write a full local copy to file on request (dump mode)
 
-For current statute and regulation text (gjeldende lov/forskrift), use the
-free `lovdata-api` skill instead.
+For current statute and regulation text alone (gjeldende lov/forskrift),
+use the free `lovdata-api` skill instead.
 
 ## Layout
 
@@ -92,8 +107,8 @@ The skill never uses Lovdata's own AI services (KI-søk, KI-chat): their
 rules forbid querying them with automated tools.
 
 The skill is built to stay within these terms: it fetches single court
-decisions and preparatory works (documents written by public bodies), one
-at a time, in your own logged-in session. Two things remain your
+decisions, preparatory works, circulars, opinions and tribunal decisions,
+one at a time, in your own logged-in session. Two things remain your
 responsibility:
 
 - **Turn off training** in Claude, as listed under Requirements. The skill

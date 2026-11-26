@@ -35,6 +35,11 @@ text was recorded).
   | `GET documentContent/<path>` | `{version: 2, header, toc, mainTags}`, JSON-ML (below). The whole document (NOU 2022:8: 1.47 M chars) — no lazy loading |
   | `GET documentMeta/<path>` | `title`, `shortTitle`, `documentURI`, dates, `sammendrag`, backlinks … |
   | `GET partContent/<path>/<partId>` | `{documentURI, content}` for one part (not used: documentContent is complete) |
+  | `GET document-lookup-data/base-tree` | the category tree: `{code, children, isSamleValg, forceDisplay}`; group and base codes for `filterBases` (mapped in `references/lovdata-pro-mapping.md`, 2026-11-26) |
+  | `GET backLinks/<kind>/<path>` | lists hanging off a document: `historisk` (versions: HIST `documentURI` with `historicDateString`, current last), `endringslover` (`{totalCount, truncated, references: {LTI: […]}}`), `lovspeil`; others named in `documentMeta.backlinks.documentReferences.ROOT` (forarbeider, forskrifter, rundskriv, avgjorelser, henvisninger, litteratur, tariff) are not used |
+  | `GET paragraphHistory?dokID=<path>&partID=<§id>` | `{partTitle, versions: [{documentParagraphURI, isoDate}]}`: the versions where one § changed |
+  | `GET search-counts` | hits per top-level group (AVG, NEMNDEROGUTVALG, FSA, ROU, LFA, INTERNASJONALT, LIT, …) |
+  | `GET static/<BASE>/<file>.pdf` | original PDF named in `documentMeta.externalVersions` (relative `static/…` in the header; only under the API base). The helper returns the link as `originalFile` for records without text and never downloads it |
   | `POST search?minimal=true` | `{request, results[], totalHits, facets}`; each result has `documentURI` (object), `base`, `documentTitles.title`, `isoDate` |
 
 - **Search ranks by relevance only with `sortField: "relevance"` and
@@ -76,6 +81,16 @@ NOU 2022:8 drew 184 chars more than its JSON; not traced.
 
 ## Coverage differences
 
+- **Categories beyond the ordinary courts** (special courts, publications,
+  rundskriv, uttalelser, nemnder, more Storting documents): mapped in the
+  new Pro on 2026-11-26 (`references/lovdata-pro-mapping.md`) and supported
+  there only. Most paths also opened in Klassisk, untested further.
+- **Type `null` records** (`PUBG`, `SPHPM`, `FKU/null/list-…`) show up in
+  search but cannot be opened (`DocumentNotFound`, also in Klassisk);
+  search marks them `noDocument`. `STS` answers `MissingJSON`.
+- **Header-only records:** `HKOM` (text in Retstidende,
+  `documentMeta.publication.url`), `LODA`, recent `SDOK` (PDF only).
+
 - **Not in pro2:** stortingsmeldinger (Meld. St./St.meld.; no STS base in
   the facets) and St.prp. Klassisk has the STS records.
 - **Karnov comments** (`COMMENT`) have no documentContent (404); the helper
@@ -96,6 +111,12 @@ the default when it launches**, Klassisk the fallback. Until the switchover
 below, SKILL.md keeps Klassisk.
 
 ## Switchover (after 2026-11-26)
+
+Seen on launch day (2026-11-26, one UiO user): `https://lovdata.no/pro/`
+still landed on Klassisk, the new Pro answered at `pro2.lovdata.no` with
+its API at `/api` (`/api/ping` → `Pong`), and Lovdata's terms page links
+"Lovdata Pro" to `https://pro.lovdata.no`. Not yet checked: whether
+`pro.lovdata.no` is the final address.
 
 To do once the new Lovdata Pro has launched and its final state is known:
 

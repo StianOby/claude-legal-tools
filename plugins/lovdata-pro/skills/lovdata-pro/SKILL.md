@@ -1,23 +1,23 @@
 ---
 name: lovdata-pro
 description: >
-  Use this skill any time the user needs Norwegian case law (rettspraksis) or
-  preparatory works (forarbeider) — the Pro-only material the free `lovdata-api`
-  skill cannot reach. Requires the Claude Desktop built-in browser (Cowork).
-  Triggers include any reference like HR-YYYY-N (Holship, Finanger), Rt.
-  YYYY s. N, RG YYYY s. N, LB-/LA-/LE-/LF-/LG-/LH-YYYY-N (lagmannsrett),
-  TOSLO-/TOSL-YYYY-N (tingrett), Ot.prp. nr. N (YYYY-YY), Prop. N L (YYYY-YY), NOU
-  YYYY:N, Innst. N L (YYYY-YY), Meld. St. N (YYYY-YY); also natural-language
-  asks like "find the Holship judgment", "hva sa Høyesterett i Finanger I",
-  "hent forarbeidene til mineralloven". Use it even when Lovdata isn't named,
-  if the answer needs the text of a Norwegian court decision or preparatory
-  work. Do NOT use for:
-  looking up gjeldende lov/forskrift text (that's the free `lovdata-api` skill);
-  finding a lawyer; general questions about Norwegian legal theory that
-  don't need the actual document text.
+  Use for Norwegian legal sources behind the Lovdata Pro login that the free
+  `lovdata-api` skill lacks: case law (Høyesterett, lagmannsrett, tingrett,
+  special courts such as Trygderetten, Arbeidsretten, jordskifte), forarbeider
+  and Storting documents, rundskriv, uttalelser (Lovavdelingen, Sivilombudet,
+  Skattedirektoratet) and decisions of nemnder (KOFA, Finansklagenemnda …),
+  and the history of laws and regulations (earlier versions, repealed acts,
+  Lovtidend, local forskrifter). Needs the Cowork built-in browser. Triggers:
+  references like HR-YYYY-N, Rt. YYYY s. N, RG, LB-/LG-YYYY-N, TOSL-YYYY-N,
+  TRR-, AR-, ND YYYY s. N, KOFA-, FinKN-, SOM-, JDLOV-, rundskriv G-2019-3,
+  Ot.prp./Prop. N L, NOU YYYY:N, Innst., Meld. St., Lovvedtak, LOV-/FOR-;
+  asks like "find the Holship judgment", "hent forarbeidene til mineralloven",
+  "aml. § 14-9 slik den lød i 2019". Use even if Lovdata isn't named. Do NOT
+  use for: current lov/forskrift text (lovdata-api); finding a lawyer; legal
+  theory that needs no document text.
 ---
 
-# Lovdata Pro — rettspraksis og forarbeider
+# Lovdata Pro — rettspraksis, forarbeider, rundskriv, uttalelser og nemnder
 
 **Første steg, før alle kommandoer:** finn `{SKILL_DIR}` som beskrevet under «Skill-katalogen» nedenfor, og bruk den utskrevne stien bokstavelig. Gjett den aldri (f.eks. `/mnt/skills/...`).
 
@@ -25,6 +25,16 @@ Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
 tilpasses brukerens eget språk** (samme regel som i `lovdata-api`-skill-en):
 spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
 Sitater fra dommer og forarbeider beholdes alltid på originalt norsk.
+
+Dekningen følger kategoriene i nye Lovdata Pro: rettsavgjørelser (alminnelige
+domstoler, spesialdomstoler som Trygderetten, Arbeidsretten og
+jordskiftedomstolene, og publikasjoner som Nordiske Domme i
+Sjøfartsanliggender), forarbeider og stortingsdokumenter, rundskriv og
+uttalelser, nemnder og utvalg, og lover og forskrifter for det historiske:
+tidligere versjoner, opphevede lover og forskrifter, Lovtidend og lokale
+forskrifter (gjeldende tekst alene: `lovdata-api`). Alt utenom alminnelige
+domstoler og Prop./NOU/Innst. er kartlagt og testet bare i **nye Lovdata
+Pro**; bruk den for disse.
 
 Denne skill-en bruker Claude Desktops innebygde browserverktøy til å hente
 Lovdata Pro-dokumenter direkte i brukerens innloggede sesjon. Den virker
@@ -105,7 +115,7 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    (på nye Pro: `https://pro2.lovdata.no/`) og prøv igjen.
 3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash. Den skriver en kopi
-   uten kommentarer og innrykk (ca. 36 000 tegn i stedet for 58 000) og
+   uten kommentarer og innrykk (ca. 43 000 tegn i stedet for 68 000) og
    skriver ut stien. Les den filen og send **hele** innholdet via
    `javascript_tool` (`action: "javascript_exec"`). Virker ikke `paste.py`,
    lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
@@ -179,7 +189,15 @@ aktuelle:
   På nye Pro tar `load()` den direkte og finner den underliggende dommen
   (Rt. 2000 s. 1811 = `HRSIV/avgjorelse/hr-2000-49-b`); legg til `/s<side>`
   for en side (`avgjorelse/rt-2000-1811/s1827`), så svarer `load()` med
-  `part: "s1827"`. I Klassisk: søk på `search_hint`.
+  `part: "s1827"`. I Klassisk: søk på `search_hint`. Det samme gjelder
+  andre samlinger sitert med år og side (ND 1990 s. 140, NAD, ARD, Utv.) og
+  Lovdata-referanser med et prefiks skriptet ikke kjenner (eldre navn som
+  BKN-, LKN-, ENV-): `pro2_ref` er da `avgjorelse/<referansen med små
+  bokstaver>`, og nye Pro finner samlingen selv.
+- **`note`** også på løste referanser når det er noe å vite: lover og
+  forskrifter, og `SDOK` (nyere stortingsdokumenter finnes ofte bare som PDF).
+- **`forarbeider`** — for en lov: `RFA/lov/<dato>-<nr>`, Lovdatas register
+  over lovens forarbeider (se Arbeidsflyt).
 - **`note`** — hvorfor referansen ikke kunne løses, og hvor dokumentet
   faktisk ligger. Disse tilfellene er verdt å kjenne:
   - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Nye Pro: `load(pro2_ref)`.
@@ -193,8 +211,24 @@ aktuelle:
   - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro
     (og finnes ikke i nye Pro). Si det til brukeren i stedet for å sitere
     fra andre kilder.
-  - **TRR-** — Trygderetten, ikke en tingrett. Samlingen er ikke kartlagt;
-    søk på referansen.
+
+**Referanser utenom de alminnelige domstolene.** Spesialdomstoler, nemnder,
+uttalelser og rundskriv siteres med Lovdatas egen referanse
+`PREFIKS-ÅR-NUMMER` (TRR-2026-695, AR-2026-38, KOFA-2026-1389,
+FinKN-2026-1252, SOM-2025-2770, JDLOV-2024-5261, BFU-2026-5, RA-2026-819,
+G-2019-3, IS-2026-9003, RUDI-2026-6); dokument-id-en er referansen med små
+bokstaver. `resolve` slår opp samlingen i en prefikstabell
+(`references/lovdata-pro-mapping.md`), også for departementenes egen form
+(«rundskriv G-01/2016» = `g-2016-1`). Mangler et suffiks som id-en har
+(ND-2025-23 er `nd-2025-23-23s`), finner `load()` det likevel på nye Pro.
+Forarbeider og stortingsdokumenter utover Prop./NOU/Innst.: Dokument 8 /
+Representantforslag, Dokument 12 / Grunnlovsforslag, andre Dokument-serier,
+Ot.meld., Besl. O., Lovvedtak og statsrådsforedrag (PRE-2026-11-20-2434).
+Lover og forskrifter: `LOV-2005-06-17-62`, `FOR-2011-12-06-1360`, «lov 17.
+juni 2005 nr. 62»; kandidaten er kortformen `lov/2005-06-17-62`, som nye Pro
+løser til gjeldende tekst (`NL`, `SF`, `LF`), opphevet tekst (`NLO`, `SFO`,
+`LFO`) eller, for en endringslov uten konsolidert tekst, Lovtidend (`LTI`).
+Se Steg 2b for tidligere versjoner.
 
 Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
@@ -230,7 +264,15 @@ To flagg i svaret styrer hva du kan gjøre videre:
 - **`metadataOnly: true`** (og `totalChars: 0`) — dokumentet finnes som
   metadatapost, men uten brødtekst i Pro. Typisk St.prp., eldre NOU under
   `PUBG`, og enkelte meldinger. **Ikke siter noe fra en slik post** — si til
-  brukeren at fulltekst ikke finnes i Lovdata Pro.
+  brukeren at fulltekst ikke finnes i Lovdata Pro. To unntak på nye Pro:
+  **`originalFile`** er en lenke til original-PDF-en (nyere
+  stortingsdokumenter, `SDOK`), og **`publication`** er publikasjonen som
+  har teksten (Kommissariske Høyesterett 1941–45: Retstidende). Gi brukeren
+  lenken; den åpnes i den innloggede browseren. Ikke hent PDF-en selv (den
+  kan være over 30 MB).
+- **`alternatives`** (nye Pro) — flere dokumenter deler referansen (samme
+  Rt.-side, FKR-2022-4, OB-2024-4). `load()` tok det første; sjekk tittelen
+  og velg et annet om det er feil.
 - **`noHeadings: true`** (`toc` er tom) — dokumentet har ingen `h1`–`h6`.
   Dette er vanlig for dommer: både HR-2016-2554-P og LG-2008-135938 har null
   overskrifter. Da er `section()` ubrukelig; bruk `grep()` og `page()`.
@@ -301,6 +343,47 @@ total}`, og resten hentes med `section(path, i, next)`.
 
 ---
 
+## Steg 2b — lover og forskrifter: historikk (bare nye Pro)
+
+Tekstene ligger i flere samlinger med samme id: gjeldende (`NL`, `SF`, `LF`;
+også `DEL`, `INS`, `STV`), opphevet (`NLO`, `SFO`, `LFO` …, teksten slik den
+sist gjaldt, med endringsfotnoter), kunngjort i Lovtidend (`LTI` avd. I,
+`LTII` avd. II: loven eller endringsloven slik den ble kunngjort, med
+«Publisert i» og «Kunngjort»), engelsk oversettelse (`NLE`, `SFE`) og
+**tidligere versjoner** i `HIST`.
+
+```javascript
+await __lp.versions("lov/2005-06-17-62")                          // alle versjoner, eldste først, gjeldende sist
+await __lp.versions("lov/2005-06-17-62", { asOf: "2019-03-15" })  // versjonen som gjaldt den datoen
+await __lp.versions("lov/2005-06-17-62", { part: "§14-9" })       // bare versjonene der § 14-9 endret seg
+await __lp.backlinks("lov/2005-06-17-62", "endringslover")         // endringslovene (LTI), også ikrafttredelsesvedtak
+await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger- og etterfølgerlover
+```
+
+- En versjon er `HIST/<type>/<id>-<ÅÅÅÅMMDD>`, datoen den trådte i kraft;
+  `load()` den som et vanlig dokument. **Lag aldri en HIST-sti med en
+  annen dato selv:** Pro sender da stille til *gjeldende* tekst
+  (`redirectedFrom` i svaret). Bruk `versions(…, { asOf })`, som velger den
+  siste versjonen som trådte i kraft på eller før datoen.
+- `checkCurrent` i svaret: datoen ligger etter siste historiske versjon, og
+  Pro oppgir ikke når gjeldende tekst begynte å gjelde. Sammenlign med
+  gjeldende tekst (endringsfotnotene der viser datoene) før du sier hva som
+  gjaldt.
+- Versjonene går ulikt langt tilbake: arbeidsmiljøloven 2005 til
+  originalteksten, straffeloven 1902 glissent før 1980-årene, Grunnloven fra
+  1814; opphevede forskrifter har ofte ingen. `before_first_version` betyr at
+  Pro ikke har teksten fra så tidlig: si det, og bruk eventuelt
+  Lovtidend-teksten (`LTI/lov/<id>`) for loven slik den ble vedtatt.
+- `part` tar §-id-en slik den står i dokumentet (`§14-9`, uten mellomrom).
+- Christian Vs Norske Lov: `lov/1687-04-15` er bare bestemmelsene som
+  fortsatt gjelder; hele originalteksten er versjonen
+  `HIST/lov/1687-04-15-16870415` (dansk, ca. 650 000 tegn). Landslova
+  (1274) finnes som `NLO/lov/1274-06-24-nb`, `-nn` og `-non` (norrønt).
+- Sitér med versjonen: *arbeidsmiljøloven § 14-9 (versjon i kraft fra
+  1. januar 2019)*, og si at teksten er Lovdatas konsoliderte tekst.
+
+---
+
 ## Steg 3 — søk
 
 Brukes når `resolve` ga `parsed:false`, eller når et direkte slug-forsøk
@@ -315,9 +398,30 @@ await __lp.search("tomtefeste", 10, { bases: ["HRA"] })   // bare nye Pro
 
 **På nye Pro** er `search()` ett API-kall, sortert etter relevans; svaret er
 `{query, site: "pro2", filterBases, totalHits, results: [{path, title, date}]}`.
-`bases` avgrenser til Lovdatas samlings- eller gruppekoder: `HRA` (hele
-Høyesterett), `AVG` (alle rettsavgjørelser), `LBSIV`, `TRSIV`, `NOU`, `PROP`,
-`INNST` osv. Karnov-kommentarer og litteratur tas bort fra treffene (de er
+`bases` avgrenser til Lovdatas samlings- eller gruppekoder:
+
+| Kategori | Gruppekode | Eksempler på samlinger |
+|---|---|---|
+| Alle rettsavgjørelser | `AVG` | `HRA` (hele Høyesterett), `LRA`, `TRA`, `LBSIV`, `TRSIV` |
+| Spesialdomstoler | `SD` | `TRR`, `ARD`, `JSR`, `JSO`, `UTMA` |
+| Publikasjoner | `PUB` | `NDS` (ND), `NDSENG`, `NAD` |
+| Forarbeider og stortingsdokumenter | `FSA` | `NOU`, `PROP`, `INNST`, `REPFOR`, `GLFOR`, `SDOK`, `LOVVED`, `OTMELD`, `PRE` |
+| Rundskriv og uttalelser | `ROU` | `RUNDSKRIV`, `OPPHEVDERUNDSKRIV`, `UTTALELSER`; `RDEP`, `JDLOV`, `SOMB`, `BFU`, `SKM` |
+| Nemnder og utvalg | `NEMNDEROGUTVALG` | `KOFA`, `FINKN` (alle Finansklagenemnda), `DIN`, `PSN`, `TLN`, `HTU` |
+| Lover og forskrifter | `LFA` (`LOVER`, `SFA`, `SFOA`, `LOK`) | `NL`, `NLO`, `SF`, `SFO`, `LF`, `LFO` |
+| Lovtidend | ingen: list samlingene | `["LTI", "LTII"]` |
+
+`LFA` tar ikke med Lovtidend, og `LT` gir null treff: søk i Lovtidend med
+`bases: ["LTI", "LTII"]`. Tidligere versjoner (`HIST`) er ikke søkbare;
+finn loven og bruk `versions()`. Treffene har `status` når Pro oppgir den
+(`REPEALED`, `ORIGINALLY_PROMULGATED`, `NOT_IN_FORCE`).
+
+Hele listen står i `references/lovdata-pro-mapping.md`. `RT`, `UTV` og `FS`
+(Retstidende, Utvalgte skattedommer, Rettens Gang) er ikke filtre: de gir
+like mange treff som `AVG`. Søk heller på referansen (`Rt-1990-…`).
+Treff med `noDocument: true` er register- eller listeoppføringer (f.eks.
+`PUBG`) som ikke kan åpnes; ikke kall `load()` på dem.
+Karnov-kommentarer og litteratur tas bort fra treffene (de er
 ikke dokumenter fra offentlige organer). Det trengs ingen fallback, og
 `readSearchResults()` brukes ikke. Søket legges ikke i brukerens
 søkehistorikk (smulesti).
@@ -379,6 +483,12 @@ Bruk standard norsk juridisk siteringsform i svaret til brukeren:
 - **Rt.**: *Rt. 2000 s. 1811 (Finanger I) på s. 1827*
 - **Lagmannsrett**: *LG-2008-135938*
 - **Forarbeider**: *Ot.prp. nr. 3 (1998-99) s. 12* eller *NOU 2022: 8 punkt 3.4*
+- **Spesialdomstoler, nemnder, uttalelser, rundskriv**: Lovdatas referanse
+  (står i `metadata.Saksnummer` eller tittelen), f.eks. *TRR-2026-695*,
+  *KOFA-2026-1389 avsnitt 30*, *Rundskriv G-2019-3 punkt 2*; *ND 2025 s. 23*
+- **Lover og forskrifter**: *LOV-2005-06-17-62 § 14-9* eller
+  *arbeidsmiljøloven § 14-9*; for en tidligere versjon med datoen den gjaldt
+  fra, for Lovtidend med «Publisert i» (*Norsk Lovtidend avd. I 2005 s. 1112*)
 
 Sitater beholdes på originalt norsk, i anførselstegn («…» eller "…"). Legg
 gjerne til oversettelse/forklaring på brukerens språk etter sitatet.
@@ -407,6 +517,14 @@ høy kostnad.
 3. Oppgi kilde inkludert avsnittsnummer/side hvor mulig.
 
 ### Brukeren spør om forarbeidene til en lov
+
+**Start med registeret (nye Pro):** `resolve "LOV-<dato>-<nr>"` gir i
+feltet `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over
+lovens forarbeider (også for endringslover). `load()` den og hent
+dokumentene listen nevner. Lovens dato og nummer får du fra `lovdata-api`
+eller ved å `load()` loven (`metadata.Datokode`) hvis brukeren bare oppgir
+navnet. For forarbeidene til en *endring*: finn endringsloven med
+`backlinks(lov, "endringslover")` og slå opp dens `RFA`.
 
 Forarbeidene består typisk av tre dokumenter — alle bør hentes når brukeren
 ber om «forarbeidene»:
@@ -471,6 +589,11 @@ kaste. Kodene:
   en egen fane, lim inn hjelperen der og `load()` på nytt.
 - **`static_file`** (nye Pro) → dokumentet er bare en fil (PDF/HTML) i Pro,
   ikke tekst hjelperen kan lese. Si det til brukeren; prøv gjerne Klassisk.
+- **`pro2_only`** (fra `versions()`/`backlinks()`) → åpne nye Pro
+  (`https://pro2.lovdata.no/`) i en egen fane og lim inn hjelperen der.
+- **`before_first_version`**, **`bad_date`**, **`unsupported_kind`** → se
+  Steg 2b (`asOf` er `ÅÅÅÅ-MM-DD`; `backlinks` tar `historisk`,
+  `endringslover` og `lovspeil`).
 - **`unsupported_format`** (nye Pro) → Lovdata har endret dokumentformatet.
   Bruk Klassisk, og si til brukeren at skill-en bør oppdateres.
 - **Siden er ikke godkjent / brukeren avslo tilgangsforespørselen** → fortell

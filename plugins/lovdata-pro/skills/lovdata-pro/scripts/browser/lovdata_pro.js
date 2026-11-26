@@ -19,7 +19,7 @@
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
 (() => {
-  const HELPER_VERSION = '1.3.2';
+  const HELPER_VERSION = '1.4.0';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
@@ -185,7 +185,10 @@
     }
 
     const encPath = (p) => p.split('/').map(encodeURIComponent).join('/');
-    const uriPath = (u) => [u.base, u.type, u.id].join('/');
+    // A historical version (base HIST) carries its date apart from the id:
+    // {base: 'HIST', id: '2005-06-17-62', historicDateString: '20190101'} is
+    // HIST/lov/2005-06-17-62-20190101.
+    const uriPath = (u) => [u.base, u.type, u.historicDateString ? `${u.id}-${u.historicDateString}` : u.id].join('/');
     const isBase = (s) => /^[A-Z0-9]+$/.test(s);
     const denied = (status) => status === 401 || status === 403;
 
@@ -273,8 +276,37 @@
       keywords: 'Stikkord', summary: 'Sammendrag', proceedings: 'Saksgang', parties: 'Parter', membersOfTheCourt: 'Rettsmedlemmer',
       dateLastUpdated: 'Sist oppdatert', quotedlegislation: 'Sitert regelverk', caseID: 'Dokumentnummer', title: 'Tittel',
       advised: 'Tilrådet', ministry: 'Departement', numberOfPages: 'Antall sider', note: 'Merknad', titleShort: 'Korttittel',
-      changestodocuments: 'Foreslåtte endringer',
+      changestodocuments: 'Foreslåtte endringer', documenttype: 'Dokumenttype', nemndMembers: 'Nemndsmedlemmer',
+      ombudsman: 'Sivilombud', a11yStatus: 'Tilgjengelighetsstatus', legalArea: 'Rettsområde', subunit: 'Etat',
+      dateInForce: 'I kraft fra', stortingspresident: 'Stortingspresident', eeaReferences: 'EU/EØS-henvisning',
+      legacyID: 'Datokode', advisedAction: 'Tilrådning', publishedIn: 'Publisert i',
+      lastChangeInForce: 'Ikrafttredelse av siste endring', lastChangedBy: 'Sist endret ved', changesToDocuments: 'Endrer',
+      appliesTo: 'Gjelder for', basedOn: 'Hjemmel', dateOfPublication: 'Kunngjort', lastupdated: 'Siste rettelse',
+      journalNumber: 'Journalnummer', eli: 'European Legislative Identifier',
     };
+
+    // A record without text in the new Pro can still point somewhere:
+    // documentMeta.externalVersions to the original PDF (recent
+    // Stortingsdokumenter, SDOK), documentMeta.publication to the
+    // publication that holds the text (Kommissariske Høyesterett: Retstidende).
+    // The PDF link is relative (static/SDOK/….pdf) and served under the API
+    // base; the shape around it is not documented, so any string that looks
+    // like one is taken.
+    function findStaticPdf(v, depth = 0) {
+      if (depth > 4 || v == null) return null;
+      if (typeof v === 'string') return /^\/?(?:api\/)?static\/\S+\.pdf$/i.test(v) ? v : null;
+      if (typeof v !== 'object') return null;
+      for (const x of Object.values(v)) { const f = findStaticPdf(x, depth + 1); if (f) return f; }
+      return null;
+    }
+
+    async function pro2Pointers(m) {
+      const out = {};
+      const pdf = findStaticPdf(m.externalVersions);
+      if (pdf) out.originalFile = `${await apiBase()}/${pdf.replace(/^\/?(?:api\/)?/, '')}`;
+      if (m.publication && typeof m.publication.url === 'string') out.publication = m.publication.url;
+      return out;
+    }
 
     function pro2Metadata(header) {
       const meta = {};
@@ -317,7 +349,8 @@
       const metadata = pro2Metadata(header);
       const toc = buildToc(body);
       const fullText = toText(body);
-      cache[path] = { doc, body, title, metadata, toc, fullText, site: 'pro2' };
+      const pointers = fullText.length < 200 ? await pro2Pointers(m) : {};
+      cache[path] = { doc, body, title, metadata, toc, fullText, site: 'pro2', ...pointers };
       return describe(path, cache[path], loc);
     }
 
@@ -337,10 +370,145 @@
       for (const h of r.json.results || []) {
         const u = h.documentURI;
         if (!u || u.base === 'COMMENT' || /^(karnov|litteratur)$/.test(u.type)) continue;
-        results.push({ path: uriPath(u), title: (h.documentTitles && h.documentTitles.title) || undefined, date: h.isoDate || undefined });
+        const hit = { path: uriPath(u), title: (h.documentTitles && h.documentTitles.title) || undefined, date: h.isoDate || undefined };
+        // Register and list entries (PUBG, SPHPM, FKU lists) have no type
+        // and cannot be opened: say so rather than let load() fail on them.
+        if (!u.type || u.type === 'null') { hit.path = [u.base, 'null', u.id].join('/'); hit.noDocument = true; }
+        // REPEALED, ORIGINALLY_PROMULGATED (Lovtidend), NOT_IN_FORCE …
+        const status = (h.documentSummary && h.documentSummary.documentStatus) || h.documentStatus;
+        if (status) hit.status = status;
+        results.push(hit);
         if (results.length >= n) break;
       }
       return { query, site: 'pro2', filterBases: body.filterBases, totalHits: r.json.totalHits, results };
+    }
+
+    // --- pro2: versions and backlinks of laws and regulations ---------------
+    // A consolidated law or regulation (NL, NLO, SF, SFO, LF, LFO …) keeps
+    // its earlier versions in base HIST, at HIST/<type>/<id>-<YYYYMMDD>, the
+    // date the version took effect. backLinks/historisk lists them with the
+    // current text last; paragraphHistory lists only the versions where one
+    // § changed. The server has no "as at date": checkDocument sends any
+    // date that is not a version date to the current text. So asOf picks the
+    // last version that took effect on or before the date.
+    // As many list entries as fit in budget (JSON characters).
+    function fitList(list, budget) {
+      const items = [];
+      let used = 2;
+      for (const e of list) {
+        const l = jsonLen(e) + 1;
+        if (used + l > budget) break;
+        items.push(e); used += l;
+      }
+      return { items, next: items.length < list.length ? items.length : null };
+    }
+
+    const ymd = (s) => String(s || '').replace(/[^0-9]/g, '').slice(0, 8);
+
+    function uriOf(o) {
+      if (!o || typeof o !== 'object') return null;
+      for (const k of ['documentURI', 'documentParagraphURI', 'documentReference']) {
+        const u = o[k];
+        if (u && typeof u === 'object' && u.base && u.id) return u;
+      }
+      return o.base && o.id && typeof o.base === 'string' && o.type ? o : null;
+    }
+
+    function collectLinked(v, out, depth = 0) {
+      if (depth > 5 || !v || typeof v !== 'object') return;
+      if (Array.isArray(v)) { for (const x of v) collectLinked(x, out, depth + 1); return; }
+      const u = uriOf(v);
+      if (u && u !== v) {
+        const titles = v.documentSummary && v.documentSummary.titles;
+        out.push({
+          path: uriPath(u),
+          title: v.title || (v.documentTitles && v.documentTitles.title) || (titles && (titles.title || titles.shortTitle)) || undefined,
+          date: v.isoDate || undefined,
+          part: u.part || undefined,
+          historicDate: u.historicDateString || undefined,
+        });
+        return;
+      }
+      for (const x of Object.values(v)) collectLinked(x, out, depth + 1);
+    }
+
+    async function pro2DocPath(path) {
+      const loc = await pro2Locate([path]);
+      return loc.error ? loc : { path: loc.path };
+    }
+
+    async function versions(path, { asOf = null, part = null } = {}) {
+      if (!isPro2()) return { error: 'pro2_only', detail: `versions are read from the new Lovdata Pro (${PRO2_URL})` };
+      const doc = await pro2DocPath(path);
+      if (doc.error) return doc;
+      const r = part
+        ? await api(`paragraphHistory?dokID=${encodeURIComponent(doc.path)}&partID=${encodeURIComponent(part)}`)
+        : await api('backLinks/historisk/' + encPath(doc.path));
+      if (r.fetchError) return { error: 'cors', detail: r.fetchError };
+      if (denied(r.status)) return { error: 'not_logged_in' };
+      if (r.status !== 200 || !r.json) return { error: `http_${r.status}`, detail: part ? 'paragraphHistory' : 'backLinks/historisk' };
+      const found = [];
+      collectLinked(part ? r.json.versions : r.json, found);
+      const list = found.map(e => ({
+        path: e.path,
+        from: ymd(e.historicDate || e.date) || null,
+        current: !e.path.startsWith('HIST/'),
+      }));
+      // Oldest first, the current text last (its start date is not always given).
+      list.sort((a, b) => (a.current - b.current) || String(a.from).localeCompare(String(b.from)));
+      const out = { path: doc.path, part: part || undefined, count: list.length };
+      if (asOf) {
+        const d = ymd(asOf);
+        if (d.length !== 8) return { error: 'bad_date', detail: `asOf must be YYYY-MM-DD, got ${asOf}` };
+        const cur = list.find(e => e.current) || { path: doc.path, from: null, current: true };
+        const hist = list.filter(e => !e.current);
+        const before = hist.filter(e => e.from && e.from <= d);
+        if (cur.from && cur.from <= d) {
+          out.asOf = cur;
+        } else if (!hist.length) {
+          out.asOf = cur;
+          out.checkCurrent = 'Pro has no earlier versions of this text: the current (or last) text is the only one; check its history notes before relying on it for that date';
+        } else if (!before.length) {
+          return { ...out, error: 'before_first_version', detail: `no version of ${doc.path} in Pro took effect on or before ${asOf}`, versions: list.slice(0, 5) };
+        } else {
+          out.asOf = before[before.length - 1];
+          if (out.asOf === hist[hist.length - 1] && !cur.from) {
+            out.checkCurrent = 'the date is after the last historical version and the start date of the current text is not given: the current text may already have applied then; compare the two';
+          }
+        }
+      }
+      // A long history (folketrygdloven has 167 versions) still fits: each
+      // entry is ~70 characters.
+      const { items, next } = fitList(list, PAGE_SIZE - 500 - jsonLen(out));
+      out.versions = items;
+      if (next !== null) out.truncated = true;
+      return out;
+    }
+
+    // Lists that hang off a law in the new Pro. Only these kinds: the
+    // others (litteratur, tariff, henvisninger) lead to material outside
+    // the skill's scope or have not been mapped.
+    const BACKLINK_KINDS = ['historisk', 'endringslover', 'lovspeil'];
+
+    async function backlinks(path, kind, n = 50) {
+      if (!isPro2()) return { error: 'pro2_only', detail: `backlinks are read from the new Lovdata Pro (${PRO2_URL})` };
+      if (!BACKLINK_KINDS.includes(kind)) return { error: 'unsupported_kind', detail: `kind must be one of ${BACKLINK_KINDS.join(', ')}` };
+      const doc = await pro2DocPath(path);
+      if (doc.error) return doc;
+      const r = await api(`backLinks/${kind}/` + encPath(doc.path));
+      if (r.fetchError) return { error: 'cors', detail: r.fetchError };
+      if (denied(r.status)) return { error: 'not_logged_in' };
+      if (r.status !== 200 || !r.json) return { error: `http_${r.status}`, detail: `backLinks/${kind}` };
+      const found = [];
+      collectLinked(r.json, found);
+      const seen = new Set();
+      const all = found.filter(e => !seen.has(e.path + (e.part || '')) && seen.add(e.path + (e.part || '')));
+      const out = { path: doc.path, kind, total: r.json.totalCount != null ? r.json.totalCount : all.length };
+      if (r.json.truncated) out.serverTruncated = true;
+      const { items } = fitList(all.slice(0, n), PAGE_SIZE - 500 - jsonLen(out));
+      out.results = items;
+      if (all.length > items.length) out.more = all.length - items.length;
+      return out;
     }
 
     async function isLoggedIn({ probe = true } = {}) {
@@ -919,6 +1087,16 @@
         out.warning = 'no body text in Pro — this is a header/metadata-only record '
           + '(typically a non-law proposition or an older document available as PDF only). '
           + 'Do not quote from it; tell the user the full text is not in Lovdata Pro.';
+        if (entry.originalFile) {
+          out.originalFile = entry.originalFile;
+          out.warning = 'no body text in Pro: this record has only metadata and the original PDF (originalFile, '
+            + 'opened in the logged-in browser). Do not quote from the record; give the user the PDF link.';
+        }
+        if (entry.publication) {
+          out.publication = entry.publication;
+          out.warning = 'no body text in this record: the text is in the publication it points to (publication). '
+            + 'Do not quote from the record; give the user that link.';
+        }
       }
       // Judgments frequently have no <h1>-<h6> at all (HR-2016-2554-P and
       // LG-2008-135938 have zero), so section() cannot be used on them.
@@ -1183,11 +1361,13 @@
       page: metered('page', page),
       search: metered('search', search),
       readSearchResults: metered('readSearchResults', readSearchResults),
+      versions: metered('versions', versions),
+      backlinks: metered('backlinks', backlinks),
       stats,
       docUrl,
       PAGE_SIZE,
       // exposed for unit testing / debugging only:
-      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage, backend, isEl, jsonmlToDom, pro2Metadata },
+      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage, backend, isEl, jsonmlToDom, pro2Metadata, uriPath },
     };
   })();
 })();

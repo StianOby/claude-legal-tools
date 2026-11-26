@@ -114,6 +114,33 @@ function makeTab({ loggedIn = true, host = 'pro2.lovdata.no', pathname = '/', ap
     'documentMeta/HRSIV/avgjorelse/hr-2000-1-b': () => json(200, { title: 'HR-2000-1-B - Rt-2000-1' }),
     'documentContent/NOU/forarbeid/nou-2000-1': () => json(200, NOU),
     'documentMeta/NOU/forarbeid/nou-2000-1': () => json(200, { title: 'NOU 2000: 1 Et utvalg' }),
+    // A PDF-only Stortingsdokument, a header-only record whose text is in a
+    // publication, and an ND report whose id has a suffix the citation lacks.
+    'checkDocument/SDOK/forarbeid/dok5-200001': () => json(200, { type: 'Success' }),
+    'documentContent/SDOK/forarbeid/dok5-200001': () => json(200, { version: 2, header: el('header'), toc: el('ul'), mainTags: [el('article', {}, ['Se PDF'])] }),
+    'documentMeta/SDOK/forarbeid/dok5-200001': () => json(200, { title: 'Dokument 5 (2000-2001)', externalVersions: [{ type: 'ORIGINAL_PDF', url: '/static/SDOK/dok5-200001.pdf' }] }),
+    'checkDocument/HKOM/avgjorelse/rt-1944-1-1': () => json(200, { type: 'Success' }),
+    'documentContent/HKOM/avgjorelse/rt-1944-1-1': () => json(200, { version: 2, header: el('header'), toc: el('ul'), mainTags: [] }),
+    'documentMeta/HKOM/avgjorelse/rt-1944-1-1': () => json(200, { title: 'Rt-1944-1', publication: { brand: 'RT_PUBLISHED', url: 'https://lovdata.no/publikasjoner/retstidende/document/HKOM/avgjorelse/rt-1944-1-1' } }),
+    'checkDocument/NDS/avgjorelse/nd-2000-1': () => json(200, { type: 'DocumentNotFound' }),
+    'references/avgjorelse/nd-2000-1': () => json(200, [{ title: 'ND-2000-1', documentURI: { base: 'NDS', type: 'avgjorelse', id: 'nd-2000-1-1s', part: null } }]),
+    'documentContent/NDS/avgjorelse/nd-2000-1-1s': () => json(200, JUDGMENT),
+    'documentMeta/NDS/avgjorelse/nd-2000-1-1s': () => json(200, { title: 'ND-2000-1' }),
+    // A law with two historical versions and the current text; a § history.
+    'checkDocument/NL/lov/2000-01-01-1': () => json(200, { type: 'Success' }),
+    'backLinks/historisk/NL/lov/2000-01-01-1': () => json(200, [
+      { base: 'HIST', documentURI: { base: 'HIST', type: 'lov', id: '2000-01-01-1', historicDateString: '20050101' }, isoDate: '2005-01-01' },
+      { base: 'HIST', documentURI: { base: 'HIST', type: 'lov', id: '2000-01-01-1', historicDateString: '20000701' }, isoDate: '2000-07-01' },
+      { base: 'NL', documentURI: { base: 'NL', type: 'lov', id: '2000-01-01-1' } },
+    ]),
+    'paragraphHistory?dokID=NL/lov/2000-01-01-1&partID=§2': () => json(200, { partTitle: '§ 2', versions: [
+      { documentParagraphURI: { base: 'HIST', type: 'lov', id: '2000-01-01-1', part: '§2', historicDateString: '20000701' }, isoDate: '2000-07-01' },
+    ] }),
+    'references/lov/2000-01-01-1': () => json(200, [{ title: 'Lov X', documentURI: { base: 'NL', type: 'lov', id: '2000-01-01-1' } }]),
+    'backLinks/endringslover/NL/lov/2000-01-01-1': () => json(200, { totalCount: 2, truncated: false, references: { LTI: [
+      { documentURI: { base: 'LTI', type: 'lov', id: '2005-01-01-9' }, title: 'Endringslov', isoDate: '2005-01-01' },
+      { documentURI: { base: 'LTI', type: 'lov', id: '2000-01-01-1' }, title: 'Lov X', isoDate: '2000-01-01' },
+    ] } }),
     'search?minimal=true': (init) => {
       const body = JSON.parse(init.body);
       calls[calls.length - 1].body = body;
@@ -121,6 +148,7 @@ function makeTab({ loggedIn = true, host = 'pro2.lovdata.no', pathname = '/', ap
         { documentURI: { base: 'COMMENT', type: 'karnov', id: 'x' }, documentTitles: { title: 'Kommentar' } },
         { documentURI: { base: 'HRSIV', type: 'avgjorelse', id: 'hr-2016-1-a' }, documentTitles: { title: 'HR-2016-1-A' }, isoDate: '2016-01-01' },
         { documentURI: { base: 'NOU', type: 'forarbeid', id: 'nou-2000-1' }, documentTitles: { title: 'NOU 2000: 1' } },
+        { documentURI: { base: 'PUBG', type: null, id: 'pubg-200001-stprp-1' }, documentTitles: { title: 'St.prp.nr.1' } },
       ] });
     },
   };
@@ -196,11 +224,36 @@ async function main() {
     '[fn 1] Fotnotetekst.',
   ].join('\n'));
 
+  // Records without text point to the original PDF or the publication.
+  r = await lp.load(['SDOK/forarbeid/dok5-200001']);
+  check('PDF-only record', [r.metadataOnly, r.originalFile, /PDF/.test(r.warning)], [true, 'https://pro2.lovdata.no/api/static/SDOK/dok5-200001.pdf', true]);
+  r = await lp.load(['HKOM/avgjorelse/rt-1944-1-1']);
+  check('header-only record with publication', [r.metadataOnly, r.publication, r.originalFile], [true, 'https://lovdata.no/publikasjoner/retstidende/document/HKOM/avgjorelse/rt-1944-1-1', undefined]);
+  r = await lp.load(['NDS/avgjorelse/nd-2000-1', 'NDSENG/avgjorelse/nd-2000-1']);
+  check('suffixed id found through the short form', [r.path, r.via], ['NDS/avgjorelse/nd-2000-1-1s', 'references avgjorelse/nd-2000-1']);
+
+  // Laws: versions, the version in force at a date, a § history, backlinks.
+  let v = await lp.versions('lov/2000-01-01-1');
+  check('versions oldest first, current last', [v.path, v.count, v.versions.map(e => [e.path, e.from, e.current])],
+    ['NL/lov/2000-01-01-1', 3, [['HIST/lov/2000-01-01-1-20000701', '20000701', false], ['HIST/lov/2000-01-01-1-20050101', '20050101', false], ['NL/lov/2000-01-01-1', null, true]]]);
+  v = await lp.versions('NL/lov/2000-01-01-1', { asOf: '2003-06-30' });
+  check('asOf between versions', [v.asOf.path, v.checkCurrent], ['HIST/lov/2000-01-01-1-20000701', undefined]);
+  v = await lp.versions('NL/lov/2000-01-01-1', { asOf: '2010-01-01' });
+  check('asOf after the last version flags the current text', [v.asOf.path, !!v.checkCurrent], ['HIST/lov/2000-01-01-1-20050101', true]);
+  v = await lp.versions('NL/lov/2000-01-01-1', { asOf: '1999-01-01' });
+  check('asOf before the first version', v.error, 'before_first_version');
+  v = await lp.versions('NL/lov/2000-01-01-1', { part: '§2' });
+  check('§ history', v.versions.map(e => e.path), ['HIST/lov/2000-01-01-1-20000701']);
+  const bl = await lp.backlinks('NL/lov/2000-01-01-1', 'endringslover');
+  check('endringslover', [bl.total, bl.results.map(e => e.path)], [2, ['LTI/lov/2005-01-01-9', 'LTI/lov/2000-01-01-1']]);
+  check('backlink kinds limited', (await lp.backlinks('NL/lov/2000-01-01-1', 'litteratur')).error, 'unsupported_kind');
+  check('HIST uri path', lp._internal.uriPath({ base: 'HIST', type: 'lov', id: '1', historicDateString: '20190101' }), 'HIST/lov/1-20190101');
+
   // Search: relevance order requested, Karnov comments dropped, bases passed.
   const s = await lp.search('HR-2016-1-A', 10, { bases: ['HRA'] });
   const sc = calls.find(c => /search\?minimal=true$/.test(c.url));
   check('search request', [sc.method, sc.body.sortField, sc.body.sortOrder, sc.body.filterBases, sc.body.term], ['POST', 'relevance', 'desc', ['HRA'], 'HR-2016-1-A']);
-  check('search results', s.results.map(x => x.path), ['HRSIV/avgjorelse/hr-2016-1-a', 'NOU/forarbeid/nou-2000-1']);
+  check('search results', s.results.map(x => [x.path, !!x.noDocument]), [['HRSIV/avgjorelse/hr-2016-1-a', false], ['NOU/forarbeid/nou-2000-1', false], ['PUBG/null/pubg-200001-stprp-1', true]]);
   check('readSearchResults not needed', (await lp.readSearchResults()).error, 'not_needed');
 
   // Never: breadcrumbs (writes the user's history) or KI services.

@@ -67,9 +67,9 @@ court reform), `TOSL-2022-123456` (post-reform), `TBERG-`, `TSTAV-`,
 `THOD-`, and so on — the letters after `T` abbreviate the court. The
 collection is `TRSIV`/`TRSTR` for all of them. `lovdata_ref.py` accepts
 any `T<letters>-YYYY-N` form and lower-cases the reference into the slug,
-trailing `-1`/`-2` included — except `TRR-`, which is Trygderetten, not a
-tingrett. Its collection is not mapped yet, so `TRR-` references come back
-`parsed:false` with the reference itself as `search_hint`.
+trailing `-1`/`-2` included. `TRR-` (Trygderetten), `TLN-`, `TGLA-`,
+`TUSAK-` and `TUDEP-` are not tingretter: the prefix table in the next
+section is checked first.
 **Confirmed live (September 2026):** `TOSLO-2019-108726-2` →
 `TRSIV/avgjorelse/toslo-2019-108726-2`, `TOSL-2022-105703` →
 `TRSTR/avgjorelse/tosl-2022-105703`. As with the other court collections the
@@ -87,7 +87,14 @@ SIV/STR split is by subject matter, and `tryPaths()` swaps automatically.
 | `Meld. St. N (YYYY-YY)` / `St.meld. nr. N` | **`STS`** | `forarbeid` | Slug `stsg-<sesjon>-<løpenummer>`: Meld. St. 17 (2020-2021) → `STS/forarbeid/stsg-202021-355`, St.meld. nr. 12 (2006-2007) → `STS/forarbeid/stsg-200607-255`. **The løpenummer is Lovdata-assigned and not derivable from the citation** — same class of problem as pre-2008 Rt. suffixes, so `lovdata_ref.py` returns `parsed:false` and a search hint. There is no `MELD` collection |
 | `St.prp. nr. N (YYYY-YY)`  | — | — | Non-law propositions are not full-text indexed. Four Hurtigsøk queries for St.prp. nr. 100 (1991-92) surfaced only EEA-annex directives, never the proposition. Treat as "not in Pro" |
 | `Dok. 8:N`                 | `REPFOR` | `forarbeid` | `dok8-12-199900`. Confirmed live |
-| `NOU YYYY:N` (pre-~1975)   | `PUBG` | `pubg-YYYYYY-nou-N` | Historical publications. E.g. NOU 1972:16 → `PUBG/pubg-197273-nou-16`. **Returns metadata only (~468 chars), not full text.** Year range encoded as 6 digits same as forarbeider. |
+| `Representantforslag N S (YYYY-YY)` / `Dokument 8:N S` | `REPFOR` | `forarbeid` | From 2009 the id is `representantforslag-N-YYYYYY` (no letter); `dok8-N-s-YYYYYY` resolves to it through `references` |
+| `Dokument 12:N` / `Grunnlovsforslag N` | `GLFOR` | `forarbeid` | `dok12-N-YYYYYY` |
+| `Dokument N (YYYY-YY)` (other series) | `SDOK` | `forarbeid` | `dokN-YYYYYY` (`dok5-202526`, `dok7-197273`). Recent ones are PDF only in pro2 (`originalFile`). `dokN-M-YYYYYY` for a sub-numbered series is assumed, not seen |
+| `Ot.meld. nr. N` | `OTMELD` | `forarbeid` | `otmeld-N-YYYYYY`, 1927–2006/07 |
+| `Besl. O. nr. N` / `Lovvedtak N` | `LOVVED` | `forarbeid` | `besl-o-N-YYYYYY` / `lovvedtak-N-YYYYYY` |
+| `PRE-YYYY-MM-DD-N` (statsrådsforedrag) | `PRE` | `forarbeid` | `pre-YYYY-MM-DD-N`; a foredrag for two forskrifter resolves by either number |
+| Forarbeider to a law | `RFA` | **`lov`** | `RFA/lov/YYYY-MM-DD-N`: Lovdata's register of the law's forarbeider (~400 chars). `references/lov/<id>` gives the law itself (`NL`/`NLO`/`LTI`), so use the full path; `resolve` returns it as `forarbeider` |
+| `NOU YYYY:N` (pre-~1975)   | `PUBG` | `pubg-YYYYYY-nou-N` | Historical publications. E.g. NOU 1972:16 → `PUBG/pubg-197273-nou-16`. **Returns metadata only (~468 chars), not full text.** Year range encoded as 6 digits same as forarbeider. In the new Pro PUBG records have type `null` and cannot be opened (search marks them `noDocument`); Klassisk only. |
 
 ### Year encoding rule (forarbeider)
 
@@ -149,6 +156,220 @@ counterpart whenever a collection-mismatch response is detected, so callers
 (i.e. `load()`) need not enumerate both variants explicitly.
 
 ---
+
+## New Lovdata Pro: categories beyond the ordinary courts (2026-11-26)
+
+Mapped from the new Pro's `GET /api/document-lookup-data/base-tree` and one
+probe per base. Bases are tested on the new Pro only (`docs/lovdata-pro2.md`).
+Counts are `term:"*"` hits on 2026-11-26; "from" is the earliest date seen.
+**The id is the lower-cased Lovdata reference** unless noted, so
+`resolve` builds `<BASE>/<type>/<prefix-year-number>` from the prefix table
+in `scripts/lovdata_ref.py`. When the id has a suffix the citation leaves
+out, the full path misses and `load()` resolves the short form
+`<type>/<id>` through `references`, which finds the suffixed id (and the
+base). That also covers old prefixes not in the table; `explain()` returns
+them as `pro2_ref`.
+
+`references/<type>/<id>` fails where the printed reference pads the number
+(`G-1958-0005` is `g-1958-5`: `resolve` strips the zeros) or the id keeps a
+letter the reader might drop (`adn-2026-d24673`, `kt-2026-3v`). Several short
+forms have more than one hit (`fkr-2022-4`, `ob-2024-4`, `bdn-1973-52`, an
+Rt. page): `load()` takes the first and lists `alternatives`.
+
+Group codes for `search(..., {bases})`: `SD` and `PUB` (both under `AVG`),
+`FSA` (with `REGISTEROPPLYSNINGER`), `ROU` (with `RUNDSKRIV`,
+`OPPHEVDERUNDSKRIV`, `UTTALELSER`), `NEMNDEROGUTVALG` (with `FINKN`). `RT`,
+`UTV` and `FS` are publication nodes without children: as filters they
+return about as much as `AVG`, so they are not filters.
+
+### Spesialdomstoler (`SD`, type `avgjorelse`)
+
+| Base | Court | Prefix | Count | From | Notes |
+|---|---|---|---|---|---|
+| `ARD` | Arbeidsretten | `AR-`, `ARD-` | 2 872 | 1916 | Old ids `ard-1916-1-16001`; `ard-1916-1` and `ARD 1916 s. 1` resolve |
+| `TRR` | Trygderetten | `TRR-` | 69 814 | 1971 | |
+| `JSR` | Jordskifterettene | `J<court>-` (`JMOR-`) | 2 527 | 1996 | |
+| `JSO` | Jordskifteoverrettene | `JO<court>-` (`JOAG-`) | 530 | 1991 | |
+| `UTMA` | Utmarksdomstolen for Finnmark | `UTMA-` | 31 | 2014 | Header has Dokumenttype for Instans |
+| `FKR` | Finnmarkskommisjonen | `FKR-` | 10 | 2012 | `fkr-2022-4` has three parts (-1, -2, -3) |
+| `UNT` | Utmarkskommisjonen for Nordland og Troms | `UNT-` | 36 | 1990 | |
+| `HFK` | Høyfjellskommisjonen | `HFK-` | 78 | 1910–1953 | |
+| `HKOM` | Kommissariske Høyesterett 1941–1944 | `Rt-1944-…` | 85 | 1941–1944 | Header only; text in Retstidende (`publication`) |
+
+There is no Riksrett base.
+
+### Publikasjoner (`PUB`, type `avgjorelse`)
+
+| Base | Publication | Prefix | Count | From | Notes |
+|---|---|---|---|---|---|
+| `NDS` | Nordiske Domme i Sjøfartsanliggender | `ND-`, `ND YYYY s. N` | 3 311 | 1925 | Id has a suffix (`nd-2025-23-23s`). Full report, can be in Swedish or Danish |
+| `NDSENG` | ND in English | | 7 | 1961 | `nd-2016-219-eng`; the short form without `-eng` gives the Norwegian original |
+| `NAD` | Norsk arbeidsrettslig domssamling | `NAD-`, `NAD YYYY s. N` | 1 126 | 1981–1988 | `nad-1988-1369-ag` |
+| `LODA` | Avgjørelser publisert i Lov&Data | `LOD-` | 819 | 2011–2016 | Header only; Lovdata's own journal. Not in the prefix table |
+
+Retstidende, Rettens Gang and Utvalgte skattedommer are cited by year and
+page and resolve to the underlying judgment (`pro2_ref`, e.g.
+`avgjorelse/utv-2017-1057`).
+
+### Rundskriv og uttalelser (`ROU`)
+
+Type `rundskriv` unless noted. Each rundskriv base has a twin for repealed
+ones (`…O`); `resolve` gives both.
+
+| Base (repealed) | Issuer | Prefix | Count | From |
+|---|---|---|---|---|
+| `RDEP` (`RDEPO`) | Departementene | series letter: `G-`, `GI-`, `R-`, `H-`, `I-` … | 1 191 (1 195) | 1958 |
+| `ROO` (`ROOO`) | Andre offentlige organer | `IS-` (Helsedirektoratet) | 155 (51) | 1997 |
+| `NAV` (`NAVO`) | Arbeids- og velferdsetaten | irregular (`r25-13-for-1944`, `v8-15-00`) | 517 (241) | 1953 |
+| `RFT` (`RFTO`) | Finanstilsynet | `RFT-` | 97 (161) | 2007 |
+| `RPOD` (`RPODO`) | Politidirektoratet | `RPOD-` | 83 (100) | 2002 |
+| `RUDI` (`RUDIO`) | Utlendingsdirektoratet | `RUDI-` | 302 (530) | 1993 |
+| `RUNE` (`RUNEO`) | Utlendingsnemnda | `UNEPN-` | 31 (3) | 2005 |
+| `RA` (`RAO`) | Riksadvokaten | `RA-` — **type `avgjorelse`** | 362 (37) | 1928 |
+| `SKM` | Skattedirektoratets meldinger | `SKM-` — type `avgjorelse` | 572 | 1954 |
+| `SPHPM` | SPH – personalmeldinger | `PM-` — type `null`, cannot be opened | 302 | 2013 |
+
+Departmental circulars are also cited as `G-01/2016`; `resolve` turns that
+into `g-2016-1` (assumed from the id rule, not yet seen).
+
+Uttalelser (`UTTALELSER`, all type `avgjorelse`):
+
+| Base | Body | Prefix | Count | From |
+|---|---|---|---|---|
+| `JDLOV` | Lovavdelingen | `JDLOV-` | 2 289 | 1975 |
+| `SOMB` | Sivilombudet | `SOM-`, `SOMB-` | 5 572 | 1963 |
+| `SOMFOR` | Sivilombudets forebyggingsenhet | `SOMFOR-` | 108 | 2014 |
+| `BFU` | Skattedirektoratets bindende forhåndsuttalelser | `BFU-` | 947 | 2001 |
+| `USKD` | Skattedirektoratets uttalelser | `USKD-` | 961 | 2000 |
+| `UFIN` | Finansdepartementets uttalelser | `UFIN-` (also `Utv. YYYY s. N`) | 662 | 1984 |
+| `TUDEP` | Tolkningsuttalelser fra departementene | `TUDEP-` (id ends in a literal `-*`) | 787 | 1986 |
+| `UMD` | Miljøverndepartementet | `UMD-` | 173 | 2001–2012 |
+| `BFJR` | Byggebransjens Faglig Juridiske Råd | `BFJR-` | 660 | 1977 |
+
+### Nemnder og utvalg (`NEMNDEROGUTVALG`, type `avgjorelse`)
+
+The prefix is the base, lower-cased, except where noted. Header field
+`Dokumenttype` takes the place of Instans and `Nemndsmedlemmer` that of
+Rettsmedlemmer.
+
+| Base | Body | Count | From | Notes |
+|---|---|---|---|---|
+| `ADN` | Advokatnemnda | 7 267 | 1910 | Number can carry a letter (`adn-2026-d24673`) |
+| `ADT` | Advokattilsynet | 122 | 2019 | |
+| `AN` | Ankenemnda for sykepenger i arbeidsgiverperioden | 3 385 | 1979 | |
+| `APN` | Apotekklagenemnda | 16 | 2002 | |
+| `BVHN` | Barneverns- og helsenemnda | 4 878 | 2002 | County suffix (`bvhn-2026-199-bro`) |
+| `DIN` | Diskrimineringsnemnda | 3 468 | 1980 | |
+| `DOK` | Domeneklagenemnda | 812 | 2004 | |
+| `ELKN` | Elklagenemnda | 1 673 | 2012 | |
+| `ENK` | Energiklagenemnda | 140 | 2020 | |
+| `FINKNB`, `FINKNF`, `FINKNI` | Finansklagenemnda – bank, forsikring, inkasso (group `FINKN`) | 28 130 | 1988 | All `FinKN-`; `resolve` tries the three |
+| `FTK` | Finanstilsynsklagenemnda | 303 | 1989 | |
+| `FKU` | Forbrukerklageutvalget | 25 712 | | `FKU/null/list-…` entries are lists, not documents |
+| `FOV` | Forbrukertilsynets vedtak | 130 | 2009 | |
+| `FREN` | Frivillighetsregisternemnda | 118 | 2017 | |
+| `GK` | Gjenopptakelseskommisjonen | 2 581 | 2005 | |
+| `HPN` | Helsepersonellnemnda | 2 178 | 2001 | |
+| `HTU` | Husleietvistutvalget | 5 150 | 2010 | |
+| `INTOPS` | Klagenemnda … internasjonale operasjoner | 115 | 2020 | |
+| `KDF` | Klagenemnda for disiplinærsaker i Forsvaret | 695 | 1989 | |
+| `KEOS` | Klagenemnda for EØS-saker | 75 | 2020 | |
+| `KFIR` | Klagenemnda for industrielle rettigheter | 1 697 | 2013 | |
+| `KMI` | Klagenemnda for miljøinformasjon | 210 | 2004 | |
+| `KMVA` | Klagenemnda for merverdiavgift | 5 364 | 1995–2016 | |
+| `KOFA` | Klagenemnda for offentlige anskaffelser | 2 937 | 2003 | |
+| `KT` | Konkurransetilsynet | 797 | 1998 | Letter suffix (`kt-2026-3v`) |
+| `KTKD` | Konkurransetilsynet – vedtak i klagesaker til dep. | 137 | 2005–2018 | |
+| `KTKN` | Konkurranseklagenemnda | 43 | 2018 | |
+| `KTN` | Kabeltvistnemnda | 18 | 1991 | |
+| `LOTN` | Lotterinemnda | 1 168 | 2010 | |
+| `MKN` | Medieklagenemnda | 257 | 2010 | |
+| `MR` | Markedsrådet | 628 | 1973 | |
+| `NKU` | Næringslivets konkurranseutvalg | 757 | 1964 | |
+| `NSK` | Klagenemnda for naturskadesaker | 1 827 | 2009 | |
+| `OB` | Oslo Børs | 979 | 1998 | `ob-2024-4` and `ob-2024-4-1` both exist |
+| `PARKN` | Parkeringsklagenemnda | 248 | 2023 | |
+| `PGD` | Preimplantasjonsdiagnostikknemnda | 357 | 2004–2020 | |
+| `PLN` | Partilovnemnda | 477 | 2006 | |
+| `PRKN` | Pakkereiseklagenemnda | 3 316 | 2010 | |
+| `PS` | Patentstyret 2. avdeling | 759 | 1966–2013 | `ps-2013-8147-8147-p` |
+| `PSA` | Patentstyret | 1 851 | 2008 | |
+| `PSK` | Klagenemnda for petroleumsskatt | 405 | 1977 | |
+| `PSN` | Pasientskadenemnda | 24 735 | 2003 | |
+| `PVN` | Personvernnemnda | 433 | 2001 | |
+| `RAV` | Vedtak fra Riksadvokaten | 19 | 2020 | |
+| `REHJ` | SRF – fri rettshjelp og salær | 1 523 | 2006 | |
+| `RFE` | Reklamasjonsnemnda for eiendomsmeglingstjenester | 3 078 | 2005 | |
+| `SINN` | Skjønnsnemnda etter inndelingslova | 6 | 1972 | |
+| `SJTKN`, `FLYKN`, `KOLLKN` | Transportklagenemnda – sjø, fly, kollektivreiser | 13 674 | 2009 | |
+| `SKN` | Skatteklagenemnda | 1 184 | 2016 | Avdeling in the prefix: `SKNA2-`, `SKNS1-` |
+| `SKNS` | Skatteklagenemnda for storbedrifter | 317 | 1999–2016 | Prefix `SKN-` (older); `resolve` tries `SKNS` then `SKN` |
+| `SKU` | Skatteklagenemnda for utenlandssaker | 211 | 2011–2016 | |
+| `ESTR` | SRF – erstatning for strafforfølgning | 6 184 | 2005 | |
+| `STKN` | Stiftelsesklagenemnda | 183 | 2015 | |
+| `TGLA` | Tinglysingsavgjørelser | 1 402 | 1900–1989 | |
+| `TLN` | Tvisteløsningsnemnda etter arbeidsmiljøloven | 2 925 | 1993 | |
+| `TUSAK` (`TUSAKENG`) | Tilsynsutvalget for dommere (English) | 826 (149) | 2003 | English ids end in `-eng` |
+| `UKN` | Klagenemnda for behandling i utlandet | 335 | 1999 | |
+| `UNESV` | Utlendingsnemnda stornemnd | 37 | 2006 | |
+| `VEM` | Voldserstatningsmyndigheten | 9 785 | 2003 | Old `env-` ids also resolve under a legacy base `ENV` |
+| `VMM` | SRF – vergemål | 845 | 2013 | |
+| `VPOD` | Vedtak fra Politidirektoratet | 550 | 2003 | |
+| `VSPES` | Spesialenheten for politisaker | 15 | 2023 | |
+| `VVN` | Vederlagsnemnda – åndsverk | 11 | 1992–2007 | |
+
+Old prefixes (`BKN-`, `INKN-`, `LKN-`, `OBKN-`, `NSN-`, `KUD-`, `TOGKN-`,
+`BDN-`, `FNV-`, `OLN-`, `ABN-`, `ADA-`) live in the successor's base; they
+are not in the table and go through `pro2_ref`.
+
+### Lover og forskrifter (`LFA`)
+
+Types `lov` and `forskrift`; id `YYYY-MM-DD-N` (just the date for laws
+without a number, 1687 and 1814; `-nb`/`-nn`/`-non` language variants).
+`resolve` gives the short form `lov|forskrift/<id>`: `references` returns the
+consolidated text when there is one (current or repealed base), otherwise
+the Lovtidend item. `checkDocument/NL/lov/<id>` of an amending act redirects
+to `LTI`. `checkDocument` ignores parts (`…/§9999` is Success).
+`references/lov/<id>/§3` resolves a §; chapter parts are unreliable
+(`KAPITTEL_2` and `k2` land on the English `NLE`), so find chapters with
+`grep`.
+
+| Group | Base (repealed) | Content | Count | From |
+|---|---|---|---|---|
+| `LOVER` | `NL` (`NLO`) | Lover | 753 (2 666) | 1687 (1274) |
+| | `NLE` (`NLEO`) | Lover, English | 83 (9) | 1814 |
+| | `ISL` | Ikke-sanksjonerte lover (type `isl`; `references` does not find it) | 1 | |
+| `SFA` (`SFOA`) | `SF` (`SFO`) | Sentrale forskrifter | 3 460 (13 213) | 1896 (1817) |
+| | `DEL` (`DELO`), `INS` (`INSO`), `STV` (`STVO`) | Delegeringer, instrukser, stortingsvedtak | 1 431, 186, 84 | 1905 |
+| | `SFE` (`SFEO`) | Sentrale forskrifter, English | 86 (23) | 1971 |
+| `LOK` | `LF` (`LFO`), `LFE` | Lokale forskrifter | 12 124 (14 895) | 1894 (1855) |
+| — | `LTI`, `LTII` | Norsk Lovtidend avd. I (laws, central forskrifter) and II (local) as promulgated | 58 886, 29 533 | 1909, 1894 |
+| — | `HIST` | Historical versions, `HIST/<type>/<id>-<YYYYMMDD>` | not searchable | |
+
+`LFA` as a search filter leaves out `LTI`/`LTII` (`LT` gives 0); name them.
+Repealed texts are complete as last in force, with amendment footnotes; the
+header's "Sist endret ved" names the repealing act. Lovtidend items carry
+"Publisert i" (e.g. "I 2005 hefte 8 s 1112"), "Kunngjort" and
+"Journalnummer"; 2026 items also link the signed PDF
+(`externalVersions` `LT_PDF`).
+
+**Historical versions.** `GET backLinks/historisk/<doc>` lists them (HIST
+entries with `historicDateString`, the current text last);
+`GET paragraphHistory?dokID=<doc>&partID=§N` lists the versions of one §.
+A HIST path with a date that is not a version date redirects to the
+**current** text, so the helper's `versions(path, {asOf})` picks the last
+version on or before the date. `documentSummary` dates in the list are
+unreliable; `historicDateString` is the version date. Depth varies:
+arbeidsmiljøloven 2005: 49 versions back to the original; folketrygdloven:
+167; straffeloven 1902: 71, sparse before the 1980s; Grunnloven: 32 from
+1814; Norske Lov 1687: 3, the first (`HIST/lov/1687-04-15-16870415`) the
+full Danish original (~656 000 chars) while `NL/lov/1687-04-15` holds only
+what is still in force. Repealed regulations checked had none.
+
+Other lists per act: `backLinks/endringslover/<doc>` (amending acts and
+commencement resolutions, `LTI`; aml 2005: 127) and
+`backLinks/lovspeil/<doc>` (predecessor/successor acts). The helper's
+`backlinks()` reads only `historisk`, `endringslover` and `lovspeil`.
 
 ## Authentication
 
