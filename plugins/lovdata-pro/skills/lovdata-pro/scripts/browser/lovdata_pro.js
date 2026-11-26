@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.4.1';
+  const HELPER_VERSION = '1.4.2';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
@@ -1232,18 +1232,24 @@
     // document, hits holds the first `max` of them as far as they fit in
     // PAGE_SIZE (truncated:true when they did not). Each hit's `offset` is
     // where the match starts in the text page() reads.
+    // A literal phrase as a pattern. The text keeps the source's emphasis
+    // (*…*, **…**) and soft hyphens, which can sit anywhere inside a
+    // phrase: both are skipped between any two characters, and dropped from
+    // the phrase itself; any whitespace matches any whitespace.
+    const SOFT_HYPHEN = String.fromCharCode(0xad);
+    function literalPattern(term) {
+      const glue = '[*' + SOFT_HYPHEN + ']{0,3}';
+      return String(term).replace(/\*/g, '').split(SOFT_HYPHEN).join('').trim().split(/\s+/)
+        .map((w) => Array.from(w, (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join(glue)).join(glue + '\\s+' + glue);
+    }
+
     async function grep(path, term, ctx = 600, max = 20, regex = false) {
       const entry = requireCached(path);
       if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
       ctx = Math.min(Math.max(0, ctx | 0), 5000);
       let re;
       try {
-        // The text keeps the source's emphasis (*…*, **…**), which can sit
-        // anywhere inside a phrase: skipped between any two characters.
-        const glue = '\\*{0,3}';
-        const source = regex ? term : String(term).replace(/\*/g, '').trim().split(/\s+/)
-          .map((w) => Array.from(w, (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join(glue)).join(glue + '\\s+' + glue);
-        re = new RegExp(source, 'gi');
+        re = new RegExp(regex ? term : literalPattern(term), 'gi');
       } catch (e) {
         return { error: 'not_found', detail: `invalid regex: ${term}` };
       }
@@ -1284,6 +1290,25 @@
         out.detail = `only ${hits.length} hits fit in one reply — lower ctx or max, or narrow the term`;
       }
       return out;
+    }
+
+    // Checks quotations against the loaded text in one call: each quote is
+    // matched as a literal phrase (emphasis markers, soft hyphens and
+    // line breaks tolerated as in grep), but case-sensitively, since a changed
+    // capital letter is a misquotation. Returns only counts, never text:
+    // {path, allFound, quotes: [{n, chars, matches, ignoringCase?}]}.
+    async function checkQuotes(path, quotes) {
+      const entry = requireCached(path);
+      if (!entry) return { error: 'not_found', detail: `${path} not loaded — call load() first` };
+      const list = Array.isArray(quotes) ? quotes : [quotes];
+      const count = (re) => (entry.fullText.match(re) || []).length;
+      const out = list.map((q, n) => {
+        const pattern = literalPattern(q);
+        const r = { n, chars: String(q).length, matches: pattern ? count(new RegExp(pattern, 'g')) : 0 };
+        if (!r.matches && pattern) r.ignoringCase = count(new RegExp(pattern, 'gi'));
+        return r;
+      });
+      return { path, allFound: out.every((r) => r.matches > 0), quotes: out };
     }
 
     async function page(path, offset = 0, size = PAGE_SIZE) {
@@ -1430,6 +1455,7 @@
       toc: metered('toc', toc),
       section: metered('section', section),
       grep: metered('grep', grep),
+      checkQuotes: metered('checkQuotes', checkQuotes),
       page: metered('page', page),
       search: metered('search', search),
       readSearchResults: metered('readSearchResults', readSearchResults),

@@ -6,8 +6,8 @@ description: >
   special courts such as Trygderetten, Arbeidsretten, jordskifte), forarbeider
   and Storting documents, rundskriv, uttalelser (Lovavdelingen, Sivilombudet,
   Skattedirektoratet) and decisions of nemnder (KOFA, Finansklagenemnda …),
-  and the history of laws and regulations (earlier versions, repealed acts,
-  Lovtidend, local forskrifter). Needs the Cowork built-in browser. Triggers:
+  and the history of laws and regulations (earlier and original texts,
+  repealed acts, Lovtidend, local forskrifter). Needs the Cowork built-in browser. Triggers:
   references like HR-YYYY-N, Rt. YYYY s. N, RG, LB-/LG-YYYY-N, TOSL-YYYY-N,
   TRR-, AR-, ND YYYY s. N, KOFA-, FinKN-, SOM-, JDLOV-, rundskriv G-2019-3,
   Ot.prp./Prop. N L, NOU YYYY:N, Innst., Meld. St., Lovvedtak, LOV-/FOR-;
@@ -129,8 +129,10 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    klassisk` på `lovdata.no/pro`. Den skriver en kopi med bare koden for det
    nettstedet, uten kommentarer og innrykk (ca. 36 000 tegn for nye Pro,
    29 000 for Klassisk), og skriver ut stien. Les den filen og send **hele**
-   innholdet via `javascript_tool` (`action: "javascript_exec"`). Virker ikke
-   `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
+   innholdet via `javascript_tool` (`action: "javascript_exec"`), uten å
+   legge til noe: kopiens siste linje gjør at svaret er `[VERSION, SITE]`
+   (f.eks. `["1.4.2", "pro2"]`), og det bekrefter at innlimingen virket.
+   Virker ikke `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene, ca.
    44 000 tegn). Kort aldri ned hjelperen.
    **Innlimingen er ikke valgfri.** Den koster én lang melding, men alt
@@ -176,7 +178,8 @@ setning, på brukerens språk, at Lovdatas brukervilkår bare tillater
 Pro-innhold i KI-verktøy som ikke bruker det til trening, så brukeren bør
 ha slått av «Help improve our AI models» (Settings → Privacy; gjelder ikke Team-
 og Enterprise-planer). Du kan ikke se innstillingen selv: ikke be om
-bekreftelse og ikke stopp arbeidet.
+bekreftelse og ikke stopp arbeidet. Arbeider du for en annen agent (uten
+egen kontakt med brukeren), ta setningen med i svaret ditt.
 
 ---
 
@@ -248,6 +251,13 @@ juni 2005 nr. 62»; kandidaten er kortformen `lov/2005-06-17-62`, som nye Pro
 løser til gjeldende tekst (`NL`, `SF`, `LF`), opphevet tekst (`NLO`, `SFO`,
 `LFO`) eller, for en endringslov uten konsolidert tekst, Lovtidend (`LTI`).
 Se Steg 2b for tidligere versjoner.
+
+**En lov eller forskrift oppgitt bare med navn** («arbeidsmiljøloven»,
+«den gamle arbeidsmiljøloven fra 1977»): slå opp dato og nummer før du
+bruker dem, med `search("<navn>", 5, { bases: ["NL"] })` (`["NLO"]` for en
+opphevet lov, `["SF"]`/`["SFO"]` for forskrifter) eller `lovdata-api`, og
+bruk `path` fra treffet. Ta aldri dato og nummer fra hukommelsen, heller
+ikke når du er sikker.
 
 Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
@@ -331,11 +341,21 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   hvert kall). Si fra til brukeren på forhånd omtrent hvor mange kall det
   tar (`Math.ceil(totalChars / 45000)`).
 
-**Kontroller hvert sitat før du gir det:** kopier det ordrett fra et
-`page`/`section`/`grep`-svar, og kjør `await __lp.grep(path, "<sitatet>",
-0, 1)`. Svaret skal ha `matches` på minst 1. Gir det 0, har sitatet et avvik
-(et ord, en stor bokstav, en sammenstykket bit): finn stedet igjen og rett
-det. Sitér aldri fra hukommelsen av et tidligere svar.
+**Kontroller alle sitater før du svarer**, i ett kall per dokument:
+
+```javascript
+await __lp.checkQuotes(path, ["<sitat 1>", "<sitat 2>", "<kort frase>"])
+```
+
+Det gjelder **alt** du setter i anførselstegn fra dokumentet, også korte
+fraser, overskrifter og sitater fra metadata eller sammendrag. Kopier
+sitatene ordrett fra et `page`/`section`/`grep`-svar. Svaret er
+`{allFound, quotes: [{n, matches, ignoringCase}]}`; sjekken skiller mellom
+store og små bokstaver og tåler uthevingsmerker og linjeskift. Er
+`matches` 0 for et sitat, har det et avvik (et ord, en stor bokstav, et
+tegn, en sammenstykket bit; `ignoringCase` over 0 betyr at bare store og
+små bokstaver avviker): finn stedet igjen og rett det. Sitér aldri fra
+hukommelsen av et tidligere svar.
 
 Eksempler på JS-kall:
 
@@ -435,6 +455,10 @@ results: [{path, title, date}]}`.
 - **Flere treff:** ett kall gir én side; `search(…, { offset: nextOffset })`
   henter neste (samme `sort` og `bases`). `nextOffset` mangler på siste side.
 - Skriv aldri egne kall til Pro-ets søke-API: `search()` dekker det.
+- Treffene er dokumentene der søkeordet står i teksten, og `totalHits` er
+  alle sammen. En datosortert liste er derfor fullstendig for det søkeordet:
+  ikke `load()` treffene for å kontrollere den. Vil du dekke andre ord
+  eller ordformer, søk på dem også i stedet for å lese dokumentene.
 
 `bases` avgrenser til Lovdatas samlings- eller gruppekoder. Treffene kan
 ligge i undersamlinger av koden du ga (`FINKN` gir `FINKNF`, `FINKNB`,
@@ -565,10 +589,8 @@ høy kostnad.
 feltet `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over
 lovens forarbeider (også for endringslover). `load()` den og hent
 dokumentene listen nevner. Lovens dato og nummer får du fra `lovdata-api`
-eller ved å `load()` loven (`metadata.Datokode`). Oppgir brukeren bare
-navnet (og året), finn loven med `search("<navn>", 5, { bases: ["NL"] })`
-(`["NLO"]` for en opphevet lov) og bruk `path` fra treffet; ta aldri dato
-og nummer fra hukommelsen uten å slå dem opp. For forarbeidene til en *endring*: finn endringsloven med
+eller ved å `load()` loven (`metadata.Datokode`); oppgir brukeren bare
+navnet, se Steg 1 («En lov eller forskrift oppgitt bare med navn»). For forarbeidene til en *endring*: finn endringsloven med
 `backlinks(lov, "endringslover")` og slå opp dens `RFA`.
 
 Forarbeidene består typisk av tre dokumenter — alle bør hentes når brukeren
@@ -652,8 +674,9 @@ kaste. Kodene:
 
 Hvert `javascript_tool`-svar går gjennom verktøykanalen og inn i samtalen —
 returner **aldri** mer enn `PAGE_SIZE` (se toppen av `lovdata_pro.js`) fra ett
-JS-kall. Bruk `section`/`grep`/`page` istedenfor å be om hele
-`__lp.cache[path].fullText` direkte. Foretrekk `browser_batch` når du skal
+JS-kall. **Les aldri `__lp.cache` direkte**, verken `fullText` eller
+`toc`: bruk `page`/`section`/`grep`, og `toc(path, start)` for
+innholdsfortegnelsen. De holder svarene under grensen. Foretrekk `browser_batch` når du skal
 navigere + lime inn scriptet + sjekke innlogging i samme tur.
 
 ---

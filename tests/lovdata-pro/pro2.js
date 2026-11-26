@@ -192,6 +192,10 @@ async function main() {
     '*b.* andre punkt',
   ].join('\n'));
   check('grep "(2)" finds the paragraph', (await lp.grep(r.path, '(2)', 20, 5)).matches, 1);
+  const cq = await lp.checkQuotes(r.path, ['Første avsnitt med kursiv og fet skrift.', 'første avsnitt med', 'Ikke i teksten']);
+  check('checkQuotes: emphasis tolerated, case counts, no text returned',
+    [cq.allFound, cq.quotes.map(q => [q.matches, q.ignoringCase])], [false, [[1, undefined], [0, 1], [0, 0]]]);
+  check('checkQuotes: all found', (await lp.checkQuotes(r.path, '(2) Andre avsnitt,' + String.fromCharCode(10) + 'jf. § 2.')).allFound, true);
 
   const { lp: lp2 } = makeTab();
   r = await lp2.load(['HRSTR/avgjorelse/hr-2016-1-a']);

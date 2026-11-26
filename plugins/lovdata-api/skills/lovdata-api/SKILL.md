@@ -1,16 +1,16 @@
 ---
 name: lovdata-api
 description: >
-  Use this skill any time the user needs to look up, cite, or verify Norwegian law, even
-  for conversational questions. Covers: what a Norwegian lov or forskrift says on any
-  topic (employment, criminal, administrative, family, health, tax, etc.); exact text of
-  a provision; recent amendments; rights or duties under Norwegian law; explaining legal
-  concepts using actual statute text. Trigger even for natural-language questions like
-  "kan arbeidsgiver nekte meg å jobbe deltid?", "what does norwegian law say about X?",
-  "hva sier loven om Y?" — if answering requires current statute text, use this skill.
-  Prefer this over training-data recall: only Lovdata guarantees the current wording. Do
-  NOT use for: finding a lawyer, non-legislative documents, legal theory with no need
-  for statute text, or a law as it read on a past date, earlier versions or a repealed
+  Use any time the user needs to look up, cite, or verify Norwegian law, even for
+  conversational questions. Covers: what a Norwegian lov or forskrift says on any topic
+  (employment, criminal, family, tax, etc.); exact text of a provision; recent
+  amendments; rights or duties under Norwegian law. Trigger even for natural-language
+  questions like "kan arbeidsgiver nekte meg å jobbe deltid?", "what does norwegian law
+  say about X?", "hva sier loven om Y?" — if answering requires current statute text,
+  use this skill. Prefer this over training-data recall: only Lovdata guarantees the
+  current wording. Do NOT use for: finding a lawyer, non-legislative documents, legal
+  theory with no need for statute text, or a law's text as it read on a past date or as
+  enacted (original text, also of a law still in force), earlier versions or a repealed
   act's text (lovdata-pro, needs Lovdata Pro). Inneholder data under Norsk lisens for
   offentlige data (NLOD) 2.0 tilgjengeliggjort av Lovdata.
 ---

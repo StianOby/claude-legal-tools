@@ -31,7 +31,7 @@ const run = (text, host) => {
   const ctx = { location: { hostname: host, origin: `https://${host}`, hash: '', pathname: '/' }, document: { title: '', querySelector: () => null }, fetch: async () => { throw new Error('no network'); }, setTimeout, console };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(text, ctx);
+  run.reply = vm.runInContext(text, ctx);
   return ctx.__lp;
 };
 
@@ -55,6 +55,8 @@ async function main() {
     check(`${site}: all of its own code`, OWN[site].every((w) => text.includes(w)), OWN[site].filter((w) => !text.includes(w)).join(', '));
     const lp = run(text, site === 'pro2' ? 'lovdata.no' : 'pro2.lovdata.no');
     check(`${site}: SITE`, lp.SITE === site, lp.SITE);
+    const reply = JSON.stringify(Array.from(run.reply || []));
+    check(`${site}: the paste replies [VERSION, SITE]`, reply === JSON.stringify([lp.VERSION, site]), reply);
     const r = await lp.isLoggedIn();
     check(`${site}: refuses a ${other} tab`, r.error === 'wrong_site' && r.pasted === site && r.site === other, JSON.stringify(r));
     check(`${site}: load refuses it too`, (await lp.load('HRSIV/avgjorelse/hr-2020-1')).error === 'wrong_site', 'no');

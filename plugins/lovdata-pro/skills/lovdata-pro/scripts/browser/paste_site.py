@@ -9,7 +9,7 @@ Klassisk. Code for only one of them sits between a line "//#site pro2" (or
 sets HELPER_SITE to the chosen site, strips the result with paste.py (same
 folder) and writes it to the system temp directory. It prints one line: the
 path and the size. Read that file and send its whole contents via
-javascript_tool.
+javascript_tool; its last line makes the reply [VERSION, SITE].
 """
 
 import os
@@ -61,6 +61,8 @@ def main(argv):
     helper = argv[2] if len(argv) == 3 else HELPER
     src = open(helper, encoding="utf-8").read()
     out = paste.strip(cut(src, argv[1]))
+    # The paste's reply: which helper now runs in the tab.
+    out += "[window.__lp.VERSION, window.__lp.SITE]" + chr(10)
     dest = os.path.join(tempfile.gettempdir(),
                         "%s.%s.paste.js" % (os.path.basename(helper)[:-3], argv[1]))
     with open(dest, "w", encoding="utf-8", newline="\n") as f:
