@@ -79,7 +79,7 @@ pygments==2.21.0
     # via rich
 pypdf==7.0.0
     # via -r requirements.in
-pypdfium2==5.15.1
+pypdfium2==5.15.2
     # via ocrmypdf
 referencing==0.37.0
     # via

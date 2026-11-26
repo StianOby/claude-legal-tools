@@ -23,6 +23,8 @@ except ImportError:
     sys.exit(0)
 import zotero_book as zb  # noqa: E402
 
+# The download tests below replace these; the tile tests use the real ones.
+REAL_TILED, REAL_SINGLE = zb._fetch_page_tiled, zb._fetch_page_singleshot
 failures = 0
 
 
@@ -189,10 +191,24 @@ with redirect_stdout(io.StringIO()):
     zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=2)
 check("default: half size, one request per page", (seen["single"], seen["tiled"]), ([2, 2], []))
 seen = {"single": [], "tiled": []}
+
+
+def single_refused(base, scale, hdr, timeout=30.0):
+    seen["single"].append(scale)
+    return None, None
+
+
+zb._fetch_page_singleshot = single_refused
+_manifest = zb._fetch_manifest
+zb._fetch_manifest = lambda cid, hdr: {"sequences": [{"canvases": [
+    {"@id": f"x/p{i}", "images": [{"resource": {"service": {"@id": f"https://iiif/p{i}"}}}]}
+    for i in range(1, 7)]}]}
 with redirect_stdout(io.StringIO()):
-    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=2,
-                         public_domain=False)
-check("not public domain: straight to half-size tiles", (seen["single"], seen["tiled"]), ([], [2, 2]))
+    zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=1)
+check("refused one request: tiles, and after 3 refusals no more one requests",
+      (len(seen["single"]), len(seen["tiled"])), (3, 6))
+zb._fetch_manifest = _manifest
+zb._fetch_page_singleshot = single_rec
 seen = {"single": [], "tiled": []}
 with redirect_stdout(io.StringIO()):
     zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=2, stop=1,
@@ -213,6 +229,86 @@ try:
     check("rejects an unknown size", "no error", "ValueError")
 except ValueError:
     check("rejects an unknown size", True, True)
+
+print("download_via_iiif: stops early when the first pages all fail")
+attempts.clear()
+
+
+def single_dead(base, scale, hdr, timeout=30.0):
+    name = base.rsplit("/", 1)[1]
+    attempts[name] = attempts.get(name, 0) + 1
+    raise urllib.error.URLError("refused")
+
+
+zb._fetch_page_singleshot = single_dead
+zb._fetch_manifest = lambda cid, hdr: {"sequences": [{"canvases": [
+    {"@id": f"x/p{i}", "images": [{"resource": {"service": {"@id": f"https://iiif/p{i}"}}}]}
+    for i in range(1, 31)]}]}
+try:
+    with redirect_stdout(io.StringIO()):
+        zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=4)
+    check("aborts", "no error", "SystemExit")
+except SystemExit as e:
+    check("aborts with the access hint", "first 8 pages all failed" in str(e)
+          and "TAKENBYCURRENTUSER" in str(e), True)
+check("only the first 8 pages tried, once each", (len(attempts), max(attempts.values())), (8, 1))
+zb._fetch_manifest = _manifest
+zb._fetch_page_singleshot = single_rec
+
+print("_fetch_page_tiled against a resolver that acts like nb.no on 2026-11-26")
+import re  # noqa: E402
+
+_real_read_url = zb._read_url
+FULL_W, FULL_H = 2938, 4041
+requested = []
+
+
+def fake_resolver(behaviour):
+    def read(url, hdr, timeout):
+        if behaviour == "empty":
+            return b""
+        m = re.search(r"/(\d+),(\d+),(\d+),(\d+)/([^/]+)/0/default\.jpg$", url)
+        x, y, w, h = map(int, m.groups()[:4])
+        requested.append((x, y, w, h))
+        if behaviour == "empty" or (behaviour == "narrow_edge_empty"
+                                    and x + w == FULL_W and w < 2048):
+            return b""
+        size = m.group(5)
+        if behaviour == "ignores_size" or size == "full":
+            ow, oh = w, h
+        else:
+            ow = int(size.rstrip(","))
+            oh = round(h * ow / w)
+        buf = io.BytesIO()
+        # Shade by region origin, so a misplaced tile shows.
+        Image.new("RGB", (ow, oh), (x % 251, y % 251, 100)).save(buf, "JPEG")
+        return buf.getvalue()
+    return read
+
+
+info = {"width": FULL_W, "height": FULL_H}
+check("tile origins: last one moved back to keep the full step",
+      (zb._tile_starts(FULL_W, 2048), zb._tile_starts(FULL_H, 2048), zb._tile_starts(1500, 2048)),
+      ([0, 890], [0, 1993], [0]))
+zb._read_url = fake_resolver("narrow_edge_empty")
+requested.clear()
+page = REAL_TILED("https://iiif/p1", info, {}, scale=2)
+check("every region the full 2048 px a side", {(w, h) for _, _, w, h in requested}, {(2048, 2048)})
+with Image.open(io.BytesIO(page)) as im:
+    check("half-size page: 1469x2021", im.size, (1469, 2021))
+    check("right and bottom edges are filled, not white",
+          (im.getpixel((1468, 10))[2] < 200, im.getpixel((10, 2020))[2] < 200), (True, True))
+for behaviour, why in (("ignores_size", "tile at full size"), ("empty", "empty body")):
+    zb._read_url = fake_resolver(behaviour)
+    try:
+        REAL_TILED("https://iiif/p1", info, {}, scale=2)
+        check(f"{why} fails the page", "no error", "PageImageError")
+    except zb.PageImageError as e:
+        check(f"{why} fails the page", True, True)
+zb._read_url = fake_resolver("empty")
+check("empty one-request answer counts as refused",
+      REAL_SINGLE("https://iiif/p1", 2, {}), (None, None))
+zb._read_url = _real_read_url
 
 print("rescale_pdf_pages: poster PDF -> book size")
 try:

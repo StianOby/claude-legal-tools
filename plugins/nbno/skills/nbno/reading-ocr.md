@@ -77,8 +77,10 @@ machine-readable text rather than a visual check.
 
 `scripts/ocr_chunked.py` is a resumable wrapper around ocrmypdf for books
 whose OCR does not fit one bash call. That is most books: on a 2-vCPU
-Cowork sandbox Tesseract manages about **13 pages a minute**, so a 400-page
-book takes about 30 minutes over roughly 12 calls. Its input must be an
+Cowork sandbox Tesseract manages about **13 pages a minute** (the local
+VM, also 2 vCPUs, ~15 on 2026-11-26), so a 400-page book takes about
+30 minutes over roughly 11–12 calls. If every page fails (a missing
+language model, say), the call stops after a few pages and exits 1. Its input must be an
 unshrunk PDF (bitonal pages OCR worse): `zotero_book.py --no-ocr` leaves
 the pages unshrunk for this reason.
 
@@ -161,7 +163,7 @@ Modes, measured on three law books (1907, 1964, 1997) on 2026-10-23:
 
 | `--mode` | text pages | KB/page | 400 pages | use for |
 | --- | --- | --- | --- | --- |
-| `bitonal` (default) | black and white, CCITT G4 (lossless), scaled up 2× from half size | ~60 | ~25 MB | everything, unless grey tones matter |
+| `bitonal` (default) | black and white, CCITT G4 (lossless), scaled up 2× from half size | ~60–95 | ~25–37 MB | everything, unless grey tones matter |
 | `grey` | greyscale JPEG q60 at the downloaded size | ~200 | ~80 MB | pencil notes, stamps, illustrations the user cares about |
 | `jpeg` | JPEG q60 at 800 px (the pre-1.5 default) | ~110 | ~45 MB | only if asked; soft on small print |
 

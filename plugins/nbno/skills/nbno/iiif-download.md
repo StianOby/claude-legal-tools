@@ -26,11 +26,19 @@ listed in this file:
   `[1136, 568, …]` returns 568 px). Half size OCRs within 0.4 % of full
   size and needs a third of the requests (2026-10-23); `size="full"` gets
   the scan's own size;
-- asks for the page in one request (`/full/pct:50/`) for public-domain
-  items, and as `regionByPx` tiles scaled down by the server (2048-px
-  regions returned at 1024, 4 a page) for everything else, which gets no
-  single image above 1/4 size; a one-request page that comes back smaller
-  than the canvas says is fetched again as tiles;
+- asks for each page in one request (`/full/pct:50/`) first, for every
+  item, and falls back to `regionByPx` tiles scaled down by the server
+  (2048-px regions returned at 1024, 4 a page) when that is refused,
+  empty, or smaller than the canvas says; after a few refusals with none
+  served, the rest of the book goes straight to tiles;
+- keeps every tile region the full 2048 px wide: the last column and row
+  are moved back to overlap their neighbour, because nb.no answered a
+  narrower edge region with an empty body (2026-11-26); and checks every
+  tile's pixel size before pasting it (a tile at the wrong size once gave
+  pages showing only their top-left quarter, with no error);
+- stops after the first 8 pages when all of them fail (wrong IP, no loan,
+  expired cookie), with the access hint, instead of failing the whole
+  book;
 - skips the `_C2` back cover automatically;
 - retries timeouts, dropped connections, 429 and 5xx on every request, and
   gives failed pages a second, slower pass;
@@ -101,9 +109,9 @@ half-size image, black page bottoms, poster-sized PDF pages).
 
 `api.nb.no` authenticates by cookie — there is no bearer token. Public-domain
 and Bokhylla items need no credential at all (Bokhylla needs a Norwegian IP, so run this in the local shell — SKILL.md **Routing**);
-FEIDE-licensed items need `nbsso` plus an active digital loan. Anything that
-is not public domain gets no single image above 1/4 size; larger pages come
-as tiles. See [`auth.md`](auth.md) for the full table.
+FEIDE-licensed items need `nbsso` plus an active digital loan. Which items
+get a single image at half size has changed over time, so the downloader
+tries one request first and tiles where it is refused. See [`auth.md`](auth.md) for the full table.
 
 ---
 

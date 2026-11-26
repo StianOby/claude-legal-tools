@@ -108,18 +108,22 @@ not one. So:
      `test -f <dir>/.ready || exit 4; PYTHONUTF8=1 <py> <dir>/scripts/geo_check.py --id <id>` (add
      `--cookie <dir>/cookie.txt` for `NB`). `route: here` → go on. `norwegian-ip` → the user's IP is not Norwegian; tell
      them and stop. `norwegian-ip+loan` → ask the user to log in again / retake the loan in the browser pane, re-read
-     the cookie, retry **once**, then stop.
+     the cookie, retry **once**, then stop. For `NB`, `here` needs the cookie *and* the loan
+     (`legalDepositReservationStatus: TAKENBYCURRENTUSER`); a served tile alone is not enough, as nb.no serves the
+     first pages without a loan.
    - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), calling the scripts by
      absolute path (`NBNO_PYTHON=<py> bash <dir>/scripts/nbno_run.sh …`, `<py> <dir>/scripts/zotero_book.py …`) with
      `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or
      `--nbsso "$(grep -o 'nbsso=[^;]*' <dir>/cookie.txt)"` for `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
      `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
    - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
-     2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs `ocrmypdf` into the run directory itself.
+     2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs Pillow and `ocrmypdf` into the run directory itself.
      Missing → `--no-ocr`. Current ocrmypdf needs Python ≥ 3.11: with `<py>` that holds; if
      `local_python.sh` failed and you are on the VM's `python3` (3.10), pip installs an older ocrmypdf, so say
      so. Install no Python other than through `local_python.sh` (never system-wide, never conda). Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
      handle it as in **OCR failed (exit 5)** under Step 4.
+   - If the device drops mid-run ("not connected to the bridge"), wait for it to reconnect and re-run the same
+     command: `<dir>` and `ocr_chunked.py`'s page cache survive, and the run resumes (2026-11-26).
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/` and tell the user where it is. Keep
      `<dir>` for further nb.no downloads in this conversation (`local-route.md` §2.4); when you are done with
      nb.no, `rm -rf <dir>` (this also removes the cookie).
@@ -165,7 +169,7 @@ only — the cookie. Never shuttle page images through the browser.
    before `status()`.
 4. **Classify.** `await __nb.access("<id>")` → classify on
    **`accessAllowedFrom` only** (`EVERYWHERE` open · `NORWAY` Bokhylla, no
-   cookie, tiles only · `NB` legal deposit, `nbsso` + loan, tiles only).
+   cookie · `NB` legal deposit, `nbsso` + loan).
    `viewability` and `legalDepositLoginText` flip when you log in — status,
    never classification.
 5. **Geo.** `NORWAY`/`NB` → run the probe and follow **Routing** above.
@@ -290,7 +294,7 @@ For reading pages visually, OCR and shrinking, read
   ~50 MB (`nbno_run.sh` prints a `[hint]`) →
   `python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>`. Order is always
   download → OCR → shrink; never `--resize` to save space. The default
-  (`--shrink-mode bitonal`) makes text pages sharp black and white (~25 MB
+  (`--shrink-mode bitonal`) makes text pages sharp black and white (~25–37 MB
   for 400 pages) and keeps covers and photos as JPEG; faint pencil notes
   turn black and stamps become outlines. If the user wants grey tones kept
   (annotations, stamps, illustrations), use `--shrink-mode grey`

@@ -39,8 +39,10 @@ to nb.no lives as a Web Link attachment on the imported item.
 Pipeline:
   1. Resolve --id into a canonical nb.no item ID (digibok_NNN…).
   2. Fetch metadata from https://api.nb.no/catalog/v1/items/<URN>.
-  3. For a geo-gated item, ask the image resolver for one small tile and
-     stop on a 403 — every page would fail the same way.
+  3. For a geo-gated item, ask the image resolver for one tile of a
+     mid-book page and stop on a 403 — every page would fail the same way;
+     for a legal-deposit (NB) item with --nbsso, also stop when the
+     catalogue shows no active loan.
      Then compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
   4. Download the full book PDF.
        - Default: the fast IIIF downloader in-process, pages at half size
@@ -137,7 +139,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.4"
+VERSION = "1.7.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -639,6 +641,54 @@ def _fetch_iiif_info(base_url: str, hdr_img: Dict[str, str],
 SIZES = {"half": 2, "full": 1}
 
 
+class PageImageError(Exception):
+    """nb.no answered a page or tile request with something that is not the
+    image asked for: an empty body, a non-image, or the wrong pixel size."""
+
+
+def _ensure_pillow():
+    """Import PIL.Image, pip-installing Pillow into _pylib on first use (the
+    local VM's Python has none, 2026-11-26), as img2pdf and ocrmypdf are."""
+    for attempt in range(2):
+        try:
+            from PIL import Image
+            return Image
+        except ImportError:
+            if attempt == 0:
+                _ensure_pylib_on_path()   # installed by an earlier call?
+    print("[dl] installing Pillow (one-time)...")
+    _pip_install_to_pylib(["Pillow"])
+    import importlib
+    importlib.invalidate_caches()   # _pylib's directory listing is cached
+    try:
+        from PIL import Image  # noqa: F811
+        return Image
+    except ImportError as exc:
+        raise SystemExit(
+            "ERROR: Pillow is required and could not be installed. Install with: "
+            f"pip install --target {_pylib_target()} --break-system-packages "
+            f"-c {CONSTRAINTS} Pillow"
+        ) from exc
+
+
+def _read_image(url: str, headers: Dict[str, str], timeout: float) -> Tuple[bytes, Tuple[int, int]]:
+    """GET an image and return (bytes, (w, h)). Raises PageImageError on an
+    empty or unreadable body: nb.no has answered some region requests with
+    HTTP 200 and no body at all (2026-11-26), which must fail the page with
+    a clear message rather than as a PIL exception or a blank tile."""
+    import io
+    Image = _ensure_pillow()
+    data = _read_url(url, headers, timeout)
+    if not data:
+        raise PageImageError(f"empty response (HTTP 200, no body) for {url}")
+    try:
+        with Image.open(io.BytesIO(data)) as im:
+            size = im.size
+    except Exception as exc:  # noqa: BLE001 - PIL raises several kinds
+        raise PageImageError(f"not an image ({len(data)} bytes) for {url}") from exc
+    return data, size
+
+
 def _fetch_page_singleshot(
     base_url: str, scale: int, hdr_img: Dict[str, str],
     timeout: float = 30.0,
@@ -648,27 +698,36 @@ def _fetch_page_singleshot(
 
     The (w,h) tuple is the *actual* size of the returned image as measured by
     PIL — callers compare it with the canvas size to detect silent
-    downsampling. Returns (None, None) on 403/404, which is what anything
-    but a public-domain item gets above 1/4 size (checked 2026-10-23).
+    downsampling. Returns (None, None) when refused (403/404) or answered
+    with an empty or unreadable body; the caller then uses tiles.
+
+    Which items get a single image at half size has changed: on 2026-10-23
+    anything but public domain got 403 above 1/4 size; on 2026-11-26 a loaned
+    legal-deposit book (NB) was served every page at half size this way. So
+    it is tried first for every item.
     """
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise SystemExit(
-            "Pillow is required. Install with: "
-            f"pip install --break-system-packages -c {CONSTRAINTS} Pillow"
-        ) from exc
-    import io
     size = "full" if scale == 1 else f"pct:{100 // scale}"
     url = f"{base_url}/full/{size}/0/default.jpg"
     try:
-        data = _read_url(url, hdr_img, timeout)
+        return _read_image(url, hdr_img, timeout)
     except urllib.error.HTTPError as e:
         if e.code in (403, 404):
             return None, None
         raise
-    actual = Image.open(io.BytesIO(data)).size
-    return data, actual
+    except PageImageError:
+        return None, None
+
+
+def _tile_starts(full: int, step: int) -> List[int]:
+    """Region origins along one axis of a canvas `full` px long, `step` px a
+    region. The last region is moved back so it keeps the whole step and
+    overlaps its neighbour: nb.no answers a narrower region at the right
+    edge with an empty body, and one moved back with the full width works
+    (2026-11-26). An axis no longer than one step is one region."""
+    if full <= step:
+        return [0]
+    n = -(-full // step)
+    return [i * step for i in range(n - 1)] + [full - step]
 
 
 def _fetch_page_tiled(
@@ -676,47 +735,58 @@ def _fetch_page_tiled(
     scale: int = 1, tile_size: int = 1024, timeout: float = 30.0,
 ) -> Optional[bytes]:
     """Fetch a canvas at 1/`scale` of full size as regionByPx tiles and
-    stitch with PIL.
+    stitch with PIL. Returns None when a tile is refused (403/404).
 
     The resolver serves any region, scaled down, as long as the image it
-    returns is at most 1024 px a side — also for in-copyright items, which
-    get no single image above 1/4 size. So each tile is a region of
+    returns is at most 1024 px a side. So each tile is a region of
     1024*scale px, returned at 1024: 4 tiles a page at half size, 12 at
     full (2026-10-23).
+
+    Every tile is checked before it is pasted: an empty body, or a tile
+    whose pixel size is not the one asked for, fails the page with
+    PageImageError. On 2026-11-26 nb.no returned a region at full size when
+    asked for `,h` (height only), and pasting those quietly gave pages that
+    showed only their top-left quarter.
     """
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise SystemExit(
-            "Pillow is required. Install with: "
-            f"pip install --break-system-packages -c {CONSTRAINTS} Pillow"
-        ) from exc
     import io
+    Image = _ensure_pillow()
     full_w = int(info.get("width") or 0)
     full_h = int(info.get("height") or 0)
     if full_w <= 0 or full_h <= 0:
         return None
+    out_w, out_h = -(-full_w // scale), -(-full_h // scale)
     tiles: List[Tuple[int, int, bytes]] = []
     step = tile_size * scale
-    for y in range(0, full_h, step):
-        for x in range(0, full_w, step):
-            tw = min(step, full_w - x)
-            th = min(step, full_h - y)
-            size = "full" if scale == 1 else f"{-(-tw // scale)},"
+    for y in _tile_starts(full_h, step):
+        for x in _tile_starts(full_w, step):
+            tw = min(step, full_w)
+            th = min(step, full_h)
+            want = (-(-tw // scale), -(-th // scale))
+            size = "full" if scale == 1 else f"{want[0]},"
             url = f"{base_url}/{x},{y},{tw},{th}/{size}/0/default.jpg"
             try:
-                tiles.append((x // scale, y // scale, _read_url(url, hdr_img, timeout)))
+                data, got = _read_image(url, hdr_img, timeout)
             except urllib.error.HTTPError as e:
                 if e.code in (403, 404):
                     return None
                 raise
+            # 1 px of slack for the server's rounding of an odd length.
+            if abs(got[0] - want[0]) > 1 or abs(got[1] - want[1]) > 1:
+                raise PageImageError(
+                    f"tile {x},{y},{tw},{th} came back {got[0]}x{got[1]}, "
+                    f"expected {want[0]}x{want[1]}")
+            # A tile reaching the far edge is pasted flush with the canvas
+            # edge: x // scale rounds down, and with an odd length that left
+            # the last row or column white.
+            tiles.append((out_w - got[0] if x + tw >= full_w else x // scale,
+                          out_h - got[1] if y + th >= full_h else y // scale, data))
     # Downloading is network-bound and runs on all --workers threads; the
     # stitched canvas and JPEG encode are CPU- and memory-bound, so only one
     # page per usable CPU is stitched at a time.
     with _STITCH_SLOTS:
-        canvas = Image.new("RGB", (-(-full_w // scale), -(-full_h // scale)), "white")
+        canvas = Image.new("RGB", (out_w, out_h), "white")
         for x, y, data in tiles:
-            canvas.paste(Image.open(io.BytesIO(data)).convert("RGB"), (x, y))
+            canvas.paste(Image.open(io.BytesIO(data)).convert("RGB"), (max(0, x), max(0, y)))
         buf = io.BytesIO()
         canvas.save(buf, format="JPEG", quality=92)
     return buf.getvalue()
@@ -852,14 +922,13 @@ def download_via_iiif(
     tiles: str = "auto",
     start: Optional[int] = None,
     stop: Optional[int] = None,
-    public_domain: Optional[bool] = None,
 ) -> dict:
     """Fast in-process downloader.
 
     Pulls the IIIF manifest and downloads each canvas at `size` ("half" or
-    "full", see SIZES): in one request where nb.no allows it (public-domain
-    items), otherwise as tiles. A one-request page smaller than the canvas
-    says it should be (a silent downsample) is fetched again as tiles.
+    "full", see SIZES): in one request where nb.no allows it, otherwise as
+    tiles. A one-request page smaller than the canvas says it should be (a
+    silent downsample) is fetched again as tiles.
 
     start/stop select a 1-based, inclusive range of manifest canvases (same
     meaning as nbno_run.sh --start/--stop); stop is clamped to the number of
@@ -875,12 +944,14 @@ def download_via_iiif(
     plus a digital loan the user has taken in a browser.
 
     tiles ∈ {"auto", "always", "never"}:
-      - auto:   one request first, tiles on 403 or a silent downsample; an
-                item known not to be public domain (`public_domain=False`)
-                goes straight to tiles, as one request would be refused
+      - auto:   one request first, for every item; tiles on 403, an empty
+                answer or a silent downsample. Once a few pages have been
+                refused and none served, the rest go straight to tiles.
       - always: skip the one request; tile every page
       - never:  one request only
 
+    When the first _EARLY_PAGES pages all fail, the run stops there with
+    the access hint instead of spending its time on a book it cannot get.
     Every request retries transient failures (timeouts, 429, 5xx), and pages
     that still fail get a second, slower pass. A page that cannot be had at
     all is NOT dropped: it becomes a placeholder page saying so, so every
@@ -897,8 +968,6 @@ def download_via_iiif(
         raise ValueError(f"stop must be >= start (got start={start}, stop={stop})")
     if size not in SIZES:
         raise ValueError(f"size must be one of {sorted(SIZES)} (got {size!r})")
-    if tiles == "auto" and public_domain is False:
-        tiles = "always"
     tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
     try:
         return _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
@@ -906,6 +975,16 @@ def download_via_iiif(
                                   start, stop)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# Pages fetched before deciding that the whole book will fail (see above).
+_EARLY_PAGES = 8
+_NO_PAGES_HINT = (
+    "Check, in this order: (1) is the egress IP Norwegian? "
+    "accessAllowedFrom NORWAY/NB items 403 on every page regardless of "
+    "login; (2) for a FEIDE-licensed item, has the user taken the digital "
+    "loan in a browser (legalDepositReservationStatus == TAKENBYCURRENTUSER) "
+    "and is --nbsso set and still valid?")
 
 
 def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
@@ -941,7 +1020,8 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
         canvas_name = c["@id"].split("/")[-1]
         base = c["images"][0]["resource"]["service"]["@id"]
         entries.append({"canvas": canvas_name, "base_url": base,
-                        "width": int(c.get("width") or 0)})
+                        "width": int(c.get("width") or 0),
+                        "height": int(c.get("height") or 0)})
 
     label = "half size" if scale == 2 else "full size"
     how = {"always": "as tiles", "never": "one request each",
@@ -955,6 +1035,13 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
             return None
         return _fetch_page_tiled(entry["base_url"], info, hdr_img, scale=scale)
 
+    # --tiles auto: after this many refused one-request pages, with none
+    # served, the rest of the book goes straight to tiles (a Bokhylla book
+    # would otherwise cost one refused request per page). Updated from
+    # several threads without a lock; a lost update only delays the switch.
+    single = {"served": 0, "refused": 0}
+    REFUSALS_BEFORE_TILES = 3
+
     # Every page reports how it was fetched and the caller tallies the modes;
     # counting inside the workers would race (12 threads, non-atomic +=).
     def fetch_page(idx_entry: Tuple[int, Dict[str, Any]]) -> Tuple[int, Optional[str], str]:
@@ -965,22 +1052,30 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
         data: Optional[bytes] = None
         mode = "single"
 
-        if tiles == "always":
+        if tiles == "always" or (
+                tiles == "auto" and not single["served"]
+                and single["refused"] >= REFUSALS_BEFORE_TILES):
             data = tiled(entry)
             mode = "tiled"
         else:
             data, actual = _fetch_page_singleshot(entry["base_url"], scale, hdr_img)
-            want = -(-entry["width"] // scale) if entry["width"] else 0
+            want_w = -(-entry["width"] // scale) if entry["width"] else 0
+            want_h = -(-entry["height"] // scale) if entry["height"] else 0
             if data is not None and actual is not None:
-                if want and actual[0] < want - 4:  # tolerate 1–2px rounding
+                # Tolerate 1–4 px of rounding; anything smaller is a
+                # silent downsample.
+                if (want_w and actual[0] < want_w - 4) or (want_h and actual[1] < want_h - 4):
                     mode = "single_downsampled"
                     if tiles == "auto":
                         retry = tiled(entry)
                         if retry is not None:
                             data = retry
                             mode = "tiled_after_downsample"
+                else:
+                    single["served"] += 1
             elif tiles == "auto":
-                # 403/404 on the one request → try tiles.
+                # Refused or empty → try tiles.
+                single["refused"] += 1
                 data = tiled(entry)
                 if data is not None:
                     mode = "tiled_after_403"
@@ -1002,10 +1097,23 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
     t0 = time.time()
     results: Dict[int, Optional[str]] = {}
     modes: Dict[int, str] = {}
+    work = list(enumerate(entries, start=1))
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for idx, path, mode in pool.map(
-            fetch_page_safe, list(enumerate(entries, start=1))
-        ):
+        # The first pages on their own: when every one of them fails, so
+        # will the rest (no Norwegian IP, no loan, an expired cookie), and
+        # fetching and retrying a whole book of failures used up a 170 s
+        # call with nothing written (2026-11-26).
+        for idx, path, mode in pool.map(fetch_page_safe, work[:_EARLY_PAGES]):
+            results[idx] = path
+            modes[idx] = mode
+        tried = [m for m in modes.values() if m != "skipped_c2"]
+        if len(work) > _EARLY_PAGES and tried and not any(results.values()):
+            raise SystemExit(
+                f"ERROR: the first {len(tried)} pages all failed, so the rest "
+                "were not tried.\n       First failure: "
+                f"{next(m for m in modes.values() if m != 'skipped_c2')[:200]}\n"
+                f"       {_NO_PAGES_HINT}")
+        for idx, path, mode in pool.map(fetch_page_safe, work[_EARLY_PAGES:]):
             results[idx] = path
             modes[idx] = mode
 
@@ -1035,14 +1143,7 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
 
     page_paths = [results[i] for i in sorted(results) if results[i]]
     if not page_paths:
-        raise SystemExit(
-            "ERROR: no pages downloaded. Check, in this order: (1) is the "
-            "egress IP Norwegian? accessAllowedFrom NORWAY/NB items 403 on "
-            "every page regardless of login; (2) for a FEIDE-licensed item, "
-            "has the user taken the digital loan in a browser "
-            "(legalDepositReservationStatus == TAKENBYCURRENTUSER) and is "
-            "--nbsso set?"
-        )
+        raise SystemExit(f"ERROR: no pages downloaded. {_NO_PAGES_HINT}")
 
     # A failed page becomes a placeholder in its own place, so the pages
     # after it keep their numbers. PDF page numbers count only the pages
@@ -1511,9 +1612,22 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor",
         )
 
 
+def probe_canvas_index(names: List[str]) -> Optional[int]:
+    """Index of the canvas to probe: the middle numbered page, else the
+    middle canvas that is not a _C2, else None. (geo_check.py has a copy.)"""
+    numbered = [i for i, n in enumerate(names) if n.rsplit("_", 1)[-1].isdigit()]
+    if not numbered:
+        numbered = [i for i, n in enumerate(names) if not n.endswith("_C2")]
+    return numbered[len(numbered) // 2] if numbered else None
+
+
+# legalDepositReservationStatus when the caller holds the digital loan.
+LOAN_TAKEN = "TAKENBYCURRENTUSER"
+
+
 def probe_page_image(canonical_id: str, nbsso: Optional[str] = None,
                      timeout: float = 20.0) -> Optional[int]:
-    """Ask the image resolver for one 1024 px tile of the first numbered page.
+    """Ask the image resolver for one 1024 px tile of a mid-book page.
 
     Returns the HTTP status — 200 when nb.no serves it to this IP and
     session — or None when no probe could be made (manifest unreachable,
@@ -1522,7 +1636,9 @@ def probe_page_image(canonical_id: str, nbsso: Optional[str] = None,
     and thumbnails are never gated, so only a real page tile answers it. It
     is the same request the download would make next, to nb.no only. The
     size matters: 256 px tiles are served to anyone (verified 2026-09-29 on
-    a legal-deposit item, anonymously), 1024 px tiles are not.
+    a legal-deposit item, anonymously), 1024 px tiles are not. So does the
+    page: an NB item with no loan was served its first pages anonymously
+    while every later page failed (2026-11-26), hence a mid-book page.
     """
     hdr_api = {"cookie": nbsso} if nbsso else {}
     hdr_img = {"referer": f"https://www.nb.no/items/{urn_form(canonical_id)}"}
@@ -1534,12 +1650,7 @@ def probe_page_image(canonical_id: str, nbsso: Optional[str] = None,
     except (SystemExit, OSError, http.client.HTTPException, ValueError,
             KeyError, IndexError):
         return None
-    names = [c["@id"].split("/")[-1] for c in canvases]
-    pick = next((i for i, n in enumerate(names)
-                 if n.rsplit("_", 1)[-1].isdigit()), None)
-    if pick is None:
-        pick = next((i for i, n in enumerate(names)
-                     if not n.endswith("_C2")), None)
+    pick = probe_canvas_index([c["@id"].split("/")[-1] for c in canvases])
     if pick is None:
         return None
     try:
@@ -1600,9 +1711,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--tiles", choices=("auto", "always", "never"),
                     default="auto",
                     help="IIIF tile strategy. auto (default): one request "
-                         "per page for public-domain items, tiles for the "
-                         "rest and wherever one request is refused or "
-                         "downsampled. always: tiles for every page. never: "
+                         "per page, tiles wherever it is refused or "
+                         "downsampled (and for the rest of the book once a "
+                         "few pages are refused). always: tiles for every page. never: "
                          "one request only, drop failures.")
     ap.add_argument("--no-ocr", action="store_true",
                     help="No text layer at all. Also skips the shrink (unless "
@@ -1629,7 +1740,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--shrink-mode", choices=("bitonal", "grey", "jpeg"),
                     default="bitonal",
                     help="bitonal (default): text pages as sharp black-and-"
-                         "white (lossless CCITT G4, ~60 KB/page, ~25 MB for "
+                         "white (lossless CCITT G4, ~60-95 KB/page, ~25-37 MB for "
                          "400 pages); covers and photo pages stay JPEG. "
                          "grey: greyscale JPEG at the downloaded size "
                          "(~200 KB/page), for books where grey tones matter "
@@ -1708,6 +1819,20 @@ def main(argv: Optional[List[str]] = None) -> int:
             "credential helps.\n"
             "       Override with --force-auth if you believe accessInfo is wrong."
         )
+    # The catalogue was read with the nbsso cookie, so it shows this user's
+    # loan. Without one, the first pages may still be served (a preview) and
+    # every later page fails.
+    loan = (blob.get("accessInfo") or {}).get("legalDepositReservationStatus")
+    if (access.access_allowed_from == "NB" and args.nbsso and loan != LOAN_TAKEN
+            and not args.force_auth):
+        raise SystemExit(
+            f"ERROR: no active digital loan for this item "
+            f"(legalDepositReservationStatus: {loan or 'absent'}; needs {LOAN_TAKEN}).\n"
+            "       Ask the user to take the loan in the browser pane (SKILL.md "
+            "Step 0.6); if they have, the nbsso cookie may have expired "
+            "(re-read it, Step 0.7).\n"
+            "       Override with --force-auth if you believe accessInfo is wrong."
+        )
     if access.geo_gated and not args.force_auth:
         status = probe_page_image(canonical, args.nbsso)
         if status == 200:
@@ -1773,7 +1898,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.resize:
             print("[dl] note: --resize applies to the nbno_run.sh wrapper only; "
                   "the IIIF downloader uses --size")
-        public_domain = (blob.get("accessInfo") or {}).get("isPublicDomain")
         missing_pages = download_via_iiif(
             canonical_id=canonical,
             out_pdf=pdf_path,
@@ -1784,7 +1908,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             tiles=args.tiles,
             start=args.start,
             stop=args.stop,
-            public_domain=public_domain if isinstance(public_domain, bool) else None,
         )
     else:
         print("[dl] using nbno_run.sh wrapper"
@@ -1878,7 +2001,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if size_mb > args.shrink_threshold_mb:
             print(f"[hint] PDF is {size_mb:.0f} MB. Run shrink_pdf.py on it "
                   "(or re-run without --no-shrink) to recompress the page "
-                  "images: expect ~25 MB for a 400-page book.")
+                  "images: expect ~25-37 MB for a 400-page book.")
 
     # ---- RDF ----------------------------------------------------------------
     # Also writes <base>.zotero.json, the same item for Zoteus's

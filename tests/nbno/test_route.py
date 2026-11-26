@@ -53,18 +53,31 @@ def run(access, probe, nbsso=None, json_out=True):
 
 
 print("decide_route table")
-for allowed, probe, want in [
-    ("EVERYWHERE", None, "here"),
-    ("NORWAY", 200, "here"),
-    ("NORWAY", 403, "norwegian-ip"),
-    ("NORWAY", None, "unknown"),
-    ("NB", 200, "here"),
-    ("NB", 403, "norwegian-ip+loan"),
-    ("NB", 500, "unknown"),
-    (None, None, "unknown"),
-    ("SOMETHING_NEW", 200, "unknown"),
+LOAN = "TAKENBYCURRENTUSER"
+for allowed, probe, loan, cookie, want in [
+    ("EVERYWHERE", None, None, False, "here"),
+    ("NORWAY", 200, None, False, "here"),
+    ("NORWAY", 403, None, False, "norwegian-ip"),
+    ("NORWAY", None, None, False, "unknown"),
+    ("NB", 200, LOAN, True, "here"),
+    ("NB", 403, LOAN, True, "norwegian-ip+loan"),
+    ("NB", 500, LOAN, True, "unknown"),
+    # Served first pages without a loan (2026-11-26): not "here".
+    ("NB", 200, None, False, "norwegian-ip+loan"),
+    ("NB", 200, "NOTRESERVED", True, "norwegian-ip+loan"),
+    ("NB", 200, LOAN, False, "norwegian-ip+loan"),
+    ("NB", None, None, False, "norwegian-ip+loan"),
+    (None, None, None, False, "unknown"),
+    ("SOMETHING_NEW", 200, None, False, "unknown"),
 ]:
-    check(f"{allowed} / {probe}", gc.decide_route(allowed, probe), want)
+    check(f"{allowed} / {probe} / {loan} / cookie={cookie}",
+          gc.decide_route(allowed, probe, loan=loan, cookie=cookie), want)
+
+print("probe_canvas_index: a mid-book numbered page")
+check("middle numbered page", gc.probe_canvas_index(
+    ["x_C1", "x_C2", "x_I1", "x_0001", "x_0002", "x_0003", "x_0004", "x_C3"]), 5)
+check("no numbered page: middle non-C2", gc.probe_canvas_index(["a_C1", "a_C2", "a_C3"]), 2)
+check("nothing to probe", gc.probe_canvas_index(["a_C2"]), None)
 
 print("main(): open item, as from the cloud sandbox")
 code, out, probes = run({"accessAllowedFrom": "EVERYWHERE", "license": "publicdomain"}, None)
@@ -89,8 +102,15 @@ check("route norwegian-ip+loan", out.get("route"), "norwegian-ip+loan")
 check("exit 3", code, 3)
 
 print("main(): legal-deposit item, Norwegian IP, loan active (200)")
-code, out, _ = run({"accessAllowedFrom": "NB"}, 200, nbsso="nbsso=x")
+code, out, _ = run({"accessAllowedFrom": "NB", "legalDepositReservationStatus": LOAN},
+                   200, nbsso="nbsso=x")
 check("route here", out.get("route"), "here")
+check("exit 0", code, 0)
+
+print("main(): legal-deposit item, Norwegian IP, anonymous, probe served (200)")
+code, out, _ = run({"accessAllowedFrom": "NB"}, 200)
+check("route norwegian-ip+loan", out.get("route"), "norwegian-ip+loan")
+check("exit 3", code, 3)
 
 print("main(): text output ends with the route line")
 code, text, _ = run({"accessAllowedFrom": "NORWAY"}, 403, json_out=False)

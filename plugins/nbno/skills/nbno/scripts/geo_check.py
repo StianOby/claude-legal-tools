@@ -14,11 +14,13 @@ Deliberately talks only to nb.no. Do NOT swap in a third-party geo service
 to learn something nb.no already tells us for free. This script does not map
 the IP to a country; `https://api.nb.no/me/v1` reports the IP and the login
 identity. For a geo-gated item (--id), it instead asks the image resolver for
-one 1024 px tile of the first numbered page — the same request a download
-would make next — and nb.no's answer settles it: 200 means this IP and
-session may read the pages; 403 on a NORWAY (Bokhylla) item means the IP is
-not Norwegian. On an NB item a 403 can also mean no active digital loan or an
-expired nbsso cookie, so it is reported as that, not as "not Norwegian".
+one 1024 px tile of a mid-book page — the same request a download would make
+— and nb.no's answer settles it for a NORWAY (Bokhylla) item: 200 means this
+IP may read the pages, 403 that it is not Norwegian. An NB (legal-deposit)
+item is `here` only when the probe is served AND the catalogue, read with
+the cookie, shows the user's loan (legalDepositReservationStatus ==
+TAKENBYCURRENTUSER): without a loan nb.no has served an anonymous caller
+the first pages and refused the rest (2026-11-26).
 
 Usage:
     python geo_check.py                       # anonymous view
@@ -26,8 +28,9 @@ Usage:
     python geo_check.py --cookie <dir>/cookie.txt   # same, from nbno_run.sh's cookie file
     python geo_check.py --id digibok_2008051600041   # + accessInfo + tile probe
 
-Exit status: 0 normally; 3 when the tile probe was refused (403); 1 when
-nb.no could not be reached.
+Exit status: 0 normally; 3 when the route is norwegian-ip or
+norwegian-ip+loan (this shell cannot download the pages yet); 1 when nb.no
+could not be reached.
 
 With --id the last line is `route: <here | norwegian-ip | norwegian-ip+loan |
 unknown>` (also "route" in --json): what the item needs from the shell that
@@ -35,10 +38,12 @@ ran the probe. SKILL.md maps it to where the download runs.
 
 Reading the output:
   - loginProvider null                     → not logged in (or cookie expired)
-  - accessAllowedFrom EVERYWHERE           → no cookie needed, single-shot OK
-  - accessAllowedFrom NORWAY (bokhylla)    → Norwegian IP, no cookie, tiles only
+  - accessAllowedFrom EVERYWHERE           → no cookie needed
+  - accessAllowedFrom NORWAY (bokhylla)    → Norwegian IP, no cookie
   - accessAllowedFrom NB                   → nbsso + a digital loan the user
-                                             takes in a browser; tiles only.
+                                             takes in a browser
+                                             (legalDepositReservationStatus
+                                             TAKENBYCURRENTUSER).
                                              Classify on this field, not on
                                              viewability/legalDepositLoginText
                                              — those invert once you log in
@@ -57,7 +62,7 @@ import urllib.request
 from typing import Optional
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.4"
+VERSION = "1.7.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 ME_URL = "https://api.nb.no/me/v1"
@@ -85,16 +90,38 @@ ROUTES = {
 }
 
 
-def decide_route(access_allowed_from: Optional[str], probe: Optional[int]) -> str:
+# legalDepositReservationStatus when the caller holds the digital loan.
+LOAN_TAKEN = "TAKENBYCURRENTUSER"
+
+
+def decide_route(access_allowed_from: Optional[str], probe: Optional[int],
+                 loan: Optional[str] = None, cookie: bool = False) -> str:
     if access_allowed_from == "EVERYWHERE":
         return "here"
     if access_allowed_from not in GEO_GATED:
         return "unknown"
+    if access_allowed_from == "NB":
+        # A served probe is not enough: without a loan, only the first
+        # pages may be served. No cookie or no loan → whatever the probe.
+        if not (cookie and loan == LOAN_TAKEN):
+            return "norwegian-ip+loan"
+        if probe == 200:
+            return "here"
+        return "norwegian-ip+loan" if probe == 403 else "unknown"
     if probe == 200:
         return "here"
     if probe == 403:
-        return "norwegian-ip" if access_allowed_from == "NORWAY" else "norwegian-ip+loan"
+        return "norwegian-ip"
     return "unknown"
+
+
+def probe_canvas_index(names: list) -> Optional[int]:
+    """Index of the canvas to probe: the middle numbered page, else the
+    middle canvas that is not a _C2, else None (as zotero_book.py)."""
+    numbered = [i for i, n in enumerate(names) if n.rsplit("_", 1)[-1].isdigit()]
+    if not numbered:
+        numbered = [i for i, n in enumerate(names) if not n.endswith("_C2")]
+    return numbered[len(numbered) // 2] if numbered else None
 
 
 def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
@@ -110,10 +137,11 @@ def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
 
 def probe_tile(canonical: str, nbsso: Optional[str],
                timeout: float = 20.0) -> Optional[int]:
-    """HTTP status for one 1024 px tile of the item's first numbered page
-    (200 = served), or None when no probe could be made. Not smaller: 256 px
-    tiles are served to anyone, like thumbnails; 1024 px is what the
-    downloader fetches and what nb.no gates."""
+    """HTTP status for one 1024 px tile of a mid-book page (200 = served),
+    or None when no probe could be made. Not smaller: 256 px tiles are
+    served to anyone, like thumbnails; 1024 px is what the downloader
+    fetches and what nb.no gates. Not the first page: those can be served
+    without a loan."""
     manifest = None
     for url in MANIFEST_URLS:
         try:
@@ -126,13 +154,9 @@ def probe_tile(canonical: str, nbsso: Optional[str],
             return None
     try:
         canvases = manifest["sequences"][0]["canvases"]
-        names = [c["@id"].split("/")[-1] for c in canvases]
-        pick = next((i for i, n in enumerate(names)
-                     if n.rsplit("_", 1)[-1].isdigit()), None)
-        if pick is None:
-            pick = next(i for i, n in enumerate(names) if not n.endswith("_C2"))
+        pick = probe_canvas_index([c["@id"].split("/")[-1] for c in canvases])
         base = canvases[pick]["images"][0]["resource"]["service"]["@id"]
-    except (TypeError, KeyError, IndexError, StopIteration):
+    except (TypeError, KeyError, IndexError):
         return None
     headers = {"referer": f"https://www.nb.no/items/URN:NBN:no-nb_{canonical}",
                "User-Agent": USER_AGENT}
@@ -207,9 +231,12 @@ def main(argv: Optional[list] = None) -> int:
         allowed = (out["accessInfo"] or {}).get("accessAllowedFrom")
         if allowed in GEO_GATED:
             out["tileProbe"] = probe_tile(canonical, args.nbsso)
-        out["route"] = decide_route(allowed, out.get("tileProbe"))
+        out["route"] = decide_route(
+            allowed, out.get("tileProbe"),
+            loan=(out["accessInfo"] or {}).get("legalDepositReservationStatus"),
+            cookie=bool(args.nbsso))
 
-    refused = out.get("tileProbe") == 403
+    refused = out.get("route") in ("norwegian-ip", "norwegian-ip+loan")
 
     if args.json:
         print(json.dumps(out, indent=2, ensure_ascii=False))
@@ -239,7 +266,12 @@ def main(argv: Optional[list] = None) -> int:
         if ai.get("accessAllowedFrom") in GEO_GATED:
             probe = out.get("tileProbe")
             print()
-            if probe == 200:
+            if probe == 200 and out.get("route") == "norwegian-ip+loan":
+                print("  image probe: OK, but this legal-deposit item has no "
+                      "active loan in this session")
+                print(f"        (legalDepositReservationStatus must be {LOAN_TAKEN}; "
+                      "pass --nbsso / --cookie after taking the loan).")
+            elif probe == 200:
                 print("  image probe: OK — nb.no served a page tile to this "
                       "IP and session.")
             elif probe == 403 and ai.get("accessAllowedFrom") == "NB":

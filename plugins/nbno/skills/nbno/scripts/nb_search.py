@@ -48,7 +48,7 @@ import urllib.request
 
 API = "https://api.nb.no/catalog/v1/items"
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.4"
+VERSION = "1.7.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 _MEDIATYPE = {

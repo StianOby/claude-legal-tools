@@ -30,12 +30,21 @@ at the end of `SKILL.md`.
   are driving the API by hand, read
   [`iiif-download.md`](iiif-download.md) first — these are slow to debug
   precisely because nothing fails loudly.
-- **Tiles work when one request doesn't.** In-copyright/licensed content
-  gets no single image above 1/4 size, but `regionByPx` requests scaled to
-  at most 1024 px a side are allowed. `zotero_book.py` goes straight to
-  tiles for items that are not public domain, and falls back to tiles
-  whenever one request returns 403 or is silently downsampled. `--tiles
-  always` forces tiling for every item.
+- **One request, else tiles.** nb.no has at times refused a single image
+  above 1/4 size for anything not public domain, and at times served it
+  (a loaned NB book, 2026-11-26); `regionByPx` requests scaled to at most
+  1024 px a side have been allowed throughout. `zotero_book.py` tries one
+  request first and falls back to tiles on 403, an empty answer or a
+  silent downsample. `--tiles always` forces tiles, `--tiles never` one
+  request only (try it if tiles fail).
+- **`PageImageError` / placeholder pages saying "empty response" or
+  "came back WxH, expected …".** nb.no answered a tile with no body or at
+  the wrong size. The page is left as a placeholder rather than pasted
+  wrong (pages showing only their top-left quarter, 2026-11-26). Re-run
+  with `--tiles never`; if that is refused too, report the message.
+- **"the first 8 pages all failed".** The download stopped early: the IP
+  is not Norwegian, there is no loan, or `nbsso` has expired. Fix that
+  (geo_check.py tells you which) before re-running.
 - **Copyright.** Most twentieth-century books are in copyright; access via
   Bokhylla is granted to individuals under a specific agreement and does
   not permit redistribution. The user is responsible for using downloaded
@@ -140,7 +149,7 @@ at the end of `SKILL.md`.
   and `export PATH="outputs/_pylib/bin:$PATH"
   PYTHONPATH="outputs/_pylib:$PYTHONPATH"` first.
 - *Single ocrmypdf call times out on a long book.* Expected: Tesseract does
-  about 13 pages a minute on a 2-vCPU sandbox. Download with `--no-ocr`
+  about 13–15 pages a minute on a 2 vCPU sandbox or the local VM. Download with `--no-ocr`
   (which also skips the shrink), then run `scripts/ocr_chunked.py` with
   **one invocation per bash call**: re-run on exit 2, stop on exit 0, and
   finish with `shrink_pdf.py --in-place`. OCR quality is the same, and the

@@ -20,8 +20,8 @@ the older bearer-token and `_nblb` guidance, both of which were wrong.
 | Item class | Manifest / `accessInfo` | One request `/full/<size>/` | Tiles `regionByPx` ≤ 1024 | Credential needed |
 |---|---|---|---|---|
 | Public domain (`accessAllowedFrom: EVERYWHERE`) | 200, no auth | 200 | 200 | **none** |
-| Bokhylla (`license: bokhylla`, `accessAllowedFrom: NORWAY`) | 200, no auth | 200 up to 1/4 size, **403 above** | 200 | **none** — a Norwegian IP is the whole requirement |
-| Legal deposit (`accessAllowedFrom: NB`, `license: copyrighted`) | 200, no auth | **403 above 1/4 size** | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
+| Bokhylla (`license: bokhylla`, `accessAllowedFrom: NORWAY`) | 200, no auth | 200 up to 1/4 size, **403 above** (2026-10-23) | 200 | **none** — a Norwegian IP is the whole requirement |
+| Legal deposit (`accessAllowedFrom: NB`, `license: copyrighted`) | 200, no auth | 403 above 1/4 size on 2026-10-23; **200 at half size with a loan** on 2026-11-26 | 200 with `nbsso` | **`nbsso` alone**, plus an active digital loan |
 
 Four consequences, each of which contradicts something the skill used to say:
 
@@ -35,12 +35,15 @@ Four consequences, each of which contradicts something the skill used to say:
   FEIDE-licensed tiles return 403 with `_nblb` only, and Bokhylla needs no
   cookie at all. Capture it only because the cookie-file format has a slot
   for it.
-- **Licensed content is tiles-only above 1/4 size.** A one-request
-  `/full/<size>/` is 403 for anything that is not public domain from half
-  size up (1/4 size, ~560 px, is served; checked 2026-10-23). Tiles are
-  served, scaled by the server to at most 1024 px a side. `zotero_book.py`
-  reads `accessInfo.isPublicDomain` and goes straight to tiles when it is
-  false.
+- **One request or tiles: nb.no has changed its mind.** On 2026-10-23 a
+  one-request `/full/<size>/` was 403 for anything not public domain from
+  half size up (1/4 size, ~560 px, was served). On 2026-11-26 a loaned
+  legal-deposit book got every page at half size in one request, while
+  its tiles were broken at the right edge (an empty 200 for a narrower
+  edge region). Tiles are served scaled by the server to at most
+  1024 px a side. So `zotero_book.py` tries one request first for every
+  item, checks the size it gets, and uses tiles where it is refused,
+  empty or downsampled.
 - **`referer` is not required.** Send it anyway (it costs nothing and matches
   what the viewer does), but it is not what gates the resolver.
 

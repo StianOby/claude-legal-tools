@@ -120,8 +120,8 @@ class (verified 2026-09-06 from a Norwegian IP):
 | Item class | `accessAllowedFrom` | Credential needed | Image requests |
 |---|---|---|---|
 | Public domain | `EVERYWHERE` | **none** | single-shot or tiles |
-| Bokhylla | `NORWAY` | **none** — a Norwegian IP is the whole requirement | tiles only |
-| Legal deposit (`license: copyrighted`) | `NB` | **`nbsso`** + an active digital loan | tiles only |
+| Bokhylla | `NORWAY` | **none** — a Norwegian IP is the whole requirement | single-shot first, else tiles |
+| Legal deposit (`license: copyrighted`) | `NB` | **`nbsso`** + an active digital loan | single-shot first, else tiles |
 
 Geo is enforced at the **image resolver**, not the API: from a non-Norwegian
 IP the manifest and `accessInfo` return 200 and every page image returns 403,

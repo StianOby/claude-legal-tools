@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.6.4"
+VERSION = "1.7.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 # Mirror the install-target / preflight helpers from zotero_book.py.
@@ -488,7 +488,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.jobs is None:
         args.jobs = default_ocr_jobs()
     args.jobs = max(1, args.jobs)
-    env = ocr_env(args.jobs)
 
     pdf_path = Path(args.pdf).expanduser().resolve()
     if not pdf_path.exists():
@@ -517,6 +516,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     pikepdf = _ensure_pikepdf()
     ocrmypdf_bin = _ensure_ocrmypdf()
     langs = tesseract_preflight(args.langs)
+    # After the preflight, which may point TESSDATA_PREFIX at a fetched
+    # model: an env copied before it sent every page to ocrmypdf without
+    # that variable, and every page failed for want of `nor` (2026-11-26).
+    env = ocr_env(args.jobs)
 
     print(f"[ocr] splitting {pdf_path.name} into per-page PDFs...",
           file=sys.stderr)
@@ -563,11 +566,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     pending_iter = iter(pending)
     failed_now = 0
     last_err = ""
+    # Pages that failed in a row with none OCRed in this call: past this,
+    # the cause is the setup, not the page, so stop rather than fail every
+    # page until the budget runs out.
+    give_up_after = max(4, 2 * args.jobs)
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         in_flight = {}
 
         def submit_next() -> bool:
             if time.time() - t0 >= args.time_budget:
+                return False
+            if ocred_now == 0 and failed_now >= give_up_after:
                 return False
             try:
                 src = next(pending_iter)
