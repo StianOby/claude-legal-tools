@@ -47,11 +47,18 @@ text was recorded).
   comments. With them HR-2016-2554-P, Rt. 2000 s. 1811 and NOU 2022:8 are
   #1. `filterBases` takes collection or group codes (`HRA` all
   Høyesterett, `AVG` all court decisions, `LBSIV`, `NOU` …).
+- **Newest first: `sortField: "date"`** (with `sortOrder: "desc"`);
+  `"isoDate"` and `"dateVerdictPublished"` answer HTTP 422 (Cowork test run
+  2026-11-26). `offset` pages through the rows; the helper's `search()`
+  takes `{sort: "date", offset}` and answers `nextOffset`.
 - **Never called:** `breadcrumbs` (the UI posts one per document view and
   search; it writes the user's Smulesti), and the KI services (`ai-search`,
   `ai-chat`, `v2/ai-chat`, `ai-search-migrate`, `reference-preview`), whose
   rules forbid automated queries (`docs/lovdata-pro-terms.md`).
   `tests/lovdata-pro/pro2.js` checks both.
+  Navigating the tab to a document page has the same effect: the Pro app
+  itself posts a breadcrumb for the visit (seen in the 2026-11-26 test
+  run), so SKILL.md forbids reading documents by navigation.
 
 ## documentContent format
 
@@ -151,4 +158,7 @@ To do once the new Lovdata Pro has launched and its final state is known:
   default-site test.
 - Before Klassisk is retired: remove the Klassisk backend, its tests and
   the Hurtigsøk fallback in SKILL.md, and re-measure `PAGE_SIZE` and the
-  paste size.
+  paste size. Until then the helper's Klassisk-only and pro2-only code sits
+  in `//#site klassisk` / `//#site pro2` blocks, and `paste_site.py` pastes
+  only the tab's site (2026-11-26: 36 452 chars for pro2, 29 212 for
+  Klassisk, 44 418 for both); removing Klassisk means deleting its blocks.

@@ -18,9 +18,18 @@
 // does (bump it by hand; CI checks it). A helper of another
 // version already in the tab — pasted before a skill update — is replaced,
 // dropping its cache; the same version is left alone.
+//
+// One source, two pasted copies. Blocks between "//#site pro2" (or
+// "//#site klassisk") and "//#end" belong to one backend; paste_site.py
+// <pro2|klassisk> drops the other backend's blocks and sets HELPER_SITE, so
+// each tab gets only the code it runs (the new-Pro copy is ~18 % smaller).
+// This file as it stands, with HELPER_SITE 'all', is what the tests load.
+// The markers must be on lines of their own and never nest; no code outside
+// a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.4.0';
-  if (window.__lp && window.__lp.VERSION === HELPER_VERSION) return;
+  const HELPER_VERSION = '1.4.1';
+  const HELPER_SITE = 'all';
+  if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
     // javascript_tool errors above ~49-50K raw characters ("result exceeds
     // maximum allowed tokens") rather than truncating silently — measured
@@ -97,6 +106,7 @@
       return { items, next: null };
     }
 
+    //#site klassisk
     // --- login detection --------------------------------------------------
     // #myPage is present in location.hash in BOTH the logged-in and
     // logged-out states (Lovdata swaps rendered content client-side without
@@ -111,6 +121,7 @@
     // redirect = logged out). One 42 KB request; result is not cached
     // because the session can expire between turns.
     const PROBE_PATH = 'LGSIV/avgjorelse/lg-2008-135938';
+    //#end
 
     // --- which Lovdata Pro this tab is on ----------------------------------
     // Two backends behind the same functions:
@@ -140,6 +151,7 @@
       return host === 'lovdata.no' ? { kind: 'klassisk' } : null;
     }
 
+    //#site pro2
     // The first candidate whose /ping answers "Pong" (pro2's health check),
     // remembered for the tab; with no answer, the first candidate.
     let apiBaseCache = null;
@@ -157,15 +169,25 @@
       apiBaseCache = apis[0];
       return apiBaseCache;
     }
+    //#end
 
+    // Also refuses a copy made for the other backend (paste_site.py).
     function wrongSite() {
-      if (backend()) return null;
-      return { error: 'wrong_site', host: location.hostname,
-               detail: `this helper works on Lovdata Pro (${PRO2_URL}) or Lovdata Pro Klassisk (${KLASSISK_URL}); navigate the tab there and paste the helper again` };
+      const b = backend();
+      if (!b) {
+        return { error: 'wrong_site', host: location.hostname,
+                 detail: `this helper works on Lovdata Pro (${PRO2_URL}) or Lovdata Pro Klassisk (${KLASSISK_URL}); navigate the tab there and paste the helper again` };
+      }
+      if (HELPER_SITE !== 'all' && b.kind !== HELPER_SITE) {
+        return { error: 'wrong_site', host: location.hostname, site: b.kind, pasted: HELPER_SITE,
+                 detail: `this tab is on ${b.kind === 'pro2' ? 'the new Lovdata Pro' : 'Lovdata Pro Klassisk'} but the pasted copy is for ${HELPER_SITE}: run paste_site.py ${b.kind} and paste that copy` };
+      }
+      return null;
     }
 
     const isPro2 = () => { const b = backend(); return !!b && b.kind === 'pro2'; };
 
+    //#site pro2
     // --- pro2: JSON API -----------------------------------------------------
     // Read-only calls only: auth/user, checkDocument, references,
     // documentContent, documentMeta and search. Never breadcrumbs (that
@@ -315,7 +337,9 @@
         const dd = dt.nextElementSibling;
         if (!dd || dd.tagName.toLowerCase() !== 'dd') continue;
         const cls = String(dt.getAttribute('class') || '').split(/\s+/)[0];
-        const key = inlineText(dt).replace(/\s+/g, ' ').replace(/:$/, '').trim() || PRO2_META_LABELS[cls] || cls;
+        // Lovdata's own <dt> text can carry a soft hyphen ("Dokument-
+        // nummer" with U+00AD): a key, not source text, so it goes.
+        const key = inlineText(dt).split(String.fromCharCode(0xad)).join('').replace(/\s+/g, ' ').replace(/:$/, '').trim() || PRO2_META_LABELS[cls] || cls;
         const val = inlineText(dd);
         if (key && val) meta[key] = val;
       }
@@ -360,14 +384,25 @@
     // Høyesterett, AVG = all court decisions, LBSIV, NOU, PROP, INNST …).
     // Karnov comments (base COMMENT) and literature are dropped: they are
     // not documents by public bodies, the skill's scope under the terms.
-    async function pro2Search(query, n, bases) {
-      const body = { offset: 0, term: query, sortField: 'relevance', sortOrder: 'desc', filterBases: bases || [] };
+    // sort 'date' is newest first (sortField "date"; "isoDate" and
+    // "dateVerdictPublished" answer 422, measured 2026-11-26). offset counts
+    // the server's rows; one request returns one page of them (its size is
+    // the server's), so nextOffset is where the rows this reply used end
+    // and search(…, {offset: nextOffset}) continues without duplicates.
+    const SEARCH_SORTS = { relevance: 'relevance', date: 'date' };
+    async function pro2Search(query, n, bases, { sort = 'relevance', offset = 0 } = {}) {
+      if (!SEARCH_SORTS[sort]) return { error: 'bad_sort', detail: `sort must be ${Object.keys(SEARCH_SORTS).join(' or ')}` };
+      offset = Math.max(0, offset | 0);
+      const body = { offset, term: query, sortField: SEARCH_SORTS[sort], sortOrder: 'desc', filterBases: bases || [] };
       const r = await api('search?minimal=true', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (r.fetchError) return { error: 'cors', detail: r.fetchError };
       if (denied(r.status)) return { error: 'not_logged_in' };
       if (r.status !== 200 || !r.json) return { error: `http_${r.status}`, detail: 'search' };
       const results = [];
-      for (const h of r.json.results || []) {
+      const rows = r.json.results || [];
+      let used = 0;
+      for (const h of rows) {
+        used += 1;
         const u = h.documentURI;
         if (!u || u.base === 'COMMENT' || /^(karnov|litteratur)$/.test(u.type)) continue;
         const hit = { path: uriPath(u), title: (h.documentTitles && h.documentTitles.title) || undefined, date: h.isoDate || undefined };
@@ -380,7 +415,10 @@
         results.push(hit);
         if (results.length >= n) break;
       }
-      return { query, site: 'pro2', filterBases: body.filterBases, totalHits: r.json.totalHits, results };
+      const out = { query, site: 'pro2', filterBases: body.filterBases, sort, offset, totalHits: r.json.totalHits, results };
+      const end = offset + used;
+      if (rows.length && (r.json.totalHits == null || end < r.json.totalHits)) out.nextOffset = end;
+      return out;
     }
 
     // --- pro2: versions and backlinks of laws and regulations ---------------
@@ -457,6 +495,11 @@
       // Oldest first, the current text last (its start date is not always given).
       list.sort((a, b) => (a.current - b.current) || String(a.from).localeCompare(String(b.from)));
       const out = { path: doc.path, part: part || undefined, count: list.length };
+      // backLinks/historisk is a bare array with no total; arbeidsmiljøloven
+      // gave exactly 50 (2026-11-26), which may be a server cap.
+      if (!part && list.length === 50) {
+        out.maybeCapped = 'exactly 50 versions, which may be a server cap: if the oldest listed is much later than the law itself, versions in between may be missing; for one § use part (paragraphHistory)';
+      }
       if (asOf) {
         const d = ymd(asOf);
         if (d.length !== 8) return { error: 'bad_date', detail: `asOf must be YYYY-MM-DD, got ${asOf}` };
@@ -510,11 +553,15 @@
       if (all.length > items.length) out.more = all.length - items.length;
       return out;
     }
+    //#end
 
     async function isLoggedIn({ probe = true } = {}) {
       const wrong = wrongSite();
       if (wrong) return { loggedIn: false, ...wrong };
+      //#site pro2
       if (isPro2()) return pro2IsLoggedIn();
+      //#end
+      //#site klassisk
       const hash = location.hash;
       const title = document.title;
       if (/Min side/i.test(title)) return { loggedIn: true, source: 'title', hash, title };
@@ -527,8 +574,10 @@
       if (status === 200 && looksLikeRealDoc(html)) return { loggedIn: true, source: 'probe', hash, title };
       if (status === 200 && isLoginPage(html)) return { loggedIn: false, source: 'probe', hash, title };
       return { loggedIn: false, source: 'probe', hash, title, detail: `probe returned status ${status}, ${html.length} bytes` };
+      //#end
     }
 
+    //#site klassisk
     // --- fetch + path helpers ----------------------------------------------
 
     function docUrl(path) {
@@ -618,6 +667,7 @@
       // into every section()/page()/grep() call on the body text.
       return doc.querySelector('#documentBody') || doc.querySelector('#lovdataDocument') || doc.body;
     }
+    //#end
 
     // --- source text (canonical copy: shared/source-text/source_text.js) ---
     // The JavaScript side of shared/source-text/source_text.py, embedded as is
@@ -941,6 +991,7 @@
       return lines.filter(Boolean).join('\n');
     }
 
+    //#site klassisk
     function extractMetadata(doc) {
       const meta = {};
       const metaRoot = doc.querySelector('#documentMeta') || doc.querySelector('#documentBody') || doc;
@@ -963,6 +1014,7 @@
       }
       return meta;
     }
+    //#end
 
     // A heading's section runs from itself to the next heading of
     // same-or-higher level, wherever that falls in the DOM — headings are
@@ -1026,6 +1078,7 @@
 
     const cache = {}; // path -> { doc, body, title, metadata, toc, fullText }
 
+    //#site klassisk
     function parseDoc(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -1037,6 +1090,7 @@
       const m = html.match(/<title>([^<]+)<\/title>/);
       return m ? m[1].trim() : (doc.title || null);
     }
+    //#end
 
     // --- public API ------------------------------------------------------------
 
@@ -1047,7 +1101,10 @@
       }
       const wrong = wrongSite();
       if (wrong) return wrong;
+      //#site pro2
       if (isPro2()) return pro2Load(candidates);
+      //#end
+      //#site klassisk
       const result = await tryPaths(candidates);
       if (result.error) return result;
 
@@ -1061,6 +1118,7 @@
 
       cache[path] = { doc, body, title, metadata, toc, fullText };
       return describe(path, cache[path]);
+      //#end
     }
 
     function describe(path, entry, loc = null) {
@@ -1241,6 +1299,7 @@
       return { offset, next, total: text.length, text: slice };
     }
 
+    //#site klassisk
     // There is no JSON/REST search endpoint: Pro search is GWT-RPC with
     // positional/obfuscated serialization, impractical to call directly.
     // The query must therefore go through the rendered SPA — but it CAN be
@@ -1258,13 +1317,17 @@
       if (desc && desc.set) desc.set.call(input, value); else input.value = value;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
+    //#end
 
     // On pro2 search is one API call; `bases` (pro2 only) limits it to
     // Lovdata collection or group codes, e.g. ['HRA'] or ['NOU'].
-    async function search(query, n = 10, { timeoutMs = 8000, bases = null } = {}) {
+    async function search(query, n = 10, { timeoutMs = 8000, bases = null, sort = 'relevance', offset = 0 } = {}) {
       const wrong = wrongSite();
       if (wrong) return wrong;
-      if (isPro2()) return pro2Search(query, n, bases);
+      //#site pro2
+      if (isPro2()) return pro2Search(query, n, bases, { sort, offset });
+      //#end
+      //#site klassisk
       const input = document.querySelector(SEARCH_INPUT);
       if (!input) {
         return { error: 'no_search_field',
@@ -1323,15 +1386,19 @@
         error: 'search_timeout', query, hash: location.hash,
         detail: `no new results within ${timeoutMs} ms — fall back to the computer.type + click flow in SKILL.md Steg 3`,
       };
+      //#end
     }
 
     // Reads the result anchors already rendered in the DOM. search() calls
     // it; call it directly after submitting a query by hand (type + click).
     async function readSearchResults(n = 10) {
       if (isPro2()) return { error: 'not_needed', detail: 'on the new Lovdata Pro, search() returns the results itself' };
+      //#site klassisk
       return collectResults(n);
+      //#end
     }
 
+    //#site klassisk
     function collectResults(n, keep = () => true) {
       const anchors = Array.from(document.querySelectorAll("a[href^='#document/']")).filter(keep);
       const seen = new Set();
@@ -1349,9 +1416,14 @@
       }
       return out;
     }
+    //#end
 
-    return {
+    // versions() and backlinks() read the new Pro only; a Klassisk copy
+    // answers pro2_only (the pro2 block below replaces these).
+    const pro2Only = (name) => async () => ({ error: 'pro2_only', detail: `${name} are read from the new Lovdata Pro (${PRO2_URL})` });
+    const lp = {
       VERSION: HELPER_VERSION,
+      SITE: HELPER_SITE,
       cache,
       isLoggedIn: metered('isLoggedIn', isLoggedIn),
       load: metered('load', load),
@@ -1361,13 +1433,22 @@
       page: metered('page', page),
       search: metered('search', search),
       readSearchResults: metered('readSearchResults', readSearchResults),
-      versions: metered('versions', versions),
-      backlinks: metered('backlinks', backlinks),
+      versions: metered('versions', pro2Only('versions')),
+      backlinks: metered('backlinks', pro2Only('backlinks')),
       stats,
-      docUrl,
       PAGE_SIZE,
       // exposed for unit testing / debugging only:
-      _internal: { fitSlice, fitToc, toText, inlineText, extractMetadata, buildToc, headingRange, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage, backend, isEl, jsonmlToDom, pro2Metadata, uriPath },
+      _internal: { fitSlice, fitToc, toText, inlineText, buildToc, headingRange, backend },
     };
+    //#site pro2
+    lp.versions = metered('versions', versions);
+    lp.backlinks = metered('backlinks', backlinks);
+    Object.assign(lp._internal, { isEl, jsonmlToDom, pro2Metadata, uriPath });
+    //#end
+    //#site klassisk
+    lp.docUrl = docUrl;
+    Object.assign(lp._internal, { extractMetadata, looksLikeRealDoc, isCollectionMismatch, swapSivStr, isLoginPage });
+    //#end
+    return lp;
   })();
 })();

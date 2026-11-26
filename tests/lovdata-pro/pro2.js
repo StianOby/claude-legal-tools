@@ -65,7 +65,7 @@ const JUDGMENT = {
 const NOU = {
   version: 2,
   header: el('header', { class: 'documentHeader', id: 'hode' }, [el('dl', { class: 'data-document-key-info' }, [
-    el('dt', { class: 'caseID' }, ['Dokumentnummer']), el('dd', { class: 'caseID' }, ['NOU 2000: 1']),
+    el('dt', { class: 'caseID' }, ['Dokument' + String.fromCharCode(0xad) + 'nummer']), el('dd', { class: 'caseID' }, ['NOU 2000: 1']),
   ])]),
   toc: el('ul', { class: 'tocTopUl' }, []),
   mainTags: [
@@ -144,7 +144,7 @@ function makeTab({ loggedIn = true, host = 'pro2.lovdata.no', pathname = '/', ap
     'search?minimal=true': (init) => {
       const body = JSON.parse(init.body);
       calls[calls.length - 1].body = body;
-      return json(200, { totalHits: 3, results: [
+      return json(200, { totalHits: 100, results: [
         { documentURI: { base: 'COMMENT', type: 'karnov', id: 'x' }, documentTitles: { title: 'Kommentar' } },
         { documentURI: { base: 'HRSIV', type: 'avgjorelse', id: 'hr-2016-1-a' }, documentTitles: { title: 'HR-2016-1-A' }, isoDate: '2016-01-01' },
         { documentURI: { base: 'NOU', type: 'forarbeid', id: 'nou-2000-1' }, documentTitles: { title: 'NOU 2000: 1' } },
@@ -254,6 +254,14 @@ async function main() {
   const sc = calls.find(c => /search\?minimal=true$/.test(c.url));
   check('search request', [sc.method, sc.body.sortField, sc.body.sortOrder, sc.body.filterBases, sc.body.term], ['POST', 'relevance', 'desc', ['HRA'], 'HR-2016-1-A']);
   check('search results', s.results.map(x => [x.path, !!x.noDocument]), [['HRSIV/avgjorelse/hr-2016-1-a', false], ['NOU/forarbeid/nou-2000-1', false], ['PUBG/null/pubg-200001-stprp-1', true]]);
+  // sort 'date' and offset go to the server; nextOffset continues after the
+  // rows this reply used (the Karnov row counts: it is a server row).
+  const s2tab = makeTab();
+  const s2 = await s2tab.lp.search('x', 1, { sort: 'date', offset: 40 });
+  const s2c = s2tab.calls.find(c => /search\?minimal=true$/.test(c.url));
+  check('search by date with offset', [s2c.body.sortField, s2c.body.offset, s2.results.map(x => x.path), s2.nextOffset], ['date', 40, ['HRSIV/avgjorelse/hr-2016-1-a'], 42]);
+  check('no nextOffset past totalHits', (await s2tab.lp.search('x', 10, { offset: 96 })).nextOffset, undefined);
+  check('bad sort', (await s2tab.lp.search('x', 10, { sort: 'isoDate' })).error, 'bad_sort');
   check('readSearchResults not needed', (await lp.readSearchResults()).error, 'not_needed');
 
   // Never: breadcrumbs (writes the user's history) or KI services.

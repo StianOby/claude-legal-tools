@@ -46,6 +46,8 @@ Du har tilgang til to hjelpescript:
   en referanse til kandidat-Pro-stier. Kjøres via bash/terminal.
 - `scripts/browser/lovdata_pro.js` — limes inn i browser-fanen via
   `javascript_tool`. Gjør selve hentingen, seksjoneringen og søket.
+  `scripts/browser/paste_site.py` lager kopien for nettstedet fanen står på
+  (Steg 0).
 
 **Skill-katalogen (`{SKILL_DIR}`).** Kjør alltid dette én gang før første kommando, også når «Base directory for this skill:» er oppgitt: den stien virker for å lese filer, men shellet ser den ofte ikke.
 Bruk den utskrevne stien bokstavelig i senere kommandoer:
@@ -94,7 +96,10 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
 1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`
    eller `pro2.lovdata.no`. Gjenbruk den om den finnes (cachen i
    `window.__lp` dør ved navigering, så ikke naviger fanen bort for annet
-   enn søk i Klassisk — se Steg 3). Er det ingen faner: `preview_start` med
+   enn søk i Klassisk — se Steg 3). **Naviger aldri til en dokumentside**
+   (`pro2.lovdata.no/dokument/…`, `#document/…`) for å lese den: hjelperen
+   og cachen forsvinner, og Pro-appen skriver besøket inn i brukerens
+   historikk (smulesti). Er det ingen faner: `preview_start` med
    **standardadressen**:
 
    **Standard: `https://lovdata.no/pro/?forceFullVersion=true`** (Lovdata Pro Klassisk)
@@ -113,16 +118,27 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
 2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
    godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
    (på nye Pro: `https://pro2.lovdata.no/`) og prøv igjen.
-3. Last inn hjelperen. Kjør `python3 {SKILL_DIR}/scripts/browser/paste.py
-   {SKILL_DIR}/scripts/browser/lovdata_pro.js` i Bash. Den skriver en kopi
-   uten kommentarer og innrykk (ca. 43 000 tegn i stedet for 68 000) og
-   skriver ut stien. Les den filen og send **hele** innholdet via
-   `javascript_tool` (`action: "javascript_exec"`). Virker ikke `paste.py`,
-   lim inn `lovdata_pro.js` direkte. Kort aldri ned hjelperen. Idempotent —
-   trygt å lime inn flere ganger i samme fane. En eldre versjon av hjelperen
-   fra før en skill-oppdatering byttes ut (cachen tømmes); `__lp.VERSION`
-   viser hvilken som kjører (plugin-versjonen ved siste endring i
-   hjelperen, så den kan være lavere enn pluginens).
+3. Last inn hjelperen.
+   **Sjekk først om den alt er der:** `javascript_tool` med
+   `[window.__lp && __lp.VERSION, window.__lp && __lp.SITE]`, og
+   `grep -m1 "HELPER_VERSION = " {SKILL_DIR}/scripts/browser/lovdata_pro.js`
+   i Bash. Er versjonen den samme og `SITE` er nettstedet fanen står på
+   (`pro2` eller `klassisk`), er hjelperen klar: hopp til punkt 4.
+   **Ellers:** kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`
+   i Bash når fanen står på nye Pro (`pro2.lovdata.no`), `… paste_site.py
+   klassisk` på `lovdata.no/pro`. Den skriver en kopi med bare koden for det
+   nettstedet, uten kommentarer og innrykk (ca. 36 000 tegn for nye Pro,
+   29 000 for Klassisk), og skriver ut stien. Les den filen og send **hele**
+   innholdet via `javascript_tool` (`action: "javascript_exec"`). Virker ikke
+   `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene, ca.
+   44 000 tegn). Kort aldri ned hjelperen.
+   **Innlimingen er ikke valgfri.** Den koster én lang melding, men alt
+   annet i skill-en bygger på den: ikke hopp over den fordi den er stor, og
+   ikke erstatt den med `get_page_text` eller egne kall til Pro-ets API.
+   Idempotent — trygt å lime inn flere ganger i samme fane. En annen versjon
+   (fra før en skill-oppdatering) eller kopien for det andre nettstedet
+   byttes ut (cachen tømmes).
    **Avvises innlimingen av en sikkerhetssjekk**, ikke prøv samme kall igjen.
    Si det til brukeren med én setning og bruk lese-ruten: logg inn (punkt 4 uten
    `isLoggedIn()` — spør brukeren), `navigate` til
@@ -134,7 +150,10 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    Søk skjer som i fallbacken i Steg 3, med `get_page_text` i stedet for
    `readSearchResults`. Lese-ruten har ingen
    `grep`/`section`/biter: lange dokumenter kan bli avkortet, så si fra hvis
-   teksten slutter brått, og sitér bare det siden faktisk viser.
+   teksten slutter brått, og sitér bare det siden faktisk viser. På nye Pro
+   er den særlig upålitelig: `get_page_text` gir tom tekst når panelet er
+   skjult, og lange dokumenter tegnes bare delvis (målt: ca. 10 000 tegn).
+   Lese-ruten skriver også besøkene inn i brukerens historikk.
 4. Kjør `await __lp.isLoggedIn()`. På nye Pro spør den Pro-ets API
    (`source: "api"`). I Klassisk avgjøres svaret på `#myPage` av
    `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
@@ -164,15 +183,15 @@ bekreftelse og ikke stopp arbeidet.
 ## Steg 1 — oppslag av referanse
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata_ref.py resolve "<referanse>"
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "<referanse>"
 ```
 
 Eksempler:
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P"
-python {SKILL_DIR}/scripts/lovdata_ref.py resolve "Ot.prp. nr. 3 (1998-99)"
-python {SKILL_DIR}/scripts/lovdata_ref.py resolve "NOU 2022:8"
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P"
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "Ot.prp. nr. 3 (1998-99)"
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "NOU 2022:8"
 ```
 
 Returnerer `{input, parsed, candidates}` pluss disse feltene når de er
@@ -234,7 +253,7 @@ Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
 i `__lp.load([...])`):
 
 ```bash
-python {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
 # ["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-2554-p"]
 ```
 
@@ -312,10 +331,11 @@ Velg videre strategi ut fra dokumenttype og størrelse:
   hvert kall). Si fra til brukeren på forhånd omtrent hvor mange kall det
   tar (`Math.ceil(totalChars / 45000)`).
 
-**Skriv alltid det du skal sitere til fil først, og siter fra filen** — ikke
-fra samtalens korttidsminne av et tidligere `javascript_tool`-svar. Bruk
-`/mnt/user-data/outputs/<slug>-utdrag.md` (bash `>>`), og les den med Read før
-du siterer.
+**Kontroller hvert sitat før du gir det:** kopier det ordrett fra et
+`page`/`section`/`grep`-svar, og kjør `await __lp.grep(path, "<sitatet>",
+0, 1)`. Svaret skal ha `matches` på minst 1. Gir det 0, har sitatet et avvik
+(et ord, en stor bokstav, en sammenstykket bit): finn stedet igjen og rett
+det. Sitér aldri fra hukommelsen av et tidligere svar.
 
 Eksempler på JS-kall:
 
@@ -360,8 +380,11 @@ await __lp.backlinks("lov/2005-06-17-62", "endringslover")         // endringslo
 await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger- og etterfølgerlover
 ```
 
-- En versjon er `HIST/<type>/<id>-<ÅÅÅÅMMDD>`, datoen den trådte i kraft;
-  `load()` den som et vanlig dokument. **Lag aldri en HIST-sti med en
+- En versjon er `HIST/<type>/<id>-<ÅÅÅÅMMDD>`, datoen versjonen gjelder fra
+  i Lovdatas historikk, normalt ikrafttredelsen; `load()` den som et vanlig
+  dokument. Den **første** versjonen kan ha en dato før loven trådte i kraft
+  (arbeidsmiljøloven: `-20050701`, i kraft 1. januar 2006): for datoer nær
+  lovens start, sjekk ikrafttredelsesbestemmelsen. **Lag aldri en HIST-sti med en
   annen dato selv:** Pro sender da stille til *gjeldende* tekst
   (`redirectedFrom` i svaret). Bruk `versions(…, { asOf })`, som velger den
   siste versjonen som trådte i kraft på eller før datoen.
@@ -374,10 +397,16 @@ await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger
   1814; opphevede forskrifter har ofte ingen. `before_first_version` betyr at
   Pro ikke har teksten fra så tidlig: si det, og bruk eventuelt
   Lovtidend-teksten (`LTI/lov/<id>`) for loven slik den ble vedtatt.
+  Opphevede lover (`NLO`) har ofte ingen `HIST`-versjoner: `count: 0` med
+  `part` betyr da ikke at paragrafen aldri ble endret. Se endringsfotnotene i
+  teksten.
+- `maybeCapped` i svaret: listen har nøyaktig 50 versjoner, som kan være en
+  grense hos Pro. Er eldste versjon mye senere enn loven, kan versjoner
+  mangle; for én paragraf gir `part` en egen liste.
 - `part` tar §-id-en slik den står i dokumentet (`§14-9`, uten mellomrom).
 - Christian Vs Norske Lov: `lov/1687-04-15` er bare bestemmelsene som
-  fortsatt gjelder; hele originalteksten er versjonen
-  `HIST/lov/1687-04-15-16870415` (dansk, ca. 650 000 tegn). Landslova
+  fortsatt gjelder; hele originalteksten er den eldste versjonen
+  (`versions("lov/1687-04-15")`, første oppføring; dansk, ca. 650 000 tegn). Landslova
   (1274) finnes som `NLO/lov/1274-06-24-nb`, `-nn` og `-non` (norrønt).
 - Sitér med versjonen: *arbeidsmiljøloven § 14-9 (versjon i kraft fra
   1. januar 2019)*, og si at teksten er Lovdatas konsoliderte tekst.
@@ -397,8 +426,19 @@ await __lp.search("tomtefeste", 10, { bases: ["HRA"] })   // bare nye Pro
 ```
 
 **På nye Pro** er `search()` ett API-kall, sortert etter relevans; svaret er
-`{query, site: "pro2", filterBases, totalHits, results: [{path, title, date}]}`.
-`bases` avgrenser til Lovdatas samlings- eller gruppekoder:
+`{query, site: "pro2", filterBases, sort, offset, totalHits, nextOffset,
+results: [{path, title, date}]}`.
+
+- **Nyeste først:** `{ sort: "date" }`. Bruk det når brukeren spør etter de
+  nyeste, «fra 2020 og senere» e.l.: relevansrekkefølgen blander årene, og
+  de øverste treffene sier ingenting om hva som er nyest.
+- **Flere treff:** ett kall gir én side; `search(…, { offset: nextOffset })`
+  henter neste (samme `sort` og `bases`). `nextOffset` mangler på siste side.
+- Skriv aldri egne kall til Pro-ets søke-API: `search()` dekker det.
+
+`bases` avgrenser til Lovdatas samlings- eller gruppekoder. Treffene kan
+ligge i undersamlinger av koden du ga (`FINKN` gir `FINKNF`, `FINKNB`,
+`FINKNI`):
 
 | Kategori | Gruppekode | Eksempler på samlinger |
 |---|---|---|
@@ -492,6 +532,9 @@ Bruk standard norsk juridisk siteringsform i svaret til brukeren:
 
 Sitater beholdes på originalt norsk, i anførselstegn («…» eller "…"). Legg
 gjerne til oversettelse/forklaring på brukerens språk etter sitatet.
+**Resten av svaret skrives på brukerens språk** (bokmål til en som skriver
+bokmål, også når kilden er på nynorsk eller dansk; engelsk til en som skriver
+engelsk).
 
 Teksten har kildens kursiv og fet som `*…*` og `**…**` (sakstitler, latinske
 uttrykk, rettens egne uthevinger i sitater). Uthevingen er en del av teksten:
@@ -522,8 +565,10 @@ høy kostnad.
 feltet `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over
 lovens forarbeider (også for endringslover). `load()` den og hent
 dokumentene listen nevner. Lovens dato og nummer får du fra `lovdata-api`
-eller ved å `load()` loven (`metadata.Datokode`) hvis brukeren bare oppgir
-navnet. For forarbeidene til en *endring*: finn endringsloven med
+eller ved å `load()` loven (`metadata.Datokode`). Oppgir brukeren bare
+navnet (og året), finn loven med `search("<navn>", 5, { bases: ["NL"] })`
+(`["NLO"]` for en opphevet lov) og bruk `path` fra treffet; ta aldri dato
+og nummer fra hukommelsen uten å slå dem opp. For forarbeidene til en *endring*: finn endringsloven med
 `backlinks(lov, "endringslover")` og slå opp dens `RFA`.
 
 Forarbeidene består typisk av tre dokumenter — alle bør hentes når brukeren
@@ -581,9 +626,11 @@ kaste. Kodene:
   Steg 3.
 - **`cors`** → du kjørte JS i en fane som ikke er på Lovdata Pro. Sjekk at
   fanen faktisk viser en Lovdata Pro-side (Steg 0).
-- **`wrong_site`** → fanen står verken på nye Lovdata Pro eller Klassisk.
+- **`wrong_site`** → fanen står verken på nye Lovdata Pro eller Klassisk:
   `navigate` til standardadressen i Steg 0, lim inn hjelperen igjen og prøv
-  på nytt.
+  på nytt. Har svaret `pasted`, er kopien laget for det andre nettstedet:
+  kjør `paste_site.py <site>` (Steg 0 punkt 3) og lim inn den.
+- **`bad_sort`** (fra `search()`) → `sort` er `"relevance"` eller `"date"`.
 - **`missing_json`** (nye Pro) → dokumentet finnes, men uten tekstversjon i
   nye Pro. Åpne Klassisk (`https://lovdata.no/pro/?forceFullVersion=true`) i
   en egen fane, lim inn hjelperen der og `load()` på nytt.
