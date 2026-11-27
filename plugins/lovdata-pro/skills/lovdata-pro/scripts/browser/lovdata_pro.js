@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.5.0';
+  const HELPER_VERSION = '1.5.1';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
@@ -1396,6 +1396,13 @@
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 250));
+        // Exactly one hit: Klassisk skips the list and opens the document
+        // (#document/STS/forarbeid/…?…&totalHits=1, seen 2026-11-27).
+        const single = location.hash !== before && location.hash.match(/^#document\/([^/]+)\/([^/?#]+)\/([^/?#]+)/);
+        if (single) {
+          return { query, hash: location.hash, submitted: input.value, singleHit: true,
+                   results: [{ path: `${single[1]}/${single[2]}/${single[3]}`, rowNumber: null, title: document.title || undefined }] };
+        }
         if (!/^#result/.test(location.hash)) continue;
         if (Array.from(document.querySelectorAll(RESULT_LINKS)).some(isFresh)) {
           await new Promise(r => setTimeout(r, 400)); // let the rest of the list render

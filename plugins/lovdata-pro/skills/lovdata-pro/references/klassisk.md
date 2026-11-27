@@ -10,11 +10,12 @@ når nye Pro ikke har dokumentet:
 
 - **`missing_json`** eller **`static_file`** fra `load()` på nye Pro;
 - **Meld. St. / St.meld.**, som bare finnes i Klassisk, i
-  `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
-  (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-355`). Løpenummeret
-  kan ikke utledes av referansen: søk med referansen i anførselstegn
+  `STS/forarbeid/stsg-<sesjon>-<løpenummer>`. Løpenummeret kan ikke utledes
+  av referansen: søk med referansen i anførselstegn
   (`"Meld. St. 17 (2020-2021)"`; uten dem kommer bare Prop./NOU-treff) og
-  verifiser tittelen på treffet;
+  verifiser tittelen på treffet. **Mange er bare registerposter** også her
+  (`metadataOnly`): da har Lovdata ikke teksten. Si det, gi lenken, og hent
+  den ikke fra andre nettsteder;
 - nye Pro virker ikke (innlogging eller feil).
 
 Versjoner, endringslover og kategoriene utenom alminnelige domstoler og
@@ -28,8 +29,9 @@ Prop./NOU/Innst. finnes bare i nye Pro (`pro2_only`).
 2. Lim inn Klassisk-kopien: `python3 {SKILL_DIR}/scripts/browser/paste_site.py
    klassisk` (ca. 29 000 tegn), resten som i SKILL.md Steg 0. Svaret er
    `["<versjon>", "klassisk"]`.
-3. `isLoggedIn()` avgjøres på `#myPage` av `document.title`; står fanen på et
-   dokument, gjør funksjonen et lite prøveoppslag (`source: "probe"`).
+3. Kjør `await __lp.isLoggedIn()` (SKILL.md Steg 0 punkt 4). Den avgjøres
+   på `#myPage` av `document.title`; står fanen på et dokument, gjør den et
+   lite prøveoppslag (`source: "probe"`).
 
 `load()`, `toc()`, `section()`, `grep()`, `page()` og `checkQuotes()` virker som
 på nye Pro. Avsnittsnumre i dommer står i en egen tabellcelle (`| (77) |`);
@@ -54,6 +56,8 @@ eneste navigeringen som er i orden.
 - Samme søk to ganger uten ny tegning gir treffene som står der, med
   `reused: true`.
 - `noHits: true` med tom `results`: trolig ingen treff.
+- `singleHit: true`: søket hadde nøyaktig ett treff, og Klassisk åpnet
+  dokumentet selv (hash `#document/…`); `results` har det ene treffet.
 - `bases`, `sort` og `offset` virker bare på nye Pro.
 
 **Hvis `search()` svarer `search_timeout` eller `no_search_field`:**

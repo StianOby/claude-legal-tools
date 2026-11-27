@@ -97,7 +97,7 @@ du bruker dem noe sted, også i argumentene til Skill-kallet og i `resolve`.
    Ellers: kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`, les
    filen den skriver ut, og send **hele** innholdet via `javascript_tool`
    (`action: "javascript_exec"`) uten å legge til noe. Svaret skal være
-   `[VERSION, SITE]` (f.eks. `["1.5.0", "pro2"]`). Virker ikke
+   `[VERSION, SITE]` (f.eks. `["1.5.1", "pro2"]`). Virker ikke
    `paste_site.py`: `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene).
    **Innlimingen er ikke valgfri** og kortes aldri ned: ikke hopp over den
@@ -184,9 +184,11 @@ peker (`s1827`); finn stedet med `grep`.
 Flagg i svaret:
 
 - **`metadataOnly`** — ingen brødtekst i Pro (St.prp., eldre NOU under
-  `PUBG`). Sitér ikke fra posten. **`originalFile`** er original-PDF-en
-  (nyere `SDOK`), **`publication`** publikasjonen med teksten: gi brukeren
-  lenken, hent den ikke selv.
+  `PUBG`, mange Meld. St.). Sitér ikke fra posten. **`originalFile`** er
+  original-PDF-en (nyere `SDOK`), **`publication`** publikasjonen med
+  teksten: gi brukeren lenken, hent den ikke selv. **Hent heller ikke
+  teksten andre steder** (WebFetch, curl, nye faner på regjeringen.no
+  e.l.): si at Lovdata ikke har teksten, gi lenken du har, og stopp der.
 - **`alternatives`** — flere dokumenter deler referansen; `load()` tok det
   første. Sjekk tittelen.
 - **`noHeadings`** — ingen overskrifter (vanlig for dommer): bruk `grep` og
@@ -267,7 +269,9 @@ status}]}`.
   `bases`); `nextOffset` mangler på siste side.
 - Treffene er dokumentene der søkeordet står, og `totalHits` er alle. En
   datosortert liste er fullstendig for søkeordet: ikke `load()` treffene for
-  å kontrollere den; søk heller på andre ord eller ordformer.
+  å kontrollere den; søk heller på andre ord eller ordformer. Velg ut fra
+  titlene hvilke treff som handler om spørsmålet, og `load()` bare dem du
+  siterer fra.
 - Søket treffer innhold, ikke bare dokumentet du mener: et søk på
   «St.prp. nr. 100 1991-92 EØS-avtalen» gir EU-direktiver. **Verifiser
   tittelen** med `load()` før du siterer.
@@ -340,11 +344,14 @@ Gå gjennom utkastet før du sender det:
    korte fraser, ord fra metadata og bokstav- og nummerpunkter. Tell dem.
 2. **Send hvert av dem til `checkQuotes`**, ett kall per dokument, og rett
    det som får `matches: 0`. `checked` til sammen skal være lik antallet du
-   talte. Ikke skriv i svaret at sitatene er kontrollert.
-3. **Språket:** svaret er på brukerens språk; bare sitatene er på
+   talte.
+3. **Ingen påstand om kontrollen.** Skriv ikke i svaret at sitatene er
+   «kontrollert», «sjekket ordrett», «checked word for word» e.l.
+4. **Språket:** svaret er på brukerens språk; bare sitatene er på
    originalspråket.
-4. **Lenker** kan gis som `https://pro2.lovdata.no/dokument/<path>` (med
-   `path` fra et svar). Åpne dem aldri selv.
+5. **Lenker** kan gis som `https://pro2.lovdata.no/dokument/<path>`, bare
+   for dokumenter du har hentet med `load()`, med `path` fra det svaret.
+   Åpne dem aldri selv.
 
 ---
 
