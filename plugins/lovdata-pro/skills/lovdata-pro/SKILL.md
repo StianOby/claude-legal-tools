@@ -274,8 +274,8 @@ avgjørelser og uttalelser er `title` ofte bare id-en.
   å kontrollere den; søk heller på andre ord eller ordformer. Velg ut fra
   `subject` og titlene hvilke treff som handler om spørsmålet, og `load()` bare dem du
   siterer fra. Er nyeste treff gammelt, er det svaret: si at det ikke finnes
-  nyere dokumenter med søkeordet, i stedet for å lete gjennom nyere
-  dokumenter uten det.
+  nyere dokumenter med søkeordet. Ikke bla i en bred datosortert liste uten
+  søkeordet (f.eks. et søk på organets navn) for å se etter nyere.
 - Søket treffer innhold, ikke bare dokumentet du mener: et søk på
   «St.prp. nr. 100 1991-92 EØS-avtalen» gir EU-direktiver. **Verifiser
   tittelen** med `load()` før du siterer.
