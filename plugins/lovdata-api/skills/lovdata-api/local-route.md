@@ -137,7 +137,7 @@ The local shell does not have the skill's files, so every run copies them in.
   copies a file from it to `/mnt/user-data/uploads/<folder>/<path>`
   (read-only, up to 400 MB per file). Use that only to look at something —
   render a page with `pdftoppm` and Read the image — or to send a file with
-  `SendUserFile`, which refuses anything over **30 MiB**. Larger files: just
+  `SendUserFile` (tested to 250 MiB, 2026-11-27). Larger files: just
   tell the user where they are in their connected folder.
 - **Clean up** at the end:
   `rm -rf <dir>; rmdir "$HOME/.clt" 2>/dev/null; true`. If deletion is

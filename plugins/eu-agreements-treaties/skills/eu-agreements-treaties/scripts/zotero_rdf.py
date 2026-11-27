@@ -49,7 +49,7 @@ from xml.sax.saxutils import escape as _xml_escape
 SUPPORTED_TYPES = ("book", "case", "statute", "bill")
 
 # The most Cowork's SendUserFile and device_commit_files take (run 9).
-LARGE_PDF_MIB = 30
+LARGE_PDF_MIB = 250
 
 # Type-specific field -> the base field Zotero's export writes it under.
 # From the Zotero schema; only the four supported types.
@@ -368,10 +368,9 @@ def write_zotero_files(item: dict, out_dir: Path, base: str,
     else:
         mib = (out_dir / pdf_filename).stat().st_size / 2 ** 20
         if mib > LARGE_PDF_MIB:
-            # The EEA Agreement with its annexes is 37 MiB (Cowork run 13).
             print(f"LARGE PDF: {pdf_filename} is {mib:.1f} MiB, over the {LARGE_PDF_MIB} MiB that "
-                  "SendUserFile and device_commit_files take; see zotero-ready.md, "
-                  "\"A PDF over 30 MiB\".")
+                  "SendUserFile and device_commit_files have been tested with; see "
+                  "zotero-ready.md, \"A PDF over 250 MiB\".")
     return rdf_path, json_path
 
 

@@ -82,7 +82,7 @@ _LANG_VALUES = " ".join(f"<http://publications.europa.eu/resource/authority/lang
 XSD = "http://www.w3.org/2001/XMLSchema#"
 # The plugin's version (plugin.json); tests/eu-agreements-treaties checks
 # that the two agree.
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 UA = f"eu-agreements-treaties-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 _MONTHS = {m: i for i, m in enumerate(
     ["january", "february", "march", "april", "may", "june", "july", "august",

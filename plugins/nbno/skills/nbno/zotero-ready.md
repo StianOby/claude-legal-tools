@@ -258,10 +258,10 @@ from `<that folder>`; the PDF next to it is attached automatically." If the
 user would rather skip that step and the Zoteus tools are available, offer
 the direct import below.
 
-### A PDF over 30 MiB
+### A PDF over 250 MiB
 
-The script prints `LARGE PDF:` when the PDF is over 30 MiB, the most
-`SendUserFile` and `device_commit_files` take. The PDF then cannot leave the
+The script prints `LARGE PDF:` when the PDF is over 250 MiB, the largest
+size `SendUserFile` and `device_commit_files` have been tested with. The PDF then cannot leave the
 cloud sandbox, so:
 
 nb.no has no public PDF link, so Zoteus cannot fetch it either. With the
@@ -319,10 +319,12 @@ made in the cloud sandbox gets there through the connected folder (verified
 1. Load the tools with one ToolSearch call:
    `select:mcp__remote-devices__get_device_info,mcp__remote-devices__device_commit_files,mcp__remote-devices__device_request_folder_access`.
    If they are not there, follow **When the PDF is not attached**.
-2. **Over 30 MB → stop here** and follow **When the PDF is not attached**:
-   that is the copying cap.
-3. Copy the PDF to `/mnt/user-data/outputs/` (`device_commit_files` takes
-   files only from there, or a `fileUuid` from an earlier `SendUserFile`).
+2. **Over 250 MiB → stop here** and follow **When the PDF is not attached**:
+   no larger file has been tested.
+3. Copy the PDF to `/mnt/user-data/outputs/`. `device_commit_files` takes
+   that path only up to 25 MiB (above it: `HTTP 400 fetching session
+   file`). For a larger PDF, `SendUserFile` it first and pass the
+   `fileUuid` it returns instead (tested to 250 MiB, 2026-11-27).
 4. **Folder:** `get_device_info` → `connectedFolders`, which gives the real
    path on the user's computer (e.g. `C:\Users\…\Claude-legal-work`). With
    more than one, ask which. With none, ask the user which folder to connect
@@ -341,8 +343,8 @@ made in the cloud sandbox gets there through the connected folder (verified
 A local-route book is already in the connected folder
 (`$HOME/mnt/<folder>/nbno/<id>/` in the local shell): skip steps 2–5 and
 attach it with `path` = the same file under the folder's real path from
-`get_device_info` (`<folder>\nbno\<id>\<file>`). The 30 MB cap does not
-apply to it.
+`get_device_info` (`<folder>\nbno\<id>\<file>`). No size limit
+applies to it.
 
 ## When the PDF is not attached
 
@@ -353,7 +355,7 @@ themselves. This applies when:
 - the Zoteus route created the item but did not attach the PDF (step 7
   skipped, or `zotero_attach_file` failed);
 - the `.rdf` reaches the user without its `.pdf` next to it, for example
-  because `SendUserFile` refused a PDF over 30 MiB, or the PDF went to a
+  because a PDF over 250 MiB was not sent, or the PDF went to a
   different folder from the RDF. If the user says the item came in without
   its PDF, the usual cause is a `.rdf` opened straight from the chat.
 

@@ -86,7 +86,7 @@ WEB_URL = f"{BASE}/eng?i="  # human-friendly URL Claude should cite
 # string passes reliably, so _http_get() only detects a challenge and says so.
 # $HUDOC_USER_AGENT overrides the string.
 USER_AGENT = os.environ.get("HUDOC_USER_AGENT") or (
-    "hudoc-skill/1.4.0 (+https://github.com/StianOby/claude-legal-tools)"
+    "hudoc-skill/1.4.1 (+https://github.com/StianOby/claude-legal-tools)"
 )
 
 # Default field set: everything the HUDOC UI itself exposes for a result row,

@@ -34,7 +34,9 @@ Claude loads only for Zotero requests, so the main SKILL.md stays short.
   `get_device_info.connectedFolders` gives the real host path. The copy is
   left in the folder: nothing in the connected folder is ever deleted.
   Verified 2026-10-21 with a 22 MB UNTS slice.
-- **30 MiB:** `SendUserFile` and `device_commit_files` take at most that.
+- **250 MiB:** the largest size `SendUserFile` and `device_commit_files`
+  have been tested with (2026-11-27); `device_commit_files` takes an
+  outputs path only up to 25 MiB, a `fileUuid` from `SendUserFile` above it.
   The builder prints `LARGE PDF:` above it. Then Zoteus by URL; else the
   local shell downloads the PDF straight into the connected folder beside the
   `.rdf` (not yet tested); else the `.rdf` with the PDF link. rm.coe.int

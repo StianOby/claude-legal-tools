@@ -328,10 +328,10 @@ For reading pages visually, OCR and shrinking, read
   again. If it cannot be fixed (no Tesseract on the local route), deliver
   without a text layer and use message **C** from `local-route.md`.
 - **Deliver:** copy it to the outputs directory (`/mnt/user-data/outputs` in
-  cloud Cowork) and share it with `SendUserFile`, which refuses files
-  over 30 MiB: then just say where the PDF is. Local-route results are
-  already in `<connected folder>/nbno/<id>/`; say where (send one only if it
-  is under 30 MiB, after `device_stage_files` — see `local-route.md` §3).
+  cloud Cowork) and share it with `SendUserFile` (tested to 250 MiB; for a
+  larger file just say where the PDF is). Local-route results are
+  already in `<connected folder>/nbno/<id>/`; say where (send one only
+  after `device_stage_files` — see `local-route.md` §3).
 - **Page size:** pages are scaled to A4 height (297 mm), with the width
   following the scan's proportions — the scan does not record the book's
   real size, so do not report it as the book's format.

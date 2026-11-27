@@ -150,11 +150,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("PDF present -> no notice", "PDF NOT ATTACHED" in out.getvalue(), False)
     check("small PDF -> no LARGE PDF line", "LARGE PDF" in out.getvalue(), False)
     with open(tmp / "big.pdf", "wb") as f:
-        f.truncate(31 * 2 ** 20)   # sparse: 31 MiB without writing them
+        f.truncate(251 * 2 ** 20)   # sparse: 251 MiB without writing them
     out_big = io.StringIO()
     with redirect_stdout(out_big):
         zr.write_zotero_files(book, tmp, "big", pdf_filename="big.pdf")
-    check("PDF over 30 MiB -> LARGE PDF line", "LARGE PDF: big.pdf is 31.0 MiB" in out_big.getvalue(), True)
+    check("PDF over 250 MiB -> LARGE PDF line", "LARGE PDF: big.pdf is 251.0 MiB" in out_big.getvalue(), True)
     payload = json.loads((tmp / "Eckhoff_(1997).zotero.json").read_text(encoding="utf-8"))
     check("payload item is the item", payload["items"], [book])
     check("payload web link", (payload["web_link"]["linkMode"], payload["web_link"]["url"]),
