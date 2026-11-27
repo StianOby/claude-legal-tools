@@ -254,9 +254,12 @@ offset, then fetch the range. If you only see front matter, probe further
 in. On the cloud route, look at the probe images. On the local route you
 cannot see them, because they sit in `<dir>` and must not be copied to the
 user's folder. Read the number with the local tesseract instead:
-`tesseract <img> - 2>/dev/null | sed -n '1,3p;$p'`, where the page number is
-in the head or foot line. Fetch front matter before printed p. 1 only if
-asked, and name both the printed pages and the canvases when you deliver.
+`tesseract <img> - 2>/dev/null | sed -n '1,3p;$p' | grep -oE '[0-9]+'`
+prints only the numbers in the head and foot lines, not the body text. OCR
+can add noise (`123)`), so match loosely. To check the final pages on the
+local route, pass `--keep-images` on the final call as well and read each
+page the same way. Fetch front matter before printed p. 1 only if asked,
+and name both the printed pages and the canvases when you deliver.
 Use **one `--out` for every call in a task**, the probes and the final
 download, so Pillow and img2pdf install into `<out>/_pylib` only once.
 
