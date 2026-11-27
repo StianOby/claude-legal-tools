@@ -51,7 +51,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.7"
+VERSION = "2.0.8"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 # Mirror the install-target / preflight helpers from zotero_book.py.
@@ -148,8 +148,28 @@ def ocr_env(jobs: int) -> dict:
 
 
 # Language models come from tessdata_fast, the set Debian/Ubuntu package.
-TESSDATA_URL = ("https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
-                "{code}.traineddata")
+# Tried in order. Not github.com/<repo>/raw/...: the cloud sandbox's proxy
+# answers 403 for any github.com repo path not attached to the session
+# (Cowork probe 2026-11-27); raw.githubusercontent.com and jsDelivr pass.
+TESSDATA_URLS = (
+    "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/{code}.traineddata",
+    "https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata_fast@main/{code}.traineddata",
+)
+
+
+def fetch_tessdata(code: str) -> bytes:
+    """The tessdata_fast model for `code`, from the first source that
+    serves it. Raises the last error when none does."""
+    last = None
+    for url in TESSDATA_URLS:
+        try:
+            req = urllib.request.Request(url.format(code=code),
+                                         headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return resp.read()
+        except (OSError, http.client.HTTPException) as exc:
+            last = exc
+    raise last
 
 
 def _tessdata_dir() -> Path:
@@ -234,10 +254,7 @@ def _fetch_tessdata(codes: List[str], system_dir: Optional[Path]) -> List[str]:
         dst = target / f"{code}.traineddata"
         if not dst.exists():
             try:
-                req = urllib.request.Request(TESSDATA_URL.format(code=code),
-                                             headers={"User-Agent": USER_AGENT})
-                with urllib.request.urlopen(req, timeout=60) as resp:
-                    data = resp.read()
+                data = fetch_tessdata(code)
             except (OSError, http.client.HTTPException) as exc:
                 print(f"[ocr] could not fetch {code}.traineddata ({exc})",
                       file=sys.stderr)

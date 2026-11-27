@@ -49,7 +49,7 @@ machine-readable text rather than a visual check.
   sandboxes have shipped with only `eng` and `osd`, and `apt-get` fails
   there (no root). `tesseract_preflight()` in `zotero_book.py` and
   `ocr_chunked.py` handles this: it downloads `nor.traineddata` from
-  `github.com/tesseract-ocr/tessdata_fast`, puts it in `<out>/_tessdata/`
+  `raw.githubusercontent.com/tesseract-ocr/tessdata_fast` (jsDelivr as fallback), puts it in `<out>/_tessdata/`
   beside `_pylib/` together with the system tessdata dir's models,
   `configs/`, `tessconfigs/` (when present) and `pdf.ttf`, and sets
   `TESSDATA_PREFIX` to it. Later calls reuse that dir. Do not build a
@@ -62,7 +62,7 @@ machine-readable text rather than a visual check.
   package. The default is `nor`.
 - **Running `tesseract` by hand without `nor`:** plain `tesseract` needs
   only the `.traineddata` file, so
-  `TS=$(mktemp -d); curl -sLo "$TS/nor.traineddata" https://github.com/tesseract-ocr/tessdata_fast/raw/main/nor.traineddata`
+  `TS=$(mktemp -d); curl -sLo "$TS/nor.traineddata" https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/nor.traineddata`
   plus `TESSDATA_PREFIX="$TS"` is enough. `ocrmypdf` also needs
   `configs/` and `pdf.ttf` in the same dir. The system dir is the path in
   the first line of `tesseract --list-langs` (e.g.

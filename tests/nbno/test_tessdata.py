@@ -55,5 +55,33 @@ for mod in (zotero_book, ocr_chunked):
     mod.subprocess.run = lambda *a, **k: SimpleNamespace(stdout=V4, stderr="")
     check("nothing found -> None", mod._list_langs()[1], None)
 
+print("fetch_tessdata: no github.com repo path, falls back in order")
+import urllib.error  # noqa: E402
+for mod in (zotero_book, ocr_chunked):
+    tag = mod.__name__
+    check(f"{tag}: no github.com/<repo> URL (blocked in the cloud sandbox)",
+          any(u.startswith("https://github.com/") for u in mod.TESSDATA_URLS), False)
+    tried = []
+
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return b"model"
+
+    def fake_urlopen(req, timeout=60, _t=tried):
+        _t.append(req.full_url)
+        if len(_t) == 1:
+            raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", None, None)
+        return Resp()
+
+    real = mod.urllib.request.urlopen
+    mod.urllib.request.urlopen = fake_urlopen
+    try:
+        check(f"{tag}: first source 403 -> second serves it", mod.fetch_tessdata("nor"), b"model")
+        check(f"{tag}: tried in order", tried,
+              [u.format(code="nor") for u in mod.TESSDATA_URLS[:2]])
+    finally:
+        mod.urllib.request.urlopen = real
+
 print(f"{failures} failure(s)" if failures else "all ok")
 sys.exit(1 if failures else 0)
