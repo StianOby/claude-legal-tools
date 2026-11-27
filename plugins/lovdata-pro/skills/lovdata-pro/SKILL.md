@@ -97,7 +97,7 @@ du bruker dem noe sted, også i argumentene til Skill-kallet og i `resolve`.
    Ellers: kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`, les
    filen den skriver ut, og send **hele** innholdet via `javascript_tool`
    (`action: "javascript_exec"`) uten å legge til noe. Svaret skal være
-   `[VERSION, SITE]` (f.eks. `["1.5.1", "pro2"]`; versjonen er hjelperens `HELPER_VERSION`). Virker ikke
+   `[VERSION, SITE]` (f.eks. `["1.5.4", "pro2"]`; versjonen er hjelperens `HELPER_VERSION`). Virker ikke
    `paste_site.py`: `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene).
    **Innlimingen er ikke valgfri** og kortes aldri ned: ikke hopp over den
@@ -261,8 +261,9 @@ await __lp.search("tomtefeste", 10, { bases: ["HRA"] })
 await __lp.search("taushetsplikt", 10, { bases: ["JDLOV"], sort: "date" })
 ```
 
-Svaret er `{query, totalHits, nextOffset, results: [{path, title, date,
-status}]}`.
+Svaret er `{query, totalHits, nextOffset, results: [{path, title, subject,
+date, status}]}`. `subject` er treffets emnelinje (Lovdatas stikkord); for
+avgjørelser og uttalelser er `title` ofte bare id-en.
 
 - **Nyeste først:** `sort: "date"`, når brukeren spør etter de nyeste eller
   «fra 2020 og senere»; relevansrekkefølgen blander årene.
@@ -271,7 +272,7 @@ status}]}`.
 - Treffene er dokumentene der søkeordet står, og `totalHits` er alle. En
   datosortert liste er fullstendig for søkeordet: ikke `load()` treffene for
   å kontrollere den; søk heller på andre ord eller ordformer. Velg ut fra
-  titlene hvilke treff som handler om spørsmålet, og `load()` bare dem du
+  `subject` og titlene hvilke treff som handler om spørsmålet, og `load()` bare dem du
   siterer fra. Er nyeste treff gammelt, er det svaret: si at det ikke finnes
   nyere dokumenter med søkeordet, i stedet for å lete gjennom nyere
   dokumenter uten det.

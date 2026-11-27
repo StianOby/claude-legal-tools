@@ -150,7 +150,7 @@ function makeTab({ loggedIn = true, host = 'pro2.lovdata.no', pathname = '/', ap
       calls[calls.length - 1].body = body;
       return json(200, { totalHits: 100, results: [
         { documentURI: { base: 'COMMENT', type: 'karnov', id: 'x' }, documentTitles: { title: 'Kommentar' } },
-        { documentURI: { base: 'HRSIV', type: 'avgjorelse', id: 'hr-2016-1-a' }, documentTitles: { title: 'HR-2016-1-A' }, isoDate: '2016-01-01' },
+        { documentURI: { base: 'HRSIV', type: 'avgjorelse', id: 'hr-2016-1-a' }, documentTitles: { title: 'HR-2016-1-A' }, isoDate: '2016-01-01', documentSummary: { keywords: 'Emne  - spørsmålet' } },
         { documentURI: { base: 'NOU', type: 'forarbeid', id: 'nou-2000-1' }, documentTitles: { title: 'NOU 2000: 1' } },
         { documentURI: { base: 'PUBG', type: null, id: 'pubg-200001-stprp-1' }, documentTitles: { title: 'St.prp.nr.1' } },
       ] });
@@ -266,6 +266,7 @@ async function main() {
   const s = await lp.search('HR-2016-1-A', 10, { bases: ['HRA'] });
   const sc = calls.find(c => /search\?minimal=true$/.test(c.url));
   check('search request', [sc.method, sc.body.sortField, sc.body.sortOrder, sc.body.filterBases, sc.body.term], ['POST', 'relevance', 'desc', ['HRA'], 'HR-2016-1-A']);
+  check('search hit subject from documentSummary.keywords, no row field', [s.results[0].subject, s.results[1].subject, 'row' in s.results[0]], ['Emne - spørsmålet', undefined, false]);
   check('search results', s.results.map(x => [x.path, !!x.noDocument]), [['HRSIV/avgjorelse/hr-2016-1-a', false], ['NOU/forarbeid/nou-2000-1', false], ['PUBG/null/pubg-200001-stprp-1', true]]);
   // sort 'date' and offset go to the server; nextOffset continues after the
   // rows this reply used (the Karnov row counts: it is a server row).

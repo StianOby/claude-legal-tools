@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.5.1';
+  const HELPER_VERSION = '1.5.4';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
@@ -412,11 +412,23 @@
         // REPEALED, ORIGINALLY_PROMULGATED (Lovtidend), NOT_IN_FORCE …
         const status = (h.documentSummary && h.documentSummary.documentStatus) || h.documentStatus;
         if (status) hit.status = status;
+        // The title of a decision or statement is often just its id
+        // (JDLOV, SOMB, KOFA); documentSummary.keywords is the one-line
+        // subject (the record's Stikkord), filled in every row measured
+        // 2026-11-27, ~70-180 chars.
+        const subject = h.documentSummary && h.documentSummary.keywords;
+        if (typeof subject === 'string' && subject.trim()) hit.subject = subject.replace(/\s+/g, ' ').trim();
+        hit.row = used;
         results.push(hit);
         if (results.length >= n) break;
       }
-      const out = { query, site: 'pro2', filterBases: body.filterBases, sort, offset, totalHits: r.json.totalHits, results };
-      const end = offset + used;
+      const out = { query, site: 'pro2', filterBases: body.filterBases, sort, offset, totalHits: r.json.totalHits };
+      // Many hits with subjects can pass PAGE_SIZE: keep what fits and let
+      // nextOffset continue after the last hit kept.
+      const { items } = fitList(results, PAGE_SIZE - 500 - jsonLen(out));
+      const end = offset + (items.length === results.length ? used : (items.length ? items[items.length - 1].row : 0));
+      out.results = items.map(({ row, ...hit }) => hit);
+      if (items.length < results.length) out.truncated = true;
       if (rows.length && (r.json.totalHits == null || end < r.json.totalHits)) out.nextOffset = end;
       return out;
     }
