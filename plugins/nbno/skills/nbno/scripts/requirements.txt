@@ -38,7 +38,7 @@ mdurl==0.1.2
     # via markdown-it-py
 numpy==2.5.4
     # via -r requirements.in
-ocrmypdf==17.14.0
+ocrmypdf==17.14.1
     # via -r requirements.in
 packaging==26.3
     # via
@@ -46,7 +46,7 @@ packaging==26.3
     #   pikepdf
 pdfminer-six==20260107
     # via ocrmypdf
-pikepdf==10.18.0
+pikepdf==10.18.1
     # via
     #   -r requirements.in
     #   img2pdf
@@ -68,7 +68,7 @@ pydantic-core==2.50.4
     # via pydantic
 pygments==2.21.0
     # via rich
-pypdf==7.0.0
+pypdf==7.1.0
     # via -r requirements.in
 pypdfium2==5.15.2
     # via ocrmypdf
@@ -92,5 +92,5 @@ typing-inspection==0.4.5
     # via pydantic
 uharfbuzz==0.57.0
     # via ocrmypdf
-uv==0.13.7
+uv==0.13.8
     # via -r requirements.in
