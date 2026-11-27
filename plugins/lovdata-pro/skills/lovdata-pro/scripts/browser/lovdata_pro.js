@@ -5,9 +5,9 @@
 // functions are async and return plain JSON-serialisable objects (this is
 // what javascript_tool returns to the caller — no DOM nodes, no functions).
 //
-// Keep this tab parked on Lovdata Pro Klassisk (https://lovdata.no/pro/,
-// opened as https://lovdata.no/pro/?forceFullVersion=true) and never navigate it
-// away — window.__lp.cache dies on navigation, and every load()/section()/
+// Keep this tab parked on the new Lovdata Pro (https://pro2.lovdata.no/, the
+// default since 1.5.0) or on Klassisk (https://lovdata.no/pro/?forceFullVersion=true)
+// and never navigate it away — window.__lp.cache dies on navigation, and every load()/section()/
 // grep() after the first for a given path reuses the cached parsed
 // Document instead of re-fetching.
 //
@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.4.4';
+  const HELPER_VERSION = '1.5.0';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {

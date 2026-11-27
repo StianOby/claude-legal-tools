@@ -21,33 +21,29 @@ description: >
 
 **Første steg, før alle kommandoer:** finn `{SKILL_DIR}` som beskrevet under «Skill-katalogen» nedenfor, og bruk den utskrevne stien bokstavelig. Gjett den aldri (f.eks. `/mnt/skills/...`).
 
-Dette ferdighetsdokumentet er på norsk. **Svaret til brukeren skal alltid
-tilpasses brukerens eget språk** (samme regel som i `lovdata-api`-skill-en):
-spørsmål på engelsk → svar på engelsk; norsk → norsk; blandet → norsk.
-Sitater fra dommer og forarbeider beholdes alltid på originalt norsk.
+Dette dokumentet er på norsk. **Svaret til brukeren skrives på brukerens
+språk** (engelsk → engelsk, bokmål → bokmål, også når kilden er på nynorsk
+eller dansk; blandet → norsk). Sitater beholdes på originalspråket.
 
-Dekningen følger kategoriene i nye Lovdata Pro: rettsavgjørelser (alminnelige
+**Dekning** (kategoriene i nye Lovdata Pro): rettsavgjørelser (alminnelige
 domstoler, spesialdomstoler som Trygderetten, Arbeidsretten og
-jordskiftedomstolene, og publikasjoner som Nordiske Domme i
+jordskiftedomstolene, publikasjoner som Nordiske Domme i
 Sjøfartsanliggender), forarbeider og stortingsdokumenter, rundskriv og
-uttalelser, nemnder og utvalg, og lover og forskrifter for det historiske:
-tidligere versjoner, opphevede lover og forskrifter, Lovtidend og lokale
-forskrifter (gjeldende tekst alene: `lovdata-api`). Alt utenom alminnelige
-domstoler og Prop./NOU/Innst. er kartlagt og testet bare i **nye Lovdata
-Pro**; bruk den for disse.
+uttalelser, nemnder og utvalg, og det historiske for lover og forskrifter:
+tidligere versjoner, vedtatt tekst, opphevede lover, Lovtidend og lokale
+forskrifter. Gjeldende lovtekst alene: `lovdata-api`.
 
-Denne skill-en bruker Claude Desktops innebygde browserverktøy til å hente
-Lovdata Pro-dokumenter direkte i brukerens innloggede sesjon. Den virker
-**ikke** uten disse verktøyene (se Forutsetninger).
+**Verktøy.** Skill-en henter dokumentene i brukerens innloggede sesjon i
+Claude Desktops innebygde browser, og virker ikke uten den (se Steg 0). To
+hjelpescript:
 
-Du har tilgang til to hjelpescript:
+- `scripts/lovdata_ref.py` (Bash, ingen nettverk): referanse → kandidatstier.
+- `scripts/browser/lovdata_pro.js`: limes inn i fanen (Steg 0) og gjør
+  henting, tekst, søk og sitatkontroll.
 
-- `scripts/lovdata_ref.py` — rent Python, ingen nettverkstilgang. Oversetter
-  en referanse til kandidat-Pro-stier. Kjøres via bash/terminal.
-- `scripts/browser/lovdata_pro.js` — limes inn i browser-fanen via
-  `javascript_tool`. Gjør selve hentingen, seksjoneringen og søket.
-  `scripts/browser/paste_site.py` lager kopien for nettstedet fanen står på
-  (Steg 0).
+All henting skjer i browser-panelet. Bash kan ikke nå lovdata.no
+(sky-sandkassen har Anthropics IP: 405; lokal shell er ikke innlogget):
+ikke prøv `curl` e.l.
 
 **Skill-katalogen (`{SKILL_DIR}`).** Kjør alltid dette én gang før første kommando, også når «Base directory for this skill:» er oppgitt: den stien virker for å lese filer, men shellet ser den ofte ikke.
 Bruk den utskrevne stien bokstavelig i senere kommandoer:
@@ -56,427 +52,231 @@ for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skil
 ```
 Erstatt `{SKILL_DIR}` nedenfor med den stien.
 
-For komplette URL-mønstre, samlingsforkortelser og slug-regler, se
-`references/lovdata-pro-mapping.md`.
+**Referansefiler** (les dem når oppgaven trenger dem):
 
----
+- `references/lover-historikk.md` — lover og forskrifter slik de lød før,
+  slik de ble vedtatt, opphevede lover, Lovtidend, endringslover.
+- `references/klassisk.md` — Lovdata Pro Klassisk (Meld. St., dokumenter nye
+  Pro mangler) og lese-ruten når innlimingen avvises.
+- `references/lovdata-pro-mapping.md` — samlinger, prefikser, slug-regler og
+  dekningsgrenser.
 
-## Forutsetninger
-
-Denne skill-en krever at de innebygde browserverktøyene (f.eks.
-`preview_start`, `navigate`, `javascript_tool`) er tilgjengelige. Finn dem med
-ToolSearch som beskrevet under. **Hvis de ikke finnes** (for eksempel i Claude
-Code CLI): stopp og si til brukeren at denne skill-en trenger de innebygde
-browserverktøyene i Claude Desktop (Cowork, eller Code-fanen der de er
-tilgjengelige).
-
-**Browserverktøy.** Prefikset til den innebygde browserens verktøy varierer (`mcp__Claude_Browser__…` i lokal Cowork,
-`mcp__remote-devices__Claude_Browser__…` i sky-Cowork). De er ofte utsatt (deferred): kjør ett ToolSearch-kall med
-query `Claude_Browser` og `max_results` 64, og bruk prefikset som kommer tilbake. Denne filen omtaler verktøyene bare
-med suffiks (`tabs_context`, `preview_start`, `navigate`, `javascript_tool`, …). `request_access` finnes ikke i alle
-miljøer; mangler det, gå rett til `preview_start`/`navigate`.
-
-## Hvor hvert steg kjøres
-
-| Steg | Hvor |
-|---|---|
-| Innlogging, navigering, henting, seksjonering og søk (`lovdata_pro.js`) | **Browser-panelet** (brukerens IP og innlogging) |
-| Oppslag av referanse (`lovdata_ref.py`, ingen nettverkstilgang) | **Bash** (sky-sandkasse eller lokal) |
-
-All henting skjer i browser-panelet. Ingen av shellene kan kalle lovdata.no
-direkte (sky-sandkassen: 405; lokal shell: ikke innlogget) — ikke prøv `curl`
-e.l. mot lovdata.no fra `Bash`.
-
-Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-panelet har med sikkerhet brukerens IP og innlogginger.
+**En lov eller forskrift oppgitt bare med navn** («arbeidsmiljøloven»,
+«den gamle arbeidsmiljøloven fra 1977»): ta aldri dato og nummer fra
+hukommelsen, heller ikke når du er sikker. Slå dem opp først (Steg 1), før
+du bruker dem noe sted, også i argumentene til Skill-kallet og i `resolve`.
 
 ---
 
 ## Steg 0 — sesjon (alltid først, hver ny samtale)
 
-1. `tabs_context` — se om det allerede finnes en fane på `lovdata.no/pro`
-   eller `pro2.lovdata.no`. Gjenbruk den om den finnes (cachen i
-   `window.__lp` dør ved navigering, så ikke naviger fanen bort for annet
-   enn søk i Klassisk — se Steg 3). **Naviger aldri til en dokumentside**
-   (`pro2.lovdata.no/dokument/…`, `#document/…`) for å lese den: hjelperen
-   og cachen forsvinner, og Pro-appen skriver besøket inn i brukerens
-   historikk (smulesti). Er det ingen faner: `preview_start` med
-   **standardadressen**:
+1. **Browserverktøyene.** Kjør ett ToolSearch-kall med query
+   `Claude_Browser` og `max_results` 64, og bruk prefikset som kommer
+   tilbake (`mcp__Claude_Browser__…` lokalt, `mcp__remote-devices__Claude_Browser__…`
+   i skyen); filen omtaler verktøyene med suffiks (`tabs_context`,
+   `preview_start`, `navigate`, `javascript_tool`). Finnes de ikke (f.eks. i
+   Claude Code CLI): stopp og si at skill-en trenger de innebygde
+   browserverktøyene i Claude Desktop.
+2. **Fanen.** `tabs_context`: finnes en fane på `pro2.lovdata.no`, gjenbruk
+   den. Ellers `preview_start` med
 
-   **Standard: `https://lovdata.no/pro/?forceFullVersion=true`** (Lovdata Pro Klassisk)
+   **Standard: `https://pro2.lovdata.no/`** (nye Lovdata Pro)
 
-   Hjelperen virker på begge Lovdata Pro-utgavene, med samme funksjoner:
-   **nye Lovdata Pro** (`pro2.lovdata.no`; innlogging fører dit fra
-   26.11.2026) og **Lovdata Pro Klassisk** (`lovdata.no/pro`, tilgjengelig
-   ut 2027). `isLoggedIn()` og `load()` svarer med `site: "pro2"` på nye
-   Pro. Står fanen et annet sted, svarer kallene `wrong_site`. Fungerer ikke
-   den ene utgaven (innlogging, feil eller manglende dokument), prøv den
-   andre: `https://pro2.lovdata.no/` eller
-   `https://lovdata.no/pro/?forceFullVersion=true`.
-   Står en annen skills fane åpen (f.eks. nb.no), åpne en egen fane med
-   `tabs_create` og `navigate` — `preview_start` gjenbruker fanen som er
-   fremme, og den andre skillen mister da hjelperen sin.
-2. Hvis `request_access` finnes og et verktøy rapporterer at siden ikke er
-   godkjent ennå: `request_access {url: "https://lovdata.no/pro/", scope: "site"}`
-   (på nye Pro: `https://pro2.lovdata.no/`) og prøv igjen.
-3. Last inn hjelperen.
-   **Sjekk først om den alt er der:** `javascript_tool` med
+   Står en annen skills fane fremme (f.eks. nb.no), åpne en egen fane med
+   `tabs_create` + `navigate`, ellers mister den andre skill-en hjelperen sin.
+   Trenger du Lovdata Pro Klassisk, se `references/klassisk.md`.
+   **Naviger aldri fanen bort, og aldri til en dokumentside**
+   (`/dokument/…`): hjelperen og cachen forsvinner, og Pro skriver besøket
+   inn i brukerens historikk (smulesti).
+   Ber et verktøy om tilgang og `request_access` finnes:
+   `request_access {url: "https://pro2.lovdata.no/", scope: "site"}`.
+3. **Hjelperen.** Sjekk først om den alt er der: `javascript_tool` med
    `[window.__lp && __lp.VERSION, window.__lp && __lp.SITE]`, og
    `grep -m1 "HELPER_VERSION = " {SKILL_DIR}/scripts/browser/lovdata_pro.js`
-   i Bash. Er versjonen den samme og `SITE` er nettstedet fanen står på
-   (`pro2` eller `klassisk`), er hjelperen klar: hopp til punkt 4.
-   **Ellers:** kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`
-   i Bash når fanen står på nye Pro (`pro2.lovdata.no`), `… paste_site.py
-   klassisk` på `lovdata.no/pro`. Den skriver en kopi med bare koden for det
-   nettstedet, uten kommentarer og innrykk (ca. 36 000 tegn for nye Pro,
-   29 000 for Klassisk), og skriver ut stien. Les den filen og send **hele**
-   innholdet via `javascript_tool` (`action: "javascript_exec"`), uten å
-   legge til noe: kopiens siste linje gjør at svaret er `[VERSION, SITE]`
-   (f.eks. `["1.4.4", "pro2"]`), og det bekrefter at innlimingen virket.
-   Virker ikke `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
-   {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene, ca.
-   44 000 tegn). Kort aldri ned hjelperen.
-   **Innlimingen er ikke valgfri.** Den koster én lang melding, men alt
-   annet i skill-en bygger på den: ikke hopp over den fordi den er stor, og
-   ikke erstatt den med `get_page_text` eller egne kall til Pro-ets API.
-   Idempotent — trygt å lime inn flere ganger i samme fane. En annen versjon
-   (fra før en skill-oppdatering) eller kopien for det andre nettstedet
-   byttes ut (cachen tømmes).
-   **Avvises innlimingen av en sikkerhetssjekk**, ikke prøv samme kall igjen.
-   Si det til brukeren med én setning og bruk lese-ruten: logg inn (punkt 4 uten
-   `isLoggedIn()` — spør brukeren), `navigate` til
-   `https://lovdata.no/pro/#document/<path>` (path fra Steg 1, f.eks.
-   `HRSIV/avgjorelse/hr-2016-2554-p`), vent et par sekunder og les med
-   `get_page_text` (eller `read_page`). Åpnes dokumentet i nye Lovdata Pro
-   (`pro2.lovdata.no/dokument/…`), les det der på samme måte; på nye Pro
-   kan du også `navigate` direkte til `https://pro2.lovdata.no/dokument/<path>`.
-   Søk skjer som i fallbacken i Steg 3, med `get_page_text` i stedet for
-   `readSearchResults`. Lese-ruten har ingen
-   `grep`/`section`/biter: lange dokumenter kan bli avkortet, så si fra hvis
-   teksten slutter brått, og sitér bare det siden faktisk viser. På nye Pro
-   er den særlig upålitelig: `get_page_text` gir tom tekst når panelet er
-   skjult, og lange dokumenter tegnes bare delvis (målt: ca. 10 000 tegn).
-   Lese-ruten skriver også besøkene inn i brukerens historikk.
-4. Kjør `await __lp.isLoggedIn()`. På nye Pro spør den Pro-ets API
-   (`source: "api"`). I Klassisk avgjøres svaret på `#myPage` av
-   `document.title`; står fanen på et dokument, gjør funksjonen i stedet et
-   lite prøveoppslag mot Pro (`source: "probe"`).
-   - **Ikke innlogget** → si til brukeren: *"Logg inn på Lovdata Pro i
-     browser-panelet (SSO/FEIDE går fint). Si fra når du er inne."* Vent på
-     bekreftelse, kjør `isLoggedIn()` på nytt. **Skriv aldri inn
-     brukernavn/passord selv, og be aldri brukeren oppgi dem til deg** —
-     innlogging skjer utelukkende i browser-panelet.
-   - **Innlogget** → gå videre. Fane-id-en er "sesjonshåndtaket" for resten
-     av samtalen; gjenbruk samme fane til alt under.
+   i Bash. Samme versjon og `SITE` = `pro2`: hopp til punkt 4.
+   Ellers: kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`, les
+   filen den skriver ut, og send **hele** innholdet via `javascript_tool`
+   (`action: "javascript_exec"`) uten å legge til noe. Svaret skal være
+   `[VERSION, SITE]` (f.eks. `["1.5.0", "pro2"]`). Virker ikke
+   `paste_site.py`: `python3 {SKILL_DIR}/scripts/browser/paste.py
+   {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene).
+   **Innlimingen er ikke valgfri** og kortes aldri ned: ikke hopp over den
+   fordi den er stor, og ikke erstatt den med `get_page_text` eller egne kall
+   til Pro-ets API. Avvises den av en sikkerhetssjekk: se lese-ruten i
+   `references/klassisk.md`.
+4. **Innlogging.** `await __lp.isLoggedIn()`.
+   - Ikke innlogget → si: *"Logg inn på Lovdata Pro i browser-panelet
+     (SSO/FEIDE går fint). Si fra når du er inne."* Vent, og kjør
+     `isLoggedIn()` igjen. **Skriv aldri inn brukernavn/passord, og be aldri
+     brukeren oppgi dem til deg.**
+   - Innlogget → bruk samme fane til alt videre.
+5. **Lovdatas KI-vilkår.** Første gang i en samtale: si i én setning, på
+   brukerens språk, at Lovdatas brukervilkår bare tillater Pro-innhold i
+   KI-verktøy som ikke bruker det til trening, så brukeren bør ha slått av
+   «Help improve our AI models» (Settings → Privacy; gjelder ikke Team- og
+   Enterprise-planer). Ikke be om bekreftelse og ikke stopp. Arbeider du for
+   en annen agent, ta setningen med i svaret ditt.
 
-Du kan slå sammen navigering + paste + `isLoggedIn()`-sjekk i ett
-`browser_batch`-kall for å spare turer — men bare med `navigate`;
-`preview_start` kan ikke batches (en batch som starter med `navigate` åpner
-panelet selv).
-
-**Lovdatas KI-vilkår.** Første gang skill-en brukes i en samtale: si i én
-setning, på brukerens språk, at Lovdatas brukervilkår bare tillater
-Pro-innhold i KI-verktøy som ikke bruker det til trening, så brukeren bør
-ha slått av «Help improve our AI models» (Settings → Privacy; gjelder ikke Team-
-og Enterprise-planer). Du kan ikke se innstillingen selv: ikke be om
-bekreftelse og ikke stopp arbeidet. Arbeider du for en annen agent (uten
-egen kontakt med brukeren), ta setningen med i svaret ditt.
+Navigering, innliming og `isLoggedIn()` kan slås sammen i ett
+`browser_batch`-kall (med `navigate`; `preview_start` kan ikke batches).
 
 ---
 
 ## Steg 1 — oppslag av referanse
 
 ```bash
-python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "<referanse>"
-```
-
-Eksempler:
-
-```bash
 python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P"
-python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "Ot.prp. nr. 3 (1998-99)"
-python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "NOU 2022:8"
+python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "Ot.prp. nr. 3 (1998-99)" --json-array
 ```
 
-Returnerer `{input, parsed, candidates}` pluss disse feltene når de er
-aktuelle:
+Svaret er `{input, parsed, candidates}` (med `--json-array` bare
+kandidatlisten, klar for `__lp.load([...])`), og når de er aktuelle:
 
-- **`pinpoint`** — presisering som ble skilt ut av referansen («avsnitt 77»,
-  «s. 1827», «punkt 3.4», og engelske former som «para. 77», «paras 77–80»,
-  «at p. 1827», «section 3.4»). Bruk den som søkeord i `grep`/`section`
-  etter at dokumentet er lastet, og ta den med i sitatet.
-- **`search_hint`** — når `parsed:false`: søkestrengen som fungerer best i
-  Pro, i Lovdatas egen referanseform (`Rt-2000-1811`, `RG-2010-100`), ikke
-  prosasiteringen.
-- **`pro2_ref`** — for Rt. og RG: Lovdatas kortform (`avgjorelse/rt-2000-1811`).
-  På nye Pro tar `load()` den direkte og finner den underliggende dommen
-  (Rt. 2000 s. 1811 = `HRSIV/avgjorelse/hr-2000-49-b`); legg til `/s<side>`
-  for en side (`avgjorelse/rt-2000-1811/s1827`), så svarer `load()` med
-  `part: "s1827"`. I Klassisk: søk på `search_hint`. Det samme gjelder
-  andre samlinger sitert med år og side (ND 1990 s. 140, NAD, ARD, Utv.) og
-  Lovdata-referanser med et prefiks skriptet ikke kjenner (eldre navn som
-  BKN-, LKN-, ENV-): `pro2_ref` er da `avgjorelse/<referansen med små
-  bokstaver>`, og nye Pro finner samlingen selv.
-- **`note`** også på løste referanser når det er noe å vite: lover og
-  forskrifter, og `SDOK` (nyere stortingsdokumenter finnes ofte bare som PDF).
+- **`pinpoint`** — presiseringen som ble skilt ut («avsnitt 77», «s. 1827»,
+  «punkt 3.4», «para. 77», «at p. 1827»). Søk etter den med `grep` og ta den
+  med i sitatet.
+- **`pro2_ref`** — Lovdatas kortform (`avgjorelse/rt-2000-1811`) for Rt., RG,
+  ND, NAD, ARD, Utv. og prefikser skriptet ikke kjenner. `load(pro2_ref)`
+  finner selv dommen (Rt. 2000 s. 1811 = `HRSIV/avgjorelse/hr-2000-49-b`);
+  med `/s<side>` (`avgjorelse/rt-2000-1811/s1827`) svarer `load()` med
+  `part: "s1827"`.
+- **`search_hint`** — ved `parsed:false`: søkestrengen i Lovdatas egen form
+  (`Rt-2000-1811`) for Steg 3.
 - **`forarbeider`** — for en lov: `RFA/lov/<dato>-<nr>`, Lovdatas register
-  over lovens forarbeider (se Arbeidsflyt).
-- **`note`** — hvorfor referansen ikke kunne løses, og hvor dokumentet
-  faktisk ligger. Disse tilfellene er verdt å kjenne:
-  - **Rt./RG** — slug-suffikset er Lovdata-tildelt. Nye Pro: `load(pro2_ref)`.
-    Klassisk: søk på `search_hint`.
-  - **Meld. St. / St.meld.** — finnes bare i Klassisk, i `STS/forarbeid/stsg-<sesjon>-<løpenummer>`
-    (Meld. St. 17 (2020-2021) = `STS/forarbeid/stsg-202021-355`). Løpenummeret
-    kan ikke utledes av referansen; søk med referansen i anførselstegn
-    (`"Meld. St. 17 (2020-2021)"` — uten dem kommer bare Prop./NOU-treff) og
-    verifiser tittelen på treffet.
-    Nye Pro har ikke stortingsmeldinger.
-  - **St.prp.** — ikke-lovproposisjoner er ikke fulltekstindeksert i Pro
-    (og finnes ikke i nye Pro). Si det til brukeren i stedet for å sitere
-    fra andre kilder.
+  over lovens forarbeider.
+- **`note`** — hva du bør vite (lover; nyere `SDOK` finnes ofte bare som PDF;
+  Meld. St. finnes bare i Klassisk; St.prp. er ikke fulltekst i Pro: si det
+  til brukeren i stedet for å sitere fra andre kilder).
 
-**Referanser utenom de alminnelige domstolene.** Spesialdomstoler, nemnder,
-uttalelser og rundskriv siteres med Lovdatas egen referanse
-`PREFIKS-ÅR-NUMMER` (TRR-2026-695, AR-2026-38, KOFA-2026-1389,
-FinKN-2026-1252, SOM-2025-2770, JDLOV-2024-5261, BFU-2026-5, RA-2026-819,
-G-2019-3, IS-2026-9003, RUDI-2026-6); dokument-id-en er referansen med små
-bokstaver. `resolve` slår opp samlingen i en prefikstabell
-(`references/lovdata-pro-mapping.md`), også for departementenes egen form
-(«rundskriv G-01/2016» = `g-2016-1`). Mangler et suffiks som id-en har
-(ND-2025-23 er `nd-2025-23-23s`), finner `load()` det likevel på nye Pro.
-Forarbeider og stortingsdokumenter utover Prop./NOU/Innst.: Dokument 8 /
-Representantforslag, Dokument 12 / Grunnlovsforslag, andre Dokument-serier,
-Ot.meld., Besl. O., Lovvedtak og statsrådsforedrag (PRE-2026-11-20-2434).
-Lover og forskrifter: `LOV-2005-06-17-62`, `FOR-2011-12-06-1360`, «lov 17.
-juni 2005 nr. 62»; kandidaten er kortformen `lov/2005-06-17-62`, som nye Pro
-løser til gjeldende tekst (`NL`, `SF`, `LF`), opphevet tekst (`NLO`, `SFO`,
-`LFO`) eller, for en endringslov uten konsolidert tekst, Lovtidend (`LTI`).
-Se Steg 2b for tidligere versjoner.
+`parsed:false`: prøv `load(pro2_ref)`; ellers Steg 3 med `search_hint`, og
+verifiser treffet.
 
-**En lov eller forskrift oppgitt bare med navn** («arbeidsmiljøloven»,
-«den gamle arbeidsmiljøloven fra 1977»): slå opp dato og nummer **før du
-bruker dem noe sted**, også før `resolve` og i argumentene til Skill-kallet,
-med `search("<navn>", 5, { bases: ["NL"] })` (`["NLO"]` for en
-opphevet lov, `["SF"]`/`["SFO"]` for forskrifter) eller `lovdata-api`, og
-bruk `path` fra treffet (det kan gå rett i `load()`, uten `resolve`). Ta
-aldri dato og nummer fra hukommelsen, heller ikke når du er sikker, og
-heller ikke for å «bekrefte» dem etterpå: oppslaget kommer først.
+**Andre referanser.** Spesialdomstoler, nemnder, uttalelser og rundskriv
+siteres `PREFIKS-ÅR-NUMMER` (TRR-2026-695, KOFA-2026-1389, FinKN-2026-1252,
+SOM-2025-2770, JDLOV-2024-5261, G-2019-3); id-en er referansen med små
+bokstaver, også for «rundskriv G-01/2016» (`g-2016-1`). Mangler et suffiks
+(ND-2025-23 er `nd-2025-23-23s`), finner `load()` det selv. Også Dokument 8,
+Dokument 12, Ot.meld., Besl. O., Lovvedtak og statsrådsforedrag (PRE-…).
+Lover og forskrifter (`LOV-2005-06-17-62`, «lov 17. juni 2005 nr. 62») gir
+kortformen `lov/2005-06-17-62`, som går til gjeldende, opphevet eller
+Lovtidend-tekst.
 
-Bruk `--json-array` for å få bare kandidatlisten (nyttig til å lime rett inn
-i `__lp.load([...])`):
-
-```bash
-python3 {SKILL_DIR}/scripts/lovdata_ref.py resolve "HR-2016-2554-P" --json-array
-# ["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-2554-p"]
-```
-
-Hvis `parsed:false` (typisk pre-2008 Rt.-dommer, RG-dommer, uvanlige
-referanseformer): på nye Pro, prøv `load(pro2_ref)` hvis feltet finnes;
-ellers hopp til **Steg 3 — søk**, og søk på `search_hint`.
+**En lov oppgitt bare med navn:** finn den med
+`search("<navn>", 5, { bases: ["NL"] })` (`["NLO"]` for en opphevet lov,
+`["SF"]`/`["SFO"]` for forskrifter) eller `lovdata-api`, og bruk `path` fra
+treffet (rett i `load()`, uten `resolve`). Oppslaget kommer først, ikke som
+bekreftelse etterpå.
 
 ---
 
-## Steg 2 — hent dokument
+## Steg 2 — hent og les dokumentet
 
 ```javascript
 await __lp.load(["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-2554-p"])
 ```
 
-Returnerer `{path, title, metadata, totalChars, toc}` (eller en
-`{error: ...}`-payload — se **Feilhåndtering**). Dokumentet caches i fanen på
-`path`, så alle videre kall (`section`, `grep`, `page`) på samme `path` er
-gratis (ingen ny nettforespørsel). Bruk alltid `path` fra svaret i videre
-kall: på nye Pro kan den avvike fra kandidaten (feil samling rettes
-automatisk, `redirectedFrom`; en kortform gir `via`). `part` (nye Pro)
-sier hvor i dokumentet en referanse peker (`s1827`, `k4-1-4`); finn stedet
-med `grep`.
+Svaret er `{path, title, metadata, totalChars, toc}` eller `{error, detail}`
+(se Feilhåndtering). Dokumentet caches i fanen, så videre kall er gratis.
+Bruk alltid `path` fra svaret (feil samling rettes automatisk:
+`redirectedFrom`; en kortform gir `via`). `part` sier hvor en referanse
+peker (`s1827`); finn stedet med `grep`.
 
-To flagg i svaret styrer hva du kan gjøre videre:
+Flagg i svaret:
 
-- **`metadataOnly: true`** (og `totalChars: 0`) — dokumentet finnes som
-  metadatapost, men uten brødtekst i Pro. Typisk St.prp., eldre NOU under
-  `PUBG`, og enkelte meldinger. **Ikke siter noe fra en slik post** — si til
-  brukeren at fulltekst ikke finnes i Lovdata Pro. To unntak på nye Pro:
-  **`originalFile`** er en lenke til original-PDF-en (nyere
-  stortingsdokumenter, `SDOK`), og **`publication`** er publikasjonen som
-  har teksten (Kommissariske Høyesterett 1941–45: Retstidende). Gi brukeren
-  lenken; den åpnes i den innloggede browseren. Ikke hent PDF-en selv (den
-  kan være over 30 MB).
-- **`alternatives`** (nye Pro) — flere dokumenter deler referansen (samme
-  Rt.-side, FKR-2022-4, OB-2024-4). `load()` tok det første; sjekk tittelen
-  og velg et annet om det er feil.
-- **`noHeadings: true`** (`toc` er tom) — dokumentet har ingen `h1`–`h6`.
-  Dette er vanlig for dommer: både HR-2016-2554-P og LG-2008-135938 har null
-  overskrifter. Da er `section()` ubrukelig; bruk `grep()` og `page()`.
-- **`tocNext`** (med `tocTotal`) — innholdsfortegnelsen var for stor til ett
-  svar, og `toc` inneholder bare de første oppføringene. Hent resten med
-  `await __lp.toc(path, tocNext)`, som svarer `{start, next, total, toc}`;
-  fortsett med `next` til den er `null`.
+- **`metadataOnly`** — ingen brødtekst i Pro (St.prp., eldre NOU under
+  `PUBG`). Sitér ikke fra posten. **`originalFile`** er original-PDF-en
+  (nyere `SDOK`), **`publication`** publikasjonen med teksten: gi brukeren
+  lenken, hent den ikke selv.
+- **`alternatives`** — flere dokumenter deler referansen; `load()` tok det
+  første. Sjekk tittelen.
+- **`noHeadings`** — ingen overskrifter (vanlig for dommer): bruk `grep` og
+  `page`, ikke `section`.
+- **`tocNext`** — innholdsfortegnelsen var for stor til ett svar. Hent resten
+  med `await __lp.toc(path, tocNext)`, videre med `next` til den er `null`.
 
-Velg videre strategi ut fra dokumenttype og størrelse:
-
-- **Dommer** (vanligvis ≤ noen hundre KB): som regel ingen overskrifter, så
-  bruk `grep(path, "<stikkord eller avsnittsnummer>")` for å finne stedet og
-  `page(path, offset)` for å lese rundt det. Er hele dommen liten nok
-  (`totalChars` under ~45 000 tegn — `PAGE_SIZE`, satt fra den målte grensen
-  for hvor mye ett `javascript_tool`-svar tåler), hent den med `page(path, 0)`.
-  Partene og prosessfullmektigene står ikke i brødteksten — de ligger i
-  `metadata.Parter` (én linje per part).
-  **Avsnittsnumre** står som `(77)`, ikke som «avsnitt 77»: på nye Pro
-  først på avsnittets linje (`(77) Teksten …`), i Klassisk i en egen
-  tabellcelle (`| (77) |`). Finn avsnitt 77 med
-  `grep(path, "(77)", 600, 3)` — `term` er bokstavelig, så parentesene
-  trenger ingen escaping — og les videre med `page(path, offset)`.
-  **Domsslutningen** står under «Slutning», «SLUTNING» eller «Domsslutning»
-  (tingrett ofte med store bokstaver): `grep(path, "slutning")` finner alle
-  tre (`grep` skiller ikke mellom store og små bokstaver); ta det siste treffet.
-- **Forarbeider** (NOU, Prop., Innst. — ofte flere MB): disse har `toc`
-  (NOU 2022:8 har flere hundre; `toc` kommer da i flere
-  omganger, se `tocNext`). Vis `toc` til brukeren eller velg selv
-  relevante kapitler ut fra tittel/spørsmål. `grep(path, "søkeord")` finner
-  riktig kapittel raskt; `section(path, i)` henter det ut.
-  Lovdata bruker ikke `<ul>/<li>`: litra- og nummerpunkter kommer som
-  én-rads tabeller, og `toText()` gjengir dem som innrykkede linjer
-  («a. konsultere vedkommende folk …»), ikke som rørtabellrader.
-- **Dump-modus** — kun når brukeren ber om en full lokal kopi eller
-  uttømmende gjennomgang: løkke over `page(path, offset)` til `next` er
-  `null`, og skriv hver `text` til `/mnt/user-data/outputs/<slug>.md` (bash `>>` mellom
-  hvert kall). Si fra til brukeren på forhånd omtrent hvor mange kall det
-  tar (`Math.ceil(totalChars / 45000)`).
-
-**Kontroller alle sitater før du svarer**, i ett kall per dokument:
+**Lesing.**
 
 ```javascript
-await __lp.checkQuotes(path, ["<sitat 1>", "<sitat 2>", "<kort frase>"])
+await __lp.grep(path, "slutning", 600, 20)   // {matches, hits: [{i, sectionTitle, offset, snippet}]}
+await __lp.page(path, offset)                 // {offset, next, total, text}
+await __lp.section(path, i)                   // én seksjon fra toc
+await __lp.toc(path, start)                   // resten av toc
 ```
 
-Det gjelder **alt** du setter i anførselstegn fra dokumentet, også korte
-fraser, overskrifter, titler og sitater fra metadata (sjekken leter også
-i `title` og `metadata`; `inMetadata` sier hvor mange treff som var der).
-Kopier sitatene ordrett fra et `page`/`section`/`grep`/`load`-svar; sett
-ikke sammen to biter med et tegn som ikke står i kilden. Svaret er
-`{allFound, checked, quotes: [{n, matches, inMetadata, ignoringCase}]}`;
-sjekken skiller mellom
-store og små bokstaver og tåler uthevingsmerker og linjeskift. Er
-`matches` 0 for et sitat, har det et avvik (et ord, en stor bokstav, et
-tegn, en sammenstykket bit; `ignoringCase` over 0 betyr at bare store og
-små bokstaver avviker): finn stedet igjen og rett det. Sitér aldri fra
-hukommelsen av et tidligere svar. Hvordan du teller og oppgir sitatene,
-står i «Før du svarer» nedenfor.
+- `grep` er bokstavelig (`"§ 4-6 (2)"` og `"(77)"` virker som de står),
+  skiller ikke store og små bokstaver, og hopper over uthevingsmerker; `true`
+  som femte argument gir et regulært uttrykk. `page(path, offset - 2000)` gir
+  sammenhengen rundt et treff. `truncated: true`: senk `ctx`/`max`.
+- Ingen funksjon svarer med mer enn ca. 45 000 tegn: gå videre med `next`,
+  ikke `offset + 45000`. Store seksjoner har `{offset, next, total}`:
+  `section(path, i, next)`.
+- **Les aldri `__lp.cache` direkte** (verken `fullText`, `toc` eller `body`).
+  Vil du ha ett kapittel, filtrer `toc` fra `load()`- eller `toc()`-svaret.
+  Ser teksten feil ut, si det til brukeren; ikke undersøk markupen.
 
-Eksempler på JS-kall:
+**Dommer:** avsnitt står som `(77) Teksten …`: `grep(path, "(77)", 600, 3)`.
+Domsslutningen står under «Slutning»/«Domsslutning» (`grep(path,
+"slutning")`, siste treff). Partene står i `metadata.Parter`. Er dommen
+under 45 000 tegn, hent den med `page(path, 0)`.
+
+**Forarbeider** (NOU, Prop., Innst., ofte 1–3 MB): velg kapitler fra `toc`
+(hent alt med `tocNext` først), finn stedet med `grep`, hent med `section`.
+Hele dokumentet bare når brukeren ber om en lokal kopi: løkke over `page`
+til `next` er `null`, skriv til `/mnt/user-data/outputs/<slug>.md`, og si på
+forhånd omtrent hvor mange kall det tar.
+
+**Lover og forskrifter, historikk:** les `references/lover-historikk.md`
+før du svarer. Det viktigste: tidligere versjoner med
+`__lp.versions("lov/<id>", { asOf: "ÅÅÅÅ-MM-DD" })`; lag aldri en
+`HIST`-sti selv; loven slik den ble vedtatt siteres fra Lovtidend
+(`LTI/lov/<id>`), med datoen den trådte i kraft; Norske Lov 1687 er den
+eldste versjonen i `versions("lov/1687-04-15")`.
+
+**Sitatkontroll:** kopier sitater ordrett fra et svar, og kontroller dem før
+du svarer, ett kall per dokument (se «Før du svarer»):
 
 ```javascript
-await __lp.section("HRSIV/avgjorelse/hr-2016-2554-p", 3)
-await __lp.grep("NOU/forarbeid/nou-2022-8", "urfolk", 600, 20)
-await __lp.page("PROP/forarbeid/otprp-3-199899", 0)
+await __lp.checkQuotes(path, ["<sitat 1>", "<kort frase>", "<tittel>"])
+// {allFound, checked, quotes: [{n, matches, inMetadata, ignoringCase}]}
 ```
 
-`grep(path, term, ctx, max, regex)` tolker `term` **bokstavelig** (og lar
-mellomrom matche linjeskift), så «§ 4-6 (2)» og «art. 8(1)» virker som de
-står, og den hopper over uthevingsmerkene (`*`, `**`) inne i en frase. Send
-`true` som femte argument for et ekte regulært uttrykk (det ser merkene). Svaret er
-`{matches, hits}`: `matches` er antall treff i hele dokumentet, `hits` de
-første `max` av dem med `{i, sectionTitle, offset, snippet}`. `offset` er
-der treffet står i teksten `page()` leser, så `page(path, offset - 2000)`
-gir sammenhengen rundt. Får du `truncated: true`, fikk ikke alle `max` treff
-plass i ett svar — senk `ctx`/`max` eller snevre inn søket.
-
-Ingen funksjon svarer med mer enn `PAGE_SIZE` tegn, regnet som JSON (der
-linjeskift og anførselstegn teller dobbelt). `page()` gir derfor ofte litt
-under 45 000 tegn tekst; gå videre med `next`, ikke `offset + 45000`.
-`section()` gjør det samme for store seksjoner: svaret har da `{offset, next,
-total}`, og resten hentes med `section(path, i, next)`.
-
----
-
-## Steg 2b — lover og forskrifter: historikk (bare nye Pro)
-
-Tekstene ligger i flere samlinger med samme id: gjeldende (`NL`, `SF`, `LF`;
-også `DEL`, `INS`, `STV`), opphevet (`NLO`, `SFO`, `LFO` …, teksten slik den
-sist gjaldt, med endringsfotnoter), kunngjort i Lovtidend (`LTI` avd. I,
-`LTII` avd. II: loven eller endringsloven slik den ble kunngjort, med
-«Publisert i» og «Kunngjort»), engelsk oversettelse (`NLE`, `SFE`) og
-**tidligere versjoner** i `HIST`.
-
-```javascript
-await __lp.versions("lov/2005-06-17-62")                          // alle versjoner, eldste først, gjeldende sist
-await __lp.versions("lov/2005-06-17-62", { asOf: "2019-03-15" })  // versjonen som gjaldt den datoen
-await __lp.versions("lov/2005-06-17-62", { part: "§14-9" })       // bare versjonene der § 14-9 endret seg
-await __lp.backlinks("lov/2005-06-17-62", "endringslover")         // endringslovene (LTI), også ikrafttredelsesvedtak
-await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger- og etterfølgerlover
-```
-
-- En versjon er `HIST/<type>/<id>-<ÅÅÅÅMMDD>`, datoen versjonen gjelder fra
-  i Lovdatas historikk, normalt ikrafttredelsen; `load()` den som et vanlig
-  dokument. Den **første** versjonen kan ha en dato før loven trådte i kraft
-  (arbeidsmiljøloven: `-20050701`, i kraft 1. januar 2006): for datoer nær
-  lovens start, sjekk ikrafttredelsesbestemmelsen. **Lag aldri en HIST-sti med en
-  annen dato selv:** Pro sender da stille til *gjeldende* tekst
-  (`redirectedFrom` i svaret). Bruk `versions(…, { asOf })`, som velger den
-  siste versjonen som trådte i kraft på eller før datoen.
-- `checkCurrent` i svaret: datoen ligger etter siste historiske versjon, og
-  Pro oppgir ikke når gjeldende tekst begynte å gjelde. Sammenlign med
-  gjeldende tekst (endringsfotnotene der viser datoene) før du sier hva som
-  gjaldt.
-- Versjonene går ulikt langt tilbake: arbeidsmiljøloven 2005 til
-  originalteksten, straffeloven 1902 glissent før 1980-årene, Grunnloven fra
-  1814; opphevede forskrifter har ofte ingen. `before_first_version` betyr at
-  Pro ikke har teksten fra så tidlig: si det, og bruk eventuelt
-  Lovtidend-teksten (`LTI/lov/<id>`) for loven slik den ble vedtatt.
-  Opphevede lover (`NLO`) har ofte ingen `HIST`-versjoner: `count: 0` med
-  `part` betyr da ikke at paragrafen aldri ble endret. Se endringsfotnotene i
-  teksten.
-- `maybeCapped` i svaret: listen har nøyaktig 50 versjoner, som kan være en
-  grense hos Pro. Er eldste versjon mye senere enn loven, kan versjoner
-  mangle; for én paragraf gir `part` en egen liste.
-- `part` tar §-id-en slik den står i dokumentet (`§14-9`, uten mellomrom).
-- **Loven slik den ble vedtatt:** Lovtidend-teksten `LTI/lov/<id>` er
-  loven som kunngjort. Den første `HIST`-versjonen er Lovdatas konsoliderte
-  tekst fra den datoen; den er som regel lik, men det er Lovtidend som er
-  den vedtatte teksten. Sitér fra `LTI` og oppgi «Norsk Lovtidend»; mangler
-  `LTI` (eldre lover), bruk den første versjonen og si at det er Lovdatas
-  tekst. Oppgi også **når loven trådte i kraft**: `metadata["I kraft fra"]`
-  i `LTI`-posten, ellers ikrafttredelsesvedtaket
-  (`backlinks(lov, "endringslover")`). «Kongen bestemmer» er ikke en dato.
-- Christian Vs Norske Lov: `lov/1687-04-15` er bare bestemmelsene som
-  fortsatt gjelder; hele originalteksten er den eldste versjonen
-  (`versions("lov/1687-04-15")`, første oppføring; dansk, ca. 650 000 tegn). Landslova
-  (1274) finnes som `NLO/lov/1274-06-24-nb`, `-nn` og `-non` (norrønt).
-- Sitér med versjonen: *arbeidsmiljøloven § 14-9 (versjon i kraft fra
-  1. januar 2019)*, og si at teksten er Lovdatas konsoliderte tekst.
+Sjekken leter i teksten, tittelen og metadata, skiller store og små
+bokstaver og tåler uthevingsmerker og linjeskift. `matches: 0` betyr et
+avvik (et ord, en bokstav, et tegn, to biter satt sammen); `ignoringCase`
+over 0 betyr at bare store og små bokstaver avviker. Finn stedet igjen og
+rett sitatet.
 
 ---
 
 ## Steg 3 — søk
 
-Brukes når `resolve` ga `parsed:false`, eller når et direkte slug-forsøk
-feiler med `not_found`.
-
-**Vanlig vei — ett JS-kall:**
+Når `resolve` ga `parsed:false` uten `pro2_ref`, når `load()` gir
+`not_found`, eller når brukeren spør etter dokumenter om et tema.
 
 ```javascript
-await __lp.search("Rt-2000-1811", 10)
-await __lp.search("tomtefeste", 10, { bases: ["HRA"] })   // bare nye Pro
+await __lp.search("tomtefeste", 10, { bases: ["HRA"] })
+await __lp.search("taushetsplikt", 10, { bases: ["JDLOV"], sort: "date" })
 ```
 
-**På nye Pro** er `search()` ett API-kall, sortert etter relevans; svaret er
-`{query, site: "pro2", filterBases, sort, offset, totalHits, nextOffset,
-results: [{path, title, date}]}`.
+Svaret er `{query, totalHits, nextOffset, results: [{path, title, date,
+status}]}`.
 
-- **Nyeste først:** `{ sort: "date" }`. Bruk det når brukeren spør etter de
-  nyeste, «fra 2020 og senere» e.l.: relevansrekkefølgen blander årene, og
-  de øverste treffene sier ingenting om hva som er nyest.
-- **Flere treff:** ett kall gir én side; `search(…, { offset: nextOffset })`
-  henter neste (samme `sort` og `bases`). `nextOffset` mangler på siste side.
-- Skriv aldri egne kall til Pro-ets søke-API: `search()` dekker det.
-- Treffene er dokumentene der søkeordet står i teksten, og `totalHits` er
-  alle sammen. En datosortert liste er derfor fullstendig for det søkeordet:
-  ikke `load()` treffene for å kontrollere den. Vil du dekke andre ord
-  eller ordformer, søk på dem også i stedet for å lese dokumentene.
+- **Nyeste først:** `sort: "date"`, når brukeren spør etter de nyeste eller
+  «fra 2020 og senere»; relevansrekkefølgen blander årene.
+- **Flere treff:** `search(…, { offset: nextOffset })` (samme `sort` og
+  `bases`); `nextOffset` mangler på siste side.
+- Treffene er dokumentene der søkeordet står, og `totalHits` er alle. En
+  datosortert liste er fullstendig for søkeordet: ikke `load()` treffene for
+  å kontrollere den; søk heller på andre ord eller ordformer.
+- Søket treffer innhold, ikke bare dokumentet du mener: et søk på
+  «St.prp. nr. 100 1991-92 EØS-avtalen» gir EU-direktiver. **Verifiser
+  tittelen** med `load()` før du siterer.
+- `noDocument: true` er register- og listeoppføringer: ikke `load()` dem.
+  Karnov-kommentarer og litteratur er tatt bort. Søket legges ikke i
+  brukerens historikk. Skriv aldri egne kall til Pro-ets søke-API.
 
-`bases` avgrenser til Lovdatas samlings- eller gruppekoder. Treffene kan
-ligge i undersamlinger av koden du ga (`FINKN` gir `FINKNF`, `FINKNB`,
-`FINKNI`):
+`bases` tar samlings- eller gruppekoder; treffene kan ligge i undersamlinger
+(`FINKN` gir `FINKNF`, `FINKNB`, `FINKNI`):
 
 | Kategori | Gruppekode | Eksempler på samlinger |
 |---|---|---|
@@ -484,254 +284,90 @@ ligge i undersamlinger av koden du ga (`FINKN` gir `FINKNF`, `FINKNB`,
 | Spesialdomstoler | `SD` | `TRR`, `ARD`, `JSR`, `JSO`, `UTMA` |
 | Publikasjoner | `PUB` | `NDS` (ND), `NDSENG`, `NAD` |
 | Forarbeider og stortingsdokumenter | `FSA` | `NOU`, `PROP`, `INNST`, `REPFOR`, `GLFOR`, `SDOK`, `LOVVED`, `OTMELD`, `PRE` |
-| Rundskriv og uttalelser | `ROU` | `RUNDSKRIV`, `OPPHEVDERUNDSKRIV`, `UTTALELSER`; `RDEP`, `JDLOV`, `SOMB`, `BFU`, `SKM` |
-| Nemnder og utvalg | `NEMNDEROGUTVALG` | `KOFA`, `FINKN` (alle Finansklagenemnda), `DIN`, `PSN`, `TLN`, `HTU` |
-| Lover og forskrifter | `LFA` (`LOVER`, `SFA`, `SFOA`, `LOK`) | `NL`, `NLO`, `SF`, `SFO`, `LF`, `LFO` |
-| Lovtidend | ingen: list samlingene | `["LTI", "LTII"]` |
+| Rundskriv og uttalelser | `ROU` | `RUNDSKRIV`, `UTTALELSER`; `RDEP`, `JDLOV`, `SOMB`, `BFU`, `SKM` |
+| Nemnder og utvalg | `NEMNDEROGUTVALG` | `KOFA`, `FINKN`, `DIN`, `PSN`, `TLN`, `HTU` |
+| Lover og forskrifter | `LFA` | `NL`, `NLO`, `SF`, `SFO`, `LF`, `LFO` |
+| Lovtidend | ingen | `["LTI", "LTII"]` |
 
-`LFA` tar ikke med Lovtidend, og `LT` gir null treff: søk i Lovtidend med
-`bases: ["LTI", "LTII"]`. Tidligere versjoner (`HIST`) er ikke søkbare;
-finn loven og bruk `versions()`. Treffene har `status` når Pro oppgir den
-(`REPEALED`, `ORIGINALLY_PROMULGATED`, `NOT_IN_FORCE`).
+`RT`, `UTV` og `FS` er ikke filtre (de gir alle avgjørelser): søk på
+referansen (`Rt-1990-…`). Hele listen: `references/lovdata-pro-mapping.md`.
 
-Hele listen står i `references/lovdata-pro-mapping.md`. `RT`, `UTV` og `FS`
-(Retstidende, Utvalgte skattedommer, Rettens Gang) er ikke filtre: de gir
-like mange treff som `AVG`. Søk heller på referansen (`Rt-1990-…`).
-Treff med `noDocument: true` er register- eller listeoppføringer (f.eks.
-`PUBG`) som ikke kan åpnes; ikke kall `load()` på dem.
-Karnov-kommentarer og litteratur tas bort fra treffene (de er
-ikke dokumenter fra offentlige organer). Det trengs ingen fallback, og
-`readSearchResults()` brukes ikke. Søket legges ikke i brukerens
-søkehistorikk (smulesti).
+---
 
-**I Klassisk** skriver `search()` spørringen inn i `#quickSearchField-input` og sender en
-syntetisk `keyup` med Enter, som er hendelsen GWT-søket faktisk lytter på
-(målt: `input` alene, syntetisk `keydown`, syntetisk `keypress` og et *ekte*
-Enter-tastetrykk gjør ingenting — `keyup` submitter). Deretter venter den på
-at hash-en blir `#result…` og at trefflisten fra *dette* søket er tegnet opp
-(treff som sto på skjermen fra før, telles ikke), og returnerer `{query,
-hash, submitted, results}`. Kjører du samme søk to ganger og Pro ikke tegner
-listen på nytt, får du treffene som står der, med `reused: true`. Viser
-resultatsiden for søket ingen dokumentlenker, svarer den `noHits: true` med
-tom `results`: trolig ingen treff (sjekk med `get_page_text` om det betyr noe).
-Hash-navigering laster ikke siden på nytt, så `window.__lp.cache` overlever
-et søk i samme fane.
+## Forarbeidene til en lov
 
-Merk at Pro skriver om spørringen: den settes til små bokstaver og får et
-trunkeringsjokertegn (`TOSL-2022` → `q=TOSL-2022*`). `submitted` viser hva
-feltet endte opp med. Ikke sammenlign `hash` med spørringen din.
+1. **Har brukeren oppgitt lovens dato og nummer?** Hvis ikke: finn loven
+   først (Steg 1, «En lov oppgitt bare med navn»), før `resolve` eller noe
+   annet.
+2. **Registeret:** `resolve "LOV-<dato>-<nr>"` gir `forarbeider:
+   RFA/lov/<dato>-<nr>`. `load()` det og hent dokumentene listen nevner,
+   typisk NOU, Prop. L / Ot.prp. og Innst.; alle hentes når brukeren ber om
+   «forarbeidene».
+3. **Kapitlene:** NOU-er og proposisjoner har ofte `tocNext`: hent hele
+   `toc` før du lister kapitlene.
 
-**Fallback (Klassisk) — hvis `search()` svarer `search_timeout`:**
-
-1. Sørg for at fanen viser søkefeltet (`#quickSearchField-input`).
-2. Skriv inn søketeksten med `computer {action:"type"}`.
-3. Finn søkeknappen (🔍-ikonet ved siden av feltet) med `read_page` — den
-   dukker opp som `button "🔍"`. `computer {action:"screenshot"}` kan feile,
-   så ikke regn med skjermbilder her.
-4. Klikk knappen med `computer {action:"left_click"}`. Enter-tasten gjør
-   fortsatt ingenting.
-5. Vent ~2 sekunder og les ut treffene:
-
-   ```javascript
-   await __lp.readSearchResults(10)
-   ```
-
-Samme advarsler som før:
-
-- **Pro-søk returnerer innholdstreff, ikke dokumenttreff.** Et søk på
-  «St.prp. nr. 100 1991-92 EØS-avtalen» kan gi EU-direktiver fra
-  EØS-vedlegget fordi fulltekstsøket slår på alle treff i
-  dokumentkorpuset — ikke selve dokumentet.
-- **Pre-2008 Rt.-slugs har et opakt suffiks** (`rt-YYYY-PAGENUMBER-SUFFIX`)
-  som ikke kan gjettes deterministisk — i Klassisk er søk eneste pålitelige
-  vei; på nye Pro løser `load(pro2_ref)` det (Steg 1).
-- **Verifiser alltid** at topptreffets `path` faktisk tilsvarer den
-  etterspurte referansen før du siterer fra den — sjekk tittel/metadata via
-  `load()` på treffet.
-- For proposisjoner og forarbeider: prøv direkte slug-mønstre (Steg 1)
-  **først**; bruk søk bare som siste utvei.
+For forarbeidene til en *endring*: finn endringsloven med
+`backlinks(lov, "endringslover")` og slå opp dens `RFA`.
 
 ---
 
 ## Sitatformat
 
-Bruk standard norsk juridisk siteringsform i svaret til brukeren:
-
-- **Høyesterett (moderne)**: *HR-2016-2554-P avsnitt 77*
-- **Rt.**: *Rt. 2000 s. 1811 (Finanger I) på s. 1827*
-- **Lagmannsrett**: *LG-2008-135938*
-- **Forarbeider**: *Ot.prp. nr. 3 (1998-99) s. 12* eller *NOU 2022: 8 punkt 3.4*
+- **Høyesterett**: *HR-2016-2554-P avsnitt 77*; **Rt.**: *Rt. 2000 s. 1811
+  (Finanger I) på s. 1827*; **lagmannsrett**: *LG-2008-135938*
+- **Forarbeider**: *Ot.prp. nr. 3 (1998-99) s. 12*, *NOU 2022: 8 punkt 3.4*
 - **Spesialdomstoler, nemnder, uttalelser, rundskriv**: Lovdatas referanse
-  (står i `metadata.Saksnummer` eller tittelen), f.eks. *TRR-2026-695*,
-  *KOFA-2026-1389 avsnitt 30*, *Rundskriv G-2019-3 punkt 2*; *ND 2025 s. 23*
-- **Lover og forskrifter**: *LOV-2005-06-17-62 § 14-9* eller
-  *arbeidsmiljøloven § 14-9*; for en tidligere versjon med datoen den gjaldt
-  fra, for Lovtidend med «Publisert i» (*Norsk Lovtidend avd. I 2005 s. 1112*)
+  (i `metadata.Saksnummer` eller tittelen): *KOFA-2026-1389 avsnitt 30*,
+  *Rundskriv G-2019-3 punkt 2*, *ND 2025 s. 23*
+- **Lover**: *arbeidsmiljøloven § 14-9* eller *LOV-2005-06-17-62 § 14-9*;
+  tidligere versjoner og Lovtidend: se `references/lover-historikk.md`
 
-Sitater beholdes på originalt norsk, i anførselstegn («…» eller "…"). Legg
-gjerne til oversettelse/forklaring på brukerens språk etter sitatet.
-**Resten av svaret skrives på brukerens språk** (bokmål til en som skriver
-bokmål, også når kilden er på nynorsk eller dansk; engelsk til en som skriver
-engelsk).
+Sitater står i anførselstegn («…»), gjerne med oversettelse eller
+forklaring etter. Teksten har kildens kursiv og fet som `*…*` og `**…**`:
+det er en del av teksten, så behold det (som kursiv/fet i svaret).
+Overskrifter (`## …`) er uten uthevingsmerker; hevet skrift står som `m²`
+eller `^TM^`; fotnoter som `[fn N]`.
 
-Teksten har kildens kursiv og fet som `*…*` og `**…**` (sakstitler, latinske
-uttrykk, rettens egne uthevinger i sitater). Uthevingen er en del av teksten:
-et sitat som mister eller legger til kursiv er ikke eksakt, så behold den
-(som kursiv/fet i svaret). Overskrifter (`## …`) er uten uthevingsmerker.
-Hevet skrift står som Unicode der det finnes («20 m²»), ellers `^TM^`;
-fotnoter som `[fn N]` i teksten og ved fotnoten.
-
-**Aldri parafraser fra hukommelsen.** Hent dokumentet via `__lp.load`/
-`section`/`page` og siter fra det. Eldre dommer endres riktignok ikke — men
-forarbeidsprosessen, saksopplysninger og henvisninger varierer mellom
-referanseverk og Lovdatas egen tekst, og hallusinasjon av domspremisser har
-høy kostnad.
+**Aldri sitér eller parafraser fra hukommelsen:** hent dokumentet og sitér
+fra det.
 
 ### Før du svarer
 
-Gå gjennom utkastet til svar før du sender det:
+Gå gjennom utkastet før du sender det:
 
-1. **Finn alle sitater i utkastet.** Et sitat er all tekst fra Lovdata i
-   anførselstegn («…», "…") eller i et blokksitat: også titler,
-   korttitler, overskrifter, korte fraser, ord fra metadata og bokstav- og
-   nummerpunkter. Tell dem.
+1. **Finn alle sitater.** Et sitat er all tekst fra Lovdata i anførselstegn
+   («…», "…") eller i et blokksitat: også titler, korttitler, overskrifter,
+   korte fraser, ord fra metadata og bokstav- og nummerpunkter. Tell dem.
 2. **Send hvert av dem til `checkQuotes`**, ett kall per dokument, og rett
    det som får `matches: 0`. `checked` til sammen skal være lik antallet du
-   talte i punkt 1.
-3. **Skriv antallet i svaret:** «N av N sitater kontrollert mot Lovdatas
-   tekst». Er noe ikke kontrollert, skriv «N av M» og si hvilke.
-4. **Språket:** svaret er på brukerens språk (bokmål til bokmål, engelsk til
-   engelsk); bare sitatene er på originalspråket.
-5. **Lenker** til et dokument kan gis som
-   `https://pro2.lovdata.no/dokument/<path>` (med `path` fra et svar). Åpne
-   dem aldri selv.
-
----
-
-## Arbeidsflyt for vanlige oppgaver
-
-### Brukeren spør om hva en dom sier
-
-1. Steg 0 (sesjon), Steg 1 (resolve), Steg 2 (`load` → `section`/`page`).
-2. Finn relevante avsnitt, siter på norsk, forklar på brukerens språk.
-3. Oppgi kilde inkludert avsnittsnummer/side hvor mulig.
-
-### Brukeren spør om forarbeidene til en lov
-
-1. **Har brukeren oppgitt lovens dato og nummer?** Hvis ikke: finn loven
-   først, som i Steg 1 («En lov eller forskrift oppgitt bare med navn»),
-   før `resolve` eller noe annet.
-2. **Registeret (nye Pro):** `resolve "LOV-<dato>-<nr>"` gir i feltet
-   `forarbeider` stien `RFA/lov/<dato>-<nr>`, Lovdatas liste over lovens
-   forarbeider (også for endringslover). `load()` den og hent dokumentene
-   listen nevner.
-
-For forarbeidene til en *endring*: finn endringsloven med
-`backlinks(lov, "endringslover")` og slå opp dens `RFA`.
-
-Forarbeidene består typisk av tre dokumenter — alle bør hentes når brukeren
-ber om «forarbeidene»:
-
-1. **NOU** (utvalgsutredning) — `NOU YYYY:N`
-2. **Prop. L / Ot.prp.** (departementets proposisjon) — `Prop. N L (YYYY-YY)`
-   eller `Ot.prp. nr. N (YYYY-YY)`
-3. **Innst.** (komitéinnstilling) — `Innst. N L (YYYY-YY)`
-
-Disse er ofte 1-3 MB tekst hver. Bruk `toc` + `grep` + `section` for å finne
-og hente det relevante kapittelet — ikke hele dokumentet via dump-modus, med
-mindre brukeren eksplisitt ber om en full lokal kopi. **NOU-er og
-proposisjoner har ofte `tocNext`** i `load()`-svaret: hent resten med
-`toc(path, tocNext)` (og videre med `next`) før du lister kapitlene, ellers
-mangler resten av dokumentet.
-
-### Brukeren oppgir en uvanlig referanse (Rt., RG, eldre Ot.prp.)
-
-For pre-2008 Rt.-dommer, RG-dommer, stortingsmeldinger (Meld. St./St.meld.)
-og Ot.prp. fra før ~1968 finnes ingen deterministisk slug-regel.
-`lovdata_ref.py resolve` gir `parsed:false` for disse, med `search_hint` og en
-`note` om hvor dokumenttypen ligger — gå til Steg 3 (søk) og **verifiser**
-treffet før du siterer.
-
-**Pro-søk returnerer innholdstreff, ikke dokumenttreff** — se advarslene i
-Steg 3.
-
-Hvis topptreffet er feil: se gjennom flere av treffene fra
-`readSearchResults()`, plukk riktig `path` manuelt, og kjør `load(path)` på
-den. Hvis ingen treff er
-riktige, fortell brukeren at dokumentet ikke ble funnet og be om mer presis
-referanse.
+   talte. Ikke skriv i svaret at sitatene er kontrollert.
+3. **Språket:** svaret er på brukerens språk; bare sitatene er på
+   originalspråket.
+4. **Lenker** kan gis som `https://pro2.lovdata.no/dokument/<path>` (med
+   `path` fra et svar). Åpne dem aldri selv.
 
 ---
 
 ## Feilhåndtering
 
-Alle JS-funksjoner returnerer `{error: "<kode>", detail}` i stedet for å
-kaste. Kodene:
+Funksjonene kaster ikke: de svarer `{error, detail}`, og `detail` sier
+som regel hva du skal gjøre.
 
-- **`not_logged_in`** → be brukeren logge inn i browser-panelet (se Steg 0
-  punkt 4). Ikke debugg videre — dette er alltid årsaken til en tom/uventet
-  respons når du nettopp har startet en ny fane.
-- **`collection_mismatch`** → skjer normalt ikke synlig for deg: `load()`
-  prøver automatisk SIV/STR-motparten selv. Hvis begge feiler, rapporteres
-  det som `not_found` med begge stiene i `detail`.
-- **`not_found`** → sjekk referansen for skrivefeil; prøv Steg 3 (søk). Sjekk
-  også dekningsterskler i `references/lovdata-pro-mapping.md`: lovrelaterte
-  proposisjoner i fulltekst fra sesjon 1984/85, NOU-er i fulltekst fra 1994
-  (1985–1993 varierer), Innstillinger fra sesjon 1991/92. Eldre NOU-er kan
-  dukke opp under `PUBG`-samlingen, men har ofte bare metadata.
-  Ikke-lovrelaterte proposisjoner (St.prp. etc.) er aldri fulltekst-indeksert.
-- **`no_headings`** (fra `section()`) → dokumentet har ingen overskrifter.
-  Bruk `grep()` og `page()`.
-- **`no_search_field`** / **`search_timeout`** (fra `search()`) → fanen viser
-  ikke Hurtigsøk-feltet, eller søket kom ikke gjennom. Bruk fallback-flyten i
-  Steg 3.
-- **`cors`** → du kjørte JS i en fane som ikke er på Lovdata Pro. Sjekk at
-  fanen faktisk viser en Lovdata Pro-side (Steg 0).
-- **`wrong_site`** → fanen står verken på nye Lovdata Pro eller Klassisk:
-  `navigate` til standardadressen i Steg 0, lim inn hjelperen igjen og prøv
-  på nytt. Har svaret `pasted`, er kopien laget for det andre nettstedet:
-  kjør `paste_site.py <site>` (Steg 0 punkt 3) og lim inn den.
-- **`bad_sort`** (fra `search()`) → `sort` er `"relevance"` eller `"date"`.
-- **`missing_json`** (nye Pro) → dokumentet finnes, men uten tekstversjon i
-  nye Pro. Åpne Klassisk (`https://lovdata.no/pro/?forceFullVersion=true`) i
-  en egen fane, lim inn hjelperen der og `load()` på nytt.
-- **`static_file`** (nye Pro) → dokumentet er bare en fil (PDF/HTML) i Pro,
-  ikke tekst hjelperen kan lese. Si det til brukeren; prøv gjerne Klassisk.
-- **`pro2_only`** (fra `versions()`/`backlinks()`) → åpne nye Pro
-  (`https://pro2.lovdata.no/`) i en egen fane og lim inn hjelperen der.
-- **`before_first_version`**, **`bad_date`**, **`unsupported_kind`** → se
-  Steg 2b (`asOf` er `ÅÅÅÅ-MM-DD`; `backlinks` tar `historisk`,
-  `endringslover` og `lovspeil`).
-- **`unsupported_format`** (nye Pro) → Lovdata har endret dokumentformatet.
-  Bruk Klassisk, og si til brukeren at skill-en bør oppdateres.
-- **Siden er ikke godkjent / brukeren avslo tilgangsforespørselen** → fortell
-  brukeren dette og stopp; ikke prøv å omgå det.
-
----
-
-## Ytelsesnotat
-
-Hvert `javascript_tool`-svar går gjennom verktøykanalen og inn i samtalen —
-returner **aldri** mer enn `PAGE_SIZE` (se toppen av `lovdata_pro.js`) fra ett
-JS-kall. **Les aldri `__lp.cache` direkte**, verken `fullText` eller
-`toc`: bruk `page`/`section`/`grep`, og `toc(path, start)` for
-innholdsfortegnelsen. De holder svarene under grensen. Vil du ha ett
-kapittel, filtrer `toc` fra `load()`- eller `toc()`-svaret. Ser teksten feil
-ut (et manglende tegn, en rar liste), si det til brukeren; ikke undersøk
-markupen gjennom cachen. Foretrekk `browser_batch` når du skal
-navigere + lime inn scriptet + sjekke innlogging i samme tur.
-
----
-
-## Norsk-terminologiske notater
-
-- *Rettspraksis* / *rettsavgjørelse* / *dom* — court decisions
-- *Forarbeider* — preparatory works (collective term)
-- *NOU* (Norges offentlige utredninger) — committee report
-- *Ot.prp.* (Odelstingsproposisjon, brukt før 2009) — government bill
-- *Prop. L* (Lovproposisjon, fra 2009) — government bill
-- *Innst.* (Innstilling) — parliamentary committee recommendation
-- *Stikkord* — keywords/index terms (Lovdata-metadata)
-- *Henvisninger* — cross-references
-- *Avsnitt* — paragraph (when citing modern Supreme Court, "avsnitt N" is
-  the canonical paragraph reference)
+- **`not_logged_in`** → be brukeren logge inn (Steg 0 punkt 4). Ikke debugg
+  videre.
+- **`not_found`** → sjekk referansen, prøv `pro2_ref` eller Steg 3. Sjekk
+  dekningsgrensene i `references/lovdata-pro-mapping.md` (lovproposisjoner
+  fra 1984/85, NOU-er fra 1994, innstillinger fra 1991/92).
+- **`missing_json`**, **`static_file`** → dokumentet har ingen tekst i nye
+  Pro: prøv Klassisk (`references/klassisk.md`), eller si det til brukeren.
+- **`wrong_site`** → fanen står ikke på Lovdata Pro, eller kopien er for det
+  andre nettstedet (`pasted`): `navigate` til standardadressen og lim inn
+  `paste_site.py pro2`-kopien.
+- **`cors`** → JS-en kjørte i en fane som ikke er på Lovdata Pro.
+- **`before_first_version`**, **`bad_date`**, **`unsupported_kind`** →
+  `references/lover-historikk.md`.
+- **`pro2_only`** → kallet ble gjort i en Klassisk-fane: bruk fanen på nye
+  Pro.
+- **`unsupported_format`** → Lovdata har endret formatet: prøv Klassisk, og
+  si at skill-en bør oppdateres.
+- **Siden er ikke godkjent / brukeren avslo tilgang** → si det og stopp.

@@ -125,7 +125,22 @@ its API at `/api` (`/api/ping` → `Pong`), and Lovdata's terms page links
 "Lovdata Pro" to `https://pro.lovdata.no`. Not yet checked: whether
 `pro.lovdata.no` is the final address.
 
-To do once the new Lovdata Pro has launched and its final state is known:
+Checked again 2026-11-27, without a login: `lovdata.no/pro/` (also with
+`?forceFullVersion=true` and `/pro/api/ping`) redirects to the Klassisk login
+page `/pro/auth/login`; `pro.lovdata.no` is Lovdata's marketing site, not the
+app (its "Logg inn" goes to `lovdata.no/pro/auth/login`, and `/api/ping` is
+404); `pro2.lovdata.no` serves the app and `/api/ping` answers `Pong`. So
+the new Pro still lives at `pro2.lovdata.no`.
+
+**Default switched to `https://pro2.lovdata.no/` in 1.5.0 (2026-11-27),**
+together with a shorter SKILL.md: Klassisk (search, fallback, the read
+route) moved to `references/klassisk.md`, law history to
+`references/lover-historikk.md`. Steps 2 and 3 below are covered by the
+1.5.0 Cowork retest. If Lovdata later moves the app (to `lovdata.no/pro` or
+`pro.lovdata.no`), the helper should follow by itself (Vite bundle, `/ping`);
+update `PRO2_URL`, the "Standard:" line and the tests.
+
+The original checklist:
 
 1. **Find where it lives.** Log in at `https://lovdata.no/pro/` and note the
    address it lands on; check whether `pro2.lovdata.no` still answers. The

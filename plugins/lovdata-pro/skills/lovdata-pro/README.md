@@ -2,7 +2,8 @@
 
 A Claude skill for retrieving Norwegian case law, preparatory works,
 circulars, opinions and tribunal decisions from
-[Lovdata Pro](https://lovdata.no/pro/), using Claude Desktop's built-in
+[Lovdata Pro](https://pro2.lovdata.no/) (Lovdata Pro Klassisk as a fallback),
+using Claude Desktop's built-in
 browser (Cowork). The skill never paraphrases from training-data recall —
 every quote is fetched live from Lovdata's servers in the user's own,
 already-logged-in browser session.
@@ -48,11 +49,15 @@ lovdata-pro/
 ├── SKILL.md                         # the skill manifest Claude reads
 ├── README.md                        # you are here
 ├── references/
-│   └── lovdata-pro-mapping.md       # URL patterns, collection codes, DOM notes
+│   ├── lovdata-pro-mapping.md       # URL patterns, collection codes, DOM notes
+│   ├── lover-historikk.md           # law history: versions, Lovtidend, amending acts
+│   └── klassisk.md                  # Lovdata Pro Klassisk and the read route
 └── scripts/
     ├── lovdata_ref.py               # pure Python: citation -> Pro path candidates
     └── browser/
-        └── lovdata_pro.js           # pasted into the browser tab via javascript_tool
+        ├── lovdata_pro.js           # pasted into the browser tab via javascript_tool
+        ├── paste_site.py            # the stripped copy for one site (pro2 or klassisk)
+        └── paste.py                 # the stripper (shared)
 ```
 
 Offline tests live in the repository at `tests/lovdata-pro/`, not in the plugin (they do not ship to users): `python tests/lovdata-pro/test_ref.py`, `node tests/lovdata-pro/test_browser.js`.
@@ -130,7 +135,7 @@ python scripts/lovdata_ref.py resolve "NOU 2022:8" --json-array
 
 ```javascript
 // Step 2 — in the browser tab, via javascript_tool:
-// (paste scripts/browser/lovdata_pro.js once per tab first)
+// (paste the copy `paste_site.py pro2` makes, once per tab, first)
 await __lp.isLoggedIn()
 await __lp.load(["HRSIV/avgjorelse/hr-2016-2554-p", "HRSTR/avgjorelse/hr-2016-2554-p"])
 await __lp.section("HRSIV/avgjorelse/hr-2016-2554-p", 3)
