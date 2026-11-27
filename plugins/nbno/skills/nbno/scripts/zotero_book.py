@@ -136,7 +136,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.1"
+VERSION = "2.0.2"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -674,8 +674,7 @@ def _ensure_pillow_locked():
         except ImportError:
             if attempt == 0:
                 _ensure_pylib_on_path()   # installed by an earlier call?
-    print("[dl] installing Pillow (one-time)...")
-    _pip_install_to_pylib(["Pillow"])
+    _pip_install_to_pylib(["Pillow"])   # prints the one "[pip] installing" line
     import importlib
     importlib.invalidate_caches()   # _pylib's directory listing is cached
     try:
@@ -851,7 +850,6 @@ def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
     try:
         import img2pdf  # noqa: F401
     except ImportError:
-        print("[pdf] installing img2pdf (one-time)...")
         _pip_install_to_pylib(["img2pdf"])
         try:
             import img2pdf  # type: ignore  # noqa: F811
@@ -1582,8 +1580,7 @@ def run_ocrmypdf(pdf_path: Path, languages: str = "nor",
     _ensure_pylib_on_path()
     binary = _which_in_pylib("ocrmypdf")
     if binary is None:
-        print("[ocr] installing ocrmypdf (one-time)...")
-        rc = _pip_install_to_pylib(["ocrmypdf"])
+        rc =_pip_install_to_pylib(["ocrmypdf"])
         binary = _which_in_pylib("ocrmypdf")
         if rc != 0 or binary is None:
             raise SystemExit(

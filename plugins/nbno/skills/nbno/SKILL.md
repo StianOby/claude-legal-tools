@@ -240,11 +240,21 @@ confirm they are logged in to nb.no before any authenticated fetch. **Read
 ## Step 3 — Download
 
 **Fetch only what you need** — ask which pages before downloading a whole
-book. `--start`/`--stop` are 1-based **canvas** numbers, not printed pages:
-download canvases 1–7 first to find the offset. Page numbers the user
-gives ("sidene 1–10", "pp. 45–60") are printed pages unless they say
-otherwise: find the offset, then fetch those pages (front matter before
-printed p. 1 only if asked), and name both ranges when you deliver.
+book. `--start`/`--stop` are 1-based **canvas** numbers, not printed pages.
+Page numbers the user gives ("sidene 1–10", "pp. 45–60") are printed pages
+unless they say otherwise. To find the offset, probe a few canvases with
+`--keep-images` near where the wanted page should be: start at page + 4
+(front matter is usually 2–10 canvases), or at canvases 1–7 for an early
+page. Read the printed number on a probe page, work out canvas = page +
+offset, then fetch the range. If you only see front matter, probe further
+in. On the cloud route, look at the probe images. On the local route you
+cannot see them, because they sit in `<dir>` and must not be copied to the
+user's folder. Read the number with the local tesseract instead:
+`tesseract <img> - 2>/dev/null | sed -n '1,3p;$p'`, where the page number is
+in the head or foot line. Fetch front matter before printed p. 1 only if
+asked, and name both the printed pages and the canvases when you deliver.
+Use **one `--out` for every call in a task**, the probes and the final
+download, so Pillow and img2pdf install into `<out>/_pylib` only once.
 
 Any item type (books, newspapers, photos, posters, maps, manuscripts, sheet
 music): `nb_download.py`, which writes `AUTHOR_TITLE_(YEAR).pdf` to `--out`.
