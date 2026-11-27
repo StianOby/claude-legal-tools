@@ -37,8 +37,8 @@ zotero_book.main = fake_main
 
 print("nb_download.main")
 check("exit status passed through", nb_download.main(["--id", "digibok_1", "--out", "o"]), 0)
-check("no OCR, shrink or RDF", seen["argv"][:3], ["--no-ocr", "--no-shrink", "--no-rdf"])
-check("caller's flags after the fixed ones", seen["argv"][3:], ["--id", "digibok_1", "--out", "o"])
+check("download-only mode", seen["argv"][:1], ["--download-only"])
+check("caller's flags after it", seen["argv"][1:], ["--id", "digibok_1", "--out", "o"])
 nb_download.main(["--id", "digibok_1", "--out", "o", "--shrink"])
 check("--shrink comes last, so it wins", seen["argv"][-1], "--shrink")
 out = io.StringIO()

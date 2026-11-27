@@ -62,7 +62,7 @@ import urllib.request
 from typing import Optional
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 ME_URL = "https://api.nb.no/me/v1"
@@ -94,12 +94,26 @@ ROUTES = {
 LOAN_TAKEN = "TAKENBYCURRENTUSER"
 
 
-def decide_route(access_allowed_from: Optional[str], probe: Optional[int],
-                 loan: Optional[str] = None, cookie: bool = False) -> str:
+# probe_tile's answer when nb.no served HTTP 200 but not the 1024 px tile
+# asked for: the resolver's way of refusing quietly (as it downsamples).
+PROBE_SMALL = "small"
+PROBE_SIZE = 1024
+
+
+def decide_route(access_allowed_from: Optional[str], probe,
+                 loan: Optional[str] = None, cookie: bool = False,
+                 viewability: Optional[str] = None) -> str:
     if access_allowed_from == "EVERYWHERE":
         return "here"
     if access_allowed_from not in GEO_GATED:
         return "unknown"
+    if access_allowed_from == "NORWAY" and (viewability or "").upper() == "NONE":
+        # The catalogue says this IP may not read a Bokhylla item. On
+        # 2026-11-27 the cloud sandbox got NONE here while its tile probe
+        # came back 200; the user's Norwegian IP got ALL. Trust the catalogue.
+        return "norwegian-ip"
+    if probe == PROBE_SMALL:
+        probe = 403
     if access_allowed_from == "NB":
         # A served probe is not enough: without a loan, only the first
         # pages may be served. No cookie or no loan → whatever the probe.
@@ -135,10 +149,35 @@ def _get_json(url: str, nbsso: Optional[str], timeout: float = 30.0) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def jpeg_size(data: bytes) -> Optional[tuple]:
+    """(width, height) from a JPEG's SOF header, or None. No Pillow needed."""
+    if data[:2] != b"\xff\xd8":
+        return None
+    i = 2
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker == 0xFF:
+            i += 1
+            continue
+        if marker in (0x01, 0xD8) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        length = int.from_bytes(data[i + 2:i + 4], "big")
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            return (int.from_bytes(data[i + 7:i + 9], "big"),
+                    int.from_bytes(data[i + 5:i + 7], "big"))
+        i += 2 + length
+    return None
+
+
 def probe_tile(canonical: str, nbsso: Optional[str],
-               timeout: float = 20.0) -> Optional[int]:
+               timeout: float = 20.0):
     """HTTP status for one 1024 px tile of a mid-book page (200 = served),
-    or None when no probe could be made. Not smaller: 256 px tiles are
+    PROBE_SMALL when the 200 carried a smaller image than the tile asked
+    for, or None when no probe could be made. Not smaller: 256 px tiles are
     served to anyone, like thumbnails; 1024 px is what the downloader
     fetches and what nb.no gates. Not the first page: those can be served
     without a loan."""
@@ -166,12 +205,17 @@ def probe_tile(canonical: str, nbsso: Optional[str],
                                  headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            resp.read()
-            return resp.status
+            data = resp.read()
+            status = resp.status
     except urllib.error.HTTPError as exc:
         return exc.code
     except (urllib.error.URLError, OSError):
         return None
+    if status == 200:
+        size = jpeg_size(data)
+        if size is None or max(size) < PROBE_SIZE - 4:
+            return PROBE_SMALL
+    return status
 
 
 def nbsso_from_cookie_file(path: str) -> Optional[str]:
@@ -238,7 +282,8 @@ def main(argv: Optional[list] = None) -> int:
         out["route"] = decide_route(
             allowed, out.get("tileProbe"),
             loan=(out["accessInfo"] or {}).get("legalDepositReservationStatus"),
-            cookie=bool(args.nbsso))
+            cookie=bool(args.nbsso),
+            viewability=(out["accessInfo"] or {}).get("viewability"))
 
     refused = out.get("route") in ("norwegian-ip", "norwegian-ip+loan")
 
@@ -270,7 +315,17 @@ def main(argv: Optional[list] = None) -> int:
         if ai.get("accessAllowedFrom") in GEO_GATED:
             probe = out.get("tileProbe")
             print()
-            if probe == 200 and out.get("route") == "norwegian-ip+loan":
+            if out.get("route") == "norwegian-ip" and probe in (200, PROBE_SMALL):
+                print(f"  catalogue: viewability NONE — nb.no will not let "
+                      f"{me.get('ip')} read this Bokhylla item:")
+                print("        the IP is not Norwegian. (The tile probe is not "
+                      "trusted against that.)")
+            elif probe == PROBE_SMALL:
+                print("  image probe: refused — nb.no answered with a smaller "
+                      "image than the 1024 px tile")
+                print("        asked for. Treat it as a 403: this IP and "
+                      "session will not get the pages.")
+            elif probe == 200 and out.get("route") == "norwegian-ip+loan":
                 print("  image probe: OK, but this legal-deposit item has no "
                       "active loan in this session")
                 print(f"        (legalDepositReservationStatus must be {LOAN_TAKEN}; "

@@ -72,6 +72,25 @@ for allowed, probe, loan, cookie, want in [
 ]:
     check(f"{allowed} / {probe} / {loan} / cookie={cookie}",
           gc.decide_route(allowed, probe, loan=loan, cookie=cookie), want)
+# Cloud sandbox, 2026-11-27: viewability NONE but the tile probe said 200.
+check("NORWAY, viewability NONE, probe 200 -> norwegian-ip",
+      gc.decide_route("NORWAY", 200, viewability="NONE"), "norwegian-ip")
+check("NORWAY, viewability ALL, probe 200 -> here",
+      gc.decide_route("NORWAY", 200, viewability="ALL"), "here")
+check("NORWAY, a too-small 200 counts as refused",
+      gc.decide_route("NORWAY", gc.PROBE_SMALL, viewability="ALL"), "norwegian-ip")
+check("NB, viewability NONE is normal anonymously (not geo)",
+      gc.decide_route("NB", 200, loan=LOAN, cookie=True, viewability="NONE"), "here")
+
+print("jpeg_size")
+import struct  # noqa: E402
+def fake_jpeg(w, h):
+    # SOI, an APP0 segment, then SOF0 with height/width.
+    app0 = b"\xff\xe0" + struct.pack(">H", 16) + b"JFIF\x00" + b"\x00" * 9
+    sof0 = b"\xff\xc0" + struct.pack(">HBHHB", 11, 8, h, w, 1) + b"\x01\x11\x00"
+    return b"\xff\xd8" + app0 + sof0 + b"\xff\xd9"
+check("reads width and height", gc.jpeg_size(fake_jpeg(1024, 768)), (1024, 768))
+check("not a JPEG", gc.jpeg_size(b"<html>"), None)
 
 print("probe_canvas_index: a mid-book numbered page")
 check("middle numbered page", gc.probe_canvas_index(
@@ -92,9 +111,15 @@ check("exit 3", code, 3)
 check("probed once, canonical id", probes, ["digibok_2021021607640"])
 
 print("main(): Bokhylla item from a Norwegian IP (200)")
-code, out, _ = run({"accessAllowedFrom": "NORWAY"}, 200)
+code, out, _ = run({"accessAllowedFrom": "NORWAY", "viewability": "ALL"}, 200)
 check("route here", out.get("route"), "here")
 check("exit 0", code, 0)
+
+print("main(): Bokhylla item from the cloud, viewability NONE, probe 200 (2026-11-27)")
+code, text, _ = run({"accessAllowedFrom": "NORWAY", "viewability": "NONE"}, 200, json_out=False)
+check("route norwegian-ip", text.strip().splitlines()[-1].split(" — ")[0], "route: norwegian-ip")
+check("exit 3", code, 3)
+check("says why", "viewability NONE" in text, True)
 
 print("main(): legal-deposit item from the cloud with a cookie (403)")
 code, out, _ = run({"accessAllowedFrom": "NB"}, 403, nbsso="nbsso=x")

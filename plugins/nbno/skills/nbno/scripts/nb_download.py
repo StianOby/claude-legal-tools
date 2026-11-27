@@ -32,8 +32,9 @@ from typing import List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import zotero_book  # noqa: E402
 
-# Before the caller's flags, so that e.g. --shrink still wins.
-FIXED = ["--no-ocr", "--no-shrink", "--no-rdf"]
+# zotero_book.py's hidden mode for this script: no OCR or RDF, no shrink
+# unless the caller passes --shrink, and log lines to match.
+FIXED = ["--download-only"]
 
 
 def main(argv: Optional[List[str]] = None) -> int:

@@ -88,6 +88,8 @@ not one. So:
      before asking the user to log in, take a loan or approve a cookie read; then, for `norwegian-ip+loan`,
      Step 0.6–0.7 (loan, cookie).
    - `route: unknown` → report the probe line and ask before downloading.
+   - A `NORWAY`/`NB` item never downloads in `Bash`: if the cloud probe says `here` for one, treat it as
+     `norwegian-ip`, use the local route, and tell the user the probe was wrong.
 2. **Local route** — follow [`local-route.md`](local-route.md) (it decides whether `device_bash` and a connected folder
    are available and has the fixed messages if not). **Check for a connected folder first** (`ls -d "$HOME"/mnt/*/`
    in `device_bash`; if none, ask for one as `local-route.md` §1 says) — `device_bash` refuses to run without one.
@@ -125,11 +127,13 @@ suggest a VPN.
 
 ## Step 0 — Session (Cowork built-in browser)
 
-Run this in every new conversation before Step 1 — but for a `NORWAY`/`NB`
-item only after **Routing** has confirmed that the local route can run
-(tools and a connected folder), so the user is never asked to log in or take
-a loan for a download that cannot happen. Skip it if the browser tools are
-absent (see Prerequisites). The full procedure, with the
+Only for `NB` items (login and loan), or to resolve an `nb.no/items/<hash>`
+link (Step 1); `EVERYWHERE` and `NORWAY` items need none of it, as
+`geo_check.py` reads their `accessInfo`. For an `NB` item, run it only after
+**Routing** has confirmed that the local route can run (tools and a
+connected folder), so the user is never asked to log in or take a loan for
+a download that cannot happen. Skip it if
+the browser tools are absent (see Prerequisites). The full procedure, with the
 reasons behind each rule, is in [`auth.md`](auth.md) ("Fallback 1 (primary) —
 built-in browser"); the rules below are the ones you must not break.
 
@@ -237,7 +241,10 @@ confirm they are logged in to nb.no before any authenticated fetch. **Read
 
 **Fetch only what you need** — ask which pages before downloading a whole
 book. `--start`/`--stop` are 1-based **canvas** numbers, not printed pages:
-download canvases 1–7 first to find the offset.
+download canvases 1–7 first to find the offset. Page numbers the user
+gives ("sidene 1–10", "pp. 45–60") are printed pages unless they say
+otherwise: find the offset, then fetch those pages (front matter before
+printed p. 1 only if asked), and name both ranges when you deliver.
 
 Any item type (books, newspapers, photos, posters, maps, manuscripts, sheet
 music): `nb_download.py`, which writes `AUTHOR_TITLE_(YEAR).pdf` to `--out`.
@@ -288,11 +295,14 @@ For reading pages visually, OCR and shrinking, read
   turn black and stamps become outlines. If the user wants grey tones kept
   (annotations, stamps, illustrations), use `--shrink-mode grey`
   (~80 MB for 400 pages). Say what size the PDF ended up.
+- **Don't shrink maps, photos or posters** the user asked for at full
+  resolution: bitonal would turn them black and white. Deliver them as they
+  are; offer `--shrink-mode grey` only if the size is a problem.
 - **OCR failed (exit 5):** the shrunk PDF and RDF are complete, and the
   unshrunk pages are kept as `<base>.original.pdf`. Tell the user OCR
   failed and why (the log quotes ocrmypdf's own error), then try to fix the
-  cause — usually a missing Python module (install it into the same
-  `_pylib`) or Tesseract. If fixed, follow the retry line the log prints:
+  cause — usually a missing Python module (install it into `<out>/_pylib`,
+  where the scripts put their own installs) or Tesseract. If fixed, follow the retry line the log prints:
   `ocr_chunked.py` on the `.original.pdf`, `shrink_pdf.py` from it to the
   main PDF, then delete the `.original.pdf`. Do not download the book
   again. If it cannot be fixed (no Tesseract on the local route), deliver

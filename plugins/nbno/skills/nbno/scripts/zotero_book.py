@@ -136,7 +136,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.0"
+VERSION = "2.0.1"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -307,10 +307,11 @@ def check_nb_access(api_blob: dict) -> AccessHint:
     elif login_text:
         requires_auth = True
         reason = f"accessInfo.legalDepositLoginText present ({login_text[:80]!r})"
-    elif viewability == "NONE" and allowed_from != "EVERYWHERE":
+    elif viewability == "NONE" and allowed_from not in ("EVERYWHERE", "NORWAY"):
         # Keep the old signal as a backstop for item classes we haven't
         # characterised, but never let it fire on an item the API says is
-        # readable from everywhere.
+        # readable from everywhere, nor on a Bokhylla item, where NONE means
+        # a non-Norwegian IP, which no credential fixes (main() says so).
         requires_auth = True
         reason = "accessInfo.viewability == NONE"
 
@@ -650,10 +651,21 @@ class PageImageError(Exception):
 MAX_IMAGE_PIXELS = 2_000_000_000
 
 
+# The download threads all reach _ensure_pillow at once; without this lock
+# each of them started its own pip install (8 at once on the local VM,
+# 2026-11-27).
+_PILLOW_LOCK = threading.Lock()
+
+
 def _ensure_pillow():
     """Import PIL.Image, pip-installing Pillow into _pylib on first use (the
     local VM's Python has none, 2026-11-26), as img2pdf and ocrmypdf are.
-    Raises Pillow's image-size limit to MAX_IMAGE_PIXELS."""
+    Raises Pillow's image-size limit to MAX_IMAGE_PIXELS. Thread-safe."""
+    with _PILLOW_LOCK:
+        return _ensure_pillow_locked()
+
+
+def _ensure_pillow_locked():
     for attempt in range(2):
         try:
             from PIL import Image
@@ -1652,12 +1664,16 @@ def probe_page_image(canonical_id: str, nbsso: Optional[str] = None,
         return None
     try:
         base = canvases[pick]["images"][0]["resource"]["service"]["@id"]
-        _read_url(f"{base}/0,0,1024,1024/full/0/default.jpg", hdr_img, timeout)
-        return 200
+        _, size = _read_image(f"{base}/0,0,1024,1024/full/0/default.jpg", hdr_img, timeout)
     except urllib.error.HTTPError as e:
         return e.code
+    except PageImageError:
+        return 403   # an empty or non-image 200 is a refusal
     except (OSError, http.client.HTTPException, KeyError, IndexError):
         return None
+    # A 200 with a smaller image than the tile asked for is nb.no refusing
+    # quietly, as its resolver downsamples (geo_check.PROBE_SMALL).
+    return 200 if max(size) >= 1020 else 403
 
 
 # ---------------------------------------------------------------------------
@@ -1700,8 +1716,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="Also keep the downloaded page images, in "
                          "<out>/<basename>_images/ (page_0001.jpg, ...).")
     ap.add_argument("--no-rdf", dest="rdf", action="store_false",
-                    help="No Zotero RDF or JSON: just the PDF (nb_download.py "
-                         "sets this).")
+                    help="No Zotero RDF or JSON: just the PDF.")
+    # nb_download.py: --no-ocr --no-rdf, no shrink unless --shrink, and log
+    # lines that do not talk about OCR nobody asked for.
+    ap.add_argument("--download-only", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--tiles", choices=("auto", "always", "never"),
                     default="auto",
                     help="IIIF tile strategy. auto (default): one request "
@@ -1765,6 +1783,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         ap.error("--start must be 1 or more")
     if args.stop is not None and args.stop < (args.start or 1):
         ap.error("--stop must be at least --start")
+    if args.download_only:
+        args.no_ocr, args.rdf = True, False
     if args.shrink is None:
         # Bitonal pages have lost the grey levels Tesseract reads best, and
         # --no-ocr exists for "download now, OCR later".
@@ -1799,6 +1819,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     if access.geo_gated:
         print(f"[access] GEO-GATED: images are served only from "
               f"{access.access_allowed_from}.")
+    if (access.access_allowed_from == "NORWAY" and access.viewability == "NONE"
+            and not args.force_auth):
+        # The catalogue answers per IP: NONE for a Bokhylla item means this
+        # IP is not Norwegian (cloud sandbox 2026-11-27; ALL from Norway).
+        raise SystemExit(
+            "ERROR: nb.no will not let this IP read this Bokhylla item "
+            "(accessAllowedFrom NORWAY, viewability NONE): the IP is not "
+            "Norwegian.\n"
+            "       No cookie helps. Download it from a Norwegian IP: the local "
+            "route (SKILL.md Routing).\n"
+            "       Override with --force-auth if you believe accessInfo is wrong.")
     have_auth = bool(args.bearer or args.nbsso)
     if access.requires_auth and not have_auth and not args.force_auth:
         raise SystemExit(
@@ -1895,7 +1926,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # ---- Text layer ---------------------------------------------------------
     if args.no_ocr:
-        print("[ocr] skipped (--no-ocr)")
+        if not args.download_only:
+            print("[ocr] skipped (--no-ocr)")
     else:
         used_nb = False
         if args.ocr != "tesseract":
@@ -1956,6 +1988,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[shrink] {size_before/1e6:.1f} MB -> "
               f"{stats['bytes_after']/1e6:.1f} MB "
               f"(saved {saved/1e6:.1f} MB, {pct:.0f}%)")
+    elif args.download_only:
+        size_mb = pdf_path.stat().st_size / 1e6
+        if size_mb > 50:
+            print(f"[hint] PDF is {size_mb:.0f} MB. To shrink: shrink_pdf.py --pdf "
+                  f"{pdf_path} --in-place (bitonal, for text pages); for maps, "
+                  "photos and posters use --shrink-mode grey, or leave it as is "
+                  "when the user asked for full resolution.")
     elif args.no_ocr:
         print(f"[shrink] skipped: the pages are as downloaded "
               f"({pdf_path.stat().st_size/1e6:.0f} MB), ready for OCR with "
