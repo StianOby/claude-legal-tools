@@ -131,7 +131,7 @@ Cowork kjører i skyen: `Bash` har Anthropics IP, ikke brukerens; bare browser-p
    29 000 for Klassisk), og skriver ut stien. Les den filen og send **hele**
    innholdet via `javascript_tool` (`action: "javascript_exec"`), uten å
    legge til noe: kopiens siste linje gjør at svaret er `[VERSION, SITE]`
-   (f.eks. `["1.4.3", "pro2"]`), og det bekrefter at innlimingen virket.
+   (f.eks. `["1.4.4", "pro2"]`), og det bekrefter at innlimingen virket.
    Virker ikke `paste_site.py`, bruk `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene, ca.
    44 000 tegn). Kort aldri ned hjelperen.
@@ -360,10 +360,8 @@ store og små bokstaver og tåler uthevingsmerker og linjeskift. Er
 `matches` 0 for et sitat, har det et avvik (et ord, en stor bokstav, et
 tegn, en sammenstykket bit; `ignoringCase` over 0 betyr at bare store og
 små bokstaver avviker): finn stedet igjen og rett det. Sitér aldri fra
-hukommelsen av et tidligere svar. **Skriv til slutt i svaret hvor mange
-sitater som ble kontrollert** («5 av 5 sitater kontrollert mot Lovdatas
-tekst»), med tallene fra `checked`/`matches`. Står et sitat utenfor
-sjekken, si det i stedet for å skrive at alle er kontrollert.
+hukommelsen av et tidligere svar. Hvordan du teller og oppgir sitatene,
+står i «Før du svarer» nedenfor.
 
 Eksempler på JS-kall:
 
@@ -437,7 +435,9 @@ await __lp.backlinks("lov/2005-06-17-62", "lovspeil")              // forgjenger
   tekst fra den datoen; den er som regel lik, men det er Lovtidend som er
   den vedtatte teksten. Sitér fra `LTI` og oppgi «Norsk Lovtidend»; mangler
   `LTI` (eldre lover), bruk den første versjonen og si at det er Lovdatas
-  tekst.
+  tekst. Oppgi også **når loven trådte i kraft**: `metadata["I kraft fra"]`
+  i `LTI`-posten, ellers ikrafttredelsesvedtaket
+  (`backlinks(lov, "endringslover")`). «Kongen bestemmer» er ikke en dato.
 - Christian Vs Norske Lov: `lov/1687-04-15` er bare bestemmelsene som
   fortsatt gjelder; hele originalteksten er den eldste versjonen
   (`versions("lov/1687-04-15")`, første oppføring; dansk, ca. 650 000 tegn). Landslova
@@ -587,6 +587,25 @@ forarbeidsprosessen, saksopplysninger og henvisninger varierer mellom
 referanseverk og Lovdatas egen tekst, og hallusinasjon av domspremisser har
 høy kostnad.
 
+### Før du svarer
+
+Gå gjennom utkastet til svar før du sender det:
+
+1. **Finn alle sitater i utkastet.** Et sitat er all tekst fra Lovdata i
+   anførselstegn («…», "…") eller i et blokksitat: også titler,
+   korttitler, overskrifter, korte fraser, ord fra metadata og bokstav- og
+   nummerpunkter. Tell dem.
+2. **Send hvert av dem til `checkQuotes`**, ett kall per dokument, og rett
+   det som får `matches: 0`. `checked` til sammen skal være lik antallet du
+   talte i punkt 1.
+3. **Skriv antallet i svaret:** «N av N sitater kontrollert mot Lovdatas
+   tekst». Er noe ikke kontrollert, skriv «N av M» og si hvilke.
+4. **Språket:** svaret er på brukerens språk (bokmål til bokmål, engelsk til
+   engelsk); bare sitatene er på originalspråket.
+5. **Lenker** til et dokument kan gis som
+   `https://pro2.lovdata.no/dokument/<path>` (med `path` fra et svar). Åpne
+   dem aldri selv.
+
 ---
 
 ## Arbeidsflyt for vanlige oppgaver
@@ -620,7 +639,10 @@ ber om «forarbeidene»:
 
 Disse er ofte 1-3 MB tekst hver. Bruk `toc` + `grep` + `section` for å finne
 og hente det relevante kapittelet — ikke hele dokumentet via dump-modus, med
-mindre brukeren eksplisitt ber om en full lokal kopi.
+mindre brukeren eksplisitt ber om en full lokal kopi. **NOU-er og
+proposisjoner har ofte `tocNext`** i `load()`-svaret: hent resten med
+`toc(path, tocNext)` (og videre med `next`) før du lister kapitlene, ellers
+mangler resten av dokumentet.
 
 ### Brukeren oppgir en uvanlig referanse (Rt., RG, eldre Ot.prp.)
 
@@ -693,7 +715,10 @@ Hvert `javascript_tool`-svar går gjennom verktøykanalen og inn i samtalen —
 returner **aldri** mer enn `PAGE_SIZE` (se toppen av `lovdata_pro.js`) fra ett
 JS-kall. **Les aldri `__lp.cache` direkte**, verken `fullText` eller
 `toc`: bruk `page`/`section`/`grep`, og `toc(path, start)` for
-innholdsfortegnelsen. De holder svarene under grensen. Foretrekk `browser_batch` når du skal
+innholdsfortegnelsen. De holder svarene under grensen. Vil du ha ett
+kapittel, filtrer `toc` fra `load()`- eller `toc()`-svaret. Ser teksten feil
+ut (et manglende tegn, en rar liste), si det til brukeren; ikke undersøk
+markupen gjennom cachen. Foretrekk `browser_batch` når du skal
 navigere + lime inn scriptet + sjekke innlogging i samme tur.
 
 ---

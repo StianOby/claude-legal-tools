@@ -59,6 +59,10 @@ const JUDGMENT = {
       el('li', { value: '1', 'data-name': 'a.' }, [el('span', { class: 'data-originalId' }, ['a.']), el('article', { class: 'listArticle' }, ['første', el('aside', { class: 'pagenumber', 'aria-label': 'side 4' }, ['Side 4']), ' punkt'])]),
       el('li', { value: '2', 'data-name': 'b.', 'data-list-id-style': 'i' }, [el('span', { class: 'data-originalId', 'data-list-id-style': 'i' }, ['b.']), el('article', { class: 'listArticle' }, ['andre punkt'])]),
     ]),
+    // Lovtidend (LTI): the label only in the span, no data-name, in a <ul>.
+    el('ul', { class: 'defaultList' }, [
+      el('li', {}, [el('span', { class: 'data-originalId' }, ['a)']), el('article', { class: 'listArticle' }, ['kunngjort punkt'])]),
+    ]),
   ],
 };
 
@@ -190,6 +194,7 @@ async function main() {
     'Side 4',
     'punkt',
     '*b.* andre punkt',
+    'a) kunngjort punkt',
   ].join('\n'));
   check('grep "(2)" finds the paragraph', (await lp.grep(r.path, '(2)', 20, 5)).matches, 1);
   const cq = await lp.checkQuotes(r.path, ['Første avsnitt med kursiv og fet skrift.', 'første avsnitt med', 'Ikke i teksten']);

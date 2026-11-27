@@ -27,7 +27,7 @@
 // The markers must be on lines of their own and never nest; no code outside
 // a block may name anything defined inside one.
 (() => {
-  const HELPER_VERSION = '1.4.3';
+  const HELPER_VERSION = '1.4.4';
   const HELPER_SITE = 'all';
   if (window.__lp && window.__lp.VERSION === HELPER_VERSION && window.__lp.SITE === HELPER_SITE) return;
   window.__lp = (() => {
@@ -880,11 +880,16 @@
       'script', 'style']);
 
     // The marker the page draws before a list item: Lovdata's own label
-    // (data-name="a."), else the number of an <ol> item, else "- ".
+    // (data-name="a."), else the drawn label span (Lovtidend items have
+    // <span class="data-originalId">a)</span> and no data-name, 2026-11-27),
+    // else the number of an <ol> item, else "- ".
     function listMarker(li) {
       const name = li.getAttribute && li.getAttribute('data-name');
       // pro2 sets some labels in italic (data-list-id-style="i").
       if (name) return li.getAttribute('data-list-id-style') === 'i' ? `*${name}* ` : name + ' ';
+      const span = Array.from(li.children || []).find(isListLabel);
+      const drawn = span ? span.textContent.replace(/\s+/g, ' ').trim() : '';
+      if (drawn) return (span.getAttribute('data-list-id-style') === 'i' ? `*${drawn}*` : drawn) + ' ';
       const list = li.parentElement;
       if (!list || list.tagName.toLowerCase() !== 'ol') return '- ';
       let n = Number(list.getAttribute('start') || 1);
