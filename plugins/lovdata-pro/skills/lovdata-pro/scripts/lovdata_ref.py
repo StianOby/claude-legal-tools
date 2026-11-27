@@ -566,8 +566,8 @@ def explain(ref):
             out["note"] = (
                 "stortingsmeldinger are not covered by this skill: the new Lovdata Pro "
                 "has none, and Klassisk has only spotty, mostly register-only records. "
-                "Tell the user Lovdata Pro does not have it; do not search for it or "
-                "fetch it elsewhere")
+                "Do not search Lovdata for it; tell the user the canonical source is "
+                "regjeringen.no")
         elif re.match(r"St\.?\s*prp\.?", s, re.I):
             out["note"] = (
                 "non-law propositions (St.prp.) are not full-text indexed in Lovdata Pro "

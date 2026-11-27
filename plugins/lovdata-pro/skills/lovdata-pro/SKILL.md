@@ -145,8 +145,9 @@ kandidatlisten, klar for `__lp.load([...])`), og når de er aktuelle:
 - **`forarbeider`** — for en lov: `RFA/lov/<dato>-<nr>`, Lovdatas register
   over lovens forarbeider.
 - **`note`** — hva du bør vite (lover; nyere `SDOK` finnes ofte bare som PDF;
-  Meld. St. og St.prp. er ikke dekket: si det til brukeren i stedet for å
-  søke eller sitere fra andre kilder).
+  St.prp. er ikke fulltekst i Pro: si det i stedet for å sitere fra andre
+  kilder. Meld. St. dekkes ikke av skill-en: ikke søk etter dem i Lovdata;
+  kanonisk kilde er regjeringen.no).
 
 `parsed:false`: prøv `load(pro2_ref)`; ellers Steg 3 med `search_hint`, og
 verifiser treffet.
@@ -271,7 +272,9 @@ status}]}`.
   datosortert liste er fullstendig for søkeordet: ikke `load()` treffene for
   å kontrollere den; søk heller på andre ord eller ordformer. Velg ut fra
   titlene hvilke treff som handler om spørsmålet, og `load()` bare dem du
-  siterer fra.
+  siterer fra. Er nyeste treff gammelt, er det svaret: si at det ikke finnes
+  nyere dokumenter med søkeordet, i stedet for å lete gjennom nyere
+  dokumenter uten det.
 - Søket treffer innhold, ikke bare dokumentet du mener: et søk på
   «St.prp. nr. 100 1991-92 EØS-avtalen» gir EU-direktiver. **Verifiser
   tittelen** med `load()` før du siterer.
