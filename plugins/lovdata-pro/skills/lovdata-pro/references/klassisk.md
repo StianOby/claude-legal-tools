@@ -9,13 +9,6 @@ Standard er nye Lovdata Pro (`https://pro2.lovdata.no/`). Bruk Klassisk bare
 når nye Pro ikke har dokumentet:
 
 - **`missing_json`** eller **`static_file`** fra `load()` på nye Pro;
-- **Meld. St. / St.meld.**, som bare finnes i Klassisk, i
-  `STS/forarbeid/stsg-<sesjon>-<løpenummer>`. Løpenummeret kan ikke utledes
-  av referansen: søk med referansen i anførselstegn
-  (`"Meld. St. 17 (2020-2021)"`; uten dem kommer bare Prop./NOU-treff) og
-  verifiser tittelen på treffet. **Mange er bare registerposter** også her
-  (`metadataOnly`): da har Lovdata ikke teksten. Si det, gi lenken, og hent
-  den ikke fra andre nettsteder;
 - nye Pro virker ikke (innlogging eller feil).
 
 Versjoner, endringslover og kategoriene utenom alminnelige domstoler og

@@ -142,10 +142,10 @@ async function main() {
   check('empty result page is noHits', [s.error, s.noHits, s.results && s.results.length], [undefined, true, 0]);
 
   // Exactly one hit: Klassisk opens the document instead of a result list.
-  tab.onEnter = () => { setTimeout(() => { location.hash = '#document/STS/forarbeid/stsg-202021-355?searchResultContext=1&totalHits=1'; }, 200); };
-  s = await lp.search('"Meld. St. 17 (2020-2021)"', 10, { timeoutMs: 1000 });
+  tab.onEnter = () => { setTimeout(() => { location.hash = '#document/LGSIV/avgjorelse/lg-2008-135938?searchResultContext=1&totalHits=1'; }, 200); };
+  s = await lp.search('LG-2008-135938', 10, { timeoutMs: 1000 });
   check('single hit opens the document: returned as the one result', [s.error, s.singleHit, s.results && s.results.map((r) => r.path)],
-    [undefined, true, ['STS/forarbeid/stsg-202021-355']]);
+    [undefined, true, ['LGSIV/avgjorelse/lg-2008-135938']]);
 
   // A tab on a site that is neither Lovdata Pro gets wrong_site from every
   // entry point that would fetch or search, not a bare CORS error. (The

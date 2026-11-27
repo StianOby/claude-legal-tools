@@ -99,7 +99,9 @@ NOU 2022:8 drew 184 chars more than its JSON; not traced.
   `documentMeta.publication.url`), `LODA`, recent `SDOK` (PDF only).
 
 - **Not in pro2:** stortingsmeldinger (Meld. St./St.meld.; no STS base in
-  the facets) and St.prp. Klassisk has the STS records.
+  the facets) and St.prp. Klassisk has the STS records, mostly register-only;
+  the maintainer took stortingsmeldinger out of the skill's scope in 1.5.2
+  (2026-11-27: not really legal documents, and spotty in Klassisk).
 - **Karnov comments** (`COMMENT`) have no documentContent (404); the helper
   drops them from search results anyway (literature is out of scope).
 - Oslo tingrett is `tosl-` from 2021 (`toslo-` before); Innst. ids vary by

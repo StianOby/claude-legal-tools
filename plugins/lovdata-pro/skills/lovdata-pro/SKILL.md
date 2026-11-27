@@ -10,11 +10,11 @@ description: >
   forskrifter). Needs the Cowork built-in browser. Triggers: references like
   HR-YYYY-N, Rt. YYYY s. N, RG, LB-/LG-YYYY-N, TOSL-YYYY-N, TRR-, AR-, ND YYYY s.
   N, KOFA-, FinKN-, SOM-, JDLOV-, rundskriv G-2019-3, Ot.prp./Prop. N L, NOU
-  YYYY:N, Innst., Meld. St., LOV-/FOR-; asks like "find the Holship judgment",
-  "hent forarbeidene til mineralloven", "aml. § 14-9 slik den lød i 2019", "Norske
-  Lov 1687 as enacted". Use even if Lovdata isn't named. Do NOT use for: current
-  lov/forskrift text (lovdata-api); finding a lawyer; legal theory that needs no
-  document text.
+  YYYY:N, Innst., LOV-/FOR-; asks like "find the Holship judgment", "hent
+  forarbeidene til mineralloven", "aml. § 14-9 slik den lød i 2019", "Norske Lov
+  1687 as enacted". Use even if Lovdata isn't named. Do NOT use for: current
+  lov/forskrift text (lovdata-api); Meld. St.; finding a lawyer; legal theory that
+  needs no document text.
 ---
 
 # Lovdata Pro — rettspraksis, forarbeider, rundskriv, uttalelser og nemnder
@@ -56,8 +56,8 @@ Erstatt `{SKILL_DIR}` nedenfor med den stien.
 
 - `references/lover-historikk.md` — lover og forskrifter slik de lød før,
   slik de ble vedtatt, opphevede lover, Lovtidend, endringslover.
-- `references/klassisk.md` — Lovdata Pro Klassisk (Meld. St., dokumenter nye
-  Pro mangler) og lese-ruten når innlimingen avvises.
+- `references/klassisk.md` — Lovdata Pro Klassisk (dokumenter nye Pro
+  mangler) og lese-ruten når innlimingen avvises.
 - `references/lovdata-pro-mapping.md` — samlinger, prefikser, slug-regler og
   dekningsgrenser.
 
@@ -97,7 +97,7 @@ du bruker dem noe sted, også i argumentene til Skill-kallet og i `resolve`.
    Ellers: kjør `python3 {SKILL_DIR}/scripts/browser/paste_site.py pro2`, les
    filen den skriver ut, og send **hele** innholdet via `javascript_tool`
    (`action: "javascript_exec"`) uten å legge til noe. Svaret skal være
-   `[VERSION, SITE]` (f.eks. `["1.5.1", "pro2"]`). Virker ikke
+   `[VERSION, SITE]` (f.eks. `["1.5.1", "pro2"]`; versjonen er hjelperens `HELPER_VERSION`). Virker ikke
    `paste_site.py`: `python3 {SKILL_DIR}/scripts/browser/paste.py
    {SKILL_DIR}/scripts/browser/lovdata_pro.js` (begge nettstedene).
    **Innlimingen er ikke valgfri** og kortes aldri ned: ikke hopp over den
@@ -145,8 +145,8 @@ kandidatlisten, klar for `__lp.load([...])`), og når de er aktuelle:
 - **`forarbeider`** — for en lov: `RFA/lov/<dato>-<nr>`, Lovdatas register
   over lovens forarbeider.
 - **`note`** — hva du bør vite (lover; nyere `SDOK` finnes ofte bare som PDF;
-  Meld. St. finnes bare i Klassisk; St.prp. er ikke fulltekst i Pro: si det
-  til brukeren i stedet for å sitere fra andre kilder).
+  Meld. St. og St.prp. er ikke dekket: si det til brukeren i stedet for å
+  søke eller sitere fra andre kilder).
 
 `parsed:false`: prøv `load(pro2_ref)`; ellers Steg 3 med `search_hint`, og
 verifiser treffet.
@@ -184,7 +184,7 @@ peker (`s1827`); finn stedet med `grep`.
 Flagg i svaret:
 
 - **`metadataOnly`** — ingen brødtekst i Pro (St.prp., eldre NOU under
-  `PUBG`, mange Meld. St.). Sitér ikke fra posten. **`originalFile`** er
+  `PUBG`). Sitér ikke fra posten. **`originalFile`** er
   original-PDF-en (nyere `SDOK`), **`publication`** publikasjonen med
   teksten: gi brukeren lenken, hent den ikke selv. **Hent heller ikke
   teksten andre steder** (WebFetch, curl, nye faner på regjeringen.no

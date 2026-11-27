@@ -125,8 +125,9 @@ fixes. What that changed, beyond the search finding in (4) above:
   collection is `TRSIV`/`TRSTR`. The old `TR-YYYY-N` form in the docs was
   never a real Lovdata reference.
 - **Stortingsmeldinger** are `STS/forarbeid/stsg-<sesjon>-<løpenummer>`, not
-  a `MELD` collection, and the løpenummer is not derivable — so the resolver
-  now sends them to search instead of guessing.
+  a `MELD` collection, and the løpenummer is not derivable. Since 1.5.2 they
+  are out of scope: the new Pro has none, and Klassisk mostly register
+  records.
 - **`Innst. O./S.` and `Dok. 8:`** slugs were guesses that turned out right;
   they are now confirmed.
 - **Judgments have no headings** (`toc.length === 0` for HR-2016-2554-P and

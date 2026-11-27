@@ -180,8 +180,7 @@ the resolver accepts any `T<letters>-YYYY-N` form and maps it to the
 `TRSIV`/`TRSTR` collections. `TRR-` (Trygderetten) is not a tingrett and
 goes through search.
 
-Pre-2008 Rt. decisions, RG decisions, stortingsmeldinger (whose slugs carry
-a Lovdata-assigned sequence number) and other irregular citations don't have
+Pre-2008 Rt. decisions, RG decisions and other irregular citations don't have
 a deterministic slug — `lovdata_ref.py resolve` returns `parsed: false` for
 these, together with a `search_hint` in Lovdata's own reference form and a
 note on where that document type lives, and the skill falls back to

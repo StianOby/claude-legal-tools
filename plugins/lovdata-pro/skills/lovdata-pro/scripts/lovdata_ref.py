@@ -113,9 +113,8 @@ True
 >>> explain("RG 2010 s. 100")["pro2_ref"]
 'avgjorelse/rg-2010-100'
 
->>> # Stortingsmeldinger have a Lovdata-assigned sequence number in the
->>> # slug (STS/forarbeid/stsg-202021-355), so they cannot be resolved
->>> # offline either — explain() says where to look.
+>>> # Stortingsmeldinger are out of scope (not in the new Lovdata Pro,
+>>> # mostly register-only records in Klassisk): explain() says so.
 >>> parse_reference("Meld. St. 17 (2020-2021)") is None
 True
 >>> explain("Meld. St. 17 (2020-2021)")["note"].startswith("stortingsmeldinger")
@@ -565,12 +564,10 @@ def explain(ref):
             out["pro2_ref"] = f"avgjorelse/{hint.lower()}"
         if re.match(r"(Meld\.?\s*St\.?|St\.?\s*meld\.?)", s, re.I):
             out["note"] = (
-                "stortingsmeldinger live in STS/forarbeid/stsg-<sesjon>-<løpenummer> "
-                "in Lovdata Pro Klassisk (e.g. Meld. St. 17 (2020-2021) is "
-                "STS/forarbeid/stsg-202021-355). The løpenummer is assigned by Lovdata and "
-                "cannot be derived from the citation — search for the search_hint in quotes (\"Meld. St. 17 (2020-2021)\"; unquoted, Klassisk returns only Prop./NOU hits) and verify "
-                "the hit's title. The new Lovdata Pro (pro2) has no stortingsmeldinger "
-                "(2026-11-11): use Klassisk")
+                "stortingsmeldinger are not covered by this skill: the new Lovdata Pro "
+                "has none, and Klassisk has only spotty, mostly register-only records. "
+                "Tell the user Lovdata Pro does not have it; do not search for it or "
+                "fetch it elsewhere")
         elif re.match(r"St\.?\s*prp\.?", s, re.I):
             out["note"] = (
                 "non-law propositions (St.prp.) are not full-text indexed in Lovdata Pro "
