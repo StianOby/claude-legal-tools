@@ -2,22 +2,25 @@
 
 A self-contained Claude skill for downloading books, newspapers, photos,
 journals, maps, and manuscripts from [Nasjonalbiblioteket](https://nb.no)
-(the Norwegian National Library). The skill wraps the
-[`nbno`](https://github.com/Lanjelin/NBNO.py) CLI tool by Lanjelin, which
-uses nb.no's IIIF API to fetch page images and assemble them into a PDF.
+(the Norwegian National Library). It fetches page images from nb.no's IIIF
+API and assembles them into a PDF, with OCR and a Zotero item on request.
+Until version 2.0 it wrapped the [`nbno`](https://github.com/Lanjelin/NBNO.py)
+CLI tool by Lanjelin, whose work showed the way through nb.no's API.
 
 ## What it can do
 
 - Resolve URN identifiers (`URN:NBN:no-nb_digibok_...`) to canonical IDs.
 - Download any nb.no item type: books (`digibok`), newspapers (`digavis`),
-  photos (`digifoto`), journals (`digitidsskrift`), maps (`digikart`),
-  manuscripts (`digimanus`), programme reports (`digiprogramrapport`),
-  and legal-deposit material (`pliktmonografi`, `pliktperiodika`).
+  photos and posters (`digifoto`), journals (`digitidsskrift`), maps
+  (`digikart`), manuscripts and letters (`digimanus`), programme reports
+  (`digiprogramrapport`), and legal-deposit material (`pliktmonografi`,
+  `pliktperiodika`).
 - Authenticate with nb.no via FEIDE/BankID/Vipps to access in-copyright
   legal-deposit content — from the Cowork built-in browser where available,
   otherwise a manual cookie file.
-- Download partial page ranges to keep batches fast.
-- Assemble all pages into a single PDF and discard the intermediate images.
+- Download partial page ranges to keep batches fast, and resume a download
+  that was cut off.
+- Assemble all pages into a single PDF (optionally keeping the page images).
 
 ## Layout
 
@@ -27,12 +30,12 @@ nbno/
 ├── auth.md                    # authentication procedures (referenced by SKILL.md)
 ├── reading-ocr.md             # page reading, OCR, and PDF-shrink procedures
 ├── zotero-ready.md            # full Zotero-ready (PDF + OCR + RDF) workflow
-├── iiif-download.md           # whole-book downloader, inline IIIF recipe, resolver gotchas
+├── iiif-download.md           # the downloader, inline IIIF recipe, resolver gotchas
 ├── troubleshooting.md         # caveats and troubleshooting
 ├── local-route.md             # shared: running steps on the user's computer (cloud Cowork)
 ├── README.md                  # you are here
 ├── scripts/
-│   ├── nbno_run.sh            # download wrapper
+│   ├── nb_download.py         # download any item as a PDF
 │   ├── nb_search.py           # find an item id from author/title/year (open catalogue)
 │   ├── geo_check.py           # egress IP + accessInfo + a page-tile probe (is this IP allowed?)
 │   ├── zotero_book.py         # orchestrator: download → text layer → shrink → Zotero RDF
@@ -53,12 +56,9 @@ procedures relevant to a given task are loaded into Claude's context.
 
 ## Requirements
 
-- **Bash** (for `nbno_run.sh`) — pre-installed on macOS/Linux; on Windows
-  use Git Bash or WSL.
-- **`nbno` CLI** — the wrapper installs it automatically on first run via
-  `pip install --break-system-packages -c scripts/requirements.txt nbno`
-  (pinned versions, kept current by Dependabot). If auto-install fails, run
-  that command manually.
+- **Python 3** — the scripts install what they need (Pillow, img2pdf, and
+  for OCR and shrinking ocrmypdf, pikepdf, numpy) on first use, with the
+  pinned versions in `scripts/requirements.txt` (kept current by Dependabot).
 - **Nothing else.** Cookie capture uses the Cowork built-in browser where
   available; everywhere else you paste two cookie values from DevTools.
 
@@ -70,46 +70,36 @@ python scripts/nb_search.py "Eckhoff Rettskildelære" --year 2001
 
 # open content (no login needed) — e.g. a pre-1900 book
 OUT=$(mktemp -d)   # scratch dir; copy the finished PDF to outputs afterwards
-bash scripts/nbno_run.sh \
-  --id "digibok_2008051600041" \
-  --out "$OUT"
+python scripts/nb_download.py --id "digibok_2008051600041" --out "$OUT"
 
-# specific page range (canvas numbers, 1-based)
-bash scripts/nbno_run.sh \
-  --id "digibok_2008051600041" \
-  --out "$OUT" \
-  --start 10 --stop 16
+# specific canvas range (1-based manifest positions, covers included)
+python scripts/nb_download.py --id "digibok_2008051600041" --out "$OUT" --start 10 --stop 16
 
 # FEIDE-licensed content (after capturing nbsso and taking the digital loan)
-bash scripts/nbno_run.sh \
-  --id "digibok_2014050705024" \
-  --out "$OUT" \
-  --cookie auto \
-  --start 1 --stop 7 \
-  --resize 75
+python scripts/nb_download.py --id "digibok_2014050705024" --out "$OUT" --cookie auto
 ```
 
-The wrapper always passes `--pdf` to `nbno` and removes the per-page image
-folder after the PDF is assembled.
-
-## Wrapper flags
+## Download flags
 
 | Flag | Purpose |
 |---|---|
 | `--id <ID>` | Canonical nb.no ID or full URN (required) |
 | `--out <dir>` | Output directory for the PDF (required) |
-| `--cookie auto` | Use saved auth at `~/.nbno/cookie.txt` |
-| `--cookie <path>` | Use saved auth at an explicit path |
-| `--start N` | First canvas to download (1-based) |
-| `--stop N` | Last canvas to download (inclusive) |
-| `--resize N` | Scale pages to N% of original size (50–75 for large books) |
-| `--title` | Fetch the item's real title and use it as folder name |
-| `--cover` | Download the cover separately |
-| `--keep-images` | Keep the per-page images, moved to `<out>/<ID>_images/` |
+| `--cookie auto` / `--cookie <path>` | Use the nbsso cookie saved at `~/.nbno/cookie.txt` / an explicit path |
+| `--nbsso "nbsso=<v>"` | The cookie pair itself |
+| `--start N` / `--stop N` | Canvas range (1-based, inclusive); the file gets a `_c<N>-<M>` suffix |
+| `--size half\|full` | Half size (default, ~145 dpi on a book page) or the scan's own size |
+| `--keep-images` | Also keep the page images in `<out>/<basename>_images/` |
+| `--shrink` | Recompress the page images (see `reading-ocr.md`) |
 
-Exit codes: `0` success, `1` bad arguments, `2` nbno install/run failure,
-`3` no PDF produced (auth/geo issue), `4` cookie file missing, unreadable, or
-without a usable `cookie=` line.
+The PDF is named `AUTHOR_TITLE_(YEAR).pdf`. Exit codes: `0` success, `3` some
+pages could not be downloaded (placeholder pages in their place), `4` cookie
+file missing or without a usable `nbsso`, `1` any other error. The pages
+downloaded so far stay in `<out>/_pages/` until the PDF is complete:
+re-running the same command with the same `--out` fetches only the rest.
+
+`zotero_book.py` takes the same flags and adds OCR, shrinking and the Zotero
+RDF (see `zotero-ready.md`).
 
 ## Authentication
 
@@ -158,54 +148,46 @@ the manual route, which costs one copy-paste:
 2. DevTools (F12) → **Application** → **Cookies** → `https://www.nb.no`.
 3. Copy the `nbsso` value into `~/.nbno/cookie.txt`:
    ```
-   authorization=
    cookie=nbsso=<value>; _nblb=<value>
    ```
 4. Use `--cookie auto` (or `--nbsso "nbsso=<value>"`).
 
 Cookies typically live 24–48 hours; re-copy when downloads start failing with
-auth errors. Note that a FEIDE-licensed item needs you in a browser for the
-digital loan anyway, so this adds nothing to the trip.
+auth errors (the scripts warn when the file is over 24 hours old). Note that
+a FEIDE-licensed item needs you in a browser for the digital loan anyway, so
+this adds nothing to the trip.
 
 ### Option C — Manual cookie file
 
 Supply a cookie text file captured from DevTools (Application → Cookies →
-nb.no — you need `nbsso`; `_nblb` grants nothing on its own):
-
-```
-authorization=
-cookie=nbsso=<value>; _nblb=<value>
-```
-
-The `authorization` line may be empty or omitted — the wrapper strips an
-empty one before the `nbno` CLI sees it. Pass the file with
-`--cookie /path/to/cookie.txt`.
+nb.no — you need `nbsso`; `_nblb` grants nothing on its own), with the line
+`cookie=nbsso=<value>; _nblb=<value>`. An `authorization=` line, as older
+captures have, is ignored. Pass the file with `--cookie /path/to/cookie.txt`.
 
 ## Identifying items
 
-`nbno` expects IDs of the form `<type>_<key>`, e.g. `digibok_2008051600041`.
+IDs have the form `<type>_<key>`, e.g. `digibok_2008051600041`.
 The key may itself contain underscores — newspaper issues are
 `digavis_aftenposten_morgen_1_20150107_156_7_2`, journals
 `digitidsskrift_2021052683055_001`.
 
-- **URN** — `URN:NBN:no-nb_digibok_2008051600041` → strip `URN:NBN:no-nb_` → `digibok_2008051600041`. The wrapper does this automatically.
+- **URN** — `URN:NBN:no-nb_digibok_2008051600041` → strip `URN:NBN:no-nb_` → `digibok_2008051600041`. The scripts do this automatically.
 - **Items URL** — `https://www.nb.no/items/<opaque-hash>` — the hash is not the ID. Click "Referere/Sitere" on nb.no to get the URN.
 - **Already canonical** — use directly.
 
 ## Page range and performance notes
 
-`--start`/`--stop` refer to IIIF canvas numbers (1-based), not printed page
-numbers. On a first run, download canvases 1–7 and inspect the page footer to
-determine the offset between canvas numbers and printed pages.
+`--start`/`--stop` refer to positions in the item's IIIF manifest (1-based,
+covers included), not printed page numbers. On a first run, download
+canvases 1–7 and inspect the page footer to determine the offset between
+canvas numbers and printed pages.
 
 In a Cowork bash session the bash timeout defaults to 120 s. Pass an
 explicit long timeout, but expect a call to be cut off at about 170 s
-whatever you ask for. A full book still downloads in one call; whole-book
-OCR does not (use `ocr_chunked.py`). If you
-do batch, each batch has ~25 s startup overhead and each page adds ~1–2 s. Always
-write output to a scratch directory (`mktemp -d`), not a mounted workspace
-directory — files in mounted directories cannot be overwritten from bash —
-and copy the finished PDF to the outputs directory afterwards.
+whatever you ask for. A full book still downloads in one call (424 pages
+in about 105 s); whole-book OCR does not (use `ocr_chunked.py`). A download
+that is cut off resumes when re-run. Write output to a scratch directory
+(`mktemp -d`) and copy the finished PDF to the outputs directory afterwards.
 
 ## Installing as a Claude skill
 
@@ -243,8 +225,9 @@ skill automatically.
   browser keeps a persistent profile, so a later session can download under
   your FEIDE identity without a fresh login — the same agreement still
   applies.
-- **Rate limiting.** `nbno` is multi-threaded by default. If downloads fail
-  with HTTP errors, retry with a smaller `--start`/`--stop` range.
+- **Rate limiting.** Downloads are multi-threaded and retry rate limits and
+  server errors. Pages that still fail become placeholder pages (exit 3);
+  re-run the same command with the same `--out` to fill them in.
 - **Content search API.** The nb.no content search API does not work for
   `pliktmonografi` items even when authenticated — download and read pages
   directly instead.

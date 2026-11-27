@@ -204,7 +204,7 @@ the Cowork docs (claude.com/docs/cowork/guide/plugins) and test in Cowork.
     3.13 that uv (pinned in nbno's lock) fetches into the run directory,
     ~33 MB in ~3 s, no root. validate.yml tests that path.
   - Upstream caps count too: when an alert's fix is blocked by a
-    dependency's own cap (e.g. the `nbno` CLI's Pillow cap), fix it
+    dependency's own cap (e.g. a package's `Pillow<14`), fix it
     upstream rather than overriding the cap.
   - Not pinned: eurlex-mcp-server (`npx -y` in the user's own Claude
     config, out of Dependabot's reach), the sandbox's apt packages, and

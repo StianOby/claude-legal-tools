@@ -23,15 +23,12 @@ description: >
 
 **First step, before any command:** resolve `{SKILL_DIR}` as described under "Skill directory" below and use the printed path literally. Never guess it (e.g. `/mnt/skills/...`).
 
-This skill wraps the [`nbno`](https://github.com/Lanjelin/NBNO.py) CLI tool by
-Lanjelin, which uses nb.no's IIIF API to download books, newspapers, photos,
-journals, maps, manuscripts, etc. as page images and assemble them into a PDF.
+This skill downloads books, newspapers, photos, journals, maps, manuscripts,
+etc. from nb.no's IIIF API as page images and assembles them into a PDF.
 
 The user's preferences for this skill:
 
-- **Output**: PDF only. The wrapper always builds a PDF and removes per-page
-  images automatically — do **not** pass `--pdf` yourself (it is an unknown
-  argument to the wrapper and will cause an error).
+- **Output**: PDF only (the page images are removed unless `--keep-images`).
 - **Auth**: Prompt every time an item needs a credential (`NB`, FEIDE).
   Before such a run, ask the user which auth path in **Step 2** to take.
   `EVERYWHERE` and `NORWAY` items need no credential — don't ask. The default cookie location is `~/.nbno/cookie.txt`
@@ -46,11 +43,6 @@ The user's preferences for this skill:
   ```bash
   for d in "${CLAUDE_SKILL_DIR:-}" "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/nbno}"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { echo "$d"; exit; }; done; f=$(find /root/.claude/plugins /sessions ~/.claude -path '*/skills/nbno/SKILL.md' -not -path '*/.trash/*' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-); [ -n "$f" ] && dirname "$f" || echo "SKILL.md not found" >&2
   ```
-- **`nbno` CLI** — the wrapper installs it automatically on first run via
-  `pip install --break-system-packages -c <scripts>/requirements.txt nbno`
-  (the pinned versions, kept current by Dependabot). If auto-install fails,
-  run `pip install --break-system-packages -c {SKILL_DIR}/scripts/requirements.txt nbno`
-  manually before proceeding.
 - **Built-in browser (optional, Cowork only).** If the built-in browser tools
   are present, **Step 0** uses them for the session check, item
   classification and cookie capture.
@@ -101,7 +93,7 @@ not one. So:
    in `device_bash`; if none, ask for one as `local-route.md` §1 says) — `device_bash` refuses to run without one.
    For nbno, once `READY <dir>` is printed:
    - `NB` only: put the cookie in a mode-600 file inside `<dir>`, never in the connected folder:
-     `umask 077; printf 'authorization=\ncookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
+     `umask 077; printf 'cookie=nbsso=%s; _nblb=%s\n' '<nbsso>' '<nblb>' > <dir>/cookie.txt`
    - Get the Python once (`local-route.md` §3): `test -f <dir>/.ready || exit 4; bash <dir>/scripts/local_python.sh <dir>`
      prints `<py>`, a Python 3.13 (exit 1 → use `python3` and say newer packages may not install).
    - Probe again from the user's machine, in `device_bash`:
@@ -112,10 +104,8 @@ not one. So:
      (`legalDepositReservationStatus: TAKENBYCURRENTUSER`); a served tile alone is not enough, as nb.no serves the
      first pages without a loan.
    - Download with the same commands as in Step 3 / [`zotero-ready.md`](zotero-ready.md), calling the scripts by
-     absolute path (`NBNO_PYTHON=<py> bash <dir>/scripts/nbno_run.sh …`, `<py> <dir>/scripts/zotero_book.py …`) with
-     `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `nbno_run.sh`, or
-     `--nbsso "$(grep -o 'nbsso=[^;]*' <dir>/cookie.txt)"` for `zotero_book.py`). A 3-page range took 5–13 s on 2026-09-30; keep ranges modest until longer runs are tried.
-     `nbno_run.sh` makes a short-lived copy of the cookie in `$TMPDIR` and deletes it on exit.
+     absolute path (`<py> <dir>/scripts/nb_download.py …`, `<py> <dir>/scripts/zotero_book.py …`) with
+     `--out <dir>/out` (plus `--cookie <dir>/cookie.txt` for `NB`).
    - OCR / Zotero-ready: first `command -v tesseract`. Present (tesseract 4.1.1 with `eng`/`osd` only on
      2026-09-30) → `zotero_book.py` fetches `nor` and pip-installs Pillow and `ocrmypdf` into the run directory itself.
      Missing → `--no-ocr`. Current ocrmypdf needs Python ≥ 3.11: with `<py>` that holds; if
@@ -123,7 +113,7 @@ not one. So:
      so. Install no Python other than through `local_python.sh` (never system-wide, never conda). Either way, if `zotero_book.py` exits **5**, OCR failed but the PDF and RDF are complete:
      handle it as in **OCR failed (exit 5)** under Step 4.
    - If the device drops mid-run ("not connected to the bridge"), wait for it to reconnect and re-run the same
-     command: `<dir>` and `ocr_chunked.py`'s page cache survive, and the run resumes (2026-11-26).
+     command: `<dir>` with the downloaded pages and `ocr_chunked.py`'s page cache survives, and the run resumes (2026-11-26).
    - Copy the finished PDF (and RDF) to `<connected folder>/nbno/<id>/` and tell the user where it is. Keep
      `<dir>` for further nb.no downloads in this conversation (`local-route.md` §2.4); when you are done with
      nb.no, `rm -rf <dir>` (this also removes the cookie).
@@ -249,39 +239,38 @@ confirm they are logged in to nb.no before any authenticated fetch. **Read
 book. `--start`/`--stop` are 1-based **canvas** numbers, not printed pages:
 download canvases 1–7 first to find the offset.
 
-- **Short ranges, non-book material:** the `nbno_run.sh` wrapper (below).
-- **Whole books:** `zotero_book.py` (with `--no-ocr --no-shrink` if the user
-  only wants the images), or its in-process downloader `download_via_iiif()`
-  — about 20× faster than the wrapper. Pages come at half size (~145 dpi),
-  enough for OCR and sharp once shrunk; it picks one request or tiles per
-  page itself. `--size full` only when the user asks for full resolution
-  (3× the requests). Usage, the resolver's traps and the inline recipe:
-  [`iiif-download.md`](iiif-download.md).
+Any item type (books, newspapers, photos, posters, maps, manuscripts, sheet
+music): `nb_download.py`, which writes `AUTHOR_TITLE_(YEAR).pdf` to `--out`.
+For a Zotero item, OCR or shrink in one go, use `zotero_book.py` instead
+(below); both share one downloader.
 
 ```bash
-OUT=$(mktemp -d)
-bash {SKILL_DIR}/scripts/nbno_run.sh --id "digibok_2008051600041" --out "$OUT" \
-  [--start 1 --stop 7] [--cookie <file>] [--resize 75] [--title]
+OUT=$(mktemp -d); echo "$OUT"
+python {SKILL_DIR}/scripts/nb_download.py --id "digibok_2008051600041" --out "$OUT" \
+  [--start 1 --stop 7] [--cookie <file>|auto | --nbsso "nbsso=<v>"] [--size full] [--keep-images]
 ```
 
 | flag | purpose |
 | --- | --- |
-| `--start N` / `--stop N` | canvas range (1-based, inclusive) |
-| `--cookie PATH` / `--cookie auto` | cookie file (`auto` = `~/.nbno/cookie.txt`); `NB` items only |
-| `--resize N` | percent of original size — prefer `shrink_pdf.py` afterwards (Step 4) |
-| `--title` · `--cover` · `--keep-images` | title as folder name · cover separately · keep page images in `<out>/<ID>_images/` |
+| `--start N` / `--stop N` | canvas range (1-based manifest positions, covers included); the file gets a `_c<N>-<M>` suffix |
+| `--cookie PATH` / `--cookie auto` · `--nbsso` | `NB` items only: a cookie file (`auto` = `~/.nbno/cookie.txt`) or the pair itself |
+| `--size full` | the scan's own size (default half, ~145 dpi on a book page); only when the user asks for full resolution, e.g. maps |
+| `--keep-images` | also keep the page JPEGs in `<out>/<basename>_images/` |
+| `--shrink` | shrink the page images afterwards (Step 4) |
 
-The wrapper builds one PDF in `--out` (never pass `--pdf` yourself) and
-rescales nbno's poster-size pages to book size.
+Pages come at half size, enough for OCR and sharp once shrunk; the script
+picks one request or tiles per page itself. The resolver's traps and the
+inline recipe for driving the API by hand: [`iiif-download.md`](iiif-download.md).
 
 - **Timeouts:** request a long bash timeout (600000 ms) but plan for ~170 s
   per call. Downloads fit (424 pages ≈ 105 s); OCR of a long book does not —
   use `--no-ocr` and `ocr_chunked.py` ([`reading-ocr.md`](reading-ocr.md)).
   **Never `nohup … &`**: the process dies when the call returns.
-- **Scratch, then copy, in one call:** `--out` must be a scratch dir
-  (`mktemp -d`), not a mounted folder (`mv: unable to remove target`).
-  Shell variables and scratch may not survive to the next call, so create
-  `$OUT`, run and copy the result in the same call.
+- **Resume:** a run cut off, or ending with placeholder pages (exit 3),
+  keeps its pages in `<out>/_pages/`. Re-run the same command with the same
+  `--out` path, written out (not a new `mktemp -d`): only the rest is
+  fetched. A 403 on every page is access, not bad luck: fix that first (Step 2).
+- **`--out`** is a scratch dir; copy the PDF to the outputs folder afterwards (Step 4).
 
 For reading pages visually, OCR and shrinking, read
 [`reading-ocr.md`](reading-ocr.md) first.
@@ -291,9 +280,9 @@ For reading pages visually, OCR and shrinking, read
 ## Step 4 — Hand the file back
 
 - **Shrink books:** `zotero_book.py` does it by default; any other PDF over
-  ~50 MB (`nbno_run.sh` prints a `[hint]`) →
-  `python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>`. Order is always
-  download → OCR → shrink; never `--resize` to save space. The default
+  ~50 MB (`nb_download.py` prints its size) →
+  `python {SKILL_DIR}/scripts/shrink_pdf.py --pdf <file>`, or `--shrink` on
+  the download. Order is always download → OCR → shrink. The default
   (`--shrink-mode bitonal`) makes text pages sharp black and white (~25–37 MB
   for 400 pages) and keeps covers and photos as JPEG; faint pencil notes
   turn black and stamps become outlines. If the user wants grey tones kept

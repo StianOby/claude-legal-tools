@@ -121,7 +121,8 @@ def assemble(paths, out):
 zb._assemble_pages_to_pdf = assemble
 out = io.StringIO()
 with redirect_stdout(out):
-    result = zb.download_via_iiif("digibok_1", Path(tempfile.mkdtemp()) / "b.pdf", workers=4)
+    resume_pdf = Path(tempfile.mkdtemp()) / "b.pdf"
+    result = zb.download_via_iiif("digibok_1", resume_pdf, workers=4)
 log = out.getvalue()
 check("page 2 recovered on the second pass", attempts["p2"], 2)
 check("PDF order: C2 skipped, page 4 is a placeholder in its place",
@@ -132,7 +133,36 @@ check("result names the missing PDF page",
 check("result gives each PDF page's canvas, None for the placeholder",
       [c is None for c in result["canvases"]], [False, False, True, False])
 check("the log warns about it", "placeholder pages in the PDF: [3]" in log, True)
-check("temp folder removed", assembled["dir"].exists(), False)
+check("pages kept for a re-run", assembled["dir"] == zb.pages_dir(resume_pdf), True)
+check("... and still there", sorted(p.name for p in assembled["dir"].glob("page_????.jpg")),
+      ["page_0001.jpg", "page_0002.jpg", "page_0005.jpg"])
+
+print("download_via_iiif: a re-run resumes")
+BROKEN.clear()
+attempts.clear()
+out = io.StringIO()
+with redirect_stdout(out):
+    result = zb.download_via_iiif("digibok_1", resume_pdf, workers=4)
+check("only the missing page fetched", sorted(attempts), ["p4"])
+check("says it resumed", "resuming: 3 of 5 pages already downloaded" in out.getvalue(), True)
+check("no placeholders now", result["missing"], [])
+check("PDF order unchanged", assembled["paths"],
+      ["page_0001.jpg", "page_0002.jpg", "page_0004.jpg", "page_0005.jpg"])
+check("pages folder removed once complete", zb.pages_dir(resume_pdf).exists(), False)
+check("... and _pages/ with it", (resume_pdf.parent / "_pages").exists(), False)
+part = zb.pages_dir(resume_pdf) / "page_0001.jpg.part"
+check("no .part file is ever taken as a page", part.exists(), False)
+
+print("download_via_iiif: keep_images")
+attempts.clear()
+with redirect_stdout(io.StringIO()):
+    result = zb.download_via_iiif("digibok_1", resume_pdf, workers=4, keep_images=True)
+images = resume_pdf.parent / "b_images"
+check("fetched afresh after a complete run", len(attempts), 4)
+check("images beside the PDF", sorted(p.name for p in images.iterdir()),
+      ["page_0001.jpg", "page_0002.jpg", "page_0004.jpg", "page_0005.jpg"])
+check("result names the folder", result.get("images"), str(images))
+check("pages folder removed", zb.pages_dir(resume_pdf).exists(), False)
 
 print("download_via_iiif: start/stop range")
 recorded = {}
@@ -309,25 +339,6 @@ zb._read_url = fake_resolver("empty")
 check("empty one-request answer counts as refused",
       REAL_SINGLE("https://iiif/p1", 2, {}), (None, None))
 zb._read_url = _real_read_url
-
-print("rescale_pdf_pages: poster PDF -> book size")
-try:
-    import pypdf  # noqa: F401
-except ImportError:
-    print("  skip (pypdf not installed)")
-else:
-    pdf = Path(tempfile.mkdtemp()) / "poster.pdf"
-    ims = [Image.new("RGB", (1500, 2200), "white"), Image.new("RGB", (1500, 2200), "gray"),
-           Image.new("RGB", (1500, 842), "white")]
-    ims[0].save(str(pdf), save_all=True, append_images=ims[1:], resolution=72.0)
-    heights = lambda: [round(float(pg.mediabox.height)) for pg in pypdf.PdfReader(str(pdf)).pages]
-    check("starts poster-size", heights(), [2200, 2200, 842])
-    check("two pages rescaled", zb.rescale_pdf_pages(pdf), 2)
-    check("pages now A4 height (~842 pt), small page untouched",
-          [abs(h - 842) <= 1 for h in heights()], [True, True, True])
-    check("width scaled in proportion", round(float(pypdf.PdfReader(str(pdf)).pages[0].mediabox.width)),
-          round(1500 * 842 / 2200))
-    check("idempotent", zb.rescale_pdf_pages(pdf), 0)
 
 print("normalize_metadata: edition and editor roles")
 for raw, want in [("5. utg. [redigert av] Jan E. Helgesen", "5"), ("[2. utg.]", "2"),

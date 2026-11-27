@@ -22,16 +22,16 @@ import fitz  # PyMuPDF
 
 doc = fitz.open("<path to the PDF>")   # e.g. "$OUT/<item>.pdf" from the download step
 page = doc[0]  # 0-based index; canvas N = index N-1
-mat = fitz.Matrix(1, 1)  # 1× scale → approx 1652 × 2272 px from a --resize 75 PDF
+mat = fitz.Matrix(1, 1)  # 1× scale; check pix.width/height against the ~2000 px limit
 pix = page.get_pixmap(matrix=mat)
 pix.save("<WORK>/page_01.png")   # WORK = a mktemp -d scratch dir
 ```
 
-Then use the Read tool on that PNG. Rendering at 1× from a
-`--resize 75` PDF gives approximately 1652 × 2272 px, which stays within
-the Read tool's ~2000 px limit. Do **not** use `fitz.Matrix(1.5, 1.5)` or
-higher from a 75%-resize PDF — the result (~2479 × 3409 px) exceeds the
-limit. If 1× images are still too large, resize with PIL before saving:
+Then use the Read tool on that PNG. The Read tool takes about 2000 px a
+side: a page from the default half-size download (~1100 × 1600 px) fits
+at 1×, a `--size full` page (~2300 × 3400 px) does not. Do **not** scale up
+with `fitz.Matrix(1.5, 1.5)` or higher. If 1× images are still too large,
+resize with PIL before saving:
 
 ```python
 from PIL import Image

@@ -5,12 +5,15 @@ downloads** with the fast in-process downloader, for the **inline recipe**
 (driving nb.no's IIIF API by hand, without the skill's scripts on disk), and
 for the **mechanics** behind the resolver's gotchas.
 
-## Fast path — `download_via_iiif()` (recommended for whole books)
+## The downloader — `download_via_iiif()`
 
-For full-book `digibok_*` downloads, bypass `nbno_run.sh` entirely and use
-the in-process IIIF downloader. It fetches pages directly via the IIIF API
-with `ThreadPoolExecutor(12)` and is roughly **20× faster** than batching
-through the CLI (~200 pages in ~10 s vs ~25 s startup + 1–2 s/page).
+`nb_download.py` and `zotero_book.py` download every item type with the
+in-process IIIF downloader. It fetches pages directly via the IIIF API with
+`ThreadPoolExecutor(12)` (~200 pages in ~10 s), takes the canvases from the
+manifest whatever they are called (covers, `_0001`, a map's `_0001_F_01`
+front and `_0001_B_01` back, a photo whose only canvas is the URN itself),
+and keeps its pages in `<out>/_pages/` until the PDF is complete, so a
+re-run resumes.
 
 **Preferred: use the orchestrator's downloader directly.**
 `scripts/zotero_book.py:download_via_iiif()` already handles every gotcha

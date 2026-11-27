@@ -3,16 +3,16 @@
 zotero_book.py — download a book from nb.no, give it a text layer, and emit a
 Zotero-ready RDF + PDF pair.
 
-Run from the nbno skill's scripts/ folder (or copy alongside nbno_run.sh):
+Run from the nbno skill's scripts/ folder (nb_download.py is the same
+download without OCR, shrink or RDF):
 
     python zotero_book.py \\
         --id URN:NBN:no-nb_digibok_2008051600041 \\
         --out /path/to/outputs/folder \\
-        [--cookie auto | --cookie /path/cookie.txt] \\
-        [--nbsso "nbsso=<value>"] [--bearer "<token>"] \\
-        [--size half|full] \\
+        [--nbsso "nbsso=<value>" | --cookie auto | --cookie /path/cookie.txt] \\
+        [--size half|full] [--start N --stop M] [--keep-images] \\
         [--ocr auto|nb|tesseract] [--no-ocr] \\
-        [--shrink-mode bitonal|grey|jpeg]
+        [--shrink-mode bitonal|grey|jpeg] [--no-rdf]
 
 Auth, in short: `api.nb.no` authenticates by cookie, so `--nbsso` alone is
 enough and `--bearer` is optional (kept for older DevTools captures that
@@ -44,14 +44,11 @@ Pipeline:
      for a legal-deposit (NB) item with --nbsso, also stop when the
      catalogue shows no active loan.
      Then compute AUTHOR_TITLE_(YEAR) and the destination PDF path.
-  4. Download the full book PDF.
-       - Default: the fast IIIF downloader in-process, pages at half size
-         (--size). It needs no credential for public-domain items or
-         Bokhylla from a Norwegian IP, and takes --nbsso (and/or --bearer)
-         for FEIDE-licensed ones. --size, --tiles and --workers only apply
-         on this path.
-       - --cookie <file|auto> selects the nbno_run.sh wrapper instead (the
-         cookie-file workflow from auth.md). --downloader overrides both.
+  4. Download the PDF with the in-process IIIF downloader, pages at half
+     size (--size). It needs no credential for public-domain items or
+     Bokhylla from a Norwegian IP, and takes --nbsso (or a --cookie file
+     holding it) for FEIDE-licensed ones. Pages are kept in <out>/_pages/
+     until the PDF is complete, so a re-run resumes.
   5. Add a text layer unless --no-ocr: nb.no's own OCR (ALTO, see
      alto_text.py) when the item serves it — public-domain books do —
      otherwise ocrmypdf (-l nor; the model is fetched from tessdata_fast
@@ -61,7 +58,7 @@ Pipeline:
      default. When OCR failed, the unshrunk PDF is kept as
      <base>.original.pdf so the OCR can be retried without a new download.
   7. Render the Zotero RDF and item JSON via zotero_rdf.write_zotero_files
-     (shared/zotero-rdf/ in the repo).
+     (shared/zotero-rdf/ in the repo), unless --no-rdf.
 
 Designed to stream progress (each step prints a single line) so the user can
 follow along in a Cowork session even when individual phases take a while.
@@ -139,7 +136,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.7.0"
+VERSION = "2.0.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -192,7 +189,7 @@ _URN_PREFIXES = ("URN:NBN:no-nb_", "urn:nbn:no-nb_", "urn:nbn:no-nb:")
 # Underscores are part of many real ids, not just a separator after the
 # type: newspapers are digavis_aftenposten_morgen_1_20150107_156_7_2 and
 # journals digitidsskrift_2021052683055_001. Keep this in step with the
-# identical patterns in nbno_run.sh and scripts/browser/nbno_auth.js.
+# identical pattern in scripts/browser/nbno_auth.js.
 _TYPE_RE = re.compile(
     r"^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|"
     r"digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z_]+$"
@@ -646,12 +643,21 @@ class PageImageError(Exception):
     image asked for: an empty body, a non-image, or the wrong pixel size."""
 
 
+# Pillow refuses images above ~179 megapixels as possible decompression
+# bombs. nb.no's maps are larger at full size (18217 x 13488 = 246 MP,
+# 17071 x 24236 = 414 MP; 2026-11-27), and the pages come from nb.no at the
+# size its manifest states, so the limit is raised well above any scan.
+MAX_IMAGE_PIXELS = 2_000_000_000
+
+
 def _ensure_pillow():
     """Import PIL.Image, pip-installing Pillow into _pylib on first use (the
-    local VM's Python has none, 2026-11-26), as img2pdf and ocrmypdf are."""
+    local VM's Python has none, 2026-11-26), as img2pdf and ocrmypdf are.
+    Raises Pillow's image-size limit to MAX_IMAGE_PIXELS."""
     for attempt in range(2):
         try:
             from PIL import Image
+            Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
             return Image
         except ImportError:
             if attempt == 0:
@@ -662,6 +668,7 @@ def _ensure_pillow():
     importlib.invalidate_caches()   # _pylib's directory listing is cached
     try:
         from PIL import Image  # noqa: F811
+        Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
         return Image
     except ImportError as exc:
         raise SystemExit(
@@ -825,7 +832,7 @@ def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
     imported or installed, we fall back to PIL at the median per-page DPI —
     not exact for mixed page sizes, but far better than the 72 DPI default.
     """
-    from PIL import Image
+    Image = _ensure_pillow()
 
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
 
@@ -873,45 +880,6 @@ def _assemble_pages_to_pdf(page_paths: List[str], out_pdf: Path) -> None:
                    resolution=float(median_dpi))
 
 
-def rescale_pdf_pages(pdf_path: Path) -> int:
-    """Shrink poster-size pages of an existing PDF to book size, in place.
-
-    The third-party `nbno` CLI embeds each page image at 72 DPI, so a
-    2000-3000 px page becomes a ~0.7-1 m page. Treating the MediaBox height
-    (in points) as the image's pixel height, each page is scaled by
-    72 / _page_dpi(height) — the same rule _assemble_pages_to_pdf applies —
-    which puts it at A4 height. Content, boxes and annotations scale
-    together (pypdf scale_by), so the image keeps its full resolution and
-    pages already at or below A4 height are untouched (idempotent).
-    Returns the number of pages rescaled; the file is rewritten only if > 0.
-    """
-    try:
-        import pypdf
-    except ImportError:
-        print("[pdf] installing pypdf (one-time)...")
-        _pip_install_to_pylib(["pypdf"])
-        import pypdf  # type: ignore  # noqa: F811
-
-    reader = pypdf.PdfReader(str(pdf_path))
-    writer = pypdf.PdfWriter()
-    changed = 0
-    for page in reader.pages:
-        h = float(page.mediabox.height)
-        scale = 72.0 / _page_dpi(round(h)) if h > 0 else 1.0
-        # Scale the writer's copy: pypdf 7 refuses to change the contents of
-        # a page not attached to a writer (DeprecationError, 2026-11-09).
-        page = writer.add_page(page)
-        if scale < 0.99:
-            page.scale_by(scale)
-            changed += 1
-    if changed:
-        tmp = pdf_path.with_suffix(".rescaled.tmp")
-        with open(tmp, "wb") as fh:
-            writer.write(fh)
-        os.replace(tmp, pdf_path)
-    return changed
-
-
 def download_via_iiif(
     canonical_id: str,
     out_pdf: Path,
@@ -922,6 +890,7 @@ def download_via_iiif(
     tiles: str = "auto",
     start: Optional[int] = None,
     stop: Optional[int] = None,
+    keep_images: bool = False,
 ) -> dict:
     """Fast in-process downloader.
 
@@ -930,9 +899,8 @@ def download_via_iiif(
     tiles. A one-request page smaller than the canvas says it should be (a
     silent downsample) is fetched again as tiles.
 
-    start/stop select a 1-based, inclusive range of manifest canvases (same
-    meaning as nbno_run.sh --start/--stop); stop is clamped to the number of
-    canvases. Page numbers, placeholders and the returned "canvases" are
+    start/stop select a 1-based, inclusive range of manifest canvases (by
+    position, covers included); stop is clamped to the number of canvases. Page numbers, placeholders and the returned "canvases" are
     relative to the selected range (page 1 = canvas `start`).
 
     Auth is optional. `api.nb.no` serves manifests and metadata without any
@@ -960,21 +928,51 @@ def download_via_iiif(
     lists the 1-based PDF page numbers that are placeholders, which the
     caller must tell the user about; `canvases` gives each PDF page's canvas
     name (None for a placeholder), which the ALTO text layer is keyed on.
+
+    Resume: pages are saved in pages_dir(out_pdf, size) beside the PDF. A run
+    that stops early (the ~170 s call limit, an error) or leaves placeholders
+    keeps that folder, and a re-run with the same arguments fetches only the
+    pages not yet there. Once every page is in the PDF the folder is removed,
+    or, with keep_images, renamed to <pdf stem>_images/ beside the PDF.
     """
-    import tempfile
     if start is not None and start < 1:
         raise ValueError(f"start must be >= 1 (got {start})")
     if stop is not None and stop < (start or 1):
         raise ValueError(f"stop must be >= start (got start={start}, stop={stop})")
     if size not in SIZES:
         raise ValueError(f"size must be one of {sorted(SIZES)} (got {size!r})")
-    tmpdir = Path(tempfile.mkdtemp(prefix="nbno_zotero_"))
+    pages = pages_dir(out_pdf, size)
+    pages.mkdir(parents=True, exist_ok=True)
+    result = _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
+                                SIZES[size], workers, tiles, pages,
+                                start, stop)
+    if result["missing"]:
+        print(f"[iiif] the pages downloaded so far are kept in {pages}; "
+              "re-running the same command fetches only the missing ones.")
+        return result
+    if keep_images:
+        images = out_pdf.parent / f"{out_pdf.stem}_images"
+        shutil.rmtree(images, ignore_errors=True)
+        images.mkdir(parents=True)
+        # Only the downloaded pages: not placeholders (page_NNNN.missing.jpg)
+        # or a .dpi.jpg left by an interrupted PDF assembly.
+        for p in sorted(pages.glob("page_[0-9][0-9][0-9][0-9].jpg")):
+            p.replace(images / p.name)
+        result["images"] = str(images)
+        print(f"[iiif] page images kept in {images}")
+    shutil.rmtree(pages, ignore_errors=True)
     try:
-        return _download_via_iiif(canonical_id, out_pdf, bearer, nbsso,
-                                  SIZES[size], workers, tiles, tmpdir,
-                                  start, stop)
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+        pages.parent.rmdir()   # _pages/, when no other download is pending
+    except OSError:
+        pass
+    return result
+
+
+def pages_dir(out_pdf: Path, size: str = "half") -> Path:
+    """Where download_via_iiif keeps the pages of `out_pdf` between runs.
+    The PDF's name already carries the page range (_c<N>-<M>); the size is
+    added because half- and full-size pages must not mix in one PDF."""
+    return out_pdf.parent / "_pages" / f"{out_pdf.stem}_{size}"
 
 
 # Pages fetched before deciding that the whole book will fail (see above).
@@ -1048,6 +1046,9 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
         idx, entry = idx_entry
         if entry["canvas"].endswith("_C2"):
             return idx, None, "skipped_c2"
+        path = tmpdir / f"page_{idx:04d}.jpg"
+        if path.exists():
+            return idx, str(path), "cached"   # from an earlier run (resume)
 
         data: Optional[bytes] = None
         mode = "single"
@@ -1082,8 +1083,11 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
 
         if data is None:
             return idx, None, mode + "_failed"
-        path = tmpdir / f"page_{idx:04d}.jpg"
-        path.write_bytes(data)
+        # Written under another name and renamed, so a run killed mid-write
+        # never leaves a truncated page that the next run takes as done.
+        part = path.with_name(path.name + ".part")
+        part.write_bytes(data)
+        os.replace(part, path)
         return idx, str(path), mode
 
     def fetch_page_safe(idx_entry):
@@ -1098,6 +1102,9 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
     results: Dict[int, Optional[str]] = {}
     modes: Dict[int, str] = {}
     work = list(enumerate(entries, start=1))
+    have = sum(1 for i, _ in work if (tmpdir / f"page_{i:04d}.jpg").exists())
+    if have:
+        print(f"[iiif] resuming: {have} of {len(work)} pages already downloaded in {tmpdir}")
     with ThreadPoolExecutor(max_workers=workers) as pool:
         # The first pages on their own: when every one of them fails, so
         # will the rest (no Norwegian IP, no loan, an expired cookie), and
@@ -1136,7 +1143,8 @@ def _download_via_iiif(canonical_id, out_pdf, bearer, nbsso, scale,
     downsample_count = sum(1 for m in modes.values() if "downsample" in m)
     failed = sorted(i for i, m in modes.items() if "_failed" in m)
     print(f"[iiif] {ok}/{len(entries)} pages in {elapsed:.1f}s "
-          f"(tiled: {tile_count}, single-shot downsamples observed: "
+          + (f"({have} from the earlier run) " if have else "")
+          + f"(tiled: {tile_count}, single-shot downsamples observed: "
           f"{downsample_count}"
           + (f", failed: {len(failed)}" if failed else "")
           + "); assembling PDF...")
@@ -1191,46 +1199,35 @@ def _placeholder_page(tmpdir: Path, idx: int, canvas: str, like: str, why: str) 
     return str(path)
 
 
-def download_via_wrapper(
-    canonical_id: str,
-    out_pdf: Path,
-    cookie: Optional[str],
-    resize: Optional[int],
-    skill_scripts_dir: Path,
-    start: Optional[int] = None,
-    stop: Optional[int] = None,
-) -> None:
-    """Shell out to nbno_run.sh — the bash wrapper that ships with the skill."""
-    wrapper = skill_scripts_dir / "nbno_run.sh"
-    if not wrapper.exists():
-        raise SystemExit(
-            f"ERROR: nbno_run.sh not found at {wrapper}. "
-            "Pass --skill-scripts-dir if the script lives elsewhere."
-        )
-    workdir = out_pdf.parent / f"_nbno_{canonical_id}"
-    workdir.mkdir(parents=True, exist_ok=True)
-    cmd = ["bash", str(wrapper),
-           "--id", canonical_id,
-           "--out", str(workdir)]
-    if cookie:
-        cmd += ["--cookie", cookie]
-    if resize:
-        cmd += ["--resize", str(resize)]
-    if start:
-        cmd += ["--start", str(start)]
-    if stop:
-        cmd += ["--stop", str(stop)]
-    print(f"[wrapper] running: {' '.join(cmd)}")
-    rc = subprocess.call(cmd)
-    if rc != 0:
-        raise SystemExit(f"ERROR: nbno_run.sh exited with status {rc}.")
-    pdfs = sorted(workdir.glob("*.pdf"))
-    if not pdfs:
-        raise SystemExit(f"ERROR: nbno_run.sh produced no PDF in {workdir}.")
-    out_pdf.parent.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(pdfs[0]), str(out_pdf))
-    # Clean up the working directory.
-    shutil.rmtree(workdir, ignore_errors=True)
+# The durable cookie file auth.md describes, for --cookie auto.
+DEFAULT_COOKIE = Path.home() / ".nbno" / "cookie.txt"
+# nb.no cookies live 24-48 h. A stale file is well-formed, so nothing rejects
+# it, and its 403s look like a geo or loan problem.
+COOKIE_STALE_HOURS = 24
+
+
+def nbsso_from_cookie_arg(cookie: str) -> str:
+    """The nbsso pair from --cookie <file|auto>, with a warning when the file
+    is old enough to have expired. Exits 4 when there is no usable file."""
+    from geo_check import nbsso_from_cookie_file
+    path = DEFAULT_COOKIE if cookie == "auto" else Path(cookie).expanduser()
+    if not path.is_file():
+        print(f"ERROR: no cookie file at {path}. Make one as auth.md describes "
+              "(two lines: 'authorization=' and 'cookie=nbsso=<value>; _nblb=<value>'), "
+              "or pass --nbsso.", file=sys.stderr)
+        raise SystemExit(4)
+    nbsso = nbsso_from_cookie_file(str(path))
+    if not nbsso:
+        print(f"ERROR: cookie file {path} has no 'cookie=' line with an nbsso= pair. "
+              "Expected: 'cookie=nbsso=<value>; _nblb=<value>'.", file=sys.stderr)
+        raise SystemExit(4)
+    age_h = (time.time() - path.stat().st_mtime) / 3600
+    if age_h >= COOKIE_STALE_HOURS:
+        print(f"[auth] WARNING: cookie file is {age_h:.0f} h old; nb.no cookies expire "
+              "after roughly 24-48 h. If pages 403, re-capture it before debugging "
+              "geo or the loan.")
+    print(f"[auth] using the nbsso cookie from {path}")
+    return nbsso
 
 
 # ---------------------------------------------------------------------------
@@ -1673,15 +1670,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                     help="nb.no URN or canonical ID (e.g. digibok_2008051600041)")
     ap.add_argument("--out", required=True,
                     help="Output directory for the .pdf + .rdf pair.")
-    ap.add_argument("--cookie", default=None,
-                    help="Cookie file path (or 'auto' for ~/.nbno/cookie.txt). "
-                         "Selects the nbno_run.sh wrapper, which is the only "
-                         "path that reads it.")
-    ap.add_argument("--downloader", choices=("auto", "iiif", "wrapper"),
-                    default="auto",
-                    help="auto (default): in-process IIIF unless --cookie is "
-                         "given without --nbsso/--bearer. iiif / wrapper "
-                         "force one path.")
+    ap.add_argument("--cookie", default=None, metavar="FILE|auto",
+                    help="Cookie file in auth.md's format ('auto' = "
+                         "~/.nbno/cookie.txt); its nbsso pair is used as --nbsso.")
     ap.add_argument("--bearer", default=None,
                     help="OPTIONAL bearer token for api.nb.no. Not needed — "
                          "api.nb.no authenticates by cookie — but accepted "
@@ -1691,8 +1682,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "the only credential FEIDE-licensed items actually "
                          "need. Not required for public or Bokhylla items.")
     ap.add_argument("--start", type=int, default=None,
-                    help="First canvas to include (1-based, as in nbno_run.sh). "
-                         "Canvas numbers are not printed page numbers.")
+                    help="First canvas to include (1-based position in the "
+                         "manifest, covers included). Canvas numbers are not "
+                         "printed page numbers.")
     ap.add_argument("--stop", type=int, default=None,
                     help="Last canvas to include (inclusive; clamped to the "
                          "book's length).")
@@ -1702,12 +1694,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "shrink, 4 tiles a page for in-copyright books. "
                          "full: the scan's own size, 12 tiles a page; only "
                          "when the user asks for full resolution.")
-    ap.add_argument("--resize", type=int, default=None,
-                    help="nbno_run.sh wrapper only: page size as a "
-                         "percentage (suggested 75). The IIIF downloader "
-                         "uses --size.")
     ap.add_argument("--workers", type=int, default=12,
-                    help="Parallel downloaders for the IIIF path (default 12).")
+                    help="Parallel downloads (default 12).")
+    ap.add_argument("--keep-images", action="store_true",
+                    help="Also keep the downloaded page images, in "
+                         "<out>/<basename>_images/ (page_0001.jpg, ...).")
+    ap.add_argument("--no-rdf", dest="rdf", action="store_false",
+                    help="No Zotero RDF or JSON: just the PDF (nb_download.py "
+                         "sets this).")
     ap.add_argument("--tiles", choices=("auto", "always", "never"),
                     default="auto",
                     help="IIIF tile strategy. auto (default): one request "
@@ -1764,11 +1758,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                          "PDF exceeds this size in MB (default 150). "
                          "0 = never.")
     ap.add_argument("--force-auth", action="store_true",
-                    help="Skip the access pre-check and attempt the chosen "
-                         "download path regardless of accessInfo.")
-    ap.add_argument("--skill-scripts-dir", default=str(_HERE),
-                    help="Path to the nbno skill's scripts/ folder "
-                         "(used to locate nbno_run.sh).")
+                    help="Skip the access pre-check and download "
+                         "regardless of accessInfo.")
     args = ap.parse_args(argv)
     if args.start is not None and args.start < 1:
         ap.error("--start must be 1 or more")
@@ -1778,6 +1769,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         # Bitonal pages have lost the grey levels Tesseract reads best, and
         # --no-ocr exists for "download now, OCR later".
         args.shrink = not args.no_ocr
+    if args.cookie:
+        if args.nbsso:
+            print("[auth] note: --nbsso given, so --cookie is ignored")
+        else:
+            args.nbsso = nbsso_from_cookie_arg(args.cookie)
 
     canonical = normalise_id(args.id)
     out_dir = Path(args.out).expanduser().resolve()
@@ -1803,15 +1799,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     if access.geo_gated:
         print(f"[access] GEO-GATED: images are served only from "
               f"{access.access_allowed_from}.")
-    have_auth = bool(args.bearer or args.nbsso or args.cookie)
+    have_auth = bool(args.bearer or args.nbsso)
     if access.requires_auth and not have_auth and not args.force_auth:
         raise SystemExit(
             f"ERROR: this item needs a credential this run does not have "
             f"({access.reason}).\n"
             "       Capture a session via SKILL.md Step 0 (built-in browser) "
             "or the fallbacks in auth.md,\n"
-            "       then re-run with --nbsso (fast IIIF) or "
-            "--cookie /path/to/cookie.txt (wrapper).\n"
+            "       then re-run with --nbsso or --cookie /path/to/cookie.txt.\n"
             "       An accessAllowedFrom=NB item also needs a digital loan "
             "the user takes in a browser first.\n"
             f"       Note this item is also geo-gated to "
@@ -1874,55 +1869,28 @@ def main(argv: Optional[List[str]] = None) -> int:
           f"place: {book.place or '?'}")
 
     # ---- Download -----------------------------------------------------------
-    # The IIIF path is the default: it works with no credential at all for
-    # public-domain and (from Norway) Bokhylla items, and --nbsso alone is
-    # enough for FEIDE items because api.nb.no authenticates by cookie. The
-    # wrapper is chosen only by an explicit --cookie file (or --downloader
-    # wrapper) — it used to be the silent default whenever no --nbsso/--bearer
-    # was given, which made `--tiles always` a no-op for exactly the Bokhylla
-    # case that needs tiles.
-    if args.downloader == "auto":
-        use_iiif = not args.cookie or bool(args.nbsso or args.bearer)
-    else:
-        use_iiif = args.downloader == "iiif"
-    missing_pages: dict = {"missing": []}
+    # No credential at all for public-domain and (from Norway) Bokhylla
+    # items; --nbsso alone for FEIDE items, as api.nb.no authenticates by
+    # cookie. (Until 2.0 a --cookie file sent the download through the
+    # third-party nbno CLI instead; it left out covers, could not make a PDF
+    # of large maps, and fetched every page at full size.)
+    creds = "+".join(k for k, v in (("nbsso", args.nbsso),
+                                    ("bearer", args.bearer)) if v)
+    print(f"[dl] downloading via IIIF ({creds or 'no credentials'}, "
+          f"size={args.size}, tiles={args.tiles})")
     ocr_failed = ""
-    if use_iiif:
-        creds = "+".join(k for k, v in (("nbsso", args.nbsso),
-                                        ("bearer", args.bearer)) if v)
-        print(f"[dl] using fast IIIF in-process downloader "
-              f"({creds or 'no credentials'}, size={args.size}, tiles={args.tiles})")
-        if args.cookie:
-            print("[dl] note: --cookie is only read by the nbno_run.sh wrapper; "
-                  "pass --nbsso for the IIIF path, or --downloader wrapper")
-        if args.resize:
-            print("[dl] note: --resize applies to the nbno_run.sh wrapper only; "
-                  "the IIIF downloader uses --size")
-        missing_pages = download_via_iiif(
-            canonical_id=canonical,
-            out_pdf=pdf_path,
-            bearer=args.bearer,
-            nbsso=args.nbsso,
-            size=args.size,
-            workers=args.workers,
-            tiles=args.tiles,
-            start=args.start,
-            stop=args.stop,
-        )
-    else:
-        print("[dl] using nbno_run.sh wrapper"
-              + (" (--cookie given)" if args.cookie else "")
-              + ("; --tiles/--workers do not apply here"
-                 if args.tiles != "auto" or args.workers != 12 else ""))
-        download_via_wrapper(
-            canonical_id=canonical,
-            out_pdf=pdf_path,
-            cookie=args.cookie,
-            resize=args.resize,
-            skill_scripts_dir=Path(args.skill_scripts_dir).resolve(),
-            start=args.start,
-            stop=args.stop,
-        )
+    missing_pages = download_via_iiif(
+        canonical_id=canonical,
+        out_pdf=pdf_path,
+        bearer=args.bearer,
+        nbsso=args.nbsso,
+        size=args.size,
+        workers=args.workers,
+        tiles=args.tiles,
+        start=args.start,
+        stop=args.stop,
+        keep_images=args.keep_images,
+    )
     print(f"[dl] PDF: {pdf_path}  ({pdf_path.stat().st_size/1e6:.1f} MB)")
 
     # ---- Text layer ---------------------------------------------------------
@@ -1931,12 +1899,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         used_nb = False
         if args.ocr != "tesseract":
-            page_canvases = missing_pages.get("canvases")
-            if page_canvases:
-                used_nb = add_nb_text_layer(canonical, pdf_path, page_canvases,
-                                            args.nbsso, args.workers)
-            else:
-                print("[text] nb.no's OCR needs the IIIF downloader; using Tesseract")
+            used_nb = add_nb_text_layer(canonical, pdf_path, missing_pages["canvases"],
+                                        args.nbsso, args.workers)
             if not used_nb and args.ocr == "nb":
                 print("[text] WARNING: --ocr nb was asked for, but nb.no's OCR "
                       "is not available here; falling back to Tesseract.")
@@ -1993,8 +1957,9 @@ def main(argv: Optional[List[str]] = None) -> int:
               f"{stats['bytes_after']/1e6:.1f} MB "
               f"(saved {saved/1e6:.1f} MB, {pct:.0f}%)")
     elif args.no_ocr:
-        print("[shrink] skipped: --no-ocr keeps the unshrunk pages for OCR. "
-              "After ocr_chunked.py finishes, run "
+        print(f"[shrink] skipped: the pages are as downloaded "
+              f"({pdf_path.stat().st_size/1e6:.0f} MB), ready for OCR with "
+              "ocr_chunked.py. To shrink (after any OCR): "
               f"shrink_pdf.py --pdf {pdf_path} --in-place")
     elif args.shrink_threshold_mb > 0:
         size_mb = pdf_path.stat().st_size / 1e6
@@ -2006,19 +1971,23 @@ def main(argv: Optional[List[str]] = None) -> int:
     # ---- RDF ----------------------------------------------------------------
     # Also writes <base>.zotero.json, the same item for Zoteus's
     # zotero_create_items (zotero-ready.md, "Direct import with Zoteus").
-    zotero_rdf.write_zotero_files(
-        book_to_item(book), out_dir, base,
-        pdf_filename=pdf_name,
-        link_url=items_page_url(canonical),
-        link_title="eBok (nb.no)",
-        item_id=base.lower(),
-    )
+    if args.rdf:
+        zotero_rdf.write_zotero_files(
+            book_to_item(book), out_dir, base,
+            pdf_filename=pdf_name,
+            link_url=items_page_url(canonical),
+            link_title="eBok (nb.no)",
+            item_id=base.lower(),
+        )
 
     print()
     print(f"Done. Final artefacts in {out_dir}:")
     print(f"  {pdf_name}")
-    print(f"  {rdf_name}   ← import this into Zotero")
-    print(f"  {base}.zotero.json   ← the same item for Zoteus (zotero_create_items)")
+    if args.rdf:
+        print(f"  {rdf_name}   ← import this into Zotero")
+        print(f"  {base}.zotero.json   ← the same item for Zoteus (zotero_create_items)")
+    if missing_pages.get("images"):
+        print(f"  {Path(missing_pages['images']).name}/   ← the page images")
     extras = []
     if keep_master and master_path.exists():
         extras.append(
@@ -2043,7 +2012,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if missing_pages["missing"]:
         print()
         print(f"WARNING: PDF pages {missing_pages['missing']} are placeholders — those "
-              "pages could not be downloaded. Re-run the same command to fill them in; "
+              "pages could not be downloaded. Re-run the same command with the same "
+              "--out to fill them in (the other pages are kept in "
+              f"{pages_dir(pdf_path, args.size)} and not fetched again); "
               "until then, tell the user they are missing.")
         return 3
     if ocr_failed:

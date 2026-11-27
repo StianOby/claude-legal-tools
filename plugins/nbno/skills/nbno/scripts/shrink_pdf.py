@@ -54,6 +54,11 @@ from typing import List, Optional, Tuple
 MODES = ("bitonal", "grey", "jpeg")
 
 
+# Pillow's decompression-bomb limit (~179 MP) is below nb.no's full-size maps
+# (up to ~414 MP seen); same value as zotero_book.MAX_IMAGE_PIXELS.
+MAX_IMAGE_PIXELS = 2_000_000_000
+
+
 def _ensure_deps():
     """Import pikepdf and PIL (and numpy, which the bitonal mode needs),
     installing them to the persistent target if necessary. Mirrors the
@@ -63,6 +68,7 @@ def _ensure_deps():
         import pikepdf  # type: ignore
         from PIL import Image  # type: ignore
         import numpy  # type: ignore  # noqa: F401
+        Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
         return pikepdf, Image
     except ImportError:
         pass
@@ -111,6 +117,7 @@ def _ensure_deps():
             )
     import pikepdf  # type: ignore
     from PIL import Image  # type: ignore
+    Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
     return pikepdf, Image
 
 

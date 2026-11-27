@@ -125,8 +125,8 @@ Tell the user an item needs a loan *before* they decide, not after.
 
 ## Option A — No auth (open content)
 
-The default. Run `nbno_run.sh` without `--cookie`, or call
-`download_via_iiif` with no credentials at all. Correct for public-domain
+The default. Run `nb_download.py` / `zotero_book.py` without `--cookie`
+or `--nbsso`. Correct for public-domain
 items **and for Bokhylla items from a Norwegian IP** — the latter need no
 cookie, only the right country. If page images 403, check `accessAllowedFrom`
 and the egress IP before reaching for a cookie.
@@ -265,20 +265,19 @@ through the tool channel is not viable for a book.
    - Write the cookie to a **fresh per-run path**, mode 600:
      ```bash
      CK="$(mktemp -d)/cookie.txt"; touch "$CK"; chmod 600 "$CK"
-     # then write the two lines into "$CK"
-     authorization=
+     # then write this line into "$CK"
      cookie=nbsso=<v>; _nblb=<v>
      ```
-     The empty `authorization=` line is fine — there is no bearer token to
-     capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
+     There is no bearer token to capture; an `authorization=` line, as older
+     captures have, is ignored.
      > **Never write to, or reuse, a shared path like `/tmp/cookie.txt`.** A
      > file from an earlier session may already be there, owned by another uid
      > and unwritable — and it will look perfectly well-formed. Passing it
      > sends an **expired cookie**, which fails as a 403 you will then waste
      > time blaming on auth or geo. If a path you did not just write already
      > exists, pick a different one; do not overwrite it and do not trust it.
-   - Pass `--cookie "$CK"` to `nbno_run.sh`, or `--nbsso "nbsso=<v>"` to
-     `zotero_book.py` / `download_via_iiif()`.
+   - Pass `--cookie "$CK"` (or `--nbsso "nbsso=<v>"`) to `nb_download.py` /
+     `zotero_book.py`.
    - Do this **as early as possible and only once** — context compaction can
      drop the user's confirmation message and cause a later block.
 8. **Expiry.** Cookies live 24–48 h. On a mid-run 401/403, repeat step 7; the
@@ -364,13 +363,11 @@ a visit they were already making:
    **not** a shared `/tmp/cookie.txt`), or `~/.nbno/cookie.txt` for a durable
    one:
    ```
-   authorization=
    cookie=nbsso=<value>; _nblb=<value>
    ```
-   The empty `authorization=` line is correct — there is no bearer token to
-   capture, and `nbno_run.sh` strips the empty line before the CLI sees it.
-5. Pass `--cookie <that path>` to `nbno_run.sh`, or `--nbsso
-   "nbsso=<value>"` to `zotero_book.py`.
+   There is no bearer token to capture; an `authorization=` line is ignored.
+5. Pass `--cookie <that path>` (or `--nbsso "nbsso=<value>"`) to
+   `nb_download.py` / `zotero_book.py`.
 
 **Ask them to paste only the two cookie values, never the whole cookie header
 or a screenshot of the jar.** The rest of `document.cookie` has no business in
@@ -386,7 +383,7 @@ If the user keeps the file at `~/.nbno/cookie.txt` on their own machine
 2. Upload `cookie.txt` once into the session (you can then pass the upload
    path to `--cookie`).
 
-Then invoke the wrapper with `--cookie auto` (resolves to
+Then pass `--cookie auto` (resolves to
 `~/.nbno/cookie.txt` in `Bash` — adjust the path accordingly if
 the cookie is mounted/uploaded elsewhere, in which case pass
 `--cookie /path/to/cookie.txt` explicitly).
@@ -396,19 +393,16 @@ the cookie is mounted/uploaded elsewhere, in which case pass
 ## Option C — Manual cookie file
 
 The user already has a cookie text file, or makes one via **Fallback 3**
-above. Accept its path and pass it through with `--cookie <path>`. Format
-(per nbno's README):
+above. Accept its path and pass it through with `--cookie <path>`. Format:
 
 ```
-authorization=<token, or empty>
-cookie=<full cookie header>
+cookie=nbsso=<value>; _nblb=<value>
 ```
 
-`nbno_run.sh` accepts an **empty or absent** `authorization=` line: it strips
-the line before handing the file to the `nbno` CLI, which would otherwise
-send a literal empty `Authorization` header on every request. It errors only
-if there is no usable `cookie=` line, and warns if that line has no `nbsso=`
-pair.
+Only the `nbsso` pair is read; an `authorization=` line (older captures,
+nbno CLI files) is ignored. The scripts exit 4 when the file has no
+`cookie=` line with an `nbsso=` pair, and warn when it is over 24 hours
+old (nb.no cookies expire after 24–48 h).
 
 An older file captured from Network → Request Headers will carry a real
 bearer token and a long cookie header. Both still work — nothing rejects a

@@ -25,7 +25,7 @@ the first pages and refused the rest (2026-11-26).
 Usage:
     python geo_check.py                       # anonymous view
     python geo_check.py --nbsso "nbsso=<v>"   # the user's own session
-    python geo_check.py --cookie <dir>/cookie.txt   # same, from nbno_run.sh's cookie file
+    python geo_check.py --cookie <dir>/cookie.txt   # same, from a cookie file (auth.md)
     python geo_check.py --id digibok_2008051600041   # + accessInfo + tile probe
 
 Exit status: 0 normally; 3 when the route is norwegian-ip or
@@ -62,7 +62,7 @@ import urllib.request
 from typing import Optional
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.7.0"
+VERSION = "2.0.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 ME_URL = "https://api.nb.no/me/v1"
@@ -175,18 +175,22 @@ def probe_tile(canonical: str, nbsso: Optional[str],
 
 
 def nbsso_from_cookie_file(path: str) -> Optional[str]:
-    """The `nbsso=<v>` pair from a cookie file ('cookie=nbsso=<v>; _nblb=<v>'
-    line, as nbno_run.sh reads it), or None."""
+    """The `nbsso=<v>` pair from a cookie file (a 'cookie=nbsso=<v>; _nblb=<v>'
+    line, auth.md's format; an 'authorization=' line is ignored), or None.
+    Tolerates leading whitespace, spaces around '=' and CRLF line endings
+    (Windows captures)."""
     try:
-        text = Path(path).read_text(encoding="utf-8")
-    except OSError:
+        text = Path(path).expanduser().read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
         return None
     for line in text.splitlines():
-        if not line.lower().startswith("cookie="):
+        key, sep, value = line.strip().partition("=")
+        if not sep or key.strip().lower() != "cookie":
             continue
-        for part in line[len("cookie="):].split(";"):
-            if part.strip().startswith("nbsso="):
-                return part.strip()
+        for part in value.split(";"):
+            name, eq, val = part.strip().partition("=")
+            if eq and name.strip() == "nbsso" and val.strip():
+                return f"nbsso={val.strip()}"
     return None
 
 
@@ -196,7 +200,7 @@ def main(argv: Optional[list] = None) -> int:
                     help="nbsso=<value> cookie pair. Without it you see the "
                          "anonymous view, which can differ from the user's.")
     ap.add_argument("--cookie", default=None, metavar="FILE",
-                    help="Cookie file in nbno_run.sh's format (a 'cookie=nbsso=...; "
+                    help="Cookie file in auth.md's format (a 'cookie=nbsso=...; "
                          "_nblb=...' line); its nbsso pair is used as --nbsso.")
     ap.add_argument("--id", default=None,
                     help="Optional canonical id or URN — also prints that "

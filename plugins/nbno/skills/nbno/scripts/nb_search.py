@@ -48,7 +48,7 @@ import urllib.request
 
 API = "https://api.nb.no/catalog/v1/items"
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "1.7.0"
+VERSION = "2.0.0"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 _MEDIATYPE = {
@@ -170,8 +170,8 @@ def main(argv=None) -> int:
               + ("" if h["digital"] else "  (not digitised)"))
     if hits:
         print("\naccess: EVERYWHERE = free; NORWAY = Norwegian IP (Bokhylla); "
-              "NB = FEIDE loan required. Pass the id to zotero_book.py or "
-              "nbno_run.sh.")
+              "NB = FEIDE loan required. Pass the id to nb_download.py or "
+              "zotero_book.py.")
     return 0
 
 

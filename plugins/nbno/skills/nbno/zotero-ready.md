@@ -56,11 +56,11 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
    falls back to the first organisation/contributor; with no creator at all
    (newspaper issues, anonymous works) the author part is simply omitted —
    `VG_(1868-1923)_1870.08.17_(1870)`. "n.d." stands in for a missing year.
-5. **Download the full PDF.** Two paths:
-   - **Fast IIIF (preferred for big books):** with `--nbsso` (`--bearer` is
-     optional and rarely available) the in-process
-     `ThreadPoolExecutor(12)` downloader takes over. It
-     tries both manifest endpoints (`/items/…` 404s on many items,
+5. **Download the full PDF** with the in-process IIIF downloader, which
+   needs no credential for public-domain or (from Norway) Bokhylla items
+   and takes `--nbsso` or a `--cookie` file for FEIDE ones (`--bearer` is
+   optional and rarely available):
+   - It runs 12 downloads at once (`--workers`), tries both manifest endpoints (`/items/…` 404s on many items,
      including plain digibok, and `/iiif/URN:…` serves them) and fetches
      every page at **half size** (`--size half`, ~1100 px wide, ~145 dpi):
      one request per page first, for every item, and four server-scaled
@@ -70,12 +70,9 @@ credential (Bokhylla needs a Norwegian IP); FEIDE-licensed items need
      resolution. Half size OCRed within 0.4 % of full size on three law
      books (2026-10-23). `--tiles always` forces tiles for every page;
      `--tiles never` disables them.
-   - **Which path runs:** the IIIF downloader is the default and needs no
-     credential for public-domain or (from Norway) Bokhylla items. The
-     `nbno_run.sh` wrapper runs only when `--cookie` is given without
-     `--nbsso`/`--bearer`, or with `--downloader wrapper`; `--tiles` and
-     `--workers` have no effect on the wrapper, and the `[dl]` line says
-     which path was chosen.
+   - Pages are kept in `<out>/_pages/` until the PDF is complete, so a run
+     cut off by the call limit, or one that left placeholder pages, resumes
+     when the same command is run again with the same `--out`.
 6. **Text layer.** Two sources, picked automatically (`--ocr auto`):
    - **nb.no's own OCR**, when the item serves it. nb.no OCRed its scans
      with ABBYY and publishes the result as ALTO XML, word by word, at
@@ -152,7 +149,7 @@ try to fix the cause and retry from that copy (SKILL.md Step 4, **OCR
 failed**); if it cannot be fixed, deliver and say the PDF is not searchable.
 
 **Part of a book:** `--start N --stop M` (1-based canvas numbers, inclusive,
-as in `nbno_run.sh`; not printed page numbers). The files get a
+covers included; not printed page numbers). The files get a
 `_c<N>-<M>` suffix so a partial copy never overwrites the full book. The
 Zotero record still describes the whole book — tell the user the PDF is an
 excerpt.
@@ -183,9 +180,9 @@ python {SKILL_DIR}/scripts/zotero_book.py \
   --out "$OUT_DIR" \
   --shrink-mode grey
 
-# Same book, slower wrapper path (no in-process IIIF; --cookie selects it)
+# FEIDE-licensed book, nbsso from a cookie file (auth.md, Option C)
 python {SKILL_DIR}/scripts/zotero_book.py \
-  --id URN:NBN:no-nb_digibok_2008051600041 \
+  --id URN:NBN:no-nb_digibok_2014050705024 \
   --out "$OUT_DIR" \
   --cookie auto
 
@@ -395,7 +392,7 @@ be added by hand.
   install dependencies (ocrmypdf, pikepdf) via `pip install --target`, with
   the pinned versions in `scripts/requirements.txt` as constraints, into
   `<--out>/_pylib/` instead, which lives under the workspace and survives
-  across calls. `nbno_run.sh` does the same for the `nbno` CLI. Override
+  across calls. Override
   the target with `NBNO_PYLIB=/some/abs/path` if you want a shared install
   across runs. The bin dir (`<target>/bin/`) is prepended to `PATH` and
   the target itself to `PYTHONPATH` automatically.
@@ -406,14 +403,10 @@ be added by hand.
   `_pylib/`. On the user's own machine, install
   `apt-get install tesseract-ocr tesseract-ocr-nor` (Debian/Ubuntu) or
   `brew install tesseract-lang` (macOS).
-- **Windows users: run the orchestrator under WSL2**, not native Windows.
-  `zotero_book.py`'s wrapper fallback shells out to `bash`/`nbno_run.sh`,
-  the auto-install passes `--break-system-packages` (a PEP 668 flag
-  rejected by Windows pip), and the apt language packs above don't exist
-  on native Windows. Under WSL2 (Ubuntu) the Linux instructions apply
-  unchanged. If WSL2 is not available, the **only** native-Windows path
-  that works is the fast IIIF route with `--nbsso --no-ocr` and
-  OCR done separately afterwards.
+- **Windows users:** downloading works on native Windows (`nb_download.py`,
+  or `zotero_book.py --no-ocr`; tried 2026-11-27). OCR needs Tesseract,
+  and the apt language packs above don't exist on native Windows: run the
+  OCR under WSL2 (Ubuntu), where the Linux instructions apply unchanged.
 - The RDF and PDF must arrive in the same folder for Zotero's import to find
   the attachment. The orchestrator always writes them together in `--out`.
 

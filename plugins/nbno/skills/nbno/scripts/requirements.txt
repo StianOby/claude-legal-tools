@@ -10,14 +10,10 @@ attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
-certifi==2026.10.23
-    # via requests
 cffi==2.1.1
     # via cryptography
 charset-normalizer==3.5.2
-    # via
-    #   pdfminer-six
-    #   requests
+    # via pdfminer-six
 cryptography==50.0.2
     # via pdfminer-six
 fonttools==4.68.0
@@ -26,8 +22,6 @@ fonttools==4.68.0
     #   pikepdf
 fpdf2==2.9.0
     # via ocrmypdf
-idna==3.20
-    # via requests
 img2pdf==0.6.3
     # via
     #   -r requirements.in
@@ -42,8 +36,6 @@ markdown-it-py==4.2.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
-nbno==1.2.5
-    # via -r requirements.in
 numpy==2.5.4
     # via -r requirements.in
 ocrmypdf==17.14.0
@@ -64,7 +56,6 @@ pillow==13.0.0
     #   -r requirements.in
     #   fpdf2
     #   img2pdf
-    #   nbno
     #   ocrmypdf
     #   pikepdf
 pluggy==1.7.0
@@ -86,8 +77,6 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-specifications
     #   pikepdf
-requests==2.34.2
-    # via nbno
 rich==15.0.0
     # via ocrmypdf
 rpds-py==2026.9.1
@@ -103,7 +92,5 @@ typing-inspection==0.4.5
     # via pydantic
 uharfbuzz==0.57.0
     # via ocrmypdf
-urllib3==2.8.0
-    # via requests
 uv==0.13.7
     # via -r requirements.in
