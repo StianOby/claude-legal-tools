@@ -136,7 +136,7 @@ class NormalizedBook:
 
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.6"
+VERSION = "2.0.7"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 
@@ -190,6 +190,9 @@ _URN_PREFIXES = ("URN:NBN:no-nb_", "urn:nbn:no-nb_", "urn:nbn:no-nb:")
 # type: newspapers are digavis_aftenposten_morgen_1_20150107_156_7_2 and
 # journals digitidsskrift_2021052683055_001. Keep this in step with the
 # identical pattern in scripts/browser/nbno_auth.js.
+# Item types with no printed text worth OCR (posters are digifoto ids).
+PICTURE_TYPES = ("digikart_", "digifoto_", "digimanus_")
+
 _TYPE_RE = re.compile(
     r"^(digibok|digavis|digifoto|digitidsskrift|digikart|digimanus|"
     r"digiprogramrapport|pliktmonografi|pliktperiodika)_[0-9A-Za-z_]+$"
@@ -1537,8 +1540,8 @@ def add_nb_text_layer(canonical_id: str, pdf_path: Path,
         print(f"[text] could not reach nb.no's OCR index ({e}); using Tesseract")
         return False
     if index is None:
-        print("[text] nb.no does not serve its OCR for this item (only "
-              "public-domain books do); using Tesseract")
+        print("[text] nb.no does not serve its OCR for this item (it does "
+              "for public-domain books and other printed text); using Tesseract")
         return False
     wanted = [c for c in page_canvases if c and c in index]
     print(f"[text] fetching nb.no's OCR (ALTO) for {len(wanted)} pages...")
@@ -1782,6 +1785,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         ap.error("--stop must be at least --start")
     if args.download_only:
         args.no_ocr, args.rdf = True, False
+    # Maps, photos, posters and manuscripts carry no printed text for
+    # Tesseract: an OCR layer there is noise (a 1663 Dutch sea chart came out
+    # OCR'd as English, Cowork 2026-11-27), and the bitonal shrink that
+    # follows OCR would turn the picture black and white.
+    picture = args.id.split("no-nb_")[-1].strip().startswith(PICTURE_TYPES)
+    if picture and not args.no_ocr and args.ocr == "auto":
+        print("[ocr] skipped: maps, photos, posters and manuscripts get no text "
+              "layer (pass --ocr tesseract to OCR one anyway)")
+        args.no_ocr = True
+        ocr_auto_skipped = True
+    else:
+        ocr_auto_skipped = False
     if args.shrink is None:
         # Bitonal pages have lost the grey levels Tesseract reads best, and
         # --no-ocr exists for "download now, OCR later".
@@ -1923,7 +1938,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # ---- Text layer ---------------------------------------------------------
     if args.no_ocr:
-        if not args.download_only:
+        if not (args.download_only or ocr_auto_skipped):
             print("[ocr] skipped (--no-ocr)")
     else:
         used_nb = False
@@ -1990,8 +2005,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         if size_mb > 50:
             print(f"[hint] PDF is {size_mb:.0f} MB. To shrink: shrink_pdf.py --pdf "
                   f"{pdf_path} --in-place (bitonal, for text pages); for maps, "
-                  "photos and posters use --shrink-mode grey, or leave it as is "
-                  "when the user asked for full resolution.")
+                  "photos and posters add --mode jpeg --max-width 4000 (keeps "
+                  "colour), or leave it as is when the user asked for full "
+                  "resolution.")
+    elif ocr_auto_skipped:
+        print(f"[shrink] skipped: the images are as downloaded "
+              f"({pdf_path.stat().st_size/1e6:.0f} MB). To shrink and keep "
+              f"colour: shrink_pdf.py --pdf {pdf_path} --in-place "
+              "--mode jpeg --max-width 4000")
     elif args.no_ocr:
         print(f"[shrink] skipped: the pages are as downloaded "
               f"({pdf_path.stat().st_size/1e6:.0f} MB), ready for OCR with "

@@ -207,7 +207,8 @@ nbno needs an ID of the form `<type>_<key>`, e.g. `digibok_2008051600041`
    **year matches the reference** (other years are other editions; "Utdrag
    av …" is an excerpt). `[NEWEST of the hits shown]` marks the latest
    edition when the hits span several years; add `--max 30` if more hits
-   exist than are shown. `--type tidsskrift` / `avis`, `--json`.
+   exist than are shown. `--type tidsskrift` / `avis` / `kart` / `foto` /
+   `plakat` / `noter` / `manus` / `programrapport`, `--json`.
    **By topic or period** (no specific reference): `--year 1850-1899`
    takes a range, and `--access everywhere|norway|nb` keeps only
    digitised items readable that way (free / Bokhylla / FEIDE loan).
@@ -316,8 +317,10 @@ For reading pages visually, OCR and shrinking, read
   (annotations, stamps, illustrations), use `--shrink-mode grey`
   (~80 MB for 400 pages). Say what size the PDF ended up.
 - **Don't shrink maps, photos or posters** the user asked for at full
-  resolution: bitonal would turn them black and white. Deliver them as they
-  are; offer `--shrink-mode grey` only if the size is a problem.
+  resolution. Deliver them as they are; if the size is a problem, offer
+  `shrink_pdf.py --pdf <file> --in-place --mode jpeg --max-width 4000`
+  (keeps colour). `zotero_book.py` gives them no OCR text layer and skips
+  the shrink by itself; `--ocr tesseract` forces OCR.
 - **OCR failed (exit 5):** the shrunk PDF and RDF are complete, and the
   unshrunk pages are kept as `<base>.original.pdf`. Tell the user OCR
   failed and why (the log quotes ocrmypdf's own error), then try to fix the

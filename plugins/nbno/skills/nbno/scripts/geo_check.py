@@ -62,7 +62,7 @@ import urllib.request
 from typing import Optional
 
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.6"
+VERSION = "2.0.7"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 ME_URL = "https://api.nb.no/me/v1"
@@ -273,8 +273,13 @@ def main(argv: Optional[list] = None) -> int:
             out["id"] = canonical
             out["accessInfo"] = blob.get("accessInfo")
         except urllib.error.URLError as exc:
-            print(f"ERROR: could not fetch item {canonical}: {exc}",
-                  file=sys.stderr)
+            if getattr(exc, "code", None) == 404:
+                print(f"ERROR: {canonical} is not in nb.no's catalogue (HTTP 404). "
+                      "Check the id; nb_search.py finds an item by author/title.",
+                      file=sys.stderr)
+            else:
+                print(f"ERROR: could not fetch item {canonical}: {exc}",
+                      file=sys.stderr)
             return 1
         allowed = (out["accessInfo"] or {}).get("accessAllowedFrom")
         if allowed in GEO_GATED:

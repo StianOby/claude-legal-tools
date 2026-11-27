@@ -51,13 +51,20 @@ import urllib.request
 
 API = "https://api.nb.no/catalog/v1/items"
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.6"
+VERSION = "2.0.7"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 _MEDIATYPE = {
     "bok": "bøker", "bøker": "bøker", "book": "bøker", "books": "bøker",
     "avis": "aviser", "aviser": "aviser", "newspaper": "aviser",
     "tidsskrift": "tidsskrift", "journal": "tidsskrift",
+    # The catalogue's other mediatype values (probed 2026-11-27).
+    "kart": "kart", "map": "kart",
+    "foto": "bilder", "bilder": "bilder", "photo": "bilder",
+    "plakat": "plakater", "poster": "plakater",
+    "noter": "noter", "music": "noter",
+    "manus": "privatarkivmateriale", "manuscript": "privatarkivmateriale",
+    "programrapport": "programrapporter",
     "all": None, "alle": None,
 }
 
@@ -152,7 +159,7 @@ def main(argv=None) -> int:
     ap.add_argument("--year", help="Publication year, or a range: 1850-1899.")
     ap.add_argument("--author", help="Added to the query; kept separate for readability.")
     ap.add_argument("--type", default="bok",
-                    help="bok (default) | avis | tidsskrift | all")
+                    help="bok (default) | avis | tidsskrift | kart | foto | plakat | noter | manus | programrapport | all")
     ap.add_argument("--access", choices=sorted(_ACCESS),
                     help="Only digitised items readable this way: everywhere "
                          "(free), norway (Bokhylla), nb (FEIDE loan).")
