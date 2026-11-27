@@ -17,12 +17,15 @@ Usage:
     python nb_search.py "Eckhoff Rettskildelære" --year 2001
     python nb_search.py "Rettskildelære" --author Eckhoff --max 20
     python nb_search.py "Lov og Rett" --type tidsskrift
+    python nb_search.py "Ibsen" --year 1850-1899 --access everywhere
     python nb_search.py "Eckhoff Rettskildelære" --json
 
 Every word in the query must match somewhere in the record (title,
 creators, publisher, subjects…), so "Eckhoff Rettskildelære" is a good
 query and a full citation with punctuation is not. Narrow with --year
-rather than by adding words.
+rather than by adding words. --year takes a year or a range (1850-1899);
+--access everywhere|norway|nb keeps only digitised items of that class
+(free / Bokhylla / FEIDE loan), --digitised only digitised items.
 
 Reading the output:
   - Hits are listed newest first, and the newest is marked — useful when
@@ -48,7 +51,7 @@ import urllib.request
 
 API = "https://api.nb.no/catalog/v1/items"
 # The plugin's version (plugin.json); tests/nbno checks that they agree.
-VERSION = "2.0.2"
+VERSION = "2.0.3"
 USER_AGENT = f"nbno-skill/{VERSION} (+https://github.com/StianOby/claude-legal-tools)"
 
 _MEDIATYPE = {
@@ -68,8 +71,25 @@ def _get(url: str, timeout: float = 30.0) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
+# --access -> the catalogue's contentClasses filter (probed 2026-11-27: with
+# digital:Ja, public / bokhylla / restricted give only EVERYWHERE / NORWAY /
+# NB items; without it, public also matches undigitised records).
+_ACCESS = {"everywhere": "public", "norway": "bokhylla", "nb": "restricted"}
+
+
+def year_filter(year: str) -> str:
+    """"1867" -> "1867"; "1850-1899" -> "[1850 TO 1899]" (the catalogue's
+    range syntax). Raises ValueError on anything else."""
+    m = re.fullmatch(r"\s*(\d{4})\s*(?:[-–]\s*(\d{4})\s*)?", year)
+    if not m:
+        raise ValueError(year)
+    a, b = m.groups()
+    return f"[{a} TO {b}]" if b else a
+
+
 def search(query: str, year: str | None = None, author: str | None = None,
-           mediatype: str | None = "bøker", size: int = 10) -> dict:
+           mediatype: str | None = "bøker", size: int = 10,
+           access: str | None = None, digitised: bool = False) -> dict:
     q = query.strip()
     if author:
         q = f"{author.strip()} {q}".strip()
@@ -77,7 +97,11 @@ def search(query: str, year: str | None = None, author: str | None = None,
     if mediatype:
         params.append(("filter", f"mediatype:{mediatype}"))
     if year:
-        params.append(("filter", f"year:{year}"))
+        params.append(("filter", f"year:{year_filter(year)}"))
+    if access:
+        params.append(("filter", f"contentClasses:{_ACCESS[access]}"))
+    if access or digitised:
+        params.append(("filter", "digital:Ja"))
     url = API + "?" + urllib.parse.urlencode(params)
     return _get(url)
 
@@ -125,19 +149,30 @@ def _mark_newest(hits: list) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("query", help="Words that must all match (author, title).")
-    ap.add_argument("--year", help="Publication year (exact).")
+    ap.add_argument("--year", help="Publication year, or a range: 1850-1899.")
     ap.add_argument("--author", help="Added to the query; kept separate for readability.")
     ap.add_argument("--type", default="bok",
                     help="bok (default) | avis | tidsskrift | all")
+    ap.add_argument("--access", choices=sorted(_ACCESS),
+                    help="Only digitised items readable this way: everywhere "
+                         "(free), norway (Bokhylla), nb (FEIDE loan).")
+    ap.add_argument("--digitised", action="store_true",
+                    help="Only digitised items (any access class).")
     ap.add_argument("--max", type=int, default=10, help="Hits to print (default 10).")
     ap.add_argument("--json", action="store_true", help="Machine-readable output.")
     args = ap.parse_args(argv)
 
     if args.type not in _MEDIATYPE:
         ap.error(f"--type must be one of: {', '.join(sorted(_MEDIATYPE))}")
+    if args.year:
+        try:
+            year_filter(args.year)
+        except ValueError:
+            ap.error("--year takes a year (1867) or a range (1850-1899)")
     try:
         data = search(args.query, year=args.year, author=args.author,
-                      mediatype=_MEDIATYPE[args.type], size=max(1, args.max))
+                      mediatype=_MEDIATYPE[args.type], size=max(1, args.max),
+                      access=args.access, digitised=args.digitised)
     except Exception as exc:  # network, JSON
         print(f"ERROR: catalogue search failed: {exc}", file=sys.stderr)
         return 2
@@ -166,8 +201,12 @@ def main(argv=None) -> int:
         print(f"  {who}")
         print(f"  {h['year'] or '?'} · {h['publisher'] or '?'} · "
               f"{h['pages'] or '?'} pages")
-        print(f"  access: {h['access']}  viewability: {h['viewability']}"
-              + ("" if h["digital"] else "  (not digitised)"))
+        if h["digital"]:
+            print(f"  access: {h['access']}  viewability: {h['viewability']}")
+        else:
+            # The catalogue gives undigitised records an access class too
+            # (often EVERYWHERE), which reads as "free" but has nothing behind it.
+            print("  access: none - not digitised, nothing to download")
     if hits:
         print("\naccess: EVERYWHERE = free; NORWAY = Norwegian IP (Bokhylla); "
               "NB = FEIDE loan required. Pass the id to nb_download.py or "

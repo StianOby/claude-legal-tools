@@ -194,8 +194,8 @@ nbno needs an ID of the form `<type>_<key>`, e.g. `digibok_2008051600041`
 1. **URN** `URN:NBN:no-nb_digibok_…` → the scripts strip the prefix; pass
    either form.
 2. **`nb.no/items/<hash>` URL** — the hash is **not** the ID and cannot be
-   converted. With the browser tools: navigate the pane to the URL, paste the helper again (same file)
-   the helper, `await __nb.resolveUrn()` → `{id, urn, via}`. On
+   converted. With the browser tools: navigate the pane to the URL, paste
+   the helper again (same file), then `await __nb.resolveUrn()` → `{id, urn, via}`. On
    `{error: "ambiguous"}` (item pages embed other editions' ids) ask the user
    for the URN; do not pick a candidate. Otherwise ask the user to click
    "Referere/Sitere" and paste the URN. Check that `__nb.access(id).title`
@@ -208,6 +208,10 @@ nbno needs an ID of the form `<type>_<key>`, e.g. `digibok_2008051600041`
    av …" is an excerpt). `[NEWEST of the hits shown]` marks the latest
    edition when the hits span several years; add `--max 30` if more hits
    exist than are shown. `--type tidsskrift` / `avis`, `--json`.
+   **By topic or period** (no specific reference): `--year 1850-1899`
+   takes a range, and `--access everywhere|norway|nb` keeps only
+   digitised items readable that way (free / Bokhylla / FEIDE loan).
+   A hit marked `not digitised` has nothing to download.
 
 Types: `digibok`, `digavis`, `digifoto`, `digitidsskrift`, `digikart`,
 `digimanus`, `digiprogramrapport`, `pliktmonografi`, `pliktperiodika`.
@@ -261,9 +265,12 @@ music): `nb_download.py`, which writes `AUTHOR_TITLE_(YEAR).pdf` to `--out`.
 For a Zotero item, OCR or shrink in one go, use `zotero_book.py` instead
 (below); both share one downloader.
 
+Create the scratch dir once (`mktemp -d`, in its own call) and write its
+printed path into every later command: a shell variable does not survive
+between Bash calls.
+
 ```bash
-OUT=$(mktemp -d); echo "$OUT"
-python {SKILL_DIR}/scripts/nb_download.py --id "digibok_2008051600041" --out "$OUT" \
+python {SKILL_DIR}/scripts/nb_download.py --id "digibok_2008051600041" --out /tmp/tmp.Ab12Cd \
   [--start 1 --stop 7] [--cookie <file>|auto | --nbsso "nbsso=<v>"] [--size full] [--keep-images]
 ```
 
